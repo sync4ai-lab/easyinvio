@@ -1,0 +1,12 @@
+{
+  "companies": [
+    {"groupName":"companyinformation","name":"veloce_tenant_id","label":"Veloce Tenant ID","type":"string","fieldType":"text","hasUniqueValue":true},
+    {"groupName":"companyinformation","name":"veloce_vat_number","label":"Veloce VAT Number","type":"string","fieldType":"text"},
+    {"groupName":"companyinformation","name":"veloce_package_count","label":"Veloce Package Count","type":"number","fieldType":"number"},
+    {"groupName":"companyinformation","name":"veloce_total_spend","label":"Veloce Total Spend","type":"number","fieldType":"number"},
+    {"groupName":"companyinformation","name":"veloce_currency","label":"Veloce Spend Currency","type":"string","fieldType":"text"}
+  ],
+  "optional_upsell_deals": [
+    {"groupName":"dealinformation","name":"veloce_milestone_id","label":"Veloce Milestone ID","type":"string","fieldType":"text","hasUniqueValue":true}
+  ]
+}

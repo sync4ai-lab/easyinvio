@@ -13,7 +13,7 @@ from backend.hubspot_crm import CRMError, HubSpotClient, HubSpotService, HubSpot
 
 
 def settings():
-    return HubSpotSettings(_env_file=None, hubspot_access_token="pat-local-test", hubspot_upsell_pipeline_id="pipeline1", hubspot_upsell_stage_id="stage1")
+    return HubSpotSettings(_env_file=None, hubspot_access_token="pat-local-test",hubspot_expected_portal_id=12345,hubspot_upsell_enabled=True, hubspot_upsell_pipeline_id="pipeline1", hubspot_upsell_stage_id="stage1")
 
 
 class Merchant:
@@ -27,8 +27,10 @@ class Merchant:
         assert request.headers["authorization"] == "Bearer pat-local-test"
         path = request.url.path
         body = json.loads(request.content) if request.content else {}
+        if path=='/account-info/v3/details':return httpx.Response(200,json={'portalId':12345,'accountType':'DEVELOPER_TEST'})
         if path.startswith("/crm/v3/properties/"):
-            return httpx.Response(200, json={"hasUniqueValue": True})
+            numeric=path.rsplit('/',1)[-1] in {'veloce_package_count','veloce_total_spend'}
+            return httpx.Response(200, json={"hasUniqueValue": True,'type':'number' if numeric else 'string','fieldType':'number' if numeric else 'text'})
         if path.startswith("/crm/v3/pipelines/"):
             return httpx.Response(200, json={"stages": [{"id": "stage1"}]})
         if path.startswith("/crm/v3/associations/"):
@@ -51,6 +53,51 @@ class Merchant:
 
 
 class HubSpotTests(unittest.IsolatedAsyncioTestCase):
+    async def test_companies_contacts_onboard_without_deal_configuration(self):
+        merchant=Merchant();config=settings().model_copy(update={'hubspot_upsell_enabled':False,'hubspot_upsell_pipeline_id':'','hubspot_upsell_stage_id':''})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(merchant)) as http:
+            client=HubSpotClient(http,config);tenant=uuid4()
+            company=await client.onboard(tenant,'Sandbox Company','test@example.invalid','GB123',address={'line1':'1 Test Street','city':'London','postal_code':'SW1A 1AA','country_code':'GB'})
+            self.assertIsNone(await client.milestone(tenant,company,'Sandbox Company',100,Decimal('123.45'),'GBP'))
+        self.assertFalse(any('/deals' in str(r.url) for r in merchant.calls))
+        properties=merchant.records['companies'][0]['properties']
+        self.assertEqual(properties['street'],'1 Test Street');self.assertEqual(properties['veloce_total_spend'],'123.45')
+        self.assertEqual(merchant.records['contacts'][0]['properties'],{'email':'test@example.invalid'})
+
+    async def test_account_mismatch_and_standard_account_block_before_writes(self):
+        for response,code in [({'portalId':99999,'accountType':'DEVELOPER_TEST'},'hubspot_account_mismatch'),({'portalId':12345,'accountType':'STANDARD'},'hubspot_test_account_required')]:
+            calls=[]
+            def transport(request):calls.append(request);return httpx.Response(200,json=response)
+            async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
+                with self.assertRaises(CRMError) as error:await HubSpotClient(http,settings()).onboard(uuid4(),'Sandbox','test@example.invalid','')
+                self.assertEqual(error.exception.code,code)
+            self.assertEqual([r.method for r in calls],['GET'])
+
+    async def test_property_type_and_ambiguous_create_fail_securely(self):
+        merchant=Merchant()
+        def wrong_type(request):
+            if request.url.path.endswith('/veloce_package_count'):return httpx.Response(200,json={'type':'string','fieldType':'text'})
+            return merchant(request)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(wrong_type)) as http:
+            with self.assertRaises(CRMError) as error:await HubSpotClient(http,settings()).onboard(uuid4(),'Sandbox','test@example.invalid','')
+            self.assertEqual(error.exception.code,'hubspot_property_type_mismatch')
+        calls=[]
+        def uncertain(request):calls.append(request);return httpx.Response(503,text='sensitive response not retained')
+        async with httpx.AsyncClient(transport=httpx.MockTransport(uncertain)) as http:
+            with self.assertRaises(CRMError) as error:await HubSpotClient(http,settings()).request('POST','/crm/v3/objects/companies',{'properties':{'name':'Sandbox'}})
+            self.assertEqual(error.exception.code,'hubspot_create_outcome_uncertain')
+        self.assertEqual(len(calls),1)
+
+    async def test_environment_placeholder_and_secret_validation(self):
+        from pydantic import ValidationError
+        config=HubSpotSettings(_env_file=None,hubspot_expected_portal_id='',hubspot_access_token='  pat-local-test  ')
+        self.assertIsNone(config.hubspot_expected_portal_id)
+        self.assertEqual(config.hubspot_access_token.get_secret_value(),'pat-local-test')
+        with self.assertRaises(ValidationError) as error:HubSpotSettings(_env_file=None,hubspot_access_token='Bearer pat-sensitive-value')
+        self.assertNotIn('pat-sensitive-value',str(error.exception))
+        with self.assertRaises(ValidationError):HubSpotSettings(_env_file=None,hubspot_enabled=True)
+        with self.assertRaises(ValidationError):HubSpotSettings(_env_file=None,hubspot_upsell_pipeline_id='../contacts')
+
     async def test_onboarding_replay_and_same_company_names_distinct_tenants(self):
         merchant = Merchant()
         async with httpx.AsyncClient(transport=httpx.MockTransport(merchant)) as http:
@@ -110,7 +157,7 @@ class HubSpotTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(calls), 1)
 
     async def test_unique_properties_required_before_creating_records(self):
-        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, json={"hasUniqueValue": False}))) as http:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, json={'portalId':12345,'accountType':'DEVELOPER_TEST'} if r.url.path=='/account-info/v3/details' else {"hasUniqueValue": False}))) as http:
             with self.assertRaises(CRMError) as raised:
                 await HubSpotClient(http, settings()).onboard(uuid4(), "Acme", "alex@example.com", "")
         self.assertEqual(raised.exception.code, "hubspot_unique_property_required")

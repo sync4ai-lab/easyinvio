@@ -19,7 +19,7 @@ from uuid import UUID
 import asyncpg
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, SecretStr, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger("veloce.crm")
@@ -31,8 +31,44 @@ class HubSpotSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
     hubspot_enabled: bool = False
     hubspot_access_token: SecretStr | None = None
+    hubspot_expected_portal_id: int | None = Field(default=None,ge=1)
+    hubspot_environment: str = Field(default='SANDBOX',pattern=r'^(SANDBOX|PRODUCTION)$')
+    hubspot_upsell_enabled: bool = False
     hubspot_upsell_pipeline_id: str = ""
     hubspot_upsell_stage_id: str = ""
+
+    @field_validator('hubspot_expected_portal_id',mode='before')
+    @classmethod
+    def optional_account(cls,value):
+        if value is None or isinstance(value,str) and not value.strip():return None
+        if isinstance(value,bool):raise ValueError('HubSpot account ID must be a positive integer')
+        return value
+
+    @field_validator('hubspot_access_token',mode='before')
+    @classmethod
+    def clean_token(cls,value):
+        if value is None:return None
+        text=value.get_secret_value() if isinstance(value,SecretStr) else str(value)
+        text=text.strip()
+        if not text:return None
+        if any(c.isspace() or ord(c)<32 or ord(c)==127 for c in text):
+            raise ValueError('Use the raw access token without a Bearer prefix or internal whitespace')
+        return SecretStr(text)
+
+    @field_validator('hubspot_upsell_pipeline_id','hubspot_upsell_stage_id')
+    @classmethod
+    def safe_id(cls,value):
+        if value and not re.fullmatch(r'[A-Za-z0-9_-]{1,100}',value):
+            raise ValueError('Use an internal pipeline/stage identifier, not a URL or display label')
+        return value
+
+    @model_validator(mode='after')
+    def activated(self):
+        if self.hubspot_enabled and (not self.hubspot_access_token or not self.hubspot_expected_portal_id):
+            raise ValueError('Enabled CRM requires an access token and expected HubSpot account ID')
+        if self.hubspot_upsell_enabled and (not self.hubspot_upsell_pipeline_id or not self.hubspot_upsell_stage_id):
+            raise ValueError('Upsell requires both internal pipeline and stage IDs')
+        return self
 
 
 class CRMError(Exception):
@@ -82,9 +118,10 @@ class HubSpotClient:
             raise ValueError("HUBSPOT_ACCESS_TOKEN is required when CRM is enabled")
         self.token = token
         self.schema_verified = False
+        self.account_verified = False
 
     async def request(self, method: str, path: str, body: dict | None = None) -> dict:
-        if not path.startswith("/crm/"):
+        if not path.startswith("/crm/") and path!='/account-info/v3/details':
             raise ValueError("Unsupported HubSpot API path")
         for attempt in range(5):
             try:
@@ -96,6 +133,8 @@ class HubSpotClient:
                 # Do not repeat an ambiguous create inline. The durable job uses
                 # unique CRM properties to recover existing records on its retry.
                 raise CRMError("hubspot_transport_failure") from None
+            if response.status_code>=500 and method=='POST' and path in {'/crm/v3/objects/companies','/crm/v3/objects/contacts','/crm/v3/objects/deals'}:
+                raise CRMError('hubspot_create_outcome_uncertain')
             if response.status_code == 429 or response.status_code >= 500:
                 delay = max(retry_seconds(response.headers.get("Retry-After")), (2 ** attempt) + random.uniform(0, .25))
                 if attempt == 4 or delay > 30:
@@ -116,20 +155,44 @@ class HubSpotClient:
     async def verify_schema(self):
         if self.schema_verified:
             return
+        await self.verify_account()
         definitions = [
             ("companies", "veloce_tenant_id", True), ("companies", "veloce_vat_number", False),
             ("companies", "veloce_package_count", False), ("companies", "veloce_total_spend", False),
-            ("companies", "veloce_currency", False), ("deals", "veloce_milestone_id", True)]
+            ("companies", "veloce_currency", False)]
+        if self.settings.hubspot_upsell_enabled:
+            definitions.append(('deals','veloce_milestone_id',True))
         for object_type, name, unique in definitions:
             definition = await self.request("GET", f"/crm/v3/properties/{object_type}/{name}")
             if unique and definition.get("hasUniqueValue") is not True:
                 raise CRMError("hubspot_unique_property_required", retryable=False)
-        if not self.settings.hubspot_upsell_pipeline_id or not self.settings.hubspot_upsell_stage_id:
-            raise CRMError("hubspot_pipeline_configuration_required", retryable=False)
-        pipeline = await self.request("GET", "/crm/v3/pipelines/deals/" + self.settings.hubspot_upsell_pipeline_id)
-        if not any(str(stage.get("id")) == self.settings.hubspot_upsell_stage_id for stage in pipeline.get("stages", [])):
-            raise CRMError("hubspot_stage_not_in_pipeline", retryable=False)
+            numeric=name in {'veloce_package_count','veloce_total_spend'}
+            if definition.get('type')!=('number' if numeric else 'string') or definition.get('fieldType')!=('number' if numeric else 'text'):
+                raise CRMError('hubspot_property_type_mismatch',retryable=False)
+            metadata=definition.get('modificationMetadata') or {}
+            if not isinstance(metadata,dict):
+                raise CRMError('hubspot_invalid_property_metadata',retryable=False)
+            if definition.get('archived') or metadata.get('readOnlyValue'):
+                raise CRMError('hubspot_property_not_writable',retryable=False)
+        await self.request('GET','/crm/v3/properties/contacts/email')
+        if self.settings.hubspot_upsell_enabled:
+            pipeline = await self.request("GET", "/crm/v3/pipelines/deals/" + self.settings.hubspot_upsell_pipeline_id)
+            if not any(str(stage.get("id")) == self.settings.hubspot_upsell_stage_id for stage in pipeline.get("stages", [])):
+                raise CRMError("hubspot_stage_not_in_pipeline", retryable=False)
         self.schema_verified = True
+
+    async def verify_account(self):
+        if self.account_verified:return
+        if self.settings.hubspot_expected_portal_id is None:
+            raise CRMError('hubspot_expected_account_required',retryable=False)
+        details=await self.request('GET','/account-info/v3/details')
+        if str(details.get('portalId'))!=str(self.settings.hubspot_expected_portal_id):
+            raise CRMError('hubspot_account_mismatch',retryable=False)
+        if self.settings.hubspot_environment=='SANDBOX' and details.get('accountType') not in {'SANDBOX','DEVELOPER_TEST'}:
+            raise CRMError('hubspot_test_account_required',retryable=False)
+        if self.settings.hubspot_environment=='PRODUCTION' and details.get('accountType')!='STANDARD':
+            raise CRMError('hubspot_production_account_required',retryable=False)
+        self.account_verified=True
 
     async def find(self, object_type: str, property_name: str, value: str) -> str | None:
         data = await self.request("POST", f"/crm/v3/objects/{object_type}/search", {
@@ -154,23 +217,28 @@ class HubSpotClient:
         created = await self.request("POST", f"/crm/v3/objects/{object_type}", {"properties": properties})
         return self.record_id(created)
 
-    async def onboard(self, tenant_id: UUID, company_name: str, email: str, vat_number: str) -> str:
+    async def onboard(self, tenant_id: UUID, company_name: str, email: str, vat_number: str, *, address:dict|None=None) -> str:
         validate_profile(company_name, email, vat_number)
         await self.verify_schema()
-        company_id = await self.upsert("companies", "veloce_tenant_id", str(tenant_id),
-                                      {"name": company_name, "veloce_tenant_id": str(tenant_id), "veloce_vat_number": vat_number})
+        properties={"name": company_name, "veloce_tenant_id": str(tenant_id), "veloce_vat_number": vat_number}
+        if address:
+            for source,target in [('line1','street'),('city','city'),('postal_code','zip'),('country_code','country')]:
+                value=address.get(source)
+                if isinstance(value,str) and value.strip() and len(value)<=250 and not any(ord(c)<32 for c in value):properties[target]=value.strip()
+        company_id = await self.upsert("companies", "veloce_tenant_id", str(tenant_id),properties)
         contact_id = await self.upsert("contacts", "email", email, {"email": email})
         await self.request("POST", "/crm/v3/associations/contacts/companies/batch/create", {
             "inputs": [{"from": {"id": contact_id}, "to": {"id": company_id}, "type": "contact_to_company"}]})
         return company_id
 
     async def milestone(self, tenant_id: UUID, company_id: str, company_name: str, count: int, spend: Decimal, currency: str):
+        await self.verify_schema()
         if isinstance(count, bool) or not isinstance(count, int) or count < 0:
             raise ValueError("Package count must be a nonnegative integer")
         amount = spend_string(spend)
         await self.request("PATCH", f"/crm/v3/objects/companies/{company_id}", {"properties": {
             "veloce_package_count": str(count), "veloce_total_spend": amount, "veloce_currency": currency}})
-        if count <= 50:
+        if count <= 50 or not self.settings.hubspot_upsell_enabled:
             return None
         # Unique milestone identity prevents repeated upsells, including recovery
         # after a network timeout or a process crash after the remote create.
@@ -203,11 +271,11 @@ class HubSpotService:
         # Public utility queues only canonical tenant data, never caller-provided
         # changes to another tenant's contact details.
         async with self.pool.acquire() as connection:
-            row = await connection.fetchrow("SELECT company_name,company_profile FROM public.tenants WHERE tenant_id=$1", tenant_id)
+            row = await connection.fetchrow("SELECT company_name,company_profile,billing_email,vat_registration_number FROM public.tenants WHERE tenant_id=$1", tenant_id)
         if row is None:
             raise HTTPException(404, "Tenant not found")
         profile = json.loads(row["company_profile"]) if isinstance(row["company_profile"], str) else row["company_profile"]
-        if (company_name, email, vat_number) != (row["company_name"], profile.get("billing_email"), profile.get("tax_id") or ""):
+        if (company_name, email, vat_number) != (row["company_name"], row.get('billing_email') or profile.get("billing_email"),row.get('vat_registration_number') or profile.get("tax_id") or ""):
             raise ValueError("CRM profile must match the stored tenant profile")
         await self.enqueue(tenant_id)
 
@@ -228,7 +296,7 @@ class HubSpotService:
         await self.enqueue(tenant_id)
 
     async def totals(self, connection, tenant_id):
-        row = await connection.fetchrow("""SELECT count(*)::int AS package_count,
+        row = await connection.fetchrow("""SELECT coalesce(sum(s.parcel_count),0)::bigint AS package_count,
             coalesce(sum(s.final_client_price),0)::numeric AS total_spend,
             count(*) FILTER (WHERE s.currency<>t.default_currency)::int AS mixed_currency
             FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
@@ -249,12 +317,20 @@ class HubSpotService:
                 if job is None:
                     return
                 try:
-                    tenant = await connection.fetchrow("SELECT company_name,company_profile,default_currency FROM public.tenants WHERE tenant_id=$1", tenant_id)
+                    tenant = await connection.fetchrow("SELECT company_name,company_profile,default_currency,billing_email,vat_registration_number,billing_address,is_sandbox FROM public.tenants WHERE tenant_id=$1", tenant_id)
                     if tenant is None:
                         raise CRMError("crm_tenant_missing", retryable=False)
+                    settings=getattr(self.client,'settings',None)
+                    if settings and bool(tenant['is_sandbox'])!=(settings.hubspot_environment=='SANDBOX'):
+                        raise CRMError('crm_tenant_environment_mismatch',retryable=False)
                     profile = json.loads(tenant["company_profile"]) if isinstance(tenant["company_profile"], str) else tenant["company_profile"]
                     try:
-                        company_id = await self.client.onboard(tenant_id, tenant["company_name"], profile.get("billing_email", ""), profile.get("tax_id") or "")
+                        email=tenant.get('billing_email') or profile.get('billing_email','')
+                        vat=tenant.get('vat_registration_number') or profile.get('tax_id') or ''
+                        address=tenant.get('billing_address')
+                        address=json.loads(address) if isinstance(address,str) else address
+                        extra={'address':address} if address else {}
+                        company_id = await self.client.onboard(tenant_id, tenant["company_name"],email,vat,**extra)
                     except ValueError:
                         raise CRMError("crm_tenant_profile_invalid", retryable=False) from None
                     totals = await self.totals(connection, tenant_id)
@@ -281,7 +357,8 @@ class HubSpotService:
         while True:
             try:
                 async with self.pool.acquire() as connection:
-                    jobs = await connection.fetch("SELECT tenant_id FROM public.hubspot_sync_jobs WHERE NOT blocked AND next_attempt_at<=now() ORDER BY next_attempt_at LIMIT 20")
+                    jobs = await connection.fetch('''SELECT j.tenant_id FROM public.hubspot_sync_jobs j JOIN public.tenants t ON t.tenant_id=j.tenant_id
+                        WHERE NOT j.blocked AND j.next_attempt_at<=now() AND t.is_sandbox=$1 ORDER BY j.next_attempt_at LIMIT 20''',self.client.settings.hubspot_environment=='SANDBOX')
                 for job in jobs:
                     try:
                         await self.process(job["tenant_id"])

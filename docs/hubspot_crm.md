@@ -1,21 +1,44 @@
 # HubSpot CRM integration
 
-The client uses `https://api.hubapi.com`, HubSpot's documented API host, with the CRM v3 company, contact, deal and association paths. `https://hubapi.com/companies` is not the documented CRM API endpoint. No API calls have been made to your HubSpot account, and migration 010 has not been applied remotely.
+The client uses `https://api.hubapi.com` with CRM v3 company, contact, optional deal and association paths. The configured Supabase CRM queue/link tables and canonical mapping columns have been verified. This deployment-preparation task made no remote HubSpot calls or database writes: the local token and expected account ID are still blank.
 
 ## Activation
 
-Apply `migrations/010_hubspot_crm.sql` after 009. It adds private job/mapping tables and database triggers for tenant creation/profile changes and confirmed shipment updates. It does not require the optional HubSpot worker to be running; jobs remain pending until enabled. Existing tenants can be queued using the endpoint below.
+For a new deployment, apply `migrations/010_hubspot_crm.sql` after 009. The configured sandbox already has these tables; no additional SQL is needed for this change. It adds private job/mapping tables and database triggers for tenant creation/profile changes and confirmed shipment updates. Jobs remain pending until enabled. Existing tenants can be queued using the endpoint below.
 
-In a separate HubSpot developer/test account, create a private app with company, contact and deal read/write permissions and access to read CRM property definitions and deal pipelines. Set these server-only `.env` values:
+In the developer/test account, create a private app with Companies/Contacts read and write access, property-schema read access and account-details read access. Deal read/write, deal-schema read and pipeline access are needed only for optional upsells. Set these server-only `.env` values (the fields have been added locally with empty token/account slots):
 
 ```dotenv
-HUBSPOT_ENABLED=true
+HUBSPOT_ENABLED=false
 HUBSPOT_ACCESS_TOKEN=pat-YOUR_ACCOUNT_TOKEN
+HUBSPOT_EXPECTED_PORTAL_ID=YOUR_NUMERIC_SANDBOX_ACCOUNT_ID
+HUBSPOT_ENVIRONMENT=SANDBOX
+HUBSPOT_UPSELL_ENABLED=false
 HUBSPOT_UPSELL_PIPELINE_ID=YOUR_PIPELINE_INTERNAL_ID
 HUBSPOT_UPSELL_STAGE_ID=YOUR_HIGH_VOLUME_UPSELL_STAGE_INTERNAL_ID
 ```
 
 `pat-...` is an accepted private-app credential, not a test-mode switch. The token writes to its issuing account. Never put it in frontend configuration. The client also accepts OAuth bearer tokens, but token refresh/rotation is managed externally. HubSpot remains disabled by default, including local preview.
+
+Paste only the raw token, without `Bearer `, and the numeric HubSpot account ID.
+Account ID comes from the developer **test account**, not its parent developer
+portal. Before writes, the client checks `/account-info/v3/details` against the
+expected ID. SANDBOX mode additionally requires HubSpot account type SANDBOX or
+DEVELOPER_TEST and only processes sandbox tenant jobs. PRODUCTION must be selected
+deliberately for production tenants. This blocks accidentally sending production
+customer profiles to a test account.
+
+Run the read-only preflight from the project root:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.check_hubspot
+```
+
+It validates account identity, required schema and company/contact read access.
+It prints no token, customer names/emails or remote response bodies, performs no
+record writes and does not activate the worker. Exit code 2 means not ready.
+Write permissions must still be confirmed in the private app's scope settings.
+Only after a successful preflight set `HUBSPOT_ENABLED=true` and restart the backend.
 
 Create the following custom properties in HubSpot before enabling sync:
 
@@ -27,6 +50,12 @@ Create the following custom properties in HubSpot before enabling sync:
 | Company | `veloce_total_spend` | number / number | No |
 | Company | `veloce_currency` | string / text | No |
 | Deal | `veloce_milestone_id` | string / text | Yes |
+
+The five company properties are required. The deal property and pipeline/stage
+IDs are optional while `HUBSPOT_UPSELL_ENABLED=false`; provisioning Sales Hub or
+Operations Hub does not create Veloce's custom properties automatically. Complete
+creation payloads are in `config/hubspot_properties.json`. The worker checks types,
+writability and unique tenant identity rather than silently changing CRM schema.
 
 For unique properties, use the properties API with `hasUniqueValue: true`. Example `POST https://api.hubapi.com/crm/v3/properties/companies`, with Authorization Bearer token:
 
@@ -49,17 +78,23 @@ Restart the configured backend after changing `.env`. Send `POST /api/v1/crm/syn
 {"tenant_id": "YOUR_TENANT_UUID"}
 ```
 
-It returns HTTP 202 and QUEUED; it does not claim remote completion. Company name, billing email and VAT (`company_profile.tax_id`, empty when absent) come from the saved tenant profile. Another tenant's UUID is forbidden. To see delivery or repair a blocked job, inspect the server-owned `hubspot_sync_jobs` and `hubspot_tenant_links` tables in the SQL editor. A successful job is removed and the company/deal IDs and sync timestamp are retained. Resubmitting the endpoint resets attempts and unblocks the job after configuration has been corrected.
+It returns HTTP 202 and QUEUED; it does not claim remote completion. Company name, canonical billing email and VAT registration come from stored tenant columns, with legacy company-profile fallbacks. Stored billing address maps to company street/city/zip/country. Contacts map by exact billing email; company display names never identify a tenant. Another tenant's UUID is forbidden. To see delivery or repair a blocked job, inspect the server-owned `hubspot_sync_jobs` and `hubspot_tenant_links` tables. A successful job is removed and the company/deal IDs and sync timestamp are retained. Resubmitting resets attempts and unblocks the job after configuration has been corrected.
 
 ## Behavior and reliability
 
 The background worker creates or updates a company using its unique Veloce tenant UUID, creates/updates a contact by email, and calls `/crm/v3/associations/contacts/companies/batch/create`. Equal company display names never merge tenants. HubSpot contacts are email identities: the same email may legitimately be associated with multiple companies.
 
-On confirmed BOOKED/DELIVERED shipment events, the worker recomputes cumulative shipment count and exact customer spend from tenant-scoped database rows. One shipment represents one package in the current schema. Count 50 does not create an upsell; count 51 or more creates one deal in the configured stage and associates it with the company. A unique milestone property prevents duplicate deals after retries and ambiguous create timeouts. No speculative deal amount is assigned. Mixed-currency totals are blocked instead of summing unlike currencies; implement an explicit conversion policy before syncing such accounts. Counts/spend exclude failed bookings, pending imports and unbooked quotes. The totals are operational booked spend, not tax/accounting revenue.
+On confirmed shipment events, the worker recomputes package count using `sum(parcel_count)` and exact customer spend from tenant-scoped rows. With upsells enabled, count 50 does not create a deal; count 51 or more creates one deal in the configured stage and associates it with the company. A unique milestone property prevents duplicate deals after retries and ambiguous create timeouts. No speculative deal amount is assigned. Mixed-currency totals are blocked rather than summing unlike currencies. Counts/spend exclude failed bookings, pending imports and unbooked quotes. Totals are operational booked spend, not net accounting revenue.
 
 Automatic enqueue happens in the same database transaction as the tenant/shipment change. CRM enqueue exceptions are caught so they cannot roll back a paid label; after such a database failure, use manual sync to reconstruct state. Remote HTTP never occurs in rating or label settlement. Durable jobs survive restarts. Tenant-specific session advisory locks serialize workers, revisions preserve events arriving during sync, and updates retain rate-limit retry deadlines. Use the application's existing direct/session-pool database connection configuration, not transaction pooling for session advisory locks.
 
-429 and server errors use bounded exponential backoff with jitter and respect Retry-After. Long waits are deferred to the durable scheduler. Authentication/property configuration errors block the job immediately; transient jobs block after twelve attempts. Failure codes contain no token, company email or remote response body. Successful create requests are recovered through unique properties on retry, avoiding reliance on an unsupported generic HTTP idempotency header. HubSpot search indexing can delay conflict recovery, so a 409 retains the job for a later attempt.
+429 and safe-to-repeat requests use bounded backoff and respect Retry-After. Long waits are deferred to the durable scheduler. A 5xx/transport failure during record creation is not blindly retried inline; the durable job recovers through unique identities. Authentication, account and property configuration errors block the job; transient jobs block after twelve attempts. Failure codes contain no token, email or remote response body. Search indexing can delay conflict recovery, so 409 retains the job for a later attempt.
+
+Deployment preparation checks: **15 HubSpot tests passed**, covering company/contact
+mapping without deal configuration, account mismatch/type fencing, schema mismatch,
+secret redaction, ambiguous create handling, associations, retries and job revisions.
+These use controlled HTTP responses; real token authentication and remote writes
+remain unverified until the empty local fields are completed.
 
 The exported async utilities preserve the requested signatures:
 
