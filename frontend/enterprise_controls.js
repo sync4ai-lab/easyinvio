@@ -1,6 +1,6 @@
 // Embedded in index.html: server-verified personas and administrative control hubs.
 const enterprise = { tenants: [], carriers: [], margins: [], transactions: [], stores: [], editMargin: null, editCarrier: null, currentView: 'dashboard', generation: 0 };
-const enterpriseViews = ['admin-clients', 'admin-carriers', 'admin-margins', 'stores'];
+const enterpriseViews = ['admin-clients', 'admin-carriers', 'admin-margins', 'stores', 'workspace'];
 const mainContent = document.querySelector('main');
 mainContent.insertAdjacentHTML('beforeend', `
 <section id="admin-clients" hidden>
@@ -53,16 +53,16 @@ const enterpriseNavItems = {
     'admin-margins': ['Margin Rule Matrix', 'sliders-horizontal'],
     dispatch: ['Speed Quote Matrix', 'send'], boxes: ['Box Profiles', 'boxes'],
     manifest: ['Manifest & Labels', 'package-check'], wallet: ['Wallet & Billing', 'wallet'],
-    customs: ['Customs Harmonizer', 'shield-check'], stores: ['Store Integrations', 'store']
+    customs: ['Customs Harmonizer', 'shield-check'], stores: ['Store Integrations', 'store'], workspace: ['Marketplace Workspace', 'warehouse']
 };
 function allowedEnterpriseViews() {
     if (state.session && !portal.profile) return [];
     if (portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN'))
         return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins'];
-    if (portal.profile?.workspace_role === 'DISPATCHER') return ['dispatch', 'boxes', 'manifest'];
+    if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest'];
     if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'wallet', 'customs', 'stores'];
     if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard'];
-    return ['dashboard', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores'];
+    return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores'];
 }
 function enterpriseAdminGuard() {
     if (!allowedEnterpriseViews().includes('admin-clients')) throw Error('Platform-owner authorization is required.');
@@ -83,7 +83,7 @@ function refreshEnterpriseNavigation() {
         enterpriseNavKey = key;
         const buttons = allowed.map(view => {
             const [label, icon] = enterpriseNavItems[view];
-            const fallback=({dashboard:'grid','admin-clients':'grid','admin-carriers':'truck','admin-margins':'chart',dispatch:'truck',boxes:'box',manifest:'list',wallet:'wallet',customs:'globe',stores:'box'})[view];
+            const fallback=({dashboard:'grid','admin-clients':'grid','admin-carriers':'truck','admin-margins':'chart',dispatch:'truck',boxes:'box',manifest:'list',wallet:'wallet',customs:'globe',stores:'box',workspace:'box'})[view];
             return `<button id="tab-${view}" role="tab" data-enterprise-view="${view}" aria-selected="${enterprise.currentView === view}"><span class="nav-symbol"><i data-lucide="${icon}"></i><svg class="icon-fallback" fill="none" stroke="currentColor" stroke-width="1.6"><use href="#i-${fallback}"></use></svg></span><span>${label}</span></button>`;
         }).join('');
         document.querySelector('.sidebar nav').innerHTML = buttons;
@@ -152,6 +152,7 @@ function sampleAdminData() {
     ];
 }
 async function loadEnterpriseView(view) {
+    if (view === 'workspace') { await loadDispatchWorkspace(); return; }
     const generation = enterprise.generation;
     if (view === 'stores') {
         if (!state.session) enterprise.stores = [{ id: 'sample-store', display_name: 'Sample Shopify store', platform: 'SHOPIFY', is_active: true }];

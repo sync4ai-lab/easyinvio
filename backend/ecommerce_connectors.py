@@ -34,6 +34,7 @@ class StoreConnector(BaseModel):
     access_token: SecretStr | None = None
     api_version: str = Field(default='2026-10', pattern=r'^20\d{2}-(01|04|07|10)$')
     live_delivery: bool = Field(default=False, strict=True)
+    live_import: bool = Field(default=False, strict=True)
     # Woo/Amazon order payloads often omit physical weights; use verified SKU data.
     sku_unit_grams: dict[str, Decimal] = Field(default_factory=dict)
 
@@ -57,6 +58,8 @@ class StoreConnector(BaseModel):
             raise ValueError('Shopify requires shop_domain for webhook identity verification')
         if self.live_delivery and (self.platform != 'SHOPIFY' or not self.access_token or not self.access_token.get_secret_value().strip()):
             raise ValueError('Live delivery currently requires a Shopify access token')
+        if self.live_import and (self.platform != 'SHOPIFY' or not self.access_token or not self.access_token.get_secret_value().strip()):
+            raise ValueError('Live polling currently requires a Shopify access token')
         if any(not weight.is_finite() or weight <= 0 or weight > 1000000 for weight in self.sku_unit_grams.values()):
             raise ValueError('SKU weights must be positive finite grams')
         return self

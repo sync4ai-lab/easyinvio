@@ -1,3 +1,4 @@
 -r requirements.txt
 playwright>=1.63,<2
 jsbeautifier>=2,<3
+pymupdf>=1.28.2,<2

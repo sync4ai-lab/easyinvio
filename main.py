@@ -89,6 +89,7 @@ from backend.database_tls import database_tls_context
 from backend.tracking_and_support import TrackingSettings, TrackingSupportService, build_router as tracking_router
 from backend.dashboard_portal import build_router as dashboard_router
 from backend.automation_freight_engine import AutomationService, Cargo, calculate_cargo_charge, build_router as automation_router
+from backend.dispatch_workspace import build_router as dispatch_workspace_router
 
 
 logger = logging.getLogger("veloce")
@@ -857,6 +858,7 @@ class EasyPostStrategy(RateStrategy):
         shipment: dict[str, Any] = {
             "from_address": self.address(request.origin),
             "to_address": self.address(request.destination), "parcel": parcel,
+            "options": {"label_format": "PDF"},
         }
         if request.cargo_type=='LETTER':
             # EasyPost creates these embedded addresses with strict AVS enabled.
@@ -2010,6 +2012,7 @@ app.include_router(hubspot_router(authenticate))
 app.include_router(tracking_router(authenticate))
 app.include_router(dashboard_router(authenticate))
 app.include_router(automation_router(authenticate))
+app.include_router(dispatch_workspace_router(authenticate))
 
 
 def verify_local_logic() -> None:

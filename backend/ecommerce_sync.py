@@ -34,6 +34,7 @@ class Address(BaseModel):
     zip: str = Field(min_length=1, max_length=30)
     country_code: str
     province: str = Field(default="", max_length=120)
+    phone: str = Field(default="", max_length=40)
 
     @field_validator("country_code")
     @classmethod
@@ -49,11 +50,19 @@ class LineItem(BaseModel):
     length_cm: Decimal | None = Field(default=None, gt=0, le=1000)
     width_cm: Decimal | None = Field(default=None, gt=0, le=1000)
     height_cm: Decimal | None = Field(default=None, gt=0, le=1000)
+    unit_value: Decimal | None = Field(default=None, gt=0, le=1000000, decimal_places=2)
+    origin_country: str | None = None
+    hs_code: str | None = Field(default=None, pattern=r'^\d{6}(?:\d{2})?(?:\d{2})?$')
 
-    @field_validator("grams", "length_cm", "width_cm", "height_cm", mode="before")
+    @field_validator("grams", "length_cm", "width_cm", "height_cm", "unit_value", mode="before")
     @classmethod
     def decimal_values(cls, value):
         return None if value is None else strict_decimal(value)
+
+    @field_validator('origin_country')
+    @classmethod
+    def goods_origin(cls, value):
+        return country_code(value) if value else None
 
     @model_validator(mode="after")
     def dimensions(self):
@@ -100,12 +109,20 @@ def parsed_order(order: StoreOrder) -> dict:
         for item in order.line_items:
             grams += item.grams * item.quantity
             quantity += item.quantity
-            items.append(item.model_dump(mode="json"))
+            serialized = item.model_dump(mode="json")
+            # Preserve historical import hashes when optional customs facts are absent.
+            for key in ('unit_value', 'origin_country', 'hs_code'):
+                if serialized[key] is None:
+                    serialized.pop(key)
+            items.append(serialized)
         kg = grams / Decimal(1000)
         if kg <= 0 or kg > 1000 or quantity > 10000:
             raise ValueError("Order must weigh more than zero and at most 1000 kg, with at most 10000 units")
+    address = order.shipping_address.model_dump()
+    if not address['phone']:
+        address.pop('phone')
     return {"store_order_id": str(order.id), "order_reference": order.name,
-            "shipping_address": order.shipping_address.model_dump(),
+            "shipping_address": address,
             "total_weight_kg": format(kg, "f"), "total_quantity": quantity,
             "line_items": items, "currency": order.currency}
 
@@ -203,6 +220,7 @@ class EcommerceService:
                              'city':address.city,'postal_code':address.zip,'country_code':address.country_code}
                 if not address.address2: recipient.pop('line2')
                 if address.province: recipient['state']=address.province
+                if address.phone: recipient['phone']=address.phone
                 await connection.execute(
                     """INSERT INTO public.shipments
                        (id,tenant_id,status,currency,quote_expires_at,ecommerce_store_id,store_order_id,store_import_hash,logistics_metadata,

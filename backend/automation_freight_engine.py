@@ -234,7 +234,7 @@ class EasyPostPurchase:
         return self.label(body,rate)
     def label(self,body,rate):
         try:
-            url=body['postage_label']['label_url']; tracking=body['tracking_code']
+            url=body['postage_label'].get('label_pdf_url') or body['postage_label']['label_url']; tracking=body['tracking_code']
             if body.get('id')!=rate.upstream_shipment_id or body.get('selected_rate',{}).get('id')!=rate.upstream_rate_id:
                 raise ValueError()
             if body.get('mode')!='production':

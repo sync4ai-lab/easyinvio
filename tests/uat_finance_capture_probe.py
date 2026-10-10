@@ -10,6 +10,7 @@ from datetime import datetime,timedelta,timezone
 from decimal import Decimal
 from types import SimpleNamespace
 import asyncpg
+from fastapi import HTTPException
 from main import Settings,FinanceEngine
 from backend.database_tls import database_tls_context
 from backend.verify_automation_writepath import BorrowedPool
@@ -45,10 +46,16 @@ async def run():
    assert {e['entry_type'] for e in entries}=={'RESERVE','CAPTURE'}
    assert await c.fetchval('SELECT status FROM public.shipments WHERE tenant_id=$1 AND id=$2',tid,sid)=='BOOKED'
    result.append({'cost':cost,'balance_after':str(wallet['balance']),'reserved_after':str(wallet['reserved_balance']),'ledger_entries':[e['entry_type'] for e in entries],'shipment_status':'BOOKED'})
+  zero_sid=uuid4()
+  await clone('shipments',ship_template,{'id':str(zero_sid),'tenant_id':str(tid),'created_by_user_id':str(uid),'carrier_account_id':str(carrier),'applied_margin_rule_id':None,'ecommerce_store_id':None,'store_order_id':None,'store_import_hash':None,'idempotency_key':str(uuid4()),'customer_reference':'ROLLBACK-ZERO-CREDIT','wholesale_cost':'1.00','profit_markup':'0.00','tax_amount':'0.00','quote_expires_at':(datetime.now(timezone.utc)+timedelta(days=1)).isoformat(),'pricing_snapshot':{'markup_type':'MANUAL','markup_value':'0.00','currency':'GBP'}})
+  try:await engine.reserve(ctx,zero_sid)
+  except HTTPException as exc:assert exc.status_code==402
+  else:raise AssertionError('Zero-credit reservation unexpectedly accepted')
+  assert await c.fetchval('SELECT status FROM public.shipments WHERE tenant_id=$1 AND id=$2',tid,zero_sid)=='QUOTED'
  finally:
   await tx.rollback()
   remaining=await c.fetchval('SELECT count(*) FROM public.tenants WHERE tenant_id=$1',tid)
   assert remaining==0;await c.close()
- evidence={'actual_postgresql_settlement_cases':result,'controlled_provider_receipts':True,'carrier_api_calls':0,'all_test_records_rolled_back':True,'temporary_service_test_tenant_persisted':False}
+ evidence={'actual_postgresql_settlement_cases':result,'zero_credit_next_dispatch_blocked':True,'controlled_provider_receipts':True,'carrier_api_calls':0,'all_test_records_rolled_back':True,'temporary_service_test_tenant_persisted':False}
  Path('docs/uat_100/finance_capture_evidence.json').write_text(json.dumps(evidence,indent=2));print(json.dumps(evidence,indent=2))
 if __name__=='__main__':asyncio.run(run())
