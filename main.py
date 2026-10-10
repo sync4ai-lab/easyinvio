@@ -1685,6 +1685,8 @@ async def lifespan(application: FastAPI):
                 application.state.rating = rating
                 application.state.finance = FinanceEngine(pool, settings, stripe_client)
                 application.state.automation_freight=AutomationService(pool,rating,application.state.finance,repository,RatingRequest,http_client,settings)
+                from backend.order_csv import CSVOrderService
+                application.state.csv_orders=CSVOrderService(pool,application.state.automation_freight)
                 from backend.ecommerce_connectors import StoreConnectorSettings
                 application.state.ecommerce = EcommerceService(pool,client=http_client,
                     connectors=StoreConnectorSettings().ecommerce_connectors)
@@ -1756,7 +1758,8 @@ bearer = HTTPBearer(auto_error=False)
 async def preview_guard(request: Request, call_next):
     public_tools = {"/api/v1/config", "/api/v1/customs/harmonize", "/api/v1/customs/declaration",
                     "/api/v1/logistics/weight", "/api/v1/logistics/cargo-weight", "/api/v1/rates/sample", "/api/v1/routing/sample", "/api/v1/rates/preview", "/api/v1/routing/preview",
-                    "/api/v1/shipments/batch-preview", "/api/v1/audit/preview"}
+                    "/api/v1/shipments/batch-preview", "/api/v1/shipments/batch-template",
+                    "/api/v1/shipments/batch-review-preview", "/api/v1/audit/preview"}
     if (getattr(request.app.state, "local_preview", False)
             and request.url.path.startswith(("/v1/", "/webhooks/", "/api/v1/"))
             and request.url.path not in public_tools):

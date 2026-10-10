@@ -34,7 +34,7 @@ def csv_data(count=2):
     writer = csv.writer(output)
     writer.writerow(CSV_FIELDS)
     for index in range(count):
-        writer.writerow([f"ORDER-{index}", "Sender", "1 Street", "London", "SW1A 1AA", "GB", "Recipient", "2 Street", "Paris", "75001", "FR", "40", "30", "20", "2.500", "GBP"])
+        writer.writerow([f"ORDER-{index}", "PARCEL", "Sender", "1 Street", "London", "SW1A 1AA", "GB", "Recipient", "+447700900001", "Recipient", "2 Street", "London", "SW1A 1AA", "GB", "40", "30", "20", "2.500", "GBP", "Cotton T-shirt", "25.00"])
     return output.getvalue().encode()
 
 
@@ -191,21 +191,22 @@ class ConfiguredHTTPTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/v1/rates/preview", json=payload()).status_code, 404)
 
     def test_bounded_parallel_batch(self):
-        class Rating:
-            active = 0
-            maximum = 0
-            async def quote(self, context, request):
-                self.active += 1
-                self.maximum = max(self.maximum, self.active)
-                await asyncio.sleep(0.01)
-                self.active -= 1
-                return SimpleNamespace(model_dump=lambda **kwargs: {"rates": [], "currency": "GBP"})
-        rating = Rating()
-        main.app.state.rating = rating
-        result = self.client.post("/api/v1/shipments/batch", content=csv_data(20), headers={"Content-Type": "text/csv"})
-        self.assertEqual(result.json()["quoted"], 20)
-        self.assertGreater(rating.maximum, 1)
-        self.assertLessEqual(rating.maximum, 8)
+        class CSVService:
+            active=0
+            maximum=0
+            automation=SimpleNamespace(order_limiter=asyncio.Semaphore(4))
+            async def process(self,context,row):
+                self.active+=1
+                self.maximum=max(self.maximum,self.active)
+                await asyncio.sleep(.01)
+                self.active-=1
+                return {'row':row['row'],'order_reference':row['order_reference'],'status':'quoted','saved':True}
+        service=CSVService();main.app.state.csv_orders=service
+        result=self.client.post('/api/v1/shipments/batch',content=csv_data(20),headers={'Content-Type':'text/csv'})
+        self.assertEqual(result.json()['quoted'],20)
+        self.assertEqual(result.json()['saved'],20)
+        self.assertGreater(service.maximum,1)
+        self.assertLessEqual(service.maximum,4)
 
 
 class ProviderIntegrationTests(unittest.IsolatedAsyncioTestCase):

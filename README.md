@@ -1,5 +1,8 @@
 # Veloce.AI operations prototype
 
+The [CSV orders v2 guide](docs/bulk_csv/REPORT.md) covers the 21-column client template,
+per-order persistence, cargo routing, customs review and optional storefront associations.
+
 See [core pillar verification](docs/core_pillars/REPORT.md) for supported workflows and live integration requirements. The [Git setup guide](docs/GIT_SETUP.md) covers uploads, branch maintenance, secret exclusions and the missing original database baseline.
 
 The [24-customer relational seed pack](seeds/rigorous_v1/README.md) is applied to the Supabase sandbox, with complete ordered SQL scripts, constraint/RLS verification and a fixture catalog for subsequent tests.

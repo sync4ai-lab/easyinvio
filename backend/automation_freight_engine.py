@@ -414,7 +414,11 @@ class AutomationService:
                             {key:rate.fee_breakdown[key] for key in ('base_cost','fuel_surcharge','residential_fee','remote_area_fee')}|
                             {'currency':rate.currency,'billable_weight_kg':charge['billable_weight_kg']})
                     if mode=='QUOTE_ONLY':
-                        return {'order_reference':reference,'shipment_id':str(shipment_id),'status':'QUOTED','rate':rate.model_dump(mode='json'),'customs':declaration,'labels':[],
+                        public_rates=[r.model_dump(mode='json') for r in quote_result.rates]
+                        if context.role=='DISPATCHER':
+                            for public_rate in public_rates:public_rate['fee_breakdown']={'source':'financial_role_required'}
+                        selected=next(r for r in public_rates if r['account_id']==str(rate.account_id) and r['upstream_rate_id']==rate.upstream_rate_id)
+                        return {'order_reference':reference,'shipment_id':str(shipment_id),'status':'QUOTED','rate':selected,'all_rates':public_rates,'customs':declaration,'labels':[],
                                 'partial':getattr(quote_result,'partial',False),'provider_issues':[issue.model_dump(mode='json') for issue in getattr(quote_result,'issues',[])]}
                     adapter=self.adapters.get(rate.provider)
                     if adapter is None: raise HTTPException(503,'CHEAPEST_PROVIDER_HAS_NO_PURCHASE_ADAPTER')

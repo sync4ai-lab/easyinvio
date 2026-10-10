@@ -5,8 +5,8 @@ from pathlib import Path
 import httpx
 
 
-def run():
-    with httpx.Client(base_url="http://127.0.0.1:8000", trust_env=False, timeout=10) as client:
+def run(base_url="http://127.0.0.1:8000"):
+    with httpx.Client(base_url=base_url, trust_env=False, timeout=10) as client:
         assert client.get("/health").json()["mode"] == "local-preview"
         assert client.get("/").content == Path("index.html").read_bytes()
         paths = client.get("/openapi.json").json()["paths"]
@@ -36,7 +36,7 @@ def run():
         text = io.StringIO(newline="")
         writer = csv.writer(text)
         writer.writerow(CSV_FIELDS)
-        writer.writerow(["ORDER-1", "Sender", "1 Street", "London", "SW1A 1AA", "GB", "Recipient", "2 Street", "Paris", "75001", "FR", "40", "30", "20", "2.500", "GBP"])
+        writer.writerow(["ORDER-1", "PARCEL", "Sender", "1 Street", "London", "SW1A 1AA", "GB", "Recipient", "+447700900001", "Recipient", "2 Street", "London", "SW1A 1AA", "GB", "40", "30", "20", "2.500", "GBP", "Cotton T-shirt", "25.00"])
         batch = client.post("/api/v1/shipments/batch-preview", content=text.getvalue(), headers={"Content-Type": "text/csv"}).json()
         assert batch["quoted"] == 1 and batch["bookings_created"] == 0
         assert client.post("/api/v1/audit/invoice").status_code == 503
@@ -50,4 +50,7 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--base-url',default='http://127.0.0.1:8000')
+    run(parser.parse_args().base_url)

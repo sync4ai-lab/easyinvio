@@ -1,22 +1,21 @@
-"""Decimal dimensional pricing, declaration metadata and bounded CSV rating."""
+"""Decimal dimensional pricing, declaration metadata and bounded CSV order imports."""
 from __future__ import annotations
 
 import asyncio
-import csv
-import io
 import json
-import re
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP, localcontext
 from typing import Annotated, Any, Callable, Literal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import Field, ValidationError, field_validator, model_validator
 
 from backend.ai_engine import StrictModel, amount, country_code, strict_decimal
-from backend.automation_freight_engine import Cargo, calculate_cargo_charge
+from backend.automation_freight_engine import Cargo, Order, calculate_cargo_charge, customs_matrix
+from backend.order_csv import (CSV_FIELDS, OPTIONAL_CSV_FIELDS, MAX_BATCH_BYTES, MAX_BATCH_ROWS,
+    parse_batch_csv, template as csv_template, CSVCustomsReview, draft_declaration, country_state_requirements)
 
 
 def calculate_billable_weight(length_cm: Any, width_cm: Any, height_cm: Any, actual_weight_kg: Any) -> dict:
@@ -140,50 +139,6 @@ def generate_commercial_invoice(data: DeclarationInput | dict) -> dict:
             "status": "draft", "signature_required": True, "notice": "Structured print metadata only. Postal operator eligibility, national tariff codes, tax IDs and signature require verification before submission."}
 
 
-CSV_FIELDS = ("order_reference", "origin_name", "origin_line1", "origin_city", "origin_postal_code", "origin_country_code",
-              "destination_name", "destination_line1", "destination_city", "destination_postal_code", "destination_country_code",
-              "length_cm", "width_cm", "height_cm", "weight_kg", "currency")
-MAX_BATCH_BYTES = 5_000_000
-MAX_BATCH_ROWS = 1000
-
-
-def parse_batch_csv(raw: bytes, rating_model: Any) -> list[dict]:
-    if len(raw) > MAX_BATCH_BYTES:
-        raise ValueError("CSV is limited to 5 MB")
-    try:
-        reader = csv.DictReader(io.StringIO(raw.decode("utf-8-sig"), newline=""), strict=True)
-        if not reader.fieldnames or len(reader.fieldnames) != len(set(reader.fieldnames)) or set(reader.fieldnames) != set(CSV_FIELDS):
-            raise ValueError("CSV headers must match: " + ",".join(CSV_FIELDS))
-        rows, references = [], set()
-        for position, row in enumerate(reader, 2):
-            if len(rows) >= MAX_BATCH_ROWS:
-                raise ValueError("CSV is limited to 1000 orders")
-            if None in row or any(value is None for value in row.values()):
-                rows.append({"row": position, "order_reference": "", "error": "Wrong number of columns"})
-                continue
-            row = {key: value.strip() for key, value in row.items()}
-            reference = row["order_reference"]
-            result = {"row": position, "order_reference": reference}
-            if not re.fullmatch(r"[A-Za-z0-9 _./-]{1,100}", reference) or reference in references:
-                rows.append({**result, "error": "Invalid or duplicate order reference"})
-                continue
-            references.add(reference)
-            try:
-                payload = {prefix: {field: row[f"{prefix}_{field}"] for field in ("name", "line1", "city", "postal_code", "country_code")} for prefix in ("origin", "destination")}
-                payload.update(dimensions=[{key: row[key] for key in ("length_cm", "width_cm", "height_cm")}], weights_kg=[row["weight_kg"]], currency=row["currency"])
-                result["request"] = rating_model.model_validate(payload)
-                dims = result["request"].dimensions[0]
-                result["weight"] = calculate_billable_weight(dims.length_cm, dims.width_cm, dims.height_cm, result["request"].weights_kg[0])
-                if Decimal(result["weight"]["billable_weight_kg"]) > 1000:
-                    raise ValueError("Billable weight exceeds 1000 kg")
-            except (ValidationError, ValueError, ArithmeticError):
-                result["error"] = "Invalid address, currency, dimensions or weight"
-            rows.append(result)
-        if not rows:
-            raise ValueError("CSV contains no orders")
-        return rows
-    except (UnicodeError, csv.Error):
-        raise ValueError("Upload valid UTF-8 CSV") from None
 
 
 def preview_rates(rating_request: Any, settings: Any = None) -> dict:
@@ -275,29 +230,21 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
             if len(raw) > MAX_BATCH_BYTES:
                 raise HTTPException(413, "CSV is limited to 5 MB")
         try:
-            rows = parse_batch_csv(bytes(raw), rating_model)
+            rows = parse_batch_csv(bytes(raw), rating_model, getattr(request.app.state,'settings',None))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
-        limiter = asyncio.Semaphore(8)
-
+        service = getattr(request.app.state, 'csv_orders', None)
+        if service is None: raise HTTPException(503, 'CSV order persistence is not configured')
+        limiter = service.automation.order_limiter
         async def process(row):
-            result = {"row": row["row"], "order_reference": row["order_reference"]}
-            if row.get("error"):
-                return {**result, "status": "invalid", "error": row["error"]}
+            if row.get('error'):
+                return {'row':row['row'],'order_reference':row['order_reference'],'status':'invalid','error':row['error']}
             async with limiter:
-                try:
-                    quote = await request.app.state.rating.quote(context, row["request"])
-                    public_quote=quote.model_dump(mode="json")
-                    if context.role=='DISPATCHER':
-                        for rate in public_quote['rates']:rate['fee_breakdown']={'source':'financial_role_required'}
-                    return {**result, "status": "quoted", "weight": row["weight"], "quote": public_quote}
-                except HTTPException as exc:
-                    return {**result, "status": "failed", "error": "Carrier/pricing service unavailable", "http_status": exc.status_code}
-                except Exception:
-                    return {**result, "status": "failed", "error": "Order could not be quoted"}
-        # Existing RatingService retains a global provider semaphore as well.
+                return await service.process(context,row)
         results = await asyncio.gather(*(process(row) for row in rows))
-        return {"batch_id": str(uuid4()), "total": len(results), "quoted": sum(row["status"] == "quoted" for row in results), "results": results, "bookings_created": 0}
+        return {'batch_id':str(uuid4()),'total':len(results),'quoted':sum(row['status']=='quoted' for row in results),
+            'saved':sum(row.get('saved',False) for row in results),'review_required':sum(row['status']=='customs_review_required' for row in results),
+            'results':results,'bookings_created':0}
 
     @router.post("/shipments/batch-preview")
     async def batch_preview(request: Request):
@@ -311,17 +258,61 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
             if len(raw) > MAX_BATCH_BYTES:
                 raise HTTPException(413, "CSV is limited to 5 MB")
         try:
-            rows = parse_batch_csv(bytes(raw), rating_model)
+            rows = parse_batch_csv(bytes(raw), rating_model, getattr(request.app.state,'settings',None))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         results = []
         for row in rows:
-            result = {"row": row["row"], "order_reference": row["order_reference"]}
-            if row.get("error"):
-                results.append({**result, "status": "invalid", "error": row["error"]})
+            result = {'row':row['row'],'order_reference':row['order_reference'],'saved':False,'simulated':True}
+            if row.get('error'):
+                results.append(result|{'status':'invalid','error':row['error']})
+                continue
+            order=row['order'];doc=draft_declaration(row,order,uuid4(),{})
+            result.update(cargo_type=order.cargo.cargo_type,weight=row['weight'],order=order.model_dump(mode='json'),
+                customs=doc,review={'source':row['source'],'item_description':row['item_description'],
+                    'declared_value':row['declared_value'],'hs_suggestion':row['hs_suggestion']})
+            if row['missing_fields']:
+                results.append(result|{'status':'customs_review_required','missing_fields':row['missing_fields']})
             else:
-                results.append({**result, "status": "quoted", "weight": row["weight"], "quote": preview_rates(row["request"])})
-        return {"batch_id": str(uuid4()), "total": len(results), "quoted": sum(row["status"] == "quoted" for row in results), "results": results, "bookings_created": 0, "simulated": True}
+                results.append(result|{'status':'quoted','quote':preview_rates(row['request'],getattr(request.app.state,'settings',None))})
+        return {'batch_id':str(uuid4()),'total':len(results),'quoted':sum(row['status']=='quoted' for row in results),
+            'saved':0,'review_required':sum(row['status']=='customs_review_required' for row in results),
+            'results':results,'bookings_created':0,'simulated':True}
+
+    @router.get('/shipments/batch-template')
+    async def batch_template(extended: bool=False):
+        return csv_template(extended)
+
+    @router.post('/shipments/batch-review-preview')
+    async def review_preview(body: Order,request: Request):
+        if not request.app.state.local_preview: raise HTTPException(404,'Preview endpoint is disabled in configured mode')
+        doc=customs_matrix(uuid4(),body,{})
+        if not doc.get('ready_for_provider'):raise HTTPException(422,'Complete the reviewed customs data first')
+        if country_state_requirements(body):raise HTTPException(422,'Complete origin/destination state before carrier rating')
+        rating=rating_model.model_validate({'origin':body.origin,'destination':body.destination,'currency':body.currency,
+            'cargo_type':body.cargo.cargo_type,'stackable':body.cargo.stackable,'weights_kg':[str(body.cargo.actual_weight_kg)],
+            'dimensions':[] if body.cargo.cargo_type=='LETTER' else [{k:str(getattr(body.cargo,k)) for k in ('length_cm','width_cm','height_cm')}],
+            'customs_document':doc})
+        return {'status':'quoted','order_reference':body.order_reference,'cargo_type':body.cargo.cargo_type,
+            'quote':preview_rates(rating,getattr(request.app.state,'settings',None)),'customs':doc,'saved':False,'simulated':True}
+
+    @router.get('/shipments/batch/{shipment_id}')
+    async def uploaded_order(shipment_id: UUID,request: Request,context: Any=Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
+        async with request.app.state.finance.pool.acquire() as connection:
+            row=await connection.fetchrow("SELECT customer_reference,logistics_metadata FROM public.shipments WHERE tenant_id=$1 AND id=$2 AND logistics_metadata ? 'batch_csv'",context.tenant_id,shipment_id)
+        if not row:raise HTTPException(404,'Uploaded order not found')
+        metadata=json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'],str) else row['logistics_metadata']
+        return {'shipment_id':str(shipment_id),'order_reference':row['customer_reference'],'order':metadata['automation_order'],
+            'review':metadata['batch_csv'],'customs':metadata.get('automation_customs')}
+
+    @router.post('/shipments/batch/{shipment_id}/quote')
+    async def review_order(shipment_id: UUID,body: CSVCustomsReview,request: Request,context: Any=Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
+        service=getattr(request.app.state,'csv_orders',None)
+        if service is None:raise HTTPException(503,'CSV order persistence is not configured')
+        async with service.automation.order_limiter:
+            return await service.review_and_quote(context,shipment_id,body)
 
     async def read_manifest(request: Request, tenant_id, financial_details=True):
         try:
@@ -337,10 +328,11 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
         for row in rows:
             metadata = json.loads(row["logistics_metadata"]) if isinstance(row["logistics_metadata"], str) else row["logistics_metadata"]
             if not financial_details and isinstance(metadata,dict):
-                metadata={k:v for k,v in metadata.items() if k in {'carrier','destination','cargo_type','tracking','ecommerce','synthetic','fixture_batch','stackable'}}
+                metadata={k:v for k,v in metadata.items() if k in {'carrier','destination','cargo_type','tracking','ecommerce','synthetic','fixture_batch','stackable','batch_csv','automation_customs'}}
             entry={"id": str(row["id"]), "status": row["status"], "currency": row["currency"], "price": str(row["final_client_price"]), "tracking_number": row["tracking_number"], "metadata": metadata}
             entry['tenant_id']=str(row['tenant_id']) if row.get('tenant_id') else None
             entry['reference']=row.get('customer_reference') or str(row['id'])[:12]
+            entry['batch_import']=isinstance(metadata,dict) and 'batch_csv' in metadata
             for field in ['origin_country','destination_country','cargo_type','proof_of_delivery_url','tracking_url','customs_required']:
                 entry[field]=row.get(field)
             for field in ['booked_at','dispatched_at','delivered_at','last_tracking_event_at']:
