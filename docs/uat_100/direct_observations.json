@@ -1,0 +1,136 @@
+{
+  "TC-016": {
+    "actual_weight_kg": "2",
+    "volumetric_weight_kg": "0.200",
+    "billable_weight_kg": "2.000",
+    "divisor_cm3_per_kg": "5000",
+    "basis": "actual"
+  },
+  "TC-017": {
+    "actual_weight_kg": "2",
+    "volumetric_weight_kg": "25.000",
+    "billable_weight_kg": "25.000",
+    "divisor_cm3_per_kg": "5000",
+    "basis": "volumetric"
+  },
+  "TC-018": {
+    "actual_weight_kg": "0.200",
+    "volumetric_weight_kg": "0.200",
+    "billable_weight_kg": "0.200",
+    "divisor_cm3_per_kg": "5000",
+    "basis": "actual"
+  },
+  "TC-025": {
+    "actual_weight_kg": "2",
+    "volumetric_weight_kg": "25.000",
+    "billable_weight_kg": "25.000",
+    "divisor_cm3_per_kg": "5000",
+    "basis": "volumetric"
+  },
+  "TC-028": {
+    "actual_weight_kg": "0.155",
+    "volumetric_weight_kg": "1.999",
+    "billable_weight_kg": "1.999",
+    "divisor_cm3_per_kg": "5000",
+    "basis": "volumetric"
+  },
+  "TC-020": "Rejected invalid numeric input",
+  "TC-021": "Rejected invalid numeric input",
+  "TC-027": "Rejected invalid numeric input",
+  "TC-022": {
+    "actual_weight_kg": "2",
+    "volumetric_weight_kg": "10.000",
+    "billable_weight_kg": "10.000",
+    "divisor_cm3_per_kg": "5000",
+    "basis": "volumetric"
+  },
+  "TC-066": {
+    "description": "running leather shoes",
+    "hs_code": "640399",
+    "confidence": "0.70",
+    "candidates": [
+      {
+        "hs_code": "640399",
+        "title": "Other footwear with leather uppers",
+        "confidence": "0.70",
+        "matched_terms": [
+          "leather"
+        ],
+        "assumptions": "Assumes leather upper and rubber/plastic/leather outer sole; construction and ankle coverage require review."
+      }
+    ],
+    "status": "review_required",
+    "simulated": true,
+    "model": "explainable-rules-v1",
+    "tariff_version": "HS-2022",
+    "notice": "Simulated confidence, not a calibrated probability. Confirm material, construction, intended use and destination tariff before declaration."
+  },
+  "TC-067": {
+    "description": "cotton knitted T-shirt",
+    "hs_code": "610910",
+    "confidence": "0.70",
+    "candidates": [
+      {
+        "hs_code": "610910",
+        "title": "Cotton knitted T-shirts",
+        "confidence": "0.70",
+        "matched_terms": [
+          "cotton"
+        ],
+        "assumptions": "Assumes knitted/crocheted cotton garment, rather than woven fabric."
+      }
+    ],
+    "status": "review_required",
+    "simulated": true,
+    "model": "explainable-rules-v1",
+    "tariff_version": "HS-2022",
+    "notice": "Simulated confidence, not a calibrated probability. Confirm material, construction, intended use and destination tariff before declaration."
+  },
+  "TC-068": {
+    "description": "qzxv zzz qqq",
+    "hs_code": null,
+    "confidence": "0.00",
+    "candidates": [],
+    "status": "insufficient_information",
+    "simulated": true,
+    "model": "explainable-rules-v1",
+    "tariff_version": "HS-2022",
+    "notice": "Simulated confidence, not a calibrated probability. Confirm material, construction, intended use and destination tariff before declaration."
+  },
+  "TC-071": "The carrier reports a customs clearance issue. Review the commercial invoice, commodity codes and consignee details with the carrier before submitting corrections.",
+  "TC-078": {
+    "running leather shoes": "640399",
+    "leather footwear for jogging": null,
+    "cotton knitted T-shirt": "610910",
+    "knitted cotton garment": null
+  },
+  "TC-040": "500",
+  "TC-041": "Invalid ISO country rejected",
+  "TC-045": {
+    "origin": "GB",
+    "destination": "US",
+    "providers": [
+      {
+        "provider": "EASYPOST",
+        "sample_size": 5,
+        "risk": "high",
+        "mean_delay_days": "5.00",
+        "late_ratio": "1.00",
+        "anomaly_count": 0,
+        "anomaly_threshold_days": "5.00"
+      },
+      {
+        "provider": "REGIONAL",
+        "sample_size": 0,
+        "risk": "unknown",
+        "mean_delay_days": null,
+        "late_ratio": null,
+        "anomaly_count": 0
+      }
+    ],
+    "recommended_provider": "EASYPOST",
+    "simulated": false,
+    "source": "shipment_tracking_history",
+    "notice": "Historical delays are advisory and do not guarantee future delivery. At least five observations are required per provider."
+  }
+}

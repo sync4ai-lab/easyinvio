@@ -1,0 +1,269 @@
+{
+  "TC-082": {
+    "status": "PASS",
+    "evidence": [
+      {
+        "x": 258,
+        "y": 301,
+        "width": 575.703125
+      },
+      {
+        "x": 853.703125,
+        "y": 301,
+        "width": 548.296875
+      }
+    ]
+  },
+  "TC-081": {
+    "status": "PASS",
+    "evidence": {
+      "cols": "343px",
+      "overflow": 0
+    }
+  },
+  "TC-083": {
+    "status": "PASS",
+    "evidence": {
+      "x": 0,
+      "y": 121.8125,
+      "width": 375,
+      "height": 690.1875
+    }
+  },
+  "TC-084": {
+    "status": "PASS",
+    "evidence": "Real backdrop click dismissed sheet"
+  },
+  "TC-027": {
+    "status": "PASS",
+    "evidence": "Real Chromium rejected alphabetic fill into numeric weight input"
+  },
+  "TC-030": {
+    "status": "PASS",
+    "evidence": {
+      "first_length": "24",
+      "second_length": "40"
+    }
+  },
+  "TC-050": {
+    "status": "PASS",
+    "evidence": "Real input event cleared stale quotes"
+  },
+  "TC-023": {
+    "status": "PASS",
+    "evidence": {
+      "submitted": {
+        "length_cm": "35",
+        "width_cm": "30",
+        "height_cm": "20",
+        "actual_weight_kg": "1.55"
+      },
+      "backend_status": 200,
+      "units": "centimetres and kilograms; Decimal strings"
+    }
+  },
+  "TC-026": {
+    "status": "PASS",
+    "evidence": "Weight exceeds 1000 kg parcel limit. Use an overland freight quote."
+  },
+  "TC-085": {
+    "status": "PASS",
+    "evidence": {
+      "animation": "uat-pulse",
+      "finished": true
+    }
+  },
+  "TC-089": {
+    "status": "PASS",
+    "evidence": "rgb(15, 23, 42)"
+  },
+  "TC-090": {
+    "status": "PASS",
+    "evidence": {
+      "minimum_px": 11
+    }
+  },
+  "TC-093": {
+    "status": "PASS",
+    "evidence": [
+      {
+        "x": 12.25,
+        "width": 48,
+        "height": 46.5
+      },
+      {
+        "x": 72.75,
+        "width": 48,
+        "height": 46.5
+      },
+      {
+        "x": 133.25,
+        "width": 48,
+        "height": 46.5
+      },
+      {
+        "x": 193.75,
+        "width": 48,
+        "height": 46.5
+      },
+      {
+        "x": 254.25,
+        "width": 48,
+        "height": 46.5
+      },
+      {
+        "x": 314.75,
+        "width": 48,
+        "height": 46.5
+      }
+    ]
+  },
+  "TC-095": {
+    "status": "PASS",
+    "evidence": "All visible controls at least 44px in both dimensions"
+  },
+  "TC-096": {
+    "status": "PASS",
+    "evidence": {
+      "weight": "700",
+      "text": "Insufficient wallet balance"
+    }
+  },
+  "TC-092": {
+    "status": "PASS",
+    "evidence": "No Active Shipments \u2014 no shipments match this view."
+  },
+  "TC-098": {
+    "status": "PASS",
+    "evidence": "brightness(1.15)"
+  },
+  "TC-088": {
+    "status": "PASS",
+    "evidence": [
+      {
+        "width": 375,
+        "scroll": 375,
+        "charts": [
+          {
+            "width": 343,
+            "scroll": 341
+          },
+          {
+            "width": 343,
+            "scroll": 341
+          }
+        ]
+      },
+      {
+        "width": 768,
+        "scroll": 768,
+        "charts": [
+          {
+            "width": 500,
+            "scroll": 498
+          },
+          {
+            "width": 500,
+            "scroll": 498
+          }
+        ]
+      },
+      {
+        "width": 1440,
+        "scroll": 1440,
+        "charts": [
+          {
+            "width": 562,
+            "scroll": 560
+          },
+          {
+            "width": 562,
+            "scroll": 560
+          }
+        ]
+      }
+    ]
+  },
+  "TC-094": {
+    "status": "PASS",
+    "evidence": {
+      "characters": 186,
+      "horizontal_overflow": 0
+    }
+  },
+  "TC-097": {
+    "status": "PASS",
+    "evidence": [
+      {
+        "bottom": 1133.4730224609375,
+        "width": 24
+      },
+      {
+        "bottom": 1133.4730224609375,
+        "width": 24
+      },
+      {
+        "bottom": 1133.4730224609375,
+        "width": 24
+      },
+      {
+        "bottom": 1133.4730224609375,
+        "width": 24
+      },
+      {
+        "bottom": 1133.4730224609375,
+        "width": 24
+      },
+      {
+        "bottom": 1133.4730224609375,
+        "width": 24
+      }
+    ]
+  },
+  "TC-067": {
+    "status": "PASS",
+    "evidence": "70% MOCK CONFIDENCE"
+  },
+  "TC-039": {
+    "status": "PASS",
+    "evidence": "Unsorted rates rendered cheapest first using integer-pence comparison"
+  },
+  "TC-032": {
+    "status": "PASS",
+    "evidence": "Fault-injected backend response rendered surviving DPD rate plus upstream timeout notice"
+  },
+  "TC-079": {
+    "status": "PASS",
+    "evidence": {
+      "displayed_https_url": "https://seed-pod.example.invalid/uat.jpg",
+      "scope": "Stored URL linkage; no real carrier signature image fetched"
+    }
+  },
+  "TC-100": {
+    "status": "PASS",
+    "page_errors": [],
+    "svg_icons": 21
+  },
+  "cross_engine": {
+    "firefox": {
+      "loaded": true,
+      "weight_input_visible": true,
+      "horizontal_overflow": 0
+    },
+    "webkit": {
+      "loaded": true,
+      "weight_input_visible": true,
+      "horizontal_overflow": 0
+    },
+    "chrome": {
+      "loaded": true,
+      "weight_input_visible": true,
+      "horizontal_overflow": 0
+    },
+    "msedge": {
+      "loaded": true,
+      "weight_input_visible": true,
+      "horizontal_overflow": 0
+    }
+  }
+}

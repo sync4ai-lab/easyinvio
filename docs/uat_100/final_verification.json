@@ -1,0 +1,11 @@
+{
+  "sandbox_tenant_counts": {
+    "veloce-rigorous-v1": 24,
+    "veloce-uat100-v1": 3
+  },
+  "total_fixture_tenants": 27,
+  "original_supplement_quotes": 8,
+  "race_wallet_balance": "20.00",
+  "race_wallet_reserved": "0.00",
+  "audit_records_retained": true
+}

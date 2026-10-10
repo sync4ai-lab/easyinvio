@@ -1,0 +1,41 @@
+# Credentials belong in local configuration or a hosting secret manager.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Recreate these from requirements and source.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+.playwright/
+*.log
+
+# Editor/OS files and local database exports.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+backups/
+*.dump
+
+# Environment-specific evidence may contain customer identifiers.
+# Keep the test scripts, synthetic SQL seeds and written reports in Git.
+docs/**/*_evidence.json
+docs/*_receipt.json
+docs/supabase_connectivity_test.json
+docs/*_verification.json
+playwright-report/
+test-results/
+supabase/.temp/
+supabase/.branches/
+.coverage
+htmlcov/

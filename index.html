@@ -1,0 +1,3187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Veloce.AI | Dispatch intelligence</title>
+<script async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4">
+</script>
+<script async onload="window.refreshIcons?.()" src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js">
+</script>
+<style>
+:root{color-scheme:dark;--navy:#f1f5f9;--orange:#34d399;--muted:#94a3b8;--line:#1e293b;--canvas:#0f172a;--panel:#020617;--accent:#818cf8;--side:clamp(12rem,16vw,15rem)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--canvas);color:#f1f5f9;font:14px/1.5 Inter,ui-sans-serif,system-ui,sans-serif}button,input,select,textarea,a{font:inherit}button,input,select{min-height:44px}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}a{color:#a5b4fc;overflow-wrap:anywhere}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #818cf8;outline-offset:3px}[hidden]{display:none!important}svg,.lucide{width:20px;height:20px;flex-shrink:0}h1,h2,h3,p{margin:0}h1{font-size:clamp(24px,2.2vw,34px);line-height:1.15;letter-spacing:-.035em;font-weight:780;overflow-wrap:anywhere}h2{font-size:16px;font-weight:720}h3{font-size:14px;font-weight:700}p{color:var(--muted)}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 24px;border-bottom:1px solid #263249;background:#020617;position:sticky;top:0;z-index:40}.brand{font-size:24px;font-weight:850;letter-spacing:-1px;white-space:nowrap}.brand em{color:#34d399;font-style:normal}.brand small{display:block;font-size:9px;color:#94a3b8;letter-spacing:.17em;text-transform:uppercase;margin-top:1px}.topbar-actions{display:flex;gap:12px;align-items:center}.topbar-status{font-size:11px;color:#a5b4fc;display:flex;align-items:center;gap:7px}.signal{width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 12px #34d39988}.outline{border:1px solid #334155;border-radius:9px;background:#111c31;color:#e2e8f0;padding:8px 14px;font-weight:650;font-size:12px}
+.app-shell{display:grid;grid-template-columns:var(--side) minmax(0,1fr);min-height:calc(100vh - 78px)}.sidebar{min-width:0;background:#071020;border-right:1px solid #1e293b;padding:24px 14px;position:sticky;top:78px;height:calc(100vh - 78px);display:flex;flex-direction:column}.sidebar-caption{color:#64748b;font-size:10px;font-weight:750;letter-spacing:.15em;text-transform:uppercase;margin:0 12px 14px}nav{display:flex;flex-direction:column;gap:5px}nav button{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border:1px solid transparent;border-radius:10px;background:transparent;color:#94a3b8;text-align:left;font-size:12px;font-weight:650}nav button:hover{color:white;background:#142138}nav button[aria-selected=true]{background:#064e3b66;color:#6ee7b7;border-color:#065f4655}.nav-symbol{display:grid;place-items:center;width:22px;height:22px}.nav-symbol:has(.lucide) .icon-fallback{display:none}.sidebar-footer{margin-top:auto;padding:16px 12px 0;color:#64748b;font-size:11px;line-height:1.7}.sidebar-footer b{color:#cbd5e1;display:block}.container{width:100%;min-width:0;padding:24px;max-width:none;margin:0}.container>*{min-width:0}.modebar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 13px;margin-bottom:20px;border:1px solid #223248;border-radius:10px;background:#102239;color:#b4c5dc;font-size:11px}.modebar.live{background:#062d2666;border-color:#14532d;color:#a7f3d0}.modebar .mono{font-size:10px;flex-shrink:0}.pagehead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}.pagehead>div{min-width:0;flex:1}.pagehead p{margin-top:8px;font-size:12px;max-width:70ch}.eyebrow{font-size:10px;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:#a5b4fc;margin-bottom:7px}.subtle{font-size:12px;color:#94a3b8;line-height:1.55}.footnote{font-size:11px;line-height:1.6;color:#8394ad;margin-top:9px}.card,.chart-card,.support-card{background:#020617;border:1px solid #1e293b;border-radius:14px;padding:20px;margin:0;min-width:0}.column{display:flex;flex-direction:column;gap:16px;min-width:0}.cardhead,.chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}.cardhead>div,.chart-head>div{min-width:0}.cardhead p,.chart-head p{margin-top:5px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.dispatch-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:0}.operations-rail{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.fields.three{grid-template-columns:repeat(3,minmax(0,1fr))}.field{margin-bottom:12px}.fields>*{min-width:0}label{display:block;margin:0 0 6px;font-size:11px;font-weight:650;color:#bac7d9}input,select,textarea{display:block;width:100%;min-width:0;border:1px solid #334155;border-radius:8px;padding:10px 11px;background:#101a2e;color:#f1f5f9;font-size:12px}input::placeholder,textarea::placeholder{color:#687e9f}select{max-width:100%}textarea{min-height:112px;resize:vertical}.check{display:flex;gap:10px;align-items:center;font-size:11px;margin:12px 0}.check input,input[type=checkbox]{width:18px;height:18px;min-height:18px;accent-color:#10b981;flex-shrink:0}.sectionlabel{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#cbd5e1;margin:18px 0 12px;font-weight:750}.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:8px;padding:10px 13px;font-size:12px;font-weight:700;color:white;min-height:44px;text-decoration:none}.primary{background:#059669;border-color:#10b98133}.primary:hover:not(:disabled){background:#10b981}.secondary{background:#172238;border-color:#334155;color:#c7d2e4}.secondary:hover:not(:disabled){background:#243650;border-color:#64748b}.full{width:100%}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions>*{min-width:0}.weight{padding:12px;margin:14px 0;border-radius:9px;background:#0a2425;border:1px solid #115e5944;font-size:11px;color:#b7ded4;line-height:1.7}.weight b{color:#6ee7b7}.tag{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid #334155;background:#1e293b;color:#bccbdc;padding:4px 8px;font-size:9px;line-height:1.4;letter-spacing:.04em;border-radius:5px;font-weight:750;overflow-wrap:anywhere}.tag.green{background:#064e3b80;color:#6ee7b7;border-color:#065f46}.tag.orange{background:#312e8144;color:#c7d2fe;border-color:#4338ca55}.status-in_transit,.status-out_for_delivery{background:#1e3a8a55!important;color:#93c5fd!important;border-color:#2563eb55!important}.status-delivered,.status-closed,.status-resolved{background:#064e3b88!important;color:#6ee7b7!important;border-color:#10b98155!important}.status-exception,.status-failed{background:#7f1d1d55!important;color:#fca5a5!important;border-color:#ef444455!important}.empty{padding:26px 16px;text-align:center;background:#0b1325;border:1px dashed #334155;border-radius:10px;font-size:12px;color:#94a3b8}.empty h3{color:#e2e8f0;margin-bottom:5px}.notice,.errorbox{margin:12px 0;padding:11px 13px;border-radius:8px;border:1px solid #334155;background:#101f36;color:#b9cbe4;font-size:11px;line-height:1.6}.errorbox{border-color:#ef444455;background:#451c2355;color:#fecaca;font-weight:700}.price{font-size:25px;font-weight:780;letter-spacing:-.025em;font-variant-numeric:tabular-nums}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}.rate,.hs-card{padding:16px;margin:12px 0 0;border:1px solid #26344d;border-radius:11px;background:#0c1528}.rate:first-child{border-color:#10b98166;background:#071f2288}.ratehead,.ratefooter{display:flex;justify-content:space-between;gap:12px;min-width:0}.ratehead>div{min-width:0}.ratehead h3{font-size:14px}.ratehead .price{color:#f1f5f9}.ratefooter{margin-top:12px;align-items:center}.rate details{margin-top:13px;padding-top:9px;border-top:1px solid #243248}summary{cursor:pointer;font-size:11px;line-height:1.5;font-weight:650;color:#cbd5e1;padding:7px 0}summary:hover{color:#a5b4fc}details>summary::marker{color:#818cf8}.fee{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:11px;color:#a9b8ce}.fee b{color:#e2e8f0}.fee.total{border-top:1px solid #334155;margin-top:6px;font-weight:700}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.toolbar input{flex:1;min-width:150px}.toolbar select{flex:0 1 190px}.stats,.metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}.metric-grid{margin:20px 0}.stat,.metric-card{min-width:0;background:#020617;border:1px solid #1e293b;padding:18px;border-radius:12px}.metric-card:first-child{background:linear-gradient(135deg,#064e3b99,#0a202f);border-color:#10b98144}.metric-label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:#a9b9cf}.metric-value{font-size:clamp(25px,2.5vw,36px);margin:15px 0 8px;font-weight:800;line-height:1.1;letter-spacing:-.04em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.metric-foot{font-size:10px;color:#849ab3}.metric-icon,.icon-tile{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#312e8144;color:#a5b4fc;flex-shrink:0}.metric-icon svg{width:16px;height:16px}.stat strong{display:block;font-size:25px;margin-top:8px}.portal-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.role-switch{display:flex;gap:4px;padding:4px;border:1px solid #334155;background:#020617;border-radius:9px}.role-switch button{border:0;background:transparent;color:#8fa1bd;border-radius:6px;padding:8px 12px;font-size:11px;font-weight:700;min-width:0}.role-switch button[aria-pressed=true]{background:#312e8155;color:#c7d2fe}.period-control{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:10px;color:#94a3b8}.period-control input{width:9.5rem;max-width:43vw;padding:8px}.dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.source-badge{color:#a5b4fc;font-size:9px;letter-spacing:.06em;font-weight:750}.card-label{font-size:10px;color:#94a3b8}.donut-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:center}.donut-layout svg{width:100%;height:auto;max-width:210px;justify-self:center}.donut-layout text{fill:#e2e8f0}.legend-row{display:flex;gap:8px;align-items:center;font-size:11px;padding:8px 0;border-bottom:1px solid #1e293b}.legend-row b{margin-left:auto}.dot{height:8px;width:8px;border-radius:3px}.trend-bars{height:160px;display:flex;align-items:flex-end;justify-content:space-around;gap:9px;border-bottom:1px solid #334155}.trend-column{width:25px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:5px 5px 0 0;overflow:hidden}.trend-labels{display:flex;justify-content:space-around;margin-top:9px;font-size:10px;color:#94a3b8}.chart-foot{display:flex;gap:20px;margin-top:16px;font-size:10px;color:#94a3b8}.chart-foot b{color:#6ee7b7}.warehouse-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.warehouse-lane{background:#0d192d;border:1px solid #26344d;color:#e2e8f0;padding:13px;border-radius:9px;text-align:left;min-width:0}.warehouse-lane[aria-pressed=true]{border-color:#34d399;background:#063b3555}.warehouse-lane strong{font-size:12px;display:block}.lane-metrics{display:flex;gap:16px;margin-top:12px;font-size:10px;color:#8da7be}.lane-metrics b{display:block;font-size:18px;color:#6ee7b7}.lane-detail{padding:12px;margin-top:10px;border-radius:8px;background:#14233b;color:#b7cae5;font-size:11px}.support-card{margin-top:16px}.support-header{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:14px}.support-ticket{background:#0d1628;border:1px solid #27354a;border-radius:10px;padding:14px;margin-top:10px}.ticket-header{display:flex;gap:10px;align-items:flex-start}.ticket-alert{display:grid;place-items:center;width:26px;height:26px;flex-shrink:0;border-radius:8px;background:#7f1d1d55;color:#fca5a5;font-weight:800}.ticket-title{min-width:0;flex:1;font-size:12px;font-weight:700;overflow-wrap:anywhere}.ticket-caption{display:block;font-size:10px;font-weight:400;color:#94a3b8;margin-top:4px}.ticket-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.ticket-actions button{font-size:11px}.remedy{padding:12px;margin-top:6px;background:#111f36;border-radius:7px;color:#b8cce2;font-size:11px;line-height:1.7}.ticket-archive{padding:10px;margin-top:10px;border:1px solid #1e293b;border-radius:9px}.portal-error{margin-top:12px;padding:12px;border:1px solid #ef444455;background:#451c2355;border-radius:9px;color:#fecaca}.box-profile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}.box-profile{padding:18px;background:#0e1a2d;border:1px solid #29374d;border-radius:12px;min-width:0}.box-shape{display:grid;place-items:center;width:38px;height:38px;color:#a5b4fc;background:#312e8133;border-radius:10px;margin-bottom:12px}.box-dims{font-size:19px;color:#f1f5f9;font-weight:750;margin:10px 0}.box-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}.box-shape svg{width:24px;height:24px}.wallet{padding:24px;background:linear-gradient(135deg,#065f4688,#10233c);border:1px solid #10b98144;border-radius:14px}.wallet .price{font-size:clamp(32px,4vw,48px)}.wallet p{color:#a2c6bd;margin:8px 0}.hs-code{font:750 26px ui-monospace,monospace;color:#a5b4fc}.confidence{height:6px;background:#1e293b;border-radius:8px;margin:12px 0;overflow:hidden}.confidence span{height:100%;display:block;background:#34d399}.riskrow{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #1e293b;font-size:11px}.riskrow p{margin-top:4px}.readiness{list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:15px}.readiness li{display:flex;gap:12px;align-items:flex-start}.readiness li>span{font:700 10px ui-monospace,monospace;color:#a5b4fc;background:#312e8133;padding:6px;border-radius:6px}.readiness b{font-size:12px}.readiness small{display:block;font-size:11px;color:#94a3b8;margin-top:2px}.customs-accordion{background:#061e2355;border:1px solid #10b98144;border-radius:12px;padding:12px 16px}.customs-accordion>summary{display:flex;align-items:center;gap:10px;color:#e2e8f0}.customs-accordion summary small{display:block;color:#94a3b8;font-size:10px;font-weight:400;margin-top:3px}.customs-accordion summary .tag{margin-left:auto}.summary-icon{color:#6ee7b7;display:grid;place-items:center}.customs-content{padding-top:14px}.document-preview{padding:14px;border:1px solid #334155;border-radius:9px;margin:14px 0;background:#0c1628;color:#b9c9dd;font-size:12px}.doc-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.doc-summary b{display:block;color:#f1f5f9;font-size:15px}.doc-summary small{font-size:10px;color:#94a3b8}.pipeline{display:flex;align-items:center;gap:5px;margin-top:9px;flex-wrap:wrap;font-size:9px}.pipeline span{color:#64748b;white-space:nowrap}.pipeline span.active{color:#93c5fd}.pipeline span.done{color:#6ee7b7}.pipeline .pipeline-alert{color:#fca5a5}.pipeline i{height:3px;width:12px;background:#334155;border-radius:4px}.pipeline i.done{background:#059669}.scrolltable{width:100%;overflow:auto;min-width:0}table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}th{font-size:10px;color:#8c9fb7;text-transform:uppercase;letter-spacing:.08em;background:#0b1527}th,td{padding:13px 12px;border-bottom:1px solid #243248;vertical-align:top;overflow-wrap:anywhere}td b{font-size:12px}.manifest-actions{display:flex;flex-wrap:wrap;gap:6px}.manifest-actions button,.manifest-actions a{font-size:10px;min-height:44px;padding:8px 10px}.manifest-ref{display:flex;align-items:center;gap:7px}.manifest-ref svg{color:#818cf8;width:15px;height:15px}pre{margin:12px 0;padding:14px;background:#0b1527;color:#cbd5e1;border:1px solid #26344d;border-radius:9px;font:11px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:380px;overflow:auto}.progress{height:6px;margin:12px 0;background:#1e293b;border-radius:4px}.progress span{height:100%;display:block;width:0;background:#10b981;transition:width .2s}.spinner{width:15px;height:15px;border:2px solid #ffffff55;border-top-color:white;border-radius:50%;animation:uat-pulse .8s ease-in-out infinite}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:13px 18px;border-radius:10px;border:1px solid #334155;background:#1e293b;color:#f1f5f9;font-size:12px;box-shadow:0 16px 48px #0008;z-index:150}.toast.error{background:#451c23;color:#fecaca;border-color:#ef444455;font-weight:700}dialog{border:1px solid #334155;border-radius:15px;padding:24px;background:#0b1325;color:#f1f5f9;width:min(680px,calc(100vw - 28px));max-height:90vh;overflow:auto;box-shadow:0 32px 120px #0009}dialog::backdrop{background:#020617cc;backdrop-filter:blur(5px)}dialog .close{float:right;border:1px solid #334155;border-radius:7px;background:#1e293b;color:#cbd5e1;padding:7px 12px}.customs-drawer{position:static}.mobile-nav{display:none}#box-sheet-close{margin-bottom:12px}#workspace-team{margin-top:16px}#carrier-filter{margin-top:6px;margin-bottom:12px}.status-pills{display:flex;flex-wrap:wrap;gap:6px}.card + .card{margin-top:16px}
+@keyframes uat-pulse{50%{opacity:.3;transform:scale(.8)}}@keyframes sheet-enter{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media(min-width:1280px){.dispatch-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.85fr)}.operations-rail{display:flex;grid-column:auto}.xl\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1023px){.app-shell{grid-template-columns:minmax(0,1fr)}.sidebar{display:none}.container{padding:20px 20px 100px}.mobile-nav{position:fixed;bottom:0;left:0;right:0;z-index:80;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:#071020ee;border-top:1px solid #334155;padding:8px max(4px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom));backdrop-filter:blur(16px)}.mobile-nav button{border:0;border-radius:8px;background:transparent;color:#94a3b8;font-size:9px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:5px 2px;min-height:48px;min-width:0}.mobile-nav button[aria-current=page]{color:#6ee7b7;background:#064e3b55}.mobile-nav svg{width:18px;height:18px}.toast{bottom:86px}.pagehead{align-items:flex-start}.portal-tools{width:100%}.topbar-status{display:none}}
+@media(max-width:767px){.topbar{padding:12px 16px;gap:10px}.brand{font-size:22px}.brand small{font-size:8px}.topbar .outline{max-width:155px;font-size:11px}.container{padding:18px 14px 100px}.dispatch-grid,.grid,.dashboard-grid,.box-layout{grid-template-columns:minmax(0,1fr)}.operations-rail{display:flex;grid-column:auto}.metric-grid{grid-template-columns:minmax(0,1fr);gap:10px}.metric-card{padding:16px}.metric-value{font-size:31px;margin-top:12px}.stats{gap:8px}.stat{padding:12px}.stat strong{font-size:20px}.card,.chart-card,.support-card{padding:16px}.pagehead h1{font-size:26px}.fields{gap:10px}.fields.three{gap:8px}.warehouse-grid{grid-template-columns:minmax(0,1fr)}.role-switch{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.role-switch button{padding:8px 6px;font-size:10px}.portal-tools{gap:10px}.period-control{width:100%}.period-control input{flex:1;max-width:none;min-width:0}.support-header{align-items:flex-start}.support-header h2{font-size:15px}.ticket-header{flex-wrap:wrap}.ticket-header>.tag{margin-left:36px}.ticket-actions button{flex:1 1 140px}.donut-layout{gap:10px}.modebar{align-items:flex-start;font-size:10px}.toolbar input{min-width:0;flex-basis:100%}.toolbar select{max-width:none!important;flex:1}#boxes:not([hidden]),#customs:not([hidden]){position:fixed;inset:auto 0 0;z-index:101;max-height:88dvh;overflow:auto;overscroll-behavior:contain;padding:20px 16px 32px;background:#0b1325;border:1px solid #334155;border-radius:20px 20px 0 0;animation:sheet-enter .2s ease-out}#box-backdrop:not([hidden]),#customs-backdrop:not([hidden]){position:fixed;inset:0;z-index:100;background:#020617bb;backdrop-filter:blur(3px)}#boxes .pagehead,#customs .pagehead{margin-bottom:16px}.scrolltable{overflow:visible}#manifest thead{display:none}#manifest tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border:1px solid #27354a;border-radius:10px;padding:8px;margin:10px 0;background:#0c1528}#manifest td{border:0;padding:8px;min-width:0}#manifest td:first-child,#manifest td:last-child,#manifest td[colspan]{grid-column:1/-1}.pipeline{gap:4px}.pipeline span{font-size:9px}.pipeline i{width:8px}.customs-accordion>summary{flex-wrap:wrap}.customs-accordion summary .tag{margin-left:30px}.doc-summary{gap:8px}.manifest-actions button{flex:1}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+ .quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.quick-card{display:flex;align-items:center;gap:12px;text-align:left;background:#101a2e;border:1px solid #334155;color:#f1f5f9;border-radius:10px;padding:16px;min-width:0}.quick-card span{display:block;font-size:11px;color:#94a3b8}.quick-card b{display:block;font-size:12px}.quick-card:hover{border-color:#10b981}@media(max-width:767px){.quick-grid{grid-template-columns:1fr}} 
+/* Enterprise control plane: dark native controls and explicit persona panels. */
+.container{max-width:80rem;margin:0 auto;padding:20px;min-width:0}
+input,select,textarea,input[type=date],input[type=datetime-local]{background:#101a2e!important;color:#f1f5f9!important;border-color:#475569!important;color-scheme:dark}
+input:disabled,select:disabled{color:#cbd5e1!important;background:#172238!important}
+option,optgroup{background:#101a2e;color:#f1f5f9}input::placeholder,textarea::placeholder{color:#94a3b8;opacity:1}
+input::-webkit-calendar-picker-indicator{opacity:.9;cursor:pointer}
+table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{background:#111c31;color:#a5b4fc;font-weight:700}tbody tr:hover{background:#12233a}
+.finance-value,.metric-value{color:#6ee7b7;font-weight:800}.enterprise-banner{padding:12px 15px;margin-bottom:16px;background:#12233a;border:1px solid #334155;border-radius:10px;color:#cbd5e1;font-size:12px;overflow-wrap:anywhere}
+.provider-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:16px 0}.provider-grid h2{margin:12px 0 8px}
+.header-personas{display:flex;flex-wrap:wrap;gap:3px;min-width:0}.header-personas button{font-size:10px;padding:7px 10px}.topbar{flex-wrap:wrap}.topbar-actions{min-width:0;flex-wrap:wrap;justify-content:flex-end}.topbar-status{display:none}
+.mobile-nav{overflow-x:auto;justify-content:space-around}.mobile-nav button{flex:1;min-width:0;white-space:normal;line-height:1.15;padding:8px 3px;font-size:9px;flex-direction:column;display:flex;gap:5px;align-items:center}.mobile-nav button[aria-selected=true]{color:#6ee7b7;background:#064e3b55;border-radius:9px}.mobile-nav button span{overflow-wrap:anywhere}
+.exception-action{color:#fda4af;border-color:#9f1239;background:#4c051944}.exception-sheet{position:fixed;top:auto;bottom:0;margin:0 auto;max-height:85dvh;width:min(100%,52rem);max-width:100%;border-radius:20px 20px 0 0;padding:28px;background:#020617;border:1px solid #475569}
+#tenant-admin-form,#margin-admin-form,#carrier-admin-form,#store-admin-form{margin-top:20px}dialog label{margin-bottom:12px}dialog{color:#f1f5f9;background:#020617;border-color:#475569}dialog h2{padding-right:40px}
+@media(max-width:1023px){.container{padding:16px}.topbar{position:relative}.topbar-actions{gap:8px}.brand{font-size:22px}.topbar-status{display:none}}
+@media(max-width:767px){.provider-grid{grid-template-columns:1fr}.header-personas{width:100%;order:2}.topbar-actions{flex:1;justify-content:flex-end}.topbar{padding:12px 16px;gap:8px}.header-personas button{flex:1;font-size:9px}.container{padding:16px 12px}.pagehead h1{font-size:25px}.pagehead .primary{width:100%}.toolbar{flex-wrap:wrap}.toolbar input,.toolbar select{flex:1;min-width:0}.exception-sheet{padding:24px 16px}}
+</style>
+</head>
+<body class="bg-slate-900 text-slate-100">
+<svg aria-hidden="true" style="display:none">
+<symbol id="i-grid" viewBox="0 0 24 24">
+<rect x="3" y="3" width="7" height="7" rx="1"/>
+<rect x="14" y="3" width="7" height="7" rx="1"/>
+<rect x="3" y="14" width="7" height="7" rx="1"/>
+<rect x="14" y="14" width="7" height="7" rx="1"/>
+</symbol>
+<symbol id="i-truck" viewBox="0 0 24 24">
+<path d="M3 6h11v11H3zM14 10h4l3 4v3h-7"/>
+<circle cx="7" cy="18" r="2"/>
+<circle cx="18" cy="18" r="2"/>
+</symbol>
+<symbol id="i-box" viewBox="0 0 24 24">
+<path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7 5l10 6"/>
+</symbol>
+<symbol id="i-globe" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9"/>
+<ellipse cx="12" cy="12" rx="4" ry="9"/>
+<path d="M3 12h18M5 7h14M5 17h14"/>
+</symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24">
+<path d="M4 6h16v14H4zM4 6V4h13M15 11h6v5h-6z"/>
+</symbol>
+<symbol id="i-list" viewBox="0 0 24 24">
+<path d="M8 5h13M8 12h13M8 19h13M3 5h1M3 12h1M3 19h1"/>
+</symbol>
+<symbol id="i-chart" viewBox="0 0 24 24">
+<path d="M3 3v18h18M7 16v-5M12 16V6M17 16v-8"/>
+</symbol>
+</svg>
+<header class="topbar">
+<div class="brand">veloce<em>.ai</em>
+<small>Shipping intelligence platform</small>
+</div>
+<div class="topbar-actions">
+<span class="topbar-status">
+<span class="signal">
+</span>One workspace. Every shipment.</span>
+<button id="account-btn" class="outline">Connect workspace</button>
+</div>
+</header>
+<div class="app-shell">
+<aside class="sidebar">
+<div class="sidebar-caption">Workspace operations</div>
+<nav role="tablist" aria-label="Workspace navigation">
+<button id="tab-dashboard" role="tab" data-view="dashboard" aria-selected="true">
+<span class="nav-symbol">
+<i data-lucide="layout-dashboard">
+</i>
+<svg class="icon-fallback" fill="none" stroke="currentColor">
+<use href="#i-grid">
+</use>
+</svg>
+</span>
+<span>Overview</span>
+</button>
+<button id="tab-dispatch" role="tab" data-view="dispatch" aria-selected="false">
+<span class="nav-symbol">
+<i data-lucide="send">
+</i>
+<svg class="icon-fallback" fill="none" stroke="currentColor">
+<use href="#i-truck">
+</use>
+</svg>
+</span>
+<span>Speed quote</span>
+</button>
+<button id="tab-manifest" role="tab" data-view="manifest" aria-selected="false">
+<span class="nav-symbol">
+<i data-lucide="package-check">
+</i>
+<svg class="icon-fallback" fill="none" stroke="currentColor">
+<use href="#i-list">
+</use>
+</svg>
+</span>
+<span>Manifest</span>
+</button>
+<button id="tab-boxes" role="tab" data-view="boxes" aria-selected="false">
+<span class="nav-symbol">
+<i data-lucide="boxes">
+</i>
+<svg class="icon-fallback" fill="none" stroke="currentColor">
+<use href="#i-box">
+</use>
+</svg>
+</span>
+<span>Box profiles</span>
+</button>
+<button id="tab-wallet" role="tab" data-view="wallet" aria-selected="false">
+<span class="nav-symbol">
+<i data-lucide="wallet">
+</i>
+<svg class="icon-fallback" fill="none" stroke="currentColor">
+<use href="#i-wallet">
+</use>
+</svg>
+</span>
+<span>Wallet & audit</span>
+</button>
+<button id="tab-customs" role="tab" data-view="customs" aria-selected="false">
+<span class="nav-symbol">
+<i data-lucide="shield-check">
+</i>
+<svg class="icon-fallback" fill="none" stroke="currentColor">
+<use href="#i-globe">
+</use>
+</svg>
+</span>
+<span>Customs tools</span>
+</button>
+</nav>
+<div class="sidebar-footer">
+<b>Built for dispatch teams</b>Decimal pricing · tenant isolation<br>Customs suggestions require review.</div>
+</aside>
+<main class="container">
+<div id="modebar" class="modebar">
+<span id="mode-label">Connecting to local backend…</span>
+<span class="mono" id="health-label">CHECKING</span>
+</div>
+<section id="dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+<div class="pagehead">
+<div>
+<div class="eyebrow">Your operations, in focus</div>
+<h1 id="dashboard-title">Workspace overview</h1>
+<p id="dashboard-subtitle">A clearer view of every shipment, margin and milestone.</p>
+</div>
+<div class="portal-tools">
+<span id="dashboard-source" class="source-badge">DEMO DATA</span>
+<div id="portal-role-switch" class="role-switch" aria-label="Portal view">
+<button id="role-client" aria-pressed="true">Switch to Client SME View</button>
+<button id="role-admin" aria-pressed="false">Switch to Super-Admin View</button>
+</div>
+</div>
+</div>
+<div class="period-control">
+<label for="report-start">Reporting period</label>
+<input id="report-start" type="date">
+<span>to</span>
+<input id="report-end" type="date">
+<button id="dashboard-refresh" class="secondary">Refresh report</button>
+</div>
+<div id="dashboard-error" class="portal-error" role="status" hidden>
+</div>
+<div id="dashboard-metrics" class="metric-grid" aria-live="polite">
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+<article class="chart-card">
+<div class="chart-head">
+<div>
+<h2 id="distribution-title">Warehouse efficiency</h2>
+<p id="distribution-subtitle">Transit time and cost by shipping lane.</p>
+</div>
+<span id="chart-source" class="tag">DEMO</span>
+</div>
+<div id="primary-chart">
+</div>
+</article>
+<article class="chart-card">
+<div class="chart-head">
+<div>
+<h2 id="secondary-chart-title">Dispatch performance</h2>
+<p id="secondary-chart-subtitle">A little more visibility. A lot less guesswork.</p>
+</div>
+<span class="tag" id="trend-period">6 MONTH TREND</span>
+</div>
+<div id="secondary-chart">
+</div>
+</article>
+</div>
+<div class="support-card">
+<div class="support-header">
+<div>
+<div class="eyebrow">Proactive intelligence</div>
+<h2>AI Exception &amp; Dispatches Support Center</h2>
+<p class="subtle">Review carrier exceptions and the next best action.</p>
+</div>
+<span id="support-count" class="tag orange">2 DEMO TICKETS</span>
+</div>
+<div id="support-tickets">
+</div>
+</div>
+<div class="quick-grid">
+<button class="quick-card" data-portal-view="dispatch">
+<svg fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<use href="#i-truck">
+</use>
+</svg>
+<div>
+<strong>Speed Quote Matrix</strong>
+<span>Parallel carrier rates with volumetric pricing</span>
+</div>
+</button>
+<button class="quick-card" data-portal-view="boxes">
+<svg fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<use href="#i-box">
+</use>
+</svg>
+<div>
+<strong>Box Profiles</strong>
+<span>Reusable packing dimensions and weights</span>
+</div>
+</button>
+<button class="quick-card" data-portal-view="customs">
+<svg fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<use href="#i-globe">
+</use>
+</svg>
+<div>
+<strong>AI Customs Harmonizer</strong>
+<span>Find a candidate HS code and prepare declarations</span>
+</div>
+</button>
+</div>
+<p class="dashboard-note" id="dashboard-note">Demo figures illustrate the portal. Sign in to load verified workspace data.</p>
+</section>
+<section id="dispatch" hidden role="tabpanel" aria-labelledby="tab-dispatch">
+<div class="pagehead">
+<div>
+<div class="eyebrow">Operations / Dispatch</div>
+<h1>Move smarter. Ship with confidence.</h1>
+<p>Parallel carrier comparisons, dimensional pricing and route intelligence.</p>
+</div>
+<span class="tag green">DECIMAL PRICING</span>
+</div>
+<div class="dispatch-grid w-full grid grid-cols-1 xl:grid-cols-3 gap-5 px-4">
+<div class="column">
+<div class="card">
+<div class="cardhead">
+<div>
+<h2>Create a shipment</h2>
+<p class="subtle">Compare connected providers in one request.</p>
+</div>
+<span class="tag">
+<span id="cargo-badge">STANDARD PARCEL</span>
+</span>
+</div>
+<form id="quote-form">
+<div class="sectionlabel">01 · Pickup & delivery</div>
+<div class="fields" id="address-fields">
+</div>
+<div class="sectionlabel">02 · Cargo & measurements</div>
+<div class="field">
+<label for="cargo-type">Cargo classification</label>
+<select id="cargo-type" value="PARCEL">
+<option value="LETTER">Business Letter · below 0.5 kg</option>
+<option value="PARCEL" selected>Standard Parcel</option>
+<option value="PALLET">Heavy Pallet Freight</option>
+<option value="OVERLAND_FREIGHT">Overland Freight</option>
+</select>
+<p id="cargo-help" class="footnote">Express volumetric pricing · divisor 5000.</p>
+</div>
+<div id="freight-options" class="notice" hidden>
+<label class="check">
+<input id="cargo-stackable" type="checkbox" checked> Cargo is stackable</label>
+<p>Non-stackable freight uses the configured loading-metre floor. Carrier acceptance and tariff classes require review.</p>
+</div>
+<div id="cargo-dimensions" class="fields three">
+<div>
+<label for="length_cm">Length · cm</label>
+<input id="length_cm" type="number" min="0.01" max="1000" step="0.01" value="40" required>
+</div>
+<div>
+<label for="width_cm">Width · cm</label>
+<input id="width_cm" type="number" min="0.01" max="1000" step="0.01" value="30" required>
+</div>
+<div>
+<label for="height_cm">Height · cm</label>
+<input id="height_cm" type="number" min="0.01" max="1000" step="0.01" value="20" required>
+</div>
+</div>
+<div class="fields" style="margin-top:12px">
+<div>
+<label for="weight_kg">Actual weight · kg</label>
+<input id="weight_kg" type="number" min="0.001" max="1000" step="0.001" value="2.500" required>
+</div>
+<div>
+<label for="currency">Quote currency</label>
+<select id="currency">
+<option>GBP</option>
+<option>EUR</option>
+<option>USD</option>
+</select>
+</div>
+</div>
+<div id="weight-result" class="weight" aria-live="polite">Calculating billable weight…</div>
+<button id="quote-btn" class="primary full" type="submit">Fetch Parallel Live Rates →</button>
+<p id="quote-mode-note" class="footnote">Provider pricing uses the greater of actual and volumetric weight.</p>
+</form>
+</div>
+<details id="checkout-customs" class="customs-accordion" hidden>
+<summary>
+<span class="summary-icon">
+<i data-lucide="file-check-2">
+</i>
+</span>
+<span>Commercial Customs Document Preview<small>CN22 / CN23 / Commercial Invoice</small>
+</span>
+<span id="customs-state" class="tag orange">Review required</span>
+</summary>
+<div class="customs-content">
+<p id="customs-lane" class="subtle">
+</p>
+<p class="footnote">Cross-border document draft. Confirm customs territory, postal eligibility, commodity classification and signature before use.</p>
+<div class="fields">
+<div>
+<label for="qc-form">Document set</label>
+<select id="qc-form">
+<option value="CN23">CN23 + Commercial Invoice</option>
+<option value="CN22">CN22 + Commercial Invoice</option>
+<option value="COMMERCIAL_INVOICE">Commercial Invoice only</option>
+</select>
+</div>
+<div>
+<label for="qc-reference">Invoice reference</label>
+<input id="qc-reference" value="VEL-CUSTOMS-001" maxlength="100">
+</div>
+</div>
+<div class="field">
+<label for="qc-description">Goods description</label>
+<input id="qc-description" value="Cotton knitted T-shirt" maxlength="500">
+</div>
+<div class="fields three">
+<div>
+<label for="qc-hs">Reviewed HS code</label>
+<input id="qc-hs" value="610910" inputmode="numeric" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?">
+</div>
+<div>
+<label for="qc-quantity">Quantity</label>
+<input id="qc-quantity" type="number" min="1" step="1" value="1">
+</div>
+<div>
+<label for="qc-value">Unit value</label>
+<input id="qc-value" inputmode="decimal" value="25.00">
+</div>
+</div>
+<div class="fields">
+<div>
+<label for="qc-weight">Unit net weight · kg</label>
+<input id="qc-weight" type="number" min="0.001" step="0.001" value="0.200">
+</div>
+<div>
+<label for="qc-origin">Goods origin · ISO</label>
+<input id="qc-origin" value="GB" maxlength="2">
+</div>
+</div>
+<label class="check">
+<input id="qc-reviewed" type="checkbox"> I have reviewed the commodity code and values.</label>
+<div class="actions">
+<button id="qc-generate" class="primary" type="button">Generate & review draft</button>
+<button id="qc-harmonize" class="secondary" type="button">Find HS code</button>
+</div>
+<div id="qc-preview" class="document-preview" aria-live="polite">Enter reviewed goods information to create the declaration.</div>
+<div class="actions">
+<button id="qc-json" class="secondary" type="button" disabled>Download declaration JSON</button>
+<button id="qc-print" class="secondary" type="button" disabled>Download printable documents</button>
+</div>
+</div>
+</details>
+<div class="card">
+<div class="cardhead">
+<div>
+<h2>Bulk order processor</h2>
+<p class="subtle">1,000 orders · UTF-8 CSV · 5 MB maximum</p>
+</div>
+<button class="secondary" id="csv-template">CSV template ↓</button>
+</div>
+<label for="csv-file">Order file</label>
+<input id="csv-file" type="file" accept=".csv,text/csv">
+<div class="actions" style="margin-top:12px">
+<button class="primary" id="batch-btn">Process batch</button>
+<button class="secondary" id="batch-export" disabled>Export results</button>
+</div>
+<div class="progress" id="batch-progress" hidden>
+<span>
+</span>
+</div>
+<div id="batch-result" class="batchrows" aria-live="polite">
+</div>
+<p class="footnote">Rates rows concurrently. Uploading does not book shipments or deduct funds.</p>
+</div>
+</div>
+<div class="column">
+<div class="card">
+<div class="cardhead">
+<div>
+<h2>Your shipping options</h2>
+<p class="subtle" id="rates-summary">Connected strategies, sorted by final price.</p>
+</div>
+<span class="tag orange" id="rates-badge">AWAITING REQUEST</span>
+</div>
+<label for="carrier-filter">Carrier filter</label>
+<select id="carrier-filter">
+<option value="">All carriers</option>
+</select>
+<div id="rates" aria-live="polite">
+<div class="empty">
+<h3>Every route starts here</h3>
+<p>Enter your parcel details to compare rates.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="column operations-rail">
+<div class="card">
+<div class="cardhead">
+<div>
+<h2>Predictive route intelligence</h2>
+<p class="subtle">EasyPost and regional provider delay anomalies.</p>
+</div>
+<button id="routing-btn" class="secondary">Evaluate route</button>
+</div>
+<div id="routing-result">
+<p class="subtle">Evaluate the origin and destination entered in the dispatch form.</p>
+</div>
+</div>
+<article class="card operational-card">
+<div class="cardhead">
+<span class="icon-tile">
+<i data-lucide="workflow">
+</i>
+</span>
+<div>
+<h2>Dispatch readiness</h2>
+<p class="subtle">A clear path from quote to delivery.</p>
+</div>
+</div>
+<ol class="readiness">
+<li>
+<span>01</span>
+<div>
+<b>Choose cargo</b>
+<small>Letter, parcel, pallet or road freight.</small>
+</div>
+</li>
+<li>
+<span>02</span>
+<div>
+<b>Review landed costs</b>
+<small>Expand every carrier's surcharge breakdown.</small>
+</div>
+</li>
+<li>
+<span>03</span>
+<div>
+<b>Prepare customs</b>
+<small>Cross-border drafts appear with your quote.</small>
+</div>
+</li>
+<li>
+<span>04</span>
+<div>
+<b>Track & reconcile</b>
+<small>Manifest milestones and support actions.</small>
+</div>
+</li>
+</ol>
+<div class="actions">
+<button class="secondary full" data-view="manifest">Open tracking manifest</button>
+<button class="secondary full" data-view="boxes">Choose a box profile</button>
+</div>
+</article>
+</div>
+</div>
+</section>
+<section id="manifest" role="tabpanel" aria-labelledby="tab-manifest" hidden>
+<div class="pagehead">
+<div>
+<div class="eyebrow">Operations / Manifest</div>
+<h1>Every shipment, one workspace.</h1>
+<p>Search dispatches and prepare a thermal-label preview.</p>
+</div>
+<button class="secondary" id="manifest-refresh">Refresh manifest</button>
+</div>
+<div id="manifest-source" class="notice">
+</div>
+<div class="stats">
+<div class="stat">
+<span class="subtle">Visible shipments</span>
+<strong id="manifest-count">0</strong>
+</div>
+<div class="stat">
+<span class="subtle">Ready / booked</span>
+<strong id="manifest-ready">0</strong>
+</div>
+<div class="stat">
+<span class="subtle">Printing mode</span>
+<strong style="font-size:18px">Simulation</strong>
+</div>
+</div>
+<div class="card">
+<div class="toolbar">
+<input id="manifest-search" aria-label="Search manifest" placeholder="Search reference, carrier or destination">
+<select id="manifest-filter" aria-label="Filter shipments" style="max-width:160px">
+<option value="all">All statuses</option>
+<option value="BOOKED">Booked</option>
+<option value="IN_TRANSIT">In transit</option>
+<option value="OUT_FOR_DELIVERY">Out for delivery</option>
+<option value="EXCEPTION">Exceptions</option>
+<option value="DELIVERED">Delivered</option>
+<option value="FAILED">Failed</option>
+</select>
+<button id="manifest-export" class="secondary">Export CSV</button>
+</div>
+<div class="scrolltable">
+<table>
+<thead>
+<tr>
+<th>Reference / tracking</th>
+<th>Carrier / route</th>
+<th>Status</th>
+<th>Charge excl. tax</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="manifest-body">
+</tbody>
+</table>
+</div>
+<p class="footnote">Print actions generate sample ZPL and a simulated AirPrint notification. No printer broadcast or carrier label purchase occurs.</p>
+</div>
+</section>
+<div id="box-backdrop" hidden>
+</div>
+<div id="customs-backdrop" hidden>
+</div>
+<section id="boxes" role="tabpanel" aria-labelledby="tab-boxes" hidden>
+<button id="box-sheet-close" class="secondary" aria-label="Close box profiles">Close profiles ×</button>
+<div class="pagehead">
+<div>
+<div class="eyebrow">Packing library</div>
+<h1>Box Profiles</h1>
+<p>Save the right dimensions. Quote with confidence.</p>
+</div>
+<button class="secondary" data-portal-view="dispatch">Open Speed Quote Matrix</button>
+</div>
+<div id="box-profile-list" class="profile-list">
+</div>
+<article class="card" style="margin-top:22px">
+<h2>Create a reusable box</h2>
+<p class="subtle">Profiles are saved in this browser for the current workspace. They do not purchase labels.</p>
+<form id="box-profile-form" style="margin-top:20px">
+<div class="fields box-fields">
+<div>
+<label for="box-name">Profile name</label>
+<input id="box-name" maxlength="60" required placeholder="Warehouse carton">
+</div>
+<div>
+<label for="box-weight">Default actual weight · kg</label>
+<input id="box-weight" type="number" min="0.001" max="1000" step="0.001" required value="1.000">
+</div>
+</div>
+<div class="fields three">
+<div>
+<label for="box-length">Length · cm</label>
+<input id="box-length" type="number" min="0.01" max="1000" step="0.01" required value="30">
+</div>
+<div>
+<label for="box-width">Width · cm</label>
+<input id="box-width" type="number" min="0.01" max="1000" step="0.01" required value="20">
+</div>
+<div>
+<label for="box-height">Height · cm</label>
+<input id="box-height" type="number" min="0.01" max="1000" step="0.01" required value="15">
+</div>
+</div>
+<button class="primary" style="margin-top:16px">Save box profile</button>
+</form>
+</article>
+</section>
+<section id="wallet" role="tabpanel" aria-labelledby="tab-wallet" hidden>
+<div class="pagehead">
+<div>
+<div class="eyebrow">Finance / Wallet</div>
+<h1>Control every shipping pound.</h1>
+<p>Available funds, reservations and invoice exceptions.</p>
+</div>
+<button id="wallet-refresh" class="secondary">Refresh balance</button>
+</div>
+<div class="grid">
+<div>
+<div class="wallet">
+<div class="eyebrow">Available balance</div>
+<div class="price" id="wallet-balance">£0.00</div>
+<p id="wallet-reserved">Reserved: £0.00</p>
+<span class="tag orange" id="wallet-tag">PREVIEW FUNDS</span>
+</div>
+<div class="card" style="margin-top:20px">
+<h2>Add funds</h2>
+<form id="topup-form">
+<div class="field" style="margin-top:16px">
+<label for="topup-amount">Amount · wallet currency</label>
+<input id="topup-amount" inputmode="decimal" pattern="[0-9]+(\.[0-9]{1,2})?" value="100.00" required>
+</div>
+<button id="topup-btn" class="primary">Add preview funds</button>
+</form>
+<div id="checkout-result">
+</div>
+<p id="topup-note" class="footnote">Integer-pence accounting in this browser session.</p>
+<h3 style="margin-top:24px">Session activity</h3>
+<div id="wallet-history">
+</div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead">
+<div>
+<h2>AI invoice surcharge auditor</h2>
+<p class="subtle">Compare invoices with stored shipment baselines.</p>
+</div>
+<span class="tag">DRAFT ONLY</span>
+</div>
+<form id="audit-form">
+<label for="invoice-json">Carrier invoice · JSON</label>
+<textarea id="invoice-json" class="mono" style="min-height:280px" required>
+</textarea>
+<p class="footnote">Decimal strings required. Live audits require OWNER, ADMIN or ACCOUNTANT permissions.</p>
+<button id="audit-btn" class="primary full" style="margin-top:14px">Audit invoice & draft disputes</button>
+</form>
+<div id="audit-result" aria-live="polite">
+</div>
+</div>
+</div>
+</section>
+<section id="customs" role="tabpanel" aria-labelledby="tab-customs" hidden>
+<button id="customs-close" class="secondary drawer-close" aria-label="Close customs drawer">Close drawer ×</button>
+<div class="pagehead">
+<div>
+<div class="eyebrow">Intelligence / Customs Tools</div>
+<h1>From warehouse text to clear declarations.</h1>
+<p>Explainable suggestions and structured cross-border paperwork.</p>
+</div>
+<span class="tag orange">MOCK ML · HUMAN REVIEW</span>
+</div>
+<div class="grid">
+<div class="card">
+<div class="cardhead">
+<div>
+<h2>AI Customs Harmonizer</h2>
+<p class="subtle">Describe material, product type and intended use.</p>
+</div>
+<span class="tag">HS 2022</span>
+</div>
+<form id="harmonizer-form">
+<label for="item-description">Unstructured item description</label>
+<textarea id="item-description" minlength="3" maxlength="500" required>Silk running sneakers leather trim</textarea>
+<button class="primary full" id="harmonize-btn" style="margin-top:14px">Predict HS commodity code ✦</button>
+</form>
+<div id="hs-results" aria-live="polite">
+</div>
+<div class="notice">Curated rule-based mock model. Confidence is simulated. Review national tariff extensions before declaring goods.</div>
+<a href="https://www.gov.uk/trade-tariff" target="_blank" rel="noopener">Check the official UK Trade Tariff ↗</a>
+</div>
+<div class="card">
+<h2>Commercial invoice / CN declaration</h2>
+<p class="subtle">Structured JSON for your print integration.</p>
+<form id="declaration-form" style="margin-top:20px">
+<div class="fields">
+<div>
+<label for="decl-reference">Invoice reference</label>
+<input id="decl-reference" value="VE-CI-1043" maxlength="100" required>
+</div>
+<div>
+<label for="decl-form">Postal declaration form</label>
+<select id="decl-form">
+<option>CN23</option>
+<option>COMMERCIAL_INVOICE</option>
+<option>CN22</option>
+</select>
+</div>
+</div>
+<p class="footnote">Uses current dispatch addresses. Select the form required by your postal operator.</p>
+<div class="field" style="margin-top:13px">
+<label for="decl-description">Reviewed goods description</label>
+<input id="decl-description" value="Cotton knitted T-shirt" minlength="3" maxlength="500" required>
+</div>
+<div class="fields three">
+<div>
+<label for="decl-hs">Reviewed HS code</label>
+<input id="decl-hs" value="610910" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required>
+</div>
+<div>
+<label for="decl-quantity">Quantity</label>
+<input id="decl-quantity" type="number" min="1" max="100000" step="1" value="1" required>
+</div>
+<div>
+<label for="decl-origin">Goods origin</label>
+<input id="decl-origin" value="GB" pattern="[A-Z]{2}" required>
+</div>
+<div>
+<label for="decl-value">Unit value</label>
+<input id="decl-value" value="25.00" inputmode="decimal" pattern="[0-9]+(\.[0-9]{1,2})?" required>
+</div>
+<div>
+<label for="decl-weight">Unit net weight · kg</label>
+<input id="decl-weight" type="number" min="0.001" max="1000" step="0.001" value="0.250" required>
+</div>
+<div>
+<label for="decl-shipping">Shipping cost</label>
+<input id="decl-shipping" value="0.00" inputmode="decimal" pattern="[0-9]+(\.[0-9]{1,2})?" required>
+</div>
+</div>
+<div class="fields" style="margin-top:13px">
+<div>
+<label for="decl-incoterm">Incoterm</label>
+<select id="decl-incoterm">
+<option>DAP</option>
+<option>DDP</option>
+<option>FCA</option>
+<option>EXW</option>
+</select>
+</div>
+<div>
+<label for="decl-category">Category</label>
+<select id="decl-category">
+<option>SALE</option>
+<option>GIFT</option>
+<option>RETURN</option>
+<option>SAMPLE</option>
+<option>OTHER</option>
+</select>
+</div>
+</div>
+<label style="display:flex;align-items:center;gap:10px;margin:16px 0">
+<input type="checkbox" id="decl-reviewed" required style="width:20px;min-height:20px">I have reviewed the HS code and goods details.</label>
+<button id="declaration-btn" class="primary full">Generate declaration metadata</button>
+</form>
+<div id="declaration-result">
+</div>
+</div>
+</div>
+</section>
+<section id="workspace-team" class="card" hidden>
+<h2>Warehouse team</h2>
+<p>Add an existing Supabase user already provisioned for this workspace.</p>
+<form id="workspace-member-form">
+<label for="member-auth-id">Workspace auth user UUID</label>
+<input id="member-auth-id" required>
+<label for="member-name">Full name</label>
+<input id="member-name" maxlength="200" required>
+<label for="member-role">Role</label>
+<select id="member-role">
+<option>DISPATCHER</option>
+<option>ACCOUNTANT</option>
+<option>ADMIN</option>
+</select>
+<button class="primary" type="submit">Add warehouse user</button>
+</form>
+</section>
+</main>
+</div>
+<div class="mobile-nav" aria-label="Mobile workspace navigation">
+<button data-portal-view="dashboard" aria-label="Overview">
+<i data-lucide="layout-dashboard">
+</i>
+<span>Overview</span>
+</button>
+<button data-portal-view="dispatch" aria-label="Speed quote">
+<i data-lucide="send">
+</i>
+<span>Speed quote</span>
+</button>
+<button data-portal-view="manifest" aria-label="Manifest">
+<i data-lucide="package-check">
+</i>
+<span>Manifest</span>
+</button>
+<button data-portal-view="boxes" aria-label="Box profiles">
+<i data-lucide="boxes">
+</i>
+<span>Box profiles</span>
+</button>
+<button data-portal-view="wallet" aria-label="Wallet & audit">
+<i data-lucide="wallet">
+</i>
+<span>Wallet</span>
+</button>
+<button data-portal-view="customs" aria-label="Customs tools">
+<i data-lucide="shield-check">
+</i>
+<span>Customs tools</span>
+</button>
+</div>
+<dialog id="account-dialog">
+<button type="button" class="close" data-close="account-dialog" aria-label="Close account dialog">×</button>
+<h2>Connect your workspace</h2>
+<p>Sign in with a Supabase Auth user linked to an active tenant.</p>
+<form id="login-form" style="margin-top:22px">
+<div class="field">
+<label for="login-email">Email</label>
+<input id="login-email" type="email" autocomplete="username" required>
+</div>
+<div class="field">
+<label for="login-password">Password</label>
+<input id="login-password" type="password" autocomplete="current-password" required>
+</div>
+<button class="primary full" id="login-btn">Sign in</button>
+</form>
+<button id="signout-btn" class="secondary full" style="margin-top:10px" hidden>Sign out locally</button>
+<p id="login-status" class="footnote" aria-live="polite">Tokens stay in memory.</p>
+</dialog>
+<dialog id="review-dialog">
+<button type="button" class="close" data-close="review-dialog" aria-label="Close quote review">×</button>
+<div id="review-content">
+</div>
+</dialog>
+<dialog id="print-dialog">
+<button type="button" class="close" data-close="print-dialog" aria-label="Close label preview">×</button>
+<h2>ZPL thermal label preview</h2>
+<p>Sample 4 × 6 label · simulated wireless print</p>
+<pre id="zpl-preview">
+</pre>
+<div class="actions">
+<button id="zpl-download" class="secondary">Download sample ZPL</button>
+<button id="airprint-btn" class="primary">Simulate AirPrint broadcast</button>
+</div>
+</dialog>
+<dialog id="ticket-dialog">
+<button class="close" data-close="ticket-dialog" aria-label="Close intervention">×</button>
+<h2>Manually intervene</h2>
+<p id="intervention-context">
+</p>
+<form id="intervention-form">
+<label for="intervention-note">Dispatch note</label>
+<textarea id="intervention-note" minlength="3" maxlength="2000" required placeholder="Record the action you will take with the carrier.">
+</textarea>
+<button class="primary full" style="margin-top:14px">Save intervention note</button>
+</form>
+</dialog>
+<dialog id="pod-dialog">
+<button class="close" data-close="pod-dialog" aria-label="Close delivery proof">×</button>
+<h2>Carrier proof of delivery</h2>
+<div id="pod-content">
+</div>
+</dialog>
+<dialog id="shipment-dialog">
+<button class="close" data-close="shipment-dialog" aria-label="Close shipment details">×</button>
+<h2>Shipment timeline & documents</h2>
+<div id="shipment-detail">
+</div>
+<div class="actions">
+<button id="shipment-doc-json" class="secondary" disabled>Download customs JSON</button>
+<button id="shipment-doc-print" class="secondary" disabled>Download printable customs</button>
+</div>
+</dialog>
+<dialog id="dispute-dialog">
+<button class="close" data-close="dispute-dialog" aria-label="Close surcharge dispute">×</button>
+<h2>Auto-draft surcharge dispute</h2>
+<p class="subtle" id="dispute-context">
+</p>
+<div class="notice">Draft only. No claim or message is sent. Invoice amounts are required to establish a monetary overcharge.</div>
+<textarea id="dispute-draft" aria-label="Dispute draft" rows="7">
+</textarea>
+<div class="actions">
+<button id="dispute-download" class="secondary">Download draft</button>
+<button id="dispute-copy" class="secondary">Copy draft</button>
+</div>
+<details style="margin-top:16px">
+<summary>Compare a billed invoice against stored shipment charges</summary>
+<form id="quick-audit-form">
+<div class="fields">
+<div>
+<label for="qa-currency">Invoice currency</label>
+<select id="qa-currency">
+<option>GBP</option>
+<option>EUR</option>
+<option>USD</option>
+</select>
+</div>
+<div>
+<label for="qa-weight">Billed weight · kg</label>
+<input id="qa-weight" value="4.800" inputmode="decimal" required>
+</div>
+</div>
+<div class="fields">
+<div>
+<label for="qa-base">Billed base cost</label>
+<input id="qa-base" value="0.00" inputmode="decimal" required>
+</div>
+<div>
+<label for="qa-fuel">Fuel surcharge</label>
+<input id="qa-fuel" value="0.00" inputmode="decimal" required>
+</div>
+<div>
+<label for="qa-residential">Residential fee</label>
+<input id="qa-residential" value="0.00" inputmode="decimal" required>
+</div>
+<div>
+<label for="qa-remote">Remote area fee</label>
+<input id="qa-remote" value="0.00" inputmode="decimal" required>
+</div>
+</div>
+<button class="primary full" style="margin-top:12px">Audit & update draft</button>
+</form>
+<div id="quick-audit-result">
+</div>
+</details>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden>
+</div>
+<script>
+'use strict';
+const $ = s => document.querySelector(s),
+  $$ = s => [...document.querySelectorAll(s)];
+const API = location.port === '5500' ? 'http://127.0.0.1:8000' : '';
+const DEMO_ID = '00000000-0000-4000-8000-000000001043';
+const state = {
+  mode: 'checking',
+  config: null,
+  session: null,
+  quotes: [],
+  quoteRequest: null,
+  manifest: [],
+  wallet: 125000n,
+  walletCurrency: 'GBP',
+  reserved: 0n,
+  history: [],
+  batch: null,
+  print: null,
+  generation: 0
+};
+const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+} [c]));
+const addressDefaults = {
+  origin: ['Veloce Warehouse', '10 Example Street', 'London', 'SW1A 1AA', 'GB'],
+  destination: ['Example Customer', '20 Sample Avenue', 'Paris', '75001', 'FR']
+};
+const addressNames = ['name', 'line1', 'city', 'postal_code', 'country_code'];
+$('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','ISO country'][i]}</label><input id="${prefix}-${field}" value="${addressDefaults[prefix][i]}" maxlength="${i===4?2:200}" ${i===4?'pattern="[A-Z]{2}"':''} required></div>`).join('')).join('');
+
+function cents(value) {
+  const text = String(value);
+  if (!/^-?\d+(\.\d{1,2})?$/.test(text)) throw Error('Use an amount with at most two decimal places.');
+  const negative = text.startsWith('-'),
+    [whole, fraction = ''] = text.replace(/^-/, '').split('.');
+  const result = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+  return negative ? -result : result
+}
+
+function money(value, currency = 'GBP') {
+  const n = cents(value),
+    absolute = n < 0n ? -n : n;
+  return `${n<0n?'−':''}${({GBP:'£',EUR:'€',USD:'$'})[currency]||currency+' '}${(absolute/100n).toLocaleString('en-GB')}.${String(absolute%100n).padStart(2,'0')}`
+}
+
+function decimalCents(value) {
+  return `${value<0n?'-':''}${(value<0n?-value:value)/100n}.${String((value<0n?-value:value)%100n).padStart(2,'0')}`
+}
+let toastTimer;
+let sessionExpiryTimer;
+
+function armSessionExpiry() {
+  clearTimeout(sessionExpiryTimer);
+  const session = state.session;
+  if (!session) return;
+  let expires = Number(session.expires_at) * 1000;
+  if (!Number.isFinite(expires) || expires <= 0) {
+    try {
+      const claims = JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      expires = Number(claims.exp) * 1000
+    } catch {
+      return
+    }
+  }
+  if (!Number.isFinite(expires)) return;
+  sessionExpiryTimer = setTimeout(() => {
+    if (state.session === session) {
+      clearSession();
+      notify('Your session expired. Sign in again.', true)
+    }
+  }, Math.max(0, Math.min(2147483647, expires - Date.now())))
+}
+
+function notify(message, error = false) {
+  clearTimeout(toastTimer);
+  $('#toast').textContent = message;
+  $('#toast').classList.toggle('error', error);
+  $('#toast').hidden = false;
+  toastTimer = setTimeout(() => $('#toast').hidden = true, 6500)
+}
+async function api(path, {
+  method = 'GET',
+  body,
+  raw = false,
+  auth = false,
+  signal
+} = {}) {
+  if (auth && !state.session) throw Error('Sign in to your connected workspace first.');
+  const activeSession = state.session;
+  const headers = {};
+  if (body !== undefined) headers['Content-Type'] = raw ? 'text/csv' : 'application/json';
+  if (auth) headers.Authorization = `Bearer ${activeSession.access_token}`;
+  const response = await fetch(API + path, {
+    method,
+    headers,
+    body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
+    signal
+  });
+  let data;
+  try {
+    data = await response.json()
+  } catch {
+    throw Error('Backend returned an unexpected response.')
+  }
+  if (auth && activeSession !== state.session) throw Error('Session changed. Retry after signing in.');
+  if (!response.ok) {
+    if (response.status === 401 && auth) {
+      clearSession()
+    }
+    const detail = data.detail;
+    throw Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.code || `Request failed (${response.status})`)
+  }
+  return data
+}
+async function busy(button, operation) {
+  if (button.disabled) return;
+  const original = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<span class="spinner"></span> Processing…';
+  try {
+    return await operation()
+  } catch (error) {
+    notify(error.message || 'Request failed', true)
+  } finally {
+    button.disabled = false;
+    button.innerHTML = original
+  }
+}
+
+function errorPanel(target, error) {
+  $(target).innerHTML = `<div class="errorbox">${escapeHTML(error.message)}</div>`
+}
+
+function download(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], {
+    type
+  }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+function csvCell(value) {
+  let text = String(value ?? '');
+  if (/^[=+@\-\t\r]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"'
+}
+
+function exportCSV(name, rows) {
+  download(name, rows.map(row => row.map(csvCell).join(',')).join('\r\n'), 'text/csv;charset=utf-8')
+}
+
+function setView(view) {
+  $$('[role=tabpanel]').forEach(panel => panel.hidden = panel.id !== view);
+  $$('nav [role=tab]').forEach(tab => {
+    const selected = tab.dataset.view === view;
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1
+  });
+  if (view === 'manifest') renderManifest();
+  if (view === 'wallet') renderWallet()
+}
+$$('[data-view]').forEach(tab => tab.addEventListener('click', () => setView(tab.dataset.view)));
+$('nav').addEventListener('keydown', event => {
+  const tabs = $$('nav [role=tab]'),
+    index = tabs.indexOf(document.activeElement);
+  if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[next].focus();
+  setView(tabs[next].dataset.view)
+});
+$$('[data-close]').forEach(button => button.addEventListener('click', () => $('#' + button.dataset.close).close()));
+
+function address(prefix) {
+  return Object.fromEntries(addressNames.map(field => [field, $(`#${prefix}-${field}`).value.trim()]))
+}
+
+function quotePayload() {
+  return {
+    origin: address('origin'),
+    destination: address('destination'),
+    dimensions: [Object.fromEntries(['length_cm', 'width_cm', 'height_cm'].map(field => [field, $('#' + field).value]))],
+    weights_kg: [$('#weight_kg').value],
+    currency: $('#currency').value
+  }
+}
+let weightGeneration = 0,
+  weightTimer;
+async function updateWeight() {
+  const generation = ++weightGeneration;
+  try {
+    if (Number($('#weight_kg').value) > 1000) throw Error('Weight exceeds 1000 kg parcel limit. Use an overland freight quote.');
+    if (Number($('#length_cm').value) >= 500) throw Error('Oversize parcel: length is 500 cm or greater. Check carrier limits and request a freight quote.');
+    const body = {
+      ...quotePayload().dimensions[0],
+      actual_weight_kg: $('#weight_kg').value
+    };
+    const result = await api('/api/v1/logistics/weight', {
+      method: 'POST',
+      body
+    });
+    if (generation !== weightGeneration) return;
+    $('#weight-result').innerHTML = `Actual <b>${escapeHTML(result.actual_weight_kg)} kg</b> · Volumetric <b>${escapeHTML(result.volumetric_weight_kg)} kg</b><br>Billable: <b>${escapeHTML(result.billable_weight_kg)} kg</b> · ${escapeHTML(result.basis)} basis · divisor 5000`
+  } catch (error) {
+    if (generation === weightGeneration) $('#weight-result').textContent = error.message
+  }
+}
+$('#quote-form').addEventListener('input', () => {
+  state.generation++;
+  state.quotes = [];
+  state.quoteRequest = null;
+  $('#rates').innerHTML = '<div class="empty"><h3>Parcel details changed</h3><p>Fetch fresh rates for these details.</p></div>';
+  $('#rates-badge').textContent = 'REFRESH REQUIRED';
+  clearTimeout(weightTimer);
+  weightTimer = setTimeout(updateWeight, 250)
+});
+$('#quote-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy($('#quote-btn'), async () => {
+    const generation = ++state.generation,
+      body = quotePayload();
+    $('#rates').innerHTML = '<div class="empty"><h3>Comparing provider strategies…</h3><p>EasyPost and regional integrations run concurrently.</p></div>';
+    try {
+      const result = await api(state.mode === 'local-preview' ? '/api/v1/rates/preview' : !state.session ? '/api/v1/rates/sample' : '/v1/rates', {
+        method: 'POST',
+        body,
+        auth: state.mode !== 'local-preview' && !!state.session
+      });
+      if (generation !== state.generation) return;
+      state.quotes = result.rates;
+      state.lastRateResult = result;
+      state.quoteRequest = body;
+      renderRates(result)
+    } catch (error) {
+      if (generation === state.generation) errorPanel('#rates', error);
+      throw error
+    }
+  })
+});
+
+function feeRows(rate) {
+  const f = rate.fee_breakdown || {},
+    rows = [
+      ['Wholesale base cost', f.base_cost],
+      ['Fuel surcharge', f.fuel_surcharge],
+      ['Residential accessorial fee', f.residential_fee],
+      ['Remote area fee', f.remote_area_fee],
+      ['Wholesale carrier total', f.wholesale_total],
+      ['Veloce platform markup', f.platform_markup]
+    ];
+  return rows.map(([label, value]) => `<div class="fee"><span>${label}</span><b class="mono">${value==null?'Not reported':money(value,rate.currency)}</b></div>`).join('') + `<div class="fee total"><span>Final price excl. tax</span><b>${money(rate.client_price_ex_tax,rate.currency)}</b></div><p class="footnote">${f.source==='simulation'?'Illustrative fee split. No carrier API called.':f.source==='provider'?'Fee split reported by provider.':'Provider did not supply individual accessorial fees. These are included in its quoted total where applicable.'}</p>`
+}
+
+function renderRates(result) {
+  result.rates.sort((a, b) => {
+    if (a.currency !== b.currency) return a.currency.localeCompare(b.currency);
+    const left = cents(a.client_price_ex_tax),
+      right = cents(b.client_price_ex_tax);
+    return left < right ? -1 : left > right ? 1 : 0
+  });
+  const filter = $('#carrier-filter'),
+    selected = filter.value;
+  filter.innerHTML = '<option value="">All carriers</option>' + [...new Set(result.rates.map(r => r.carrier_code))].map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+  filter.value = selected;
+  $('#rates-summary').textContent = `${result.rates.length} options · ${result.partial?'partial provider results':'sorted by final price'}`;
+  $('#rates-badge').textContent = result.simulated ? 'PREVIEW RATES' : 'LIVE RESPONSE';
+  $('#rates').innerHTML = (result.issues?.length ? `<div class="notice">${result.issues.map(issue=>escapeHTML(issue.provider+': '+issue.code)).join('<br>')}</div>` : '') + result.rates.map((rate, index) => ({
+    rate,
+    index
+  })).filter(({
+    rate
+  }) => !$('#carrier-filter').value || rate.carrier_code === $('#carrier-filter').value).map(({
+    rate,
+    index
+  }) => `<article class="rate"><div class="ratehead"><div><h3>${escapeHTML(rate.carrier_code)} ${index===0?'<span class="tag orange">LOWEST PRICE</span>':''}</h3><p class="subtle">${escapeHTML(rate.service_code)}</p><p class="subtle">${rate.delivery_days==null?'Delivery estimate unavailable':escapeHTML(rate.delivery_days)+' working days estimated'}</p></div><div style="text-align:right"><div class="price">${money(rate.client_price_ex_tax,rate.currency)}</div><span class="subtle">excl. tax · ${result.simulated?'simulated':'carrier quote'}</span></div></div><details><summary>View full surcharge breakdown ↓</summary>${feeRows(rate)}</details><div class="ratefooter"><span class="tag">${escapeHTML(rate.provider)}</span><button class="${index===0?'primary':'secondary'}" data-review="${index}">Review option →</button></div></article>`).join('')
+}
+$('#carrier-filter').addEventListener('change', () => {
+  if (state.lastRateResult) renderRates(state.lastRateResult)
+});
+$('#rates').addEventListener('click', event => {
+  const button = event.target.closest('[data-review]');
+  if (!button) return;
+  const index = Number(button.dataset.review),
+    rate = state.quotes[index];
+  if (!rate || !state.quoteRequest) return;
+  $('#review-content').innerHTML = `<span class="tag orange">${rate.simulated?'PREVIEW DISPATCH':'LIVE QUOTE'}</span><h2 style="margin-top:15px">${escapeHTML(rate.carrier_code)} · ${escapeHTML(rate.service_code)}</h2><p>${escapeHTML(state.quoteRequest.origin.country_code)} → ${escapeHTML(state.quoteRequest.destination.country_code)}</p>${feeRows(rate)}<div class="notice">${rate.simulated?'Creates a browser-session manifest entry and deducts preview funds only.':'This quote is live. Carrier label purchase is not implemented; no booking or charge will be initiated.'}</div><button class="primary full" id="confirm-preview" ${rate.simulated?'':'disabled'}>Confirm preview dispatch</button>`;
+  $('#confirm-preview').addEventListener('click', () => bookPreview(index));
+  $('#review-dialog').showModal()
+});
+
+function resetQuoteForm() {
+  for (const id of ['length_cm', 'width_cm', 'height_cm', 'weight_kg']) $('#' + id).value = '';
+  state.quotes = [];
+  state.quoteRequest = null;
+  state.lastRateResult = null;
+  state.generation++;
+  $('#rates').innerHTML = '<div class="empty">Shipment completed. Enter the next parcel.</div>';
+  $('#weight-result').textContent = 'Enter parcel measurements.'
+}
+
+function bookPreview(index) {
+  const rate = state.quotes[index];
+  if (!rate?.simulated || rate.booked || !state.quoteRequest) return;
+  if (rate.currency !== state.walletCurrency) {
+    notify('Preview wallet currency is GBP. Fetch GBP rates to use preview funds.', true);
+    return
+  }
+  const charge = cents(rate.client_price_ex_tax);
+  if (state.wallet < charge) {
+    notify('Insufficient preview funds. Add funds in Wallet.', true);
+    return
+  }
+  rate.booked = true;
+  state.wallet -= charge;
+  const id = crypto.randomUUID(),
+    reference = 'VE-' + String(1044 + state.manifest.length);
+  state.history.push({
+    label: reference + ' preview dispatch',
+    delta: -charge
+  });
+  state.manifest.unshift({
+    id,
+    reference,
+    status: 'BOOKED',
+    currency: rate.currency,
+    price: rate.client_price_ex_tax,
+    tracking_number: 'PREVIEW-' + reference,
+    metadata: {
+      carrier: rate.carrier_code,
+      destination: state.quoteRequest.destination.country_code
+    },
+    simulated: true
+  });
+  $('#confirm-preview').disabled = true;
+  $('#review-dialog').close();
+  renderManifest();
+  renderWallet();
+  resetQuoteForm();
+  notify('Preview dispatch added. No carrier label purchased.')
+}
+$('#routing-btn').addEventListener('click', () => busy($('#routing-btn'), async () => {
+  const origin = encodeURIComponent($('#origin-country_code').value),
+    destination = encodeURIComponent($('#destination-country_code').value);
+  const result = await api(`/api/v1/routing/${state.mode==='local-preview'?'preview':!state.session?'sample':'disruptions'}?origin=${origin}&destination=${destination}`, {
+    auth: state.mode !== 'local-preview' && !!state.session
+  });
+  $('#routing-result').innerHTML = `<span class="tag orange">${result.simulated?'FIXTURE HISTORY':'RECORDED HISTORY'}</span>` + result.providers.map(provider => `<div class="riskrow"><div><b>${escapeHTML(provider.provider)}</b><p class="subtle">${provider.sample_size} samples · mean delay ${escapeHTML(provider.mean_delay_days??'unknown')} days</p></div><div style="text-align:right"><span class="tag ${provider.risk==='high'?'orange':'green'}">${escapeHTML(provider.risk)}</span><p class="subtle">${provider.anomaly_count} anomalies</p></div></div>`).join('') + `<p class="subtle" style="margin-top:14px">Suggested provider: <b>${escapeHTML(result.recommended_provider||'More tracking history needed')}</b></p><p class="footnote">${escapeHTML(result.notice)}</p>`
+}));
+$('#harmonizer-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy($('#harmonize-btn'), async () => {
+    const result = await api('/api/v1/customs/harmonize', {
+      method: 'POST',
+      body: {
+        item_description: $('#item-description').value
+      }
+    });
+    $('#hs-results').innerHTML = result.candidates.length ? result.candidates.map(candidate => `<div class="hs-card"><div style="display:flex;justify-content:space-between"><span class="hs-code">${escapeHTML(candidate.hs_code)}</span><span class="tag orange">${Math.round(Number(candidate.confidence)*100)}% MOCK CONFIDENCE</span></div><h3 style="margin-top:8px">${escapeHTML(candidate.title)}</h3><div class="confidence"><span style="width:${Math.round(Number(candidate.confidence)*100)}%"></span></div><p class="subtle">${escapeHTML(candidate.assumptions)}</p><p class="footnote">Matched: ${escapeHTML(candidate.matched_terms.join(', ')||'product category only')}</p><button class="secondary" data-use-hs="${escapeHTML(candidate.hs_code)}">Inject Code to Label Payload</button></div>`).join('') : '<div class="notice">Insufficient information. Include material, construction and intended use; no code was invented.</div>'
+  })
+});
+$('#hs-results').addEventListener('click', event => {
+  const button = event.target.closest('[data-use-hs]');
+  if (!button) return;
+  $('#decl-hs').value = button.dataset.useHs;
+  $('#decl-description').value = $('#item-description').value;
+  $('#decl-reviewed').checked = false;
+  notify('Suggestion copied. Review it before confirming the declaration.')
+});
+$('#declaration-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy($('#declaration-btn'), async () => {
+    const body = {
+      invoice_reference: $('#decl-reference').value,
+      form: $('#decl-form').value,
+      sender: address('origin'),
+      recipient: address('destination'),
+      currency: $('#currency').value,
+      category: $('#decl-category').value,
+      incoterm: $('#decl-incoterm').value,
+      items: [{
+        description: $('#decl-description').value,
+        hs_code: $('#decl-hs').value,
+        origin_country: $('#decl-origin').value,
+        quantity: Number($('#decl-quantity').value),
+        unit_value: $('#decl-value').value,
+        unit_net_weight_kg: $('#decl-weight').value
+      }],
+      gross_weight_kg: $('#weight_kg').value,
+      shipping_cost: $('#decl-shipping').value,
+      hs_codes_reviewed: $('#decl-reviewed').checked
+    };
+    const result = await api('/api/v1/customs/declaration', {
+      method: 'POST',
+      body
+    });
+    publishCustoms(result);
+    $('#declaration-result').innerHTML = '<h3 style="margin-top:22px">Print-ready JSON metadata · draft</h3><pre></pre><button class="secondary" id="download-declaration">Download declaration JSON</button>';
+    $('#declaration-result pre').textContent = JSON.stringify(result, null, 2);
+    $('#download-declaration').addEventListener('click', () => download('veloce-commercial-invoice.json', JSON.stringify(result, null, 2), 'application/json'))
+  })
+});
+const csvFields = ['order_reference', 'origin_name', 'origin_line1', 'origin_city', 'origin_postal_code', 'origin_country_code', 'destination_name', 'destination_line1', 'destination_city', 'destination_postal_code', 'destination_country_code', 'length_cm', 'width_cm', 'height_cm', 'weight_kg', 'currency'];
+$('#csv-template').addEventListener('click', () => exportCSV('veloce-orders-template.csv', [csvFields, ['ORDER-001', 'Warehouse', '10 Example Street', 'London', 'SW1A 1AA', 'GB', 'Example Customer', '20 Sample Avenue', 'Paris', '75001', 'FR', '40', '30', '20', '2.500', 'GBP']]));
+$('#batch-btn').addEventListener('click', () => busy($('#batch-btn'), async () => {
+  const file = $('#csv-file').files[0];
+  if (!file) throw Error('Choose a CSV file first.');
+  if (file.size > 5000000) throw Error('CSV is limited to 5 MB.');
+  $('#batch-progress').hidden = false;
+  $('#batch-progress span').style.width = '35%';
+  try {
+    const result = await api(`/api/v1/shipments/${state.mode==='local-preview'?'batch-preview':'batch'}`, {
+      method: 'POST',
+      body: await file.text(),
+      raw: true,
+      auth: state.mode !== 'local-preview'
+    });
+    state.batch = result;
+    $('#batch-progress span').style.width = '100%';
+    $('#batch-export').disabled = false;
+    $('#batch-result').innerHTML = `<p style="margin:15px 0"><b>${result.quoted}/${result.total} orders quoted</b> · ${result.simulated?'preview':'live'} · 0 bookings</p><table><thead><tr><th>Order</th><th>Status</th><th>Best rate / issue</th></tr></thead><tbody>${result.results.map(row=>`<tr><td>${escapeHTML(row.order_reference||'Row '+row.row)}</td><td>${escapeHTML(row.status)}</td><td>${row.quote?.rates?.length?money(row.quote.rates[0].client_price_ex_tax,row.quote.currency):escapeHTML(row.error)}</td></tr>`).join('')}</tbody></table>`
+  } finally {
+    setTimeout(() => $('#batch-progress').hidden = true, 1000)
+  }
+}));
+$('#batch-export').addEventListener('click', () => {
+  if (!state.batch) return;
+  exportCSV('veloce-batch-results.csv', [
+    ['Order', 'Status', 'Currency', 'Lowest quote', 'Error'], ...state.batch.results.map(row => [row.order_reference, row.status, row.quote?.currency || '', row.quote?.rates?.[0]?.client_price_ex_tax || '', row.error || ''])
+  ])
+});
+
+function renderManifest() {
+  const query = $('#manifest-search').value.toLowerCase(),
+    filter = $('#manifest-filter').value,
+    rows = state.manifest.filter(row => (filter === 'all' || row.status === filter) && [row.reference, row.id, row.tracking_number, row.metadata?.carrier, row.metadata?.destination].join(' ').toLowerCase().includes(query));
+  $('#manifest-count').textContent = rows.length;
+  $('#manifest-ready').textContent = rows.filter(row => row.status === 'BOOKED').length;
+  $('#manifest-body').innerHTML = rows.length ? rows.map(row => `<tr><td><b>${escapeHTML(row.reference||row.id.slice(0,12))}</b><br><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span></td><td>${escapeHTML(row.metadata?.carrier||'Carrier not recorded')}<br><span class="subtle">${escapeHTML(row.metadata?.destination||'Destination not recorded')}</span></td><td><span class="tag ${row.status==='BOOKED'?'green':''}">${escapeHTML(row.status)}</span></td><td class="mono">${row.price==null?'Unquoted':money(row.price,row.currency)}</td><td><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','DELIVERED'].includes(row.status)?'':'disabled'}>Print ZPL Thermal Label</button></td></tr>`).join('') : '<tr><td colspan="5" style="padding:45px;text-align:center">No Active Shipments — no shipments match this view.</td></tr>'
+}
+$('#manifest-search').addEventListener('input', () => renderManifest());
+$('#manifest-filter').addEventListener('change', () => renderManifest());
+$('#manifest-refresh').addEventListener('click', () => busy($('#manifest-refresh'), refreshManifestRecords));
+$('#manifest-export').addEventListener('click', () => exportCSV('veloce-manifest.csv', [
+  ['ID', 'Reference', 'Tracking', 'Status', 'Currency', 'Price'], ...state.manifest.map(row => [row.id, row.reference, row.tracking_number, row.status, row.currency, row.price])
+]));
+
+function safeZPL(value) {
+  return String(value).replace(/[^A-Za-z0-9 ._-]/g, '').slice(0, 100)
+}
+$('#manifest-body').addEventListener('click', event => {
+  const button = event.target.closest('[data-print]');
+  if (!button) return;
+  const row = manifestRecords().find(item => item.id === button.dataset.print);
+  if (!row) return;
+  busy(button, async () => {
+    if (state.mode === 'local-preview' || row.simulated) {
+      if (state.wallet - state.reserved <= 0n) throw Error('402: insufficient preview wallet funds. Printing is blocked at zero available balance.');
+      state.print = `^XA\n^PW812\n^LL1218\n^FO50,60^A0N,45,45^FDVELOCE.AI - SAMPLE ONLY^FS\n^FO50,140^A0N,28,28^FDNOT A CARRIER SHIPPING LABEL^FS\n^FO50,220^A0N,36,36^FD${safeZPL(row.reference||row.id)}^FS\n^FO50,280^A0N,28,28^FD${safeZPL(row.metadata?.carrier||'Carrier')}^FS\n^FO50,350^BY3^BCN,120,Y,N,N^FD${safeZPL(row.tracking_number||row.id)}^FS\n^FO50,570^A0N,25,25^FDWireless print simulation - no broadcast^FS\n^XZ`
+    } else {
+      const result = await api(`/api/v1/shipments/${encodeURIComponent(row.id)}/label/preview`, {
+        auth: true
+      });
+      state.print = result.zpl
+    }
+    $('#zpl-preview').textContent = state.print;
+    $('#print-dialog').showModal()
+  })
+});
+$('#zpl-download').addEventListener('click', () => download('veloce-sample-label.zpl', state.print || '', 'text/plain'));
+$('#airprint-btn').addEventListener('click', () => notify('Mock AirPrint broadcast queued to warehouse thermal printer. Simulation only; no network broadcast sent.'));
+
+function renderWallet() {
+  const available = state.wallet - state.reserved;
+  $('#wallet-balance').textContent = money(decimalCents(available), state.walletCurrency);
+  $('#wallet-reserved').textContent = 'Reserved: ' + money(decimalCents(state.reserved), state.walletCurrency);
+  $('#wallet-tag').textContent = state.mode === 'local-preview' ? 'PREVIEW FUNDS' : 'CONNECTED WALLET';
+  $('#wallet-history').innerHTML = state.history.length ? state.history.slice().reverse().map(row => `<div class="fee"><span>${escapeHTML(row.label)}</span><b>${row.delta>0n?'+':''}${money(decimalCents(row.delta),state.walletCurrency)}</b></div>`).join('') : '<p class="subtle">No activity in this browser session.</p>'
+}
+$('#wallet-refresh').addEventListener('click', () => busy($('#wallet-refresh'), async () => {
+  if (state.mode !== 'local-preview') {
+    const result = await api('/api/v1/wallet', {
+      auth: true
+    });
+    state.wallet = cents(result.balance);
+    state.reserved = cents(result.reserved_balance);
+    state.walletCurrency = result.currency
+  }
+  renderWallet()
+}));
+$('#topup-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy($('#topup-btn'), async () => {
+    const value = $('#topup-amount').value,
+      delta = cents(value);
+    if (delta < 100n || delta > 1000000n) throw Error('Top-ups must be between 1 and 10,000 currency units.');
+    if (state.mode === 'local-preview' || !state.session) {
+      state.wallet += delta;
+      state.history.push({
+        label: 'Preview top-up',
+        delta
+      });
+      renderWallet();
+      notify('Preview funds added. No payment occurred.')
+    } else {
+      const result = await api('/v1/wallet/topups', {
+        method: 'POST',
+        auth: true,
+        body: {
+          request_id: crypto.randomUUID(),
+          amount: decimalCents(delta)
+        }
+      });
+      const checkout = new URL(result.checkout_url);
+      if (checkout.protocol !== 'https:' || checkout.hostname !== 'checkout.stripe.com') throw Error('Unexpected checkout destination.');
+      $('#checkout-result').innerHTML = '<p style="margin-top:16px"><a class="primary" id="stripe-checkout" target="_blank" rel="noopener">Open Stripe Checkout ↗</a></p>';
+      $('#stripe-checkout').href = checkout.href;
+      notify('Checkout prepared. Balance updates after the payment webhook.')
+    }
+  })
+});
+$('#invoice-json').value = JSON.stringify({
+  invoice_reference: 'INV-PREVIEW-1043',
+  lines: [{
+    shipment_id: DEMO_ID,
+    currency: 'GBP',
+    billed_weight_kg: '5.200',
+    base_cost: '18.00',
+    fuel_surcharge: '4.00',
+    residential_fee: '1.50',
+    remote_area_fee: '7.50'
+  }]
+}, null, 2);
+$('#audit-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy($('#audit-btn'), async () => {
+    let body;
+    try {
+      body = JSON.parse($('#invoice-json').value)
+    } catch {
+      throw Error('Enter a valid JSON invoice.')
+    }
+    const result = await api(`/api/v1/audit/${state.mode==='local-preview'?'preview':'invoice'}`, {
+      method: 'POST',
+      body,
+      auth: state.mode !== 'local-preview' && !!state.session
+    });
+    $('#audit-result').innerHTML = `<div class="notice">${result.simulated?'Preview compares against a server fixture.':'Compared against tenant shipment records.'} No disputes were sent.</div>` + result.results.map(row => `<div class="hs-card"><h3>${escapeHTML(row.shipment_id)}</h3><span class="tag orange">${escapeHTML(row.status)}</span><p>Component overcharges: <b>${row.overcharge==null?'Not calculable':money(row.overcharge,row.currency)}</b></p>${row.findings.map(finding=>`<p class="subtle">${escapeHTML(finding.field)} · recorded ${escapeHTML(finding.expected)} / billed ${escapeHTML(finding.billed)}</p>`).join('')}${row.dispute_draft?`<pre>${escapeHTML(row.dispute_draft)}</pre>`:''}</div>`).join('')
+  })
+});
+$('#account-btn').addEventListener('click', () => $('#account-dialog').showModal());
+
+function renderAccount() {
+  $('#account-btn').textContent = state.session ? 'Workspace connected' : 'Connect workspace';
+  $('#signout-btn').hidden = !state.session;
+  $('#login-form').hidden = !!state.session;
+  $('#login-status').textContent = state.session ? 'Session token is held in memory. Tenant authorization is checked on every backend request.' : state.mode === 'local-preview' ? 'Configure .env and restart without --local-preview to enable login.' : 'Sign in using your Supabase Auth email and password.'
+}
+$('#login-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy($('#login-btn'), async () => {
+    if (!state.config?.supabase_url) throw Error('Supabase login is unavailable in local preview mode.');
+    const response = await fetch(state.config.supabase_url + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: state.config.publishable_key
+      },
+      body: JSON.stringify({
+        email: $('#login-email').value,
+        password: $('#login-password').value
+      })
+    });
+    const session = await response.json();
+    $('#login-password').value = '';
+    if (!response.ok) throw Error(session.msg || session.error_description || 'Sign-in failed');
+    state.session = session;
+    armSessionExpiry();
+    renderAccount();
+    $('#account-dialog').close();
+    notify('Signed in. Fetch rates or refresh your manifest.')
+  })
+});
+
+function clearSession() {
+  clearTimeout(sessionExpiryTimer);
+  $('#workspace-team').hidden = true;
+  state.generation++;
+  state.session = null;
+  state.quotes = [];
+  state.quoteRequest = null;
+  state.manifest = [];
+  state.wallet = 0n;
+  state.reserved = 0n;
+  state.history = [];
+  state.batch = null;
+  state.print = null;
+  $('#rates').innerHTML = '<div class="empty">Sign in to fetch rates.</div>';
+  ['#audit-result', '#checkout-result', '#batch-result', '#routing-result', '#review-content', '#zpl-preview'].forEach(selector => $(selector).replaceChildren());
+  $('#batch-export').disabled = true;
+  $('#review-dialog').close();
+  $('#print-dialog').close();
+  renderAccount();
+  renderManifest();
+  renderWallet()
+}
+$('#signout-btn').addEventListener('click', () => {
+  clearSession();
+  notify('Local session cleared.')
+});
+async function initialize() {
+  try {
+    const health = await api('/health');
+    state.mode = health.mode;
+    state.config = await api('/api/v1/config');
+    const preview = state.mode === 'local-preview';
+    $('#modebar').classList.toggle('live', !preview);
+    $('#mode-label').textContent = preview ? 'LOCAL PREVIEW · Carrier rates, routing history, wallet, invoice fixtures and wireless printing are simulated.' : 'CONNECTED BACKEND · Sign in for live rates and tenant records. Customs AI and wireless printing remain simulations.';
+    $('#health-label').textContent = preview ? 'PREVIEW' : 'CONNECTED';
+    $('#quote-mode-note').textContent = preview ? 'Preview rates use backend Decimal math. No carrier API calls occur.' : 'Live providers use the greater of actual and volumetric weight. Fee splits appear when supplied.';
+    $('#topup-btn').textContent = preview ? 'Add preview funds' : 'Create Stripe Checkout';
+    $('#topup-note').textContent = preview ? 'Preview funds use integer-pence accounting in this browser session.' : 'Payment occurs in Stripe Checkout. Only a verified webhook credits your wallet.';
+    if (preview) {
+      state.manifest = [{
+        id: DEMO_ID,
+        reference: 'VE-1043',
+        status: 'BOOKED',
+        currency: 'GBP',
+        price: '23.00',
+        tracking_number: 'PREVIEW-1043',
+        metadata: {
+          carrier: 'DHL',
+          destination: 'FR'
+        },
+        simulated: true
+      }]
+    } else {
+      state.wallet = 0n
+    }
+    renderAccount();
+    renderWallet();
+    renderManifest();
+    await updateWeight()
+  } catch (error) {
+    state.mode = 'offline';
+    $('#mode-label').textContent = 'Backend unavailable. Start main.py locally to use the workspace.';
+    $('#health-label').textContent = 'OFFLINE';
+    notify(error.message, true)
+  }
+}
+initialize();
+
+
+// Dashboard state never grants backend permissions. Profile authorization is server-side.
+const portal = {
+  role: 'CLIENT',
+  profile: null,
+  session: null,
+  epoch: 0,
+  tickets: [],
+  report: null,
+  lanes: [],
+  boxes: [],
+  activeTicket: null
+};
+const demoTickets = [{
+  id: 'demo-9821',
+  shipment_id: 'VEL-9821',
+  title: 'Shipment #VEL-9821 ➔ Held in Customs (USA)',
+  status: 'OPEN',
+  ai_summary: '🤖 AI Resolution Action: Commercial invoice missing itemized commodity harmonizer codes. Outbound WhatsApp remedy message transmitted to dispatcher.',
+  demo: true
+}, {
+  id: 'demo-7410',
+  shipment_id: 'VEL-7410',
+  title: 'Shipment #VEL-7410 ➔ Address Insufficient (DEU)',
+  status: 'RESOLVED',
+  ai_summary: '🤖 AI Resolution Action: Postcode format mismatch resolved via Google Maps Place verification. Automation ticket successfully corrected and closed.',
+  demo: true
+}];
+const demoLanes = [{
+  name: 'London → Paris',
+  days: 2.1,
+  cost: '18.40',
+  carrier: 'DPD',
+  note: 'EU warehouse lane · sample transit and cost'
+}, {
+  name: 'London → New York',
+  days: 3.6,
+  cost: '24.80',
+  carrier: 'DHL',
+  note: 'US warehouse lane · sample customs clearance included'
+}, {
+  name: 'London → Berlin',
+  days: 2.7,
+  cost: '19.10',
+  carrier: 'UPS',
+  note: 'Germany warehouse lane · sample cost performance'
+}, {
+  name: 'London → Dublin',
+  days: 1.8,
+  cost: '14.60',
+  carrier: 'DPD',
+  note: 'Ireland warehouse lane · sample transit performance'
+}];
+const profileDefaults = [{
+  name: 'Small mailer',
+  l: '24',
+  w: '16',
+  h: '8',
+  weight: '0.500'
+}, {
+  name: 'Standard carton',
+  l: '40',
+  w: '30',
+  h: '20',
+  weight: '2.500'
+}, {
+  name: 'Large carton',
+  l: '60',
+  w: '40',
+  h: '40',
+  weight: '8.000'
+}];
+const portalIcons = {
+  grid: 'grid',
+  money: 'wallet',
+  labels: 'list'
+};
+
+function svgIcon(name) {
+  return `<svg fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-${escapeHTML(name)}"></use></svg>`
+}
+
+function metric(label, value, foot, icon) {
+  return `<article class="metric-card"><div class="metric-label">${escapeHTML(label)}<span class="metric-icon">${svgIcon(icon)}</span></div><div class="metric-value">${escapeHTML(value)}</div><div class="metric-foot">${escapeHTML(foot)}</div></article>`
+}
+
+function portalDemo() {
+  return !state.session
+}
+
+function setPortalRole(role) {
+  if (role === 'SUPER_ADMIN' && state.session && portal.profile?.portal_role !== 'SUPER_ADMIN') {
+    notify('Platform-owner permission is required for live macro analytics.', true);
+    return
+  }
+  portal.role = role;
+  portal.epoch++;
+  portal.report = null;
+  portal.tickets = [];
+  portal.lanes = [];
+  renderPortal();
+  if (state.session) refreshPortal()
+}
+
+function renderPortal() {
+  const workspaceRole = portal.profile?.workspace_role;
+  $$('[data-view="wallet"],[data-portal-view="wallet"]').forEach(n => n.hidden = workspaceRole === 'DISPATCHER');
+  $$('[data-view="dispatch"],[data-portal-view="dispatch"]').forEach(n => n.hidden = workspaceRole === 'ACCOUNTANT');
+  $('#quote-btn').disabled = workspaceRole === 'ACCOUNTANT';
+  const demo = portalDemo(),
+    admin = portal.role === 'SUPER_ADMIN';
+  $('#role-admin').setAttribute('aria-pressed', String(admin));
+  $('#role-client').setAttribute('aria-pressed', String(!admin));
+  $('#role-admin').disabled = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
+  $('#dashboard-title').textContent = admin ? 'Platform overview' : (portal.profile?.company_name || 'Your shipping workspace');
+  $('#dashboard-subtitle').textContent = admin ? 'The big picture, with every SME in focus.' : 'Smarter dispatches. Clearer costs. One connected workspace.';
+  $('#dashboard-source').textContent = demo ? 'DEMO DATA' : portal.profile ? 'VERIFIED ACCOUNT' : 'LOADING PROFILE';
+  $('#dashboard-source').classList.toggle('real', !demo);
+  $('#dashboard-note').textContent = demo ? 'Illustrative demo metrics and ticket histories. No live messages, map verification or carrier corrections are implied.' : 'Metrics come from authenticated backend reports. Stored markup is gross margin; net accounting profit is not available.';
+  $('#chart-source').textContent = demo ? 'DEMO' : 'DATABASE';
+  $('#distribution-title').textContent = admin ? 'Carrier volume distribution' : 'Warehouse efficiency';
+  $('#distribution-subtitle').textContent = admin ? 'How shipping volume moves across your network.' : 'Compare local transit times and lane costs.';
+  $('#secondary-chart-title').textContent = admin ? 'Shipping volume trend' : 'Dispatch performance';
+  $('#trend-period').textContent = demo ? '6 MONTH DEMO' : 'REPORTING PERIOD';
+  if (demo) {
+    $('#dashboard-metrics').innerHTML = admin ? metric('Consolidated Gross Revenue', '£759,000', 'Illustrative consolidated platform revenue', 'wallet') + metric('Net Platform Profit Margin', '£166,980', '22% average yield · illustrative net profit', 'chart') + metric('Active Tenant Count', '42', 'Onboarded SMEs · demo accounts', 'grid') : metric('Monthly Shipping Spend', '£4,320', 'This month · sample workspace spend', 'wallet') + metric('Active Wallet Credit Balance', '£342.10', 'Available credit · sample wallet', 'wallet') + metric('Printed Label Count This Month', '184', 'Labels · sample warehouse activity', 'list');
+    portal.tickets = demoTickets.map(t => ({
+      ...t
+    }));
+    portal.lanes = demoLanes;
+    renderCharts(admin, admin ? [{
+      carrier: 'DHL',
+      volume: 58
+    }, {
+      carrier: 'UPS',
+      volume: 24
+    }, {
+      carrier: 'DPD',
+      volume: 18
+    }] : []);
+    renderTickets()
+  } else {
+    if (!portal.report) {
+      $('#dashboard-metrics').innerHTML = metric(admin ? 'Consolidated revenue' : 'Shipping spend', '—', 'Refresh to load authorized records', 'wallet') + metric(admin ? 'Platform margin' : 'Wallet balance', '—', 'Awaiting verified data', 'chart') + metric(admin ? 'Active tenants' : 'Confirmed labels', '—', 'Awaiting verified data', 'list');
+      $('#primary-chart').innerHTML = '<p class="empty">Load your authenticated report to view analytics.</p>';
+      $('#secondary-chart').innerHTML = '';
+      renderTickets()
+    }
+  }
+}
+
+function renderCharts(admin, carriers = []) {
+  if (admin) {
+    const total = carriers.reduce((s, c) => s + Number(c.volume), 0),
+      colors = ['#177b66', '#e4b963', '#77989a', '#9c78a5', '#a4b684'];
+    let offset = 0;
+    const segments = carriers.map((c, i) => {
+      const pct = total ? Number(c.volume) / total * 100 : 0;
+      const html = `<circle cx="60" cy="60" r="45" fill="none" stroke="${colors[i%colors.length]}" stroke-width="15" pathLength="100" stroke-dasharray="${pct} ${100-pct}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)"/>`;
+      offset += pct;
+      return html
+    }).join('');
+    $('#primary-chart').innerHTML = total ? `<div class="donut-layout"><svg viewBox="0 0 120 120" role="img" aria-label="Carrier volume distribution"><circle cx="60" cy="60" r="45" fill="none" stroke="#edf3ed" stroke-width="15"/>${segments}<text x="60" y="59" text-anchor="middle" fill="#183c31" font-size="18" font-weight="700">${total.toLocaleString()}</text><text x="60" y="72" text-anchor="middle" fill="#8b9f90" font-size="6">${portalDemo()?'VOLUME SHARE':'PACKAGES'}</text></svg><div>${carriers.map((c,i)=>`<div class="legend-row"><span class="dot" style="background:${colors[i%colors.length]}"></span>${escapeHTML(c.carrier)}<b>${(Number(c.volume)/total*100).toFixed(0)}%</b></div>`).join('')}</div></div>` : '<div class="empty">No carrier volume in this period.</div>';
+    if (portalDemo()) {
+      $('#secondary-chart').innerHTML = `<div class="trend-bars">${[55,72,64,88,105,132].map(h=>`<div class="trend-column" style="height:${h}px"><span style="height:18%;background:#77989a"></span><span style="height:24%;background:#e4b963"></span><span style="height:58%;background:#177b66"></span></div>`).join('')}</div><div class="trend-labels"><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span><span>SEP</span><span>OCT</span></div><div class="chart-foot"><span><b>DHL</b> 58%</span><span><b>UPS</b> 24%</span><span><b>DPD</b> 18%</span></div>`
+    } else {
+      $('#secondary-chart').innerHTML = `<div class="weight">${total.toLocaleString()} booked packages in the selected period.</div><p class="subtle">Historical trend series is not supplied by this endpoint. No synthetic live trend is shown.</p>`
+    }
+  } else {
+    renderLanes();
+    $('#secondary-chart').innerHTML = portalDemo() ? '<div class="trend-bars">' + [63, 77, 90, 84, 107, 127].map(h => `<div class="trend-column" style="height:${h}px;background:#177b66"></div>`).join('') + '</div><div class="trend-labels"><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span><span>SEP</span><span>OCT</span></div><div class="chart-foot"><span><b>184</b> sample labels this month</span><span><b>2.4 days</b> sample average transit</span></div>' : '<p class="subtle">Shipment counts and spending reflect your selected report. Delivery-time analytics require carrier dispatch and delivery timestamps.</p>'
+  }
+}
+
+function renderLanes() {
+  const rows = portal.lanes;
+  $('#primary-chart').innerHTML = rows.length ? `<div class="warehouse-grid">${rows.map((r,i)=>`<button class="warehouse-lane" data-lane="${i}" aria-pressed="false"><strong>${escapeHTML(r.name)}</strong><span class="card-label">${escapeHTML(r.carrier||'Connected carrier')}</span><div class="lane-metrics"><span>Transit<b>${r.days===null?'Pending':escapeHTML(r.days)+'d'}</b></span><span>Avg. cost<b>${money(r.cost,r.currency||'GBP')}</b></span></div></button>`).join('')}</div><div id="lane-detail" class="lane-detail">Choose a shipping lane to inspect its performance.</div>` : '<div class="empty">No booked shipments available for warehouse analysis.</div>';
+  $('#primary-chart').querySelectorAll?.('[data-lane]').forEach(button => button.addEventListener('click', () => {
+    const lane = portal.lanes[Number(button.dataset.lane)];
+    $('#lane-detail').textContent = lane.note || 'Confirmed shipment data for this workspace.';
+    $('#primary-chart').querySelectorAll('[data-lane]').forEach(b => b.setAttribute('aria-pressed', String(b === button)))
+  }))
+}
+
+function renderTickets() {
+  const tickets = portal.tickets;
+  $('#support-count').textContent = `${tickets.filter(t=>t.status==='OPEN').length} ${portalDemo()?'DEMO ':''}OPEN EXCEPTIONS`;
+  $('#support-tickets').innerHTML = tickets.length ? tickets.map(t => `${['CLOSED','RESOLVED'].includes(t.status)?'<details class="ticket-archive"><summary>Archived exception</summary>':''}<article class="support-ticket"><div class="ticket-header"><span class="ticket-alert">!</span><div class="ticket-title">${escapeHTML(t.title||`Shipment #${t.tracking_number||t.shipment_id.slice(0,8)} → ${t.status==='RESOLVED'?'Resolved':'Carrier exception'} (${t.destination_country||'—'})`)}<span class="ticket-caption">${t.demo?'Illustrative automation history':escapeHTML(t.ai_method)+' · '+escapeHTML(t.created_at||'')}${t.manual_note?' · Intervention recorded':''}</span></div><span class="tag ${t.status==='RESOLVED'?'green':'orange'}">${escapeHTML(t.status)}</span></div><details><summary>✦ AI resolution action <span aria-hidden="true">⌄</span></summary><div class="remedy">${t.demo?'<span class="source-badge">DEMO SCENARIO</span><br>':''}${escapeHTML(t.ai_summary)}</div></details><div class="ticket-actions"><button class="secondary" data-ticket-action="intervene" data-ticket-id="${escapeHTML(t.id)}">Manually Intervene</button><button class="secondary" data-ticket-action="pod" data-ticket-id="${escapeHTML(t.id)}">View Live Carrier POD Token</button></div></article>${['CLOSED','RESOLVED'].includes(t.status)?'</details>':''}`).join('') : '<div class="empty">No support tickets in this view. Carrier exceptions appear here after verified tracking ingestion.</div>'
+}
+$('#support-tickets').addEventListener('click', event => {
+  const button = event.target.closest('[data-ticket-action]');
+  if (!button?.dataset.ticketAction) return;
+  const ticket = portal.tickets.find(t => t.id === button.dataset.ticketId);
+  if (!ticket) return;
+  portal.activeTicket = ticket;
+  if (button.dataset.ticketAction === 'intervene') {
+    $('#intervention-context').textContent = (ticket.demo ? 'Demo intervention · ' : 'Shipment · ') + (ticket.title || ticket.tracking_number || ticket.shipment_id);
+    $('#intervention-note').value = ticket.manual_note || '';
+    $('#ticket-dialog').showModal()
+  } else {
+    $('#pod-content').replaceChildren();
+    const url = ticket.proof_of_delivery_url;
+    if (url && new URL(url).protocol === 'https:') {
+      $('#pod-content').innerHTML = `<p>Provider-hosted delivery evidence. This link may expire.</p><a class="primary" href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">Open carrier delivery proof</a>`
+    } else {
+      $('#pod-content').textContent = ticket.demo ? 'Demo POD inspection: no live signature, image or carrier token exists for this sample shipment.' : 'The carrier has not supplied a delivery-proof URL for this shipment.'
+    }
+    $('#pod-dialog').showModal()
+  }
+});
+$('#intervention-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const ticket = portal.activeTicket,
+    note = $('#intervention-note').value.trim();
+  if (!ticket || note.length < 3) return;
+  busy(event.target.querySelector?.('button') || $('#dashboard-refresh'), async () => {
+    if (ticket.demo) {
+      ticket.manual_note = note;
+      ticket.status = 'IN_REVIEW';
+      notify('Demo intervention recorded in this browser session.')
+    } else {
+      await api(`/api/v1/${portal.role==='SUPER_ADMIN'?'admin/':''}support/tickets/${ticket.id}/intervene`, {
+        method: 'POST',
+        body: {
+          note
+        },
+        auth: true
+      });
+      ticket.manual_note = note;
+      ticket.status = 'IN_REVIEW';
+      notify('Intervention note saved to your support ticket.')
+    }
+    $('#ticket-dialog').close();
+    renderTickets()
+  })
+});
+async function refreshPortal() {
+  if (!state.session) {
+    portal.report = null;
+    renderPortal();
+    return
+  }
+  const generation = ++portal.epoch,
+    active = state.session;
+  $('#dashboard-error').hidden = true;
+  try {
+    const profile = await api('/api/v1/profile', {
+      auth: true
+    });
+    if (generation !== portal.epoch || active !== state.session) return;
+    portal.profile = profile;
+    if (typeof location.href === 'string') {
+      const url = new URL(location.href);
+      const requested = url.searchParams.get('tenant_id');
+      if (requested && requested !== profile.tenant_id) {
+        url.searchParams.delete('tenant_id');
+        history.replaceState(null, '', url);
+        notify('Tenant parameter rejected. Using your authorized workspace.', true)
+      }
+    }
+    $('#workspace-team').hidden = !['OWNER', 'ADMIN'].includes(profile.workspace_role);
+    if (profile.portal_role !== 'SUPER_ADMIN') portal.role = 'CLIENT';
+    renderPortal();
+    const query = `start_date=${encodeURIComponent($('#report-start').value)}&end_date=${encodeURIComponent($('#report-end').value)}`;
+    if (profile.workspace_role === 'DISPATCHER') {
+      const [summary, tickets, manifest] = await Promise.all([api('/api/v1/dispatch/summary', {
+        auth: true
+      }), api('/api/v1/support/tickets', {
+        auth: true
+      }), api('/api/v1/shipments/manifest', {
+        auth: true
+      })]);
+      if (generation !== portal.epoch) return;
+      portal.report = summary;
+      portal.tickets = tickets.tickets;
+      state.manifest = manifest.shipments;
+      $('#dashboard-metrics').innerHTML = metric('Confirmed packages', String(summary.package_count), 'Your warehouse shipments', 'list');
+      renderCharts(false);
+      renderTickets();
+      return
+    }
+    if (portal.role === 'SUPER_ADMIN') {
+      const [report, tickets] = await Promise.all([api('/api/v1/admin/analytics/dashboard?' + query, {
+        auth: true
+      }), api('/api/v1/admin/support/tickets', {
+        auth: true
+      })]);
+      if (generation !== portal.epoch) return;
+      portal.report = report;
+      const gbp = report.totals_by_currency.find(r => r.currency === 'GBP');
+      $('#dashboard-metrics').innerHTML = metric('Consolidated Gross Revenue', money(gbp?.revenue || '0.00', 'GBP'), 'GBP only · selected reporting period', 'wallet') + metric('Platform Gross Margin', money(gbp?.margin || '0.00', 'GBP'), 'Stored markup · net profit not supplied', 'chart') + metric('Active Tenant Count', String(report.active_tenants), 'Active non-sandbox SMEs', 'grid');
+      portal.tickets = tickets.tickets;
+      renderCharts(true, report.carriers)
+    } else {
+      if (!profile.tenant_id) throw Error('This owner account has no client workspace. Select Super-Admin View.');
+      const [report, wallet, tickets, manifest] = await Promise.all([api('/api/v1/analytics/reports?' + query, {
+        auth: true
+      }), api('/api/v1/wallet', {
+        auth: true
+      }), api('/api/v1/support/tickets', {
+        auth: true
+      }), api('/api/v1/shipments/manifest', {
+        auth: true
+      })]);
+      if (generation !== portal.epoch) return;
+      state.wallet = cents(wallet.balance);
+      state.reserved = cents(wallet.reserved_balance);
+      state.walletCurrency = wallet.currency;
+      state.manifest = manifest.shipments;
+      renderWallet();
+      renderManifest();
+      portal.report = report;
+      const currency = wallet.currency,
+        totals = report.totals_by_currency.find(r => r.currency === currency);
+      $('#dashboard-metrics').innerHTML = metric('Shipping Spend', money(totals?.shipping_spend || '0.00', currency), 'Selected period · ' + currency + ' only', 'wallet') + metric('Active Wallet Credit Balance', money(wallet.available, currency), 'Available after reservations', 'wallet') + metric('Confirmed Label Count', String(report.total_package_count ?? report.totals_by_currency.reduce((n, r) => n + r.package_count, 0)), 'Booked packages · selected period', 'list');
+      portal.tickets = tickets.tickets;
+      const groups = new Map();
+      for (const row of manifest.shipments) {
+        if (!['BOOKED', 'DISPATCHED', 'IN_TRANSIT', 'EXCEPTION', 'DELIVERED'].includes(row.status) || row.currency !== currency) continue;
+        const meta = row.metadata || {},
+          key = meta.destination || meta.ecommerce?.shipping_address?.country_code || 'Destination unreported';
+        const lane = groups.get(key) || {
+          name: 'Warehouse → ' + key,
+          carrier: meta.carrier || 'Not reported',
+          cents: 0n,
+          count: 0,
+          days: null,
+          currency,
+          note: 'Based on up to 200 current manifest records; carrier transit timestamps are not supplied.'
+        };
+        lane.cents += cents(row.price || '0.00');
+        lane.count++;
+        groups.set(key, lane)
+      }
+      portal.lanes = [...groups.values()].map(l => ({
+        ...l,
+        cost: decimalCents(l.cents / BigInt(l.count))
+      }));
+      renderCharts(false)
+    }
+    renderTickets()
+  } catch (error) {
+    if (generation !== portal.epoch) return;
+    portal.report = null;
+    portal.tickets = [];
+    portal.lanes = [];
+    renderPortal();
+    $('#dashboard-error').textContent = error.message;
+    $('#dashboard-error').hidden = false
+  }
+}
+$('#role-admin').addEventListener('click', () => setPortalRole('SUPER_ADMIN'));
+$('#role-client').addEventListener('click', () => setPortalRole('CLIENT'));
+$('#dashboard-refresh').addEventListener('click', () => refreshPortal());
+
+function boxStorageKey() {
+  return 'veloce.box-profiles.v1.' + (portal.profile?.tenant_id || portal.profile?.user_id || 'demo')
+}
+
+function loadBoxes() {
+  portal.boxes = profileDefaults.map(b => ({
+    ...b
+  }));
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const rows = JSON.parse(localStorage.getItem(boxStorageKey()) || 'null');
+      if (Array.isArray(rows) && rows.length <= 50 && rows.every(r => typeof r.name === 'string' && r.name.length <= 60 && ['l', 'w', 'h', 'weight'].every(k => Number(r[k]) > 0 && Number(r[k]) <= 1000))) portal.boxes = rows
+    }
+  } catch {}
+  renderBoxes()
+}
+
+function renderBoxes() {
+  $('#box-profile-list').innerHTML = portal.boxes.map((b, i) => `<article class="box-profile"><span class="box-shape">${svgIcon('box')}</span><h3>${escapeHTML(b.name)}</h3><div class="box-dims">${escapeHTML(b.l)} × ${escapeHTML(b.w)} × ${escapeHTML(b.h)} cm</div><p class="subtle">Actual weight ${escapeHTML(b.weight)} kg</p><button class="secondary full" data-box-use="${i}" style="margin-top:12px">Use in Speed Quote Matrix →</button></article>`).join('');
+  $('#box-profile-list').querySelectorAll?.('[data-box-use]').forEach(button => button.addEventListener('click', () => applyBox(Number(button.dataset.boxUse))))
+}
+
+function applyBox(index) {
+  const box = portal.boxes[index];
+  if (!box) return;
+  for (const [field, key] of Object.entries({
+      length_cm: 'l',
+      width_cm: 'w',
+      height_cm: 'h',
+      weight_kg: 'weight'
+    })) $('#' + field).value = box[key];
+  setView('dispatch');
+  updateWeight();
+  notify('Box profile applied. Billable weight recalculated.')
+}
+$('#box-profile-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const box = {
+    name: $('#box-name').value.trim(),
+    l: $('#box-length').value,
+    w: $('#box-width').value,
+    h: $('#box-height').value,
+    weight: $('#box-weight').value
+  };
+  if (!box.name || portal.boxes.length >= 50 || !['l', 'w', 'h', 'weight'].every(k => Number(box[k]) > 0 && Number(box[k]) <= 1000)) {
+    notify('Enter a valid name and measurements. Maximum 50 profiles.', true);
+    return
+  }
+  portal.boxes.push(box);
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(boxStorageKey(), JSON.stringify(portal.boxes))
+  } catch {
+    notify('Profile saved for this session; browser storage is unavailable.')
+  }
+  renderBoxes();
+  $('#box-name').value = '';
+  notify('Box profile saved.')
+});
+$('#box-backdrop').addEventListener('click', () => setView('dispatch'));
+$('#box-sheet-close').addEventListener('click', () => setView('dispatch'));
+document.addEventListener?.('keydown', e => {
+  if (e.key === 'Escape' && !$('#boxes').hidden) setView('dispatch')
+});
+const workspaceSetView = setView;
+setView = function(view) {
+  const role = portal.profile?.workspace_role;
+  if ((view === 'wallet' && role === 'DISPATCHER') || (view === 'dispatch' && role === 'ACCOUNTANT')) {
+    notify('Your workspace role does not allow this view.', true);
+    return
+  }
+  workspaceSetView(view);
+  $('#dashboard').hidden = view !== 'dashboard';
+  $('#boxes').hidden = view !== 'boxes';
+  $$('[data-portal-view]').forEach(button => button.setAttribute('aria-current', button.dataset.portalView === view ? 'page' : 'false'));
+  if (view === 'dashboard') renderPortal();
+  if (view === 'boxes') renderBoxes();
+  $('#box-backdrop').hidden = !(view === 'boxes' && typeof matchMedia === 'function' && matchMedia('(max-width: 767px)').matches)
+};
+$$('[data-portal-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.portalView)));
+const originalRenderAccount = renderAccount;
+renderAccount = function() {
+  originalRenderAccount();
+  if (portal.session !== state.session) {
+    portal.session = state.session;
+    portal.epoch++;
+    portal.profile = null;
+    portal.report = null;
+    portal.tickets = [];
+    portal.lanes = [];
+    portal.role = 'CLIENT';
+    renderPortal();
+    loadBoxes();
+    if (state.session) {
+      refreshPortal().then(() => {
+        if (portal.profile?.portal_role === 'SUPER_ADMIN' && portal.role === 'CLIENT') {
+          setPortalRole('SUPER_ADMIN')
+        }
+        loadBoxes()
+      })
+    }
+  }
+};
+$('#customs-close').addEventListener('click', () => setView('dashboard'));
+const now = new Date(),
+  start = new Date(now.getFullYear(), now.getMonth(), 1);
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+$('#report-start').value = isoDay(start);
+$('#report-end').value = isoDay(now);
+loadBoxes();
+renderPortal();
+setView('dashboard');
+</script>
+<script>
+document.querySelector('#workspace-member-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('button'), async () => {
+    await api('/api/v1/workspace/users', {
+      method: 'POST',
+      auth: true,
+      body: {
+        auth_user_id: $('#member-auth-id').value.trim(),
+        full_name: $('#member-name').value.trim(),
+        role: $('#member-role').value
+      }
+    });
+    event.target.reset();
+    notify('Warehouse user added to your workspace.')
+  })
+});
+</script>
+<script>
+// Cargo-aware operations, document export and accessible manifest actions.
+const cargoTitles = {
+  LETTER: 'BUSINESS LETTER',
+  PARCEL: 'STANDARD PARCEL',
+  PALLET: 'PALLET FREIGHT',
+  OVERLAND_FREIGHT: 'OVERLAND FREIGHT'
+};
+let customsDocument = null,
+  customsGeneration = 0,
+  activeManifestDocument = null,
+  activeDispute = null;
+
+function refreshIcons() {
+  try {
+    if (document.querySelector?.('i[data-lucide]')) globalThis.lucide?.createIcons()
+  } catch {}
+}
+
+function invalidateCustoms() {
+  customsGeneration++;
+  customsDocument = null;
+  $('#qc-json').disabled = true;
+  $('#qc-print').disabled = true;
+  $('#customs-state').textContent = 'Review required';
+  $('#qc-preview').textContent = 'Generate a reviewed draft for these shipment details.'
+}
+
+function cargoPayload() {
+  const kind = $('#cargo-type').value || 'PARCEL';
+  return {
+    cargo_type: kind,
+    actual_weight_kg: $('#weight_kg').value,
+    stackable: $('#cargo-stackable').checked,
+    ...(kind === 'LETTER' ? {} : Object.fromEntries(['length_cm', 'width_cm', 'height_cm'].map(k => [k, $('#' + k).value])))
+  }
+}
+quotePayload = function() {
+  const cargo = cargoPayload();
+  return {
+    origin: address('origin'),
+    destination: address('destination'),
+    cargo_type: cargo.cargo_type,
+    stackable: cargo.stackable,
+    dimensions: cargo.cargo_type === 'LETTER' ? [] : [Object.fromEntries(['length_cm', 'width_cm', 'height_cm'].map(k => [k, $('#' + k).value]))],
+    weights_kg: [$('#weight_kg').value],
+    currency: $('#currency').value
+  }
+};
+
+function syncCustomsPanel() {
+  const from = $('#origin-country_code').value.trim().toUpperCase(),
+    to = $('#destination-country_code').value.trim().toUpperCase();
+  const international = !!from && !!to && from !== to;
+  $('#checkout-customs').hidden = !international;
+  $('#customs-lane').textContent = `${from||'Origin'} → ${to||'Destination'} · ${$('#currency').value} · ${cargoTitles[$('#cargo-type').value||'PARCEL']}`
+}
+
+function configureCargo(useDefaults = true) {
+  const kind = $('#cargo-type').value || 'PARCEL',
+    letter = kind === 'LETTER',
+    freight = ['PALLET', 'OVERLAND_FREIGHT'].includes(kind);
+  $('#cargo-badge').textContent = cargoTitles[kind];
+  $('#cargo-dimensions').hidden = letter;
+  $('#freight-options').hidden = !freight;
+  $('#cargo-help').textContent = letter ? 'Document letters must weigh strictly below 0.5 kg. No box dimensions required.' : freight ? 'Road freight uses configured cubic-metre factors; non-stackable loads also use a loading-metre floor.' : 'Express billing uses max(actual kg, length × width × height / 5000).';
+  for (const id of ['length_cm', 'width_cm', 'height_cm']) {
+    $('#' + id).required = !letter;
+    $('#' + id).disabled = letter
+  }
+  $('#length_cm').max = freight ? '1500' : '1000';
+  $('#width_cm').max = freight ? '300' : '1000';
+  $('#height_cm').max = freight ? '400' : '1000';
+  $('#weight_kg').max = letter ? '0.499' : freight ? '30000' : '1000';
+  if (useDefaults) {
+    if (letter) {
+      $('#weight_kg').value = '0.100'
+    } else if (freight) {
+      $('#length_cm').value = kind === 'PALLET' ? '120' : '200';
+      $('#width_cm').value = kind === 'PALLET' ? '80' : '120';
+      $('#height_cm').value = '100';
+      $('#weight_kg').value = kind === 'PALLET' ? '100.000' : '900.000';
+      $('#cargo-stackable').checked = false;
+      $('#qc-form').value = 'COMMERCIAL_INVOICE'
+    } else {
+      $('#length_cm').value = '40';
+      $('#width_cm').value = '30';
+      $('#height_cm').value = '20';
+      $('#weight_kg').value = '2.500'
+    }
+  }
+  state.quotes = [];
+  state.quoteRequest = null;
+  state.lastRateResult = null;
+  $('#rates').innerHTML = '<div class="empty"><h3>Cargo profile ready</h3><p>Compare rates for your selected service class.</p></div>';
+  invalidateCustoms();
+  syncCustomsPanel();
+  updateWeight()
+}
+updateWeight = async function() {
+  const generation = ++weightGeneration;
+  try {
+    const cargo = cargoPayload();
+    if (cargo.cargo_type === 'PARCEL' && Number(cargo.actual_weight_kg) > 1000) throw Error('Weight exceeds 1000 kg parcel limit. Select Overland Freight.');
+    if (cargo.cargo_type === 'PARCEL' && Number(cargo.length_cm) >= 500) throw Error('Oversize parcel: check carrier limits or choose Heavy Pallet Freight.');
+    const result = await api(cargo.cargo_type === 'PARCEL' ? '/api/v1/logistics/weight' : '/api/v1/logistics/cargo-weight', {
+      method: 'POST',
+      body: cargo.cargo_type === 'PARCEL' ? {
+        length_cm: cargo.length_cm,
+        width_cm: cargo.width_cm,
+        height_cm: cargo.height_cm,
+        actual_weight_kg: cargo.actual_weight_kg
+      } : cargo
+    });
+    if (generation !== weightGeneration) return;
+    $('#weight-result').innerHTML = `<span class="tag green">${escapeHTML(cargoTitles[cargo.cargo_type])}</span><br>Actual <b>${escapeHTML(result.actual_weight_kg)} kg</b>${result.volumetric_weight_kg?' · Volumetric <b>'+escapeHTML(result.volumetric_weight_kg)+' kg</b>':''}${result.floor_weight_kg&&result.floor_weight_kg!=='0'?' · Floor <b>'+escapeHTML(result.floor_weight_kg)+' kg</b>':''}<br>Billable <b>${escapeHTML(result.billable_weight_kg)} kg</b> · ${escapeHTML(result.basis)} basis${cargo.cargo_type==='PARCEL'?' · divisor 5000':result.tariff_profile?' · configured road-freight profile':''}`
+  } catch (error) {
+    if (generation === weightGeneration) $('#weight-result').textContent = error.message
+  }
+};
+$('#cargo-type').addEventListener('change', () => configureCargo());
+$('#cargo-stackable').addEventListener('change', () => {
+  invalidateCustoms();
+  updateWeight()
+});
+$('#quote-form').addEventListener('input', () => {
+  invalidateCustoms();
+  syncCustomsPanel()
+});
+for (const id of ['qc-form', 'qc-reference', 'qc-description', 'qc-hs', 'qc-quantity', 'qc-value', 'qc-weight', 'qc-origin', 'qc-reviewed']) $('#' + id).addEventListener('input', invalidateCustoms);
+
+function publishCustoms(doc) {
+  customsDocument = doc;
+  $('#customs-state').textContent = 'Draft ready';
+  $('#customs-state').className = 'tag green';
+  const totals = doc.totals || {};
+  $('#qc-preview').innerHTML = `<div class="doc-summary"><div><small>Document set</small><b>${escapeHTML(doc.postal_declaration_form||doc.document_type||'Commercial Invoice')}</b></div><div><small>Declared value</small><b>${totals.invoice_value?money(totals.invoice_value,doc.currency):'See document'}</b></div><div><small>Goods</small><b>${doc.items?.length||0} line items</b></div><div><small>Review status</small><b>Draft · signature required</b></div></div><p class="footnote">${escapeHTML(doc.notice||'Review operator eligibility and the full commodity declaration before use.')}</p><details><summary>Review full declaration data</summary><pre></pre></details>`;
+  $('#qc-preview pre').textContent = JSON.stringify(doc, null, 2);
+  $('#qc-json').disabled = false;
+  $('#qc-print').disabled = false;
+  refreshIcons()
+}
+
+function printableDocument(doc) {
+  const d = doc.commercial_invoice || doc,
+    items = d.items || [],
+    party = p => p ? ['name', 'line1', 'city', 'postal_code', 'country_code', 'eori', 'eori_number'].map(k => p[k] ? escapeHTML(p[k]) : '').filter(Boolean).join('<br>') : 'Not supplied';
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Veloce customs declaration draft</title><style>body{font:14px/1.6 system-ui;color:#18283b;margin:32px}h1{font-size:25px}.parties{display:grid;grid-template-columns:1fr 1fr;gap:24px}table{width:100%;border-collapse:collapse;margin:24px 0}td,th{padding:10px;border-bottom:1px solid #ccd4dd;text-align:left}small{color:#556574}.stamp{border:2px solid #c28024;padding:12px;color:#754600}button{padding:10px 18px;margin:12px 0}@media print{button{display:none}body{margin:15mm}}</style></head><body><button onclick="window.print()">Print document</button><h1>Commercial customs declaration</h1><div class="stamp">DRAFT · Signature and carrier eligibility review required · Not submitted</div><p><b>Reference:</b> ' + escapeHTML(d.invoice_reference || d.shipment_id || 'Draft') + '<br><b>Document set:</b> ' + escapeHTML(d.postal_declaration_form || 'Commercial Invoice') + '<br><b>Currency:</b> ' + escapeHTML(d.currency || 'Not supplied') + '</p><div class="parties"><section><h2>Sender</h2>' + party(d.sender || d.origin) + '</section><section><h2>Recipient</h2>' + party(d.recipient || d.destination) + '</section></div><table><thead><tr><th>Goods</th><th>HS code</th><th>Origin</th><th>Qty</th><th>Unit value</th><th>Net kg / unit</th></tr></thead><tbody>' + items.map(i => '<tr><td>' + escapeHTML(i.description || '') + '</td><td>' + escapeHTML(i.hs_code || 'Review required') + '</td><td>' + escapeHTML(i.origin_country || '') + '</td><td>' + escapeHTML(i.quantity ?? '') + '</td><td>' + escapeHTML(i.unit_value ?? '') + '</td><td>' + escapeHTML(i.unit_net_weight_kg ?? i.unit_weight_kg ?? '') + '</td></tr>').join('') + '</tbody></table><p><b>Totals:</b> ' + escapeHTML(JSON.stringify(d.totals || {})) + '</p><p><b>Declaration:</b> I declare that the supplied particulars are accurate and the contents are correctly described. Review and sign before submission.</p><p>Signature ________________________ Date ________________________</p><small>' + escapeHTML(d.notice || 'Consult the carrier and applicable customs authority. This export does not purchase, dispatch or submit a shipment.') + '</small></body></html>'
+}
+
+function exportCustoms(doc, format) {
+  if (!doc) throw Error('Generate or select a customs declaration first.');
+  download('veloce-customs-' + (format === 'json' ? 'declaration.json' : 'printable.html'), format === 'json' ? JSON.stringify(doc, null, 2) : printableDocument(doc), format === 'json' ? 'application/json' : 'text/html')
+}
+$('#qc-generate').addEventListener('click', () => busy($('#qc-generate'), async () => {
+  if (!$('#qc-reviewed').checked) throw Error('Review the commodity code and values, then tick the confirmation.');
+  const generation = ++customsGeneration,
+    active = state.session;
+  const body = {
+    invoice_reference: $('#qc-reference').value,
+    form: $('#qc-form').value,
+    sender: address('origin'),
+    recipient: address('destination'),
+    currency: $('#currency').value,
+    category: 'SALE',
+    incoterm: 'DAP',
+    items: [{
+      description: $('#qc-description').value,
+      hs_code: $('#qc-hs').value,
+      origin_country: $('#qc-origin').value,
+      quantity: Number($('#qc-quantity').value),
+      unit_value: $('#qc-value').value,
+      unit_net_weight_kg: $('#qc-weight').value
+    }],
+    gross_weight_kg: $('#weight_kg').value,
+    shipping_cost: '0.00',
+    hs_codes_reviewed: true
+  };
+  const doc = await api('/api/v1/customs/declaration', {
+    method: 'POST',
+    body
+  });
+  if (generation !== customsGeneration || active !== state.session) return;
+  publishCustoms(doc);
+  notify('Customs draft generated. Review before printing or submission.')
+}));
+$('#qc-json').addEventListener('click', () => exportCustoms(customsDocument, 'json'));
+$('#qc-print').addEventListener('click', () => exportCustoms(customsDocument, 'print'));
+$('#qc-harmonize').addEventListener('click', () => {
+  setView('customs');
+  $('#item-description').value = $('#qc-description').value;
+  $('#item-description').focus()
+});
+
+function sampleManifest() {
+  return [{
+    id: '00000000-0000-4000-8000-000000001044',
+    reference: 'VEL-9821',
+    status: 'IN_TRANSIT',
+    currency: 'GBP',
+    price: '18.40',
+    tracking_number: 'SAMPLE-GB-US-9821',
+    origin_country: 'GB',
+    destination_country: 'US',
+    cargo_type: 'PARCEL',
+    metadata: {
+      carrier: 'DHL',
+      destination: 'US',
+      cargo_type: 'PARCEL'
+    },
+    simulated: true
+  }, {
+    id: DEMO_ID,
+    reference: 'VEL-9819',
+    status: 'DELIVERED',
+    currency: 'GBP',
+    price: '23.00',
+    tracking_number: 'SAMPLE-GB-DE-9819',
+    origin_country: 'GB',
+    destination_country: 'DE',
+    cargo_type: 'PARCEL',
+    metadata: {
+      carrier: 'UPS',
+      destination: 'DE'
+    },
+    simulated: true
+  }, {
+    id: '00000000-0000-4000-8000-000000001045',
+    reference: 'VEL-7410',
+    status: 'EXCEPTION',
+    currency: 'GBP',
+    price: '115.58',
+    tracking_number: 'SAMPLE-FREIGHT-7410',
+    origin_country: 'GB',
+    destination_country: 'US',
+    cargo_type: 'PALLET',
+    metadata: {
+      carrier: 'Regional Freight',
+      destination: 'US',
+      cargo_type: 'PALLET'
+    },
+    simulated: true
+  }]
+}
+
+function manifestRecords() {
+  return state.manifest.length ? state.manifest : state.session ? [] : sampleManifest()
+}
+
+function safeHTTPS(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+function displayedStatus(row) {
+  if (['EXCEPTION', 'DELIVERED', 'FAILED'].includes(row.status)) return row.status;
+  return row.metadata?.tracking?.milestone === 'OUT_FOR_DELIVERY' ? 'OUT_FOR_DELIVERY' : row.status
+}
+
+function pipeline(row) {
+  const status = displayedStatus(row),
+    stages = ['BOOKED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'],
+    active = stages.indexOf(status);
+  return '<div class="pipeline" aria-label="Shipment lifecycle">' + stages.map((s, i) => `<span class="${i<active?'done':i===active?'active':''}">${({BOOKED:'Booked',IN_TRANSIT:'In transit',OUT_FOR_DELIVERY:'Out for delivery',DELIVERED:'Delivered'})[s]}</span>${i<3?'<i class="'+(i<active?'done':'')+'"></i>':''}`).join('') + (status === 'EXCEPTION' ? '<span class="pipeline-alert">· Exception</span>' : '') + '</div>'
+}
+renderManifest = function() {
+  const query = $('#manifest-search').value.toLowerCase(),
+    filter = $('#manifest-filter').value,
+    all = manifestRecords(),
+    rows = all.filter(r => (filter === 'all' || displayedStatus(r) === filter) && [r.reference, r.id, r.tracking_number, r.metadata?.carrier, r.metadata?.destination, r.destination_country].join(' ').toLowerCase().includes(query));
+  $('#manifest-count').textContent = rows.length;
+  $('#manifest-ready').textContent = rows.filter(r => ['BOOKED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(displayedStatus(r))).length;
+  $('#manifest-source').textContent = state.session ? portal.role === 'SUPER_ADMIN' ? 'Platform manifest · owner-authorized client records. Intermediate milestones appear when reported.' : 'Workspace manifest · your authorized records. Intermediate milestones appear when reported.' : 'SAMPLE MANIFEST · These three examples are not real bookings or delivery evidence. Sign in and refresh for your workspace.';
+  $('#manifest-body').innerHTML = rows.length ? rows.map(row => {
+    const status = displayedStatus(row),
+      carrier = row.metadata?.carrier || row.carrier_code || 'Not recorded',
+      type = row.cargo_type || row.metadata?.cargo_type || 'PARCEL';
+    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(status)}</span></td><td class="mono">${row.price==null?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
+  }).join('') : '<tr><td colspan="5"><div class="empty"><h3>No Active Shipments</h3><p>No shipments match this view. Create a quote or change the filter.</p><button class="secondary" data-manifest-create="true">Open Speed Quote Matrix</button></div></td></tr>';
+  refreshIcons()
+};
+async function refreshManifestRecords() {
+  if (!state.session) {
+    state.manifest = sampleManifest();
+    renderManifest();
+    notify('Sample manifest refreshed. No carrier records changed.');
+    return
+  }
+  const epoch = portal.epoch;
+  const result = await api(portal.role === 'SUPER_ADMIN' ? '/api/v1/admin/shipments/manifest' : '/api/v1/shipments/manifest', {
+    auth: true
+  });
+  if (epoch !== portal.epoch) return;
+  state.manifest = result.shipments;
+  renderManifest()
+}
+$('#manifest-body').addEventListener('click', event => {
+  if (event.target.closest('[data-manifest-create]')) {
+    setView('dispatch');
+    return
+  }
+  const detail = event.target.closest('[data-manifest-detail]'),
+    pod = event.target.closest('[data-manifest-pod]');
+  if (!detail && !pod) return;
+  const row = manifestRecords().find(r => r.id === (detail?.dataset.manifestDetail || pod?.dataset.manifestPod));
+  if (!row) return;
+  if (pod) {
+    const url = safeHTTPS(row.proof_of_delivery_url);
+    $('#pod-content').innerHTML = url ? `<p class="subtle">Carrier-supplied URL from the stored shipment. The link may expire.</p><a class="primary" target="_blank" rel="noopener noreferrer" href="${escapeHTML(url)}">Open POD signature / photo link</a>` : `<div class="notice">${row.simulated?'Sample shipment: no real signature, photo or delivery token is present.':'The carrier has not supplied proof of delivery for this shipment.'}</div>`;
+    $('#pod-dialog').showModal();
+    return
+  }
+  activeManifestDocument = row.customs_declaration || row.metadata?.automation_customs || null;
+  $('#shipment-detail').innerHTML = `<div class="notice">${escapeHTML(row.reference||row.id)} · ${escapeHTML(displayedStatus(row))}${row.simulated?' · SAMPLE DATA':''}</div>${pipeline(row)}<div class="doc-summary" style="margin-top:16px">${[['Booked',row.booked_at],['Dispatched',row.dispatched_at],['Last event',row.last_tracking_event_at],['Delivered',row.delivered_at]].map(([label,v])=>`<div><small>${label}</small><b style="font-size:12px">${escapeHTML(v?new Date(v).toLocaleString():'Not reported')}</b></div>`).join('')}</div><p class="footnote">${activeManifestDocument?'Stored customs data is available below. Signature and operator review remain required.':row.customs_required?'No exportable reviewed declaration is stored yet. Prepare a draft in Customs Tools.':'No customs declaration is stored for this shipment.'}</p>${activeManifestDocument?'<details><summary>Review customs declaration</summary><pre></pre></details>':''}`;
+  if (activeManifestDocument) $('#shipment-detail pre').textContent = JSON.stringify(activeManifestDocument, null, 2);
+  $('#shipment-doc-json').disabled = !activeManifestDocument;
+  $('#shipment-doc-print').disabled = !activeManifestDocument;
+  $('#shipment-dialog').showModal()
+});
+$('#shipment-doc-json').addEventListener('click', () => exportCustoms(activeManifestDocument, 'json'));
+$('#shipment-doc-print').addEventListener('click', () => exportCustoms(activeManifestDocument, 'print'));
+const renderTicketsBase = renderTickets;
+renderTickets = function() {
+  renderTicketsBase();
+  $('#support-tickets').querySelectorAll?.('.support-ticket').forEach((article, index) => {
+    const ticket = portal.tickets[index],
+      actions = article.querySelector('.ticket-actions');
+    if (!actions || !ticket) return;
+    const pod = actions.querySelector('[data-ticket-action="pod"]');
+    if (pod) pod.textContent = 'View POD Signature Link';
+    const allowed = portalDemo() || portal.role === 'SUPER_ADMIN' || ['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal.profile?.workspace_role);
+    actions.insertAdjacentHTML('beforeend', `<button class="secondary" data-dispute-ticket="${escapeHTML(ticket.id)}" ${allowed?'':'disabled title="Financial role required"'}>Auto-Draft Surcharge Dispute</button>`)
+  });
+  refreshIcons()
+};
+
+function openDispute(ticket) {
+  activeDispute = ticket;
+  $('#dispute-context').textContent = (ticket.demo ? 'Sample case · ' : 'Shipment · ') + (ticket.tracking_number || ticket.shipment_id || ticket.title || ticket.id);
+  $('#dispute-draft').value = `DRAFT — not sent\n\nPlease review the billed weight and accessorial charges for shipment ${ticket.tracking_number||ticket.shipment_id||ticket.id}.\n\nReported issue: ${ticket.ai_summary||'Carrier exception; review supporting records.'}\n\nPlease provide the invoice, recorded measurements and surcharge evidence. Any overcharge amount remains unconfirmed until the billed charges are compared with the stored carrier baseline.\n\nThis draft requires merchant review before submission.`;
+  $('#quick-audit-result').replaceChildren();
+  $('#qa-currency').value = state.walletCurrency || 'GBP';
+  $('#quick-audit-form').querySelector('button').disabled = !!ticket.demo || !ticket.shipment_id;
+  $('#dispute-dialog').showModal()
+}
+$('#support-tickets').addEventListener('click', e => {
+  const b = e.target.closest('[data-dispute-ticket]');
+  if (!b || b.disabled) return;
+  const ticket = portal.tickets.find(t => t.id === b.dataset.disputeTicket);
+  if (ticket) openDispute(ticket)
+});
+$('#dispute-download').addEventListener('click', () => download('veloce-dispute-draft.txt', $('#dispute-draft').value, 'text/plain'));
+$('#dispute-copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('#dispute-draft').value);
+    notify('Dispute draft copied. Nothing was sent.')
+  } catch {
+    notify('Clipboard unavailable. Download the draft instead.', true)
+  }
+});
+$('#quick-audit-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('button'), async () => {
+    if (!activeDispute || activeDispute.demo || !activeDispute.shipment_id) throw Error('Select a stored shipment with a carrier invoice to audit.');
+    const body = {
+      invoice_reference: 'DISPUTE-' + String(activeDispute.id).slice(0, 20),
+      lines: [{
+        shipment_id: activeDispute.shipment_id,
+        currency: $('#qa-currency').value,
+        billed_weight_kg: $('#qa-weight').value,
+        base_cost: $('#qa-base').value,
+        fuel_surcharge: $('#qa-fuel').value,
+        residential_fee: $('#qa-residential').value,
+        remote_area_fee: $('#qa-remote').value
+      }]
+    };
+    const path = portal.role === 'SUPER_ADMIN' ? '/api/v1/admin/audit/invoice?tenant_id=' + encodeURIComponent(activeDispute.tenant_id) : '/api/v1/audit/invoice';
+    const result = await api(path, {
+      method: 'POST',
+      body,
+      auth: true
+    });
+    const audited = result.results[0];
+    $('#quick-audit-result').innerHTML = '<pre></pre>';
+    $('#quick-audit-result pre').textContent = JSON.stringify(audited, null, 2);
+    if (audited.dispute_draft) $('#dispute-draft').value = audited.dispute_draft;
+    else notify('No supported overcharge draft could be established. Review the audit result.')
+  })
+});
+$('#rates').addEventListener('click', event => {
+  if (!event.target.closest('[data-review]') || !state.quoteRequest || state.quoteRequest.origin.country_code === state.quoteRequest.destination.country_code) return;
+  $('#review-content').insertAdjacentHTML('beforeend', `<div class="document-preview"><h3>Commercial customs document preview</h3><p class="subtle">${customsDocument?'Reviewed draft ready. Signature and carrier eligibility remain required.':'Prepare CN22/CN23 or a commercial invoice before international checkout.'}</p><div class="actions" style="margin-top:10px"><button class="secondary" data-review-customs="open">Review customs</button><button class="secondary" data-review-customs="json" ${customsDocument?'':'disabled'}>Download JSON</button><button class="secondary" data-review-customs="print" ${customsDocument?'':'disabled'}>Download printable documents</button></div></div>`)
+});
+$('#review-content').addEventListener('click', e => {
+  const b = e.target.closest('[data-review-customs]');
+  if (!b) return;
+  if (b.dataset.reviewCustoms === 'open') {
+    $('#review-dialog').close();
+    setView('dispatch');
+    $('#checkout-customs').open = true;
+    $('#checkout-customs').scrollIntoView?.({
+      behavior: 'smooth',
+      block: 'start'
+    })
+  } else exportCustoms(customsDocument, b.dataset.reviewCustoms)
+});
+const modernSetViewBase = setView;
+setView = function(view) {
+  if (view === 'wallet' && state.session && portal.profile?.portal_role === 'SUPER_ADMIN' && !portal.profile.tenant_id) {
+    notify('Open a client workspace for wallet operations.', true);
+    return
+  }
+  modernSetViewBase(view);
+  if (view === 'manifest' && state.session) busy($('#manifest-refresh'), refreshManifestRecords);
+  const mobile = typeof matchMedia === 'function' && matchMedia('(max-width:767px)').matches;
+  $('#customs-backdrop').hidden = !(mobile && view === 'customs' && !$('#customs').hidden);
+  refreshIcons()
+};
+$('#customs-backdrop').addEventListener('click', () => setView('dashboard'));
+document.addEventListener?.('keydown', e => {
+  if (e.key === 'Escape' && !$('#customs').hidden) setView('dashboard')
+});
+const modernClearSessionBase = clearSession;
+clearSession = function() {
+  modernClearSessionBase();
+  state.lastRateResult = null;
+  customsDocument = null;
+  activeDispute = null;
+  activeManifestDocument = null;
+  customsGeneration++;
+  $('#qc-preview').replaceChildren();
+  $('#dispute-draft').value = '';
+  $('#shipment-detail').replaceChildren();
+  $('#dispute-dialog').close();
+  $('#shipment-dialog').close();
+  $('#qc-json').disabled = true;
+  $('#qc-print').disabled = true;
+  $('#shipment-doc-json').disabled = true;
+  $('#shipment-doc-print').disabled = true
+};
+const modernRenderAccountBase = renderAccount;
+renderAccount = function() {
+  modernRenderAccountBase();
+  if (!state.session && state.mode !== 'checking') {
+    if (state.mode !== 'local-preview' && state.wallet === 0n) state.wallet = 34210n;
+    $('#quote-btn').textContent = 'Compare parallel sample rates';
+    $('#quote-mode-note').textContent = 'Illustrative sample rates only. Sign in to use your tenant pricing and connected carriers.';
+    $('#topup-btn').textContent = 'Add sample credit';
+    $('#topup-note').textContent = 'Browser-session credit only. No card payment or database balance is changed.';
+    $('#mode-label').textContent = 'SAMPLE WORKSPACE · Shipment rows, unsigned rates and print previews are illustrative. Sign in for your authorized records.';
+    renderManifest();
+    renderWallet();
+    $('#wallet-tag').textContent = 'SAMPLE CREDIT'
+  } else if (state.session) {
+    $('#quote-btn').textContent = 'Fetch Parallel Live Rates';
+    if (portal.profile?.portal_role === 'SUPER_ADMIN' && !portal.profile.tenant_id) {
+      $('#quote-btn').disabled = true;
+      $('#quote-mode-note').textContent = 'Platform tools support cargo calculations and document drafts. A client workspace session is required for live client quotes.'
+    }
+  }
+  refreshIcons()
+};
+document.addEventListener?.('DOMContentLoaded', refreshIcons);
+if (typeof MutationObserver === 'function') new MutationObserver(() => refreshIcons()).observe(document.querySelector('main'), {
+  childList: true,
+  subtree: true
+});
+configureCargo(false);
+syncCustomsPanel();
+renderManifest();
+refreshIcons();
+</script>
+<script>
+// Embedded in index.html: server-verified personas and administrative control hubs.
+const enterprise = {
+  tenants: [],
+  carriers: [],
+  margins: [],
+  transactions: [],
+  stores: [],
+  editMargin: null,
+  editCarrier: null,
+  currentView: 'dashboard',
+  generation: 0
+};
+const enterpriseViews = ['admin-clients', 'admin-carriers', 'admin-margins', 'stores'];
+const mainContent = document.querySelector('main');
+mainContent.insertAdjacentHTML('beforeend', `
+<section id="admin-clients" hidden>
+  <div class="pagehead"><div><div class="eyebrow">Platform / Client accounts node</div><h1>Client Accounts Hub</h1><p>Company profiles, billing plans and network transaction history.</p></div><button class="primary" id="tenant-new"><i data-lucide="building-2"></i>Onboard New Tenant</button></div>
+  <div class="enterprise-banner" data-admin-source></div>
+  <article class="card"><div class="toolbar"><input id="tenant-search" placeholder="Search company, email or workspace" aria-label="Search clients"><button class="secondary" data-admin-refresh="admin-clients">Refresh clients</button></div><div class="scrolltable"><table><thead><tr><th>Company / workspace</th><th>Billing / currency</th><th>Status</th><th>Environment</th><th>Configuration</th></tr></thead><tbody id="tenant-rows"></tbody></table></div></article>
+  <article class="card" style="margin-top:20px"><div class="cardhead"><div><h2>Aggregate wallet transaction log</h2><p class="subtle">Newest 200 ledger entries. Currency values are kept separate.</p></div><button class="secondary" data-admin-refresh="transactions">Refresh log</button></div><div class="scrolltable"><table><thead><tr><th>Company</th><th>Entry</th><th>Balance movement</th><th>Reserved movement</th><th>Time</th></tr></thead><tbody id="transaction-rows"></tbody></table></div></article>
+</section>
+<section id="admin-carriers" hidden>
+  <div class="pagehead"><div><div class="eyebrow">Platform / Carrier connectors</div><h1>Carrier Provider Settings</h1><p>Manage tenant-assigned accounts across the platform. Credentials remain on the server.</p></div><button class="primary" id="carrier-new"><i data-lucide="plug"></i>Add New Connection</button></div>
+  <div class="enterprise-banner" data-admin-source></div>
+  <div class="provider-grid"><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>EasyPost</h2><p class="subtle">Official v2 endpoint. Tenant-bound encrypted credentials.</p></article><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>LocalRegional</h2><p class="subtle">Compatible regional API protocol; server-approved HTTPS origins.</p></article><article class="card"><span class="tag green">READ-ONLY RATE ADAPTER</span><h2>Sendcloud</h2><p class="subtle">Use LocalRegional with the official Sendcloud endpoint and verified SENDCLOUD_METHODS limits. Native label purchase is not enabled.</p></article></div>
+  <article class="card"><div class="cardhead"><h2>Network connections</h2><button class="secondary" data-admin-refresh="admin-carriers">Refresh</button></div><div class="scrolltable"><table><thead><tr><th>Account / company</th><th>Provider</th><th>Environment</th><th>Status / priority</th><th>Actions</th></tr></thead><tbody id="carrier-rows"></tbody></table></div></article>
+</section>
+<section id="admin-margins" hidden>
+  <div class="pagehead"><div><div class="eyebrow">Platform / Pricing control</div><h1>Dynamic Margin Matrix</h1><p>Client and lane rules with exact Decimal values. Lower numeric priority wins.</p></div><button class="primary" id="margin-new"><i data-lucide="sliders-horizontal"></i>Add Pricing Rule</button></div>
+  <div class="enterprise-banner" data-admin-source></div>
+  <article class="card"><div class="toolbar"><select id="margin-tenant-filter" aria-label="Filter pricing by client"></select><button class="secondary" data-admin-refresh="admin-margins">Refresh rules</button></div><div class="scrolltable"><table><thead><tr><th>Company / rule</th><th>Lane / carrier</th><th>Formula</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead><tbody id="margin-rows"></tbody></table></div></article>
+  <div class="notice">Deleting a rule retires it from price selection. Existing shipment prices and applied-rule references are retained.</div>
+</section>
+<section id="stores" hidden>
+  <div class="pagehead"><div><div class="eyebrow">Workspace / Store integrations</div><h1>E-commerce store registry</h1><p>Manage your tenant's order import and tracking associations.</p></div><button id="store-new" class="primary">Register store</button></div>
+  <div class="notice">The current connector framework simulates order import and tracking push-back. This registry does not install storefront apps or configure remote OAuth credentials.</div>
+  <div id="store-list" class="provider-grid"></div><button class="secondary" id="store-refresh">Refresh stores</button>
+</section>
+`);
+document.body.insertAdjacentHTML('beforeend', `
+<dialog id="tenant-admin-dialog"><button class="close" data-enterprise-close="tenant-admin-dialog" aria-label="Close tenant form">×</button><h2>Onboard a customer</h2><p class="subtle">Creates the company and wallet. Existing Supabase Auth identity is optional.</p><form id="tenant-admin-form">
+ <div class="fields"><div><label>Company name<input name="company_name" required maxlength="200"></label></div><div><label>Contact name<input name="contact_name" required maxlength="200"></label></div><div><label>Billing email<input name="billing_email" type="email" required></label></div><div><label>Street<input name="address_line1" required maxlength="200"></label></div><div><label>City<input name="city" required></label></div><div><label>Postcode<input name="postal_code" required></label></div><div><label>Country ISO<input name="country_code" value="GB" maxlength="3" required></label></div><div><label>Currency<select name="default_currency"><option>GBP</option><option>EUR</option><option>USD</option></select></label></div><div><label>Billing plan<select name="billing_plan"><option>PREPAID_WALLET</option><option>POSTPAID_30_DAY</option></select></label></div><div><label>Tax / VAT ID<input name="tax_id" maxlength="100"></label></div></div>
+ <label>Existing owner Auth user UUID (optional)<input name="owner_auth_user_id" placeholder="Provision login separately in Supabase"></label><label class="check"><input name="is_sandbox" type="checkbox" checked>Sandbox customer</label><button class="primary full">Create customer account</button><p class="footnote">No password, invitation email or provider credentials are created by this form.</p>
+</form></dialog>
+<dialog id="margin-admin-dialog"><button class="close" data-enterprise-close="margin-admin-dialog" aria-label="Close pricing form">×</button><h2 id="margin-form-title">Add pricing rule</h2><form id="margin-admin-form">
+ <label>Client account<select name="tenant_id" required></select></label><div class="fields"><div><label>Origin country (optional)<input name="origin_country" maxlength="3" placeholder="Any origin"></label></div><div><label>Destination country (optional)<input name="destination_country" maxlength="3" placeholder="Any destination"></label></div><div><label>Carrier code (optional)<input name="carrier_code" maxlength="100" placeholder="Any carrier"></label></div><div><label>Service code (optional)<input name="service_code" maxlength="100" placeholder="Any service"></label></div><div><label>Formula<select name="markup_type"><option value="PERCENTAGE">Percentage</option><option value="FLAT_RATE">Flat rate</option></select></label></div><div><label>Markup value<input name="markup_value" value="20" inputmode="decimal" required></label></div><div><label>Currency<select name="currency"><option>GBP</option><option>EUR</option><option>USD</option></select></label></div><div><label>Priority (lower wins)<input name="priority" type="number" min="0" max="1000000" step="1" value="100" required></label></div><div><label>Minimum markup<input name="minimum_markup" value="0.00" inputmode="decimal" required></label></div><div><label>Maximum markup (optional)<input name="maximum_markup" inputmode="decimal"></label></div><div><label>Billing tier (optional)<select name="billing_plan"><option value="">Any billing tier</option><option>PREPAID_WALLET</option><option>POSTPAID_30_DAY</option></select></label></div><div><label>Cargo type (optional)<select name="cargo_type"><option value="">Any cargo</option><option>LETTER</option><option>PARCEL</option><option>PALLET</option><option>OVERLAND_FREIGHT</option></select></label></div><div><label>Min volume m? (optional)<input name="min_volume_m3" inputmode="decimal"></label></div><div><label>Max volume m? (exclusive)<input name="max_volume_m3" inputmode="decimal"></label></div><div><label>Min weight kg (optional)<input name="min_weight_kg" inputmode="decimal"></label></div><div><label>Max weight kg (exclusive)<input name="max_weight_kg" inputmode="decimal"></label></div><div><label>Min wholesale cost (optional)<input name="min_wholesale_cost" inputmode="decimal"></label></div><div><label>Max wholesale cost (exclusive)<input name="max_wholesale_cost" inputmode="decimal"></label></div><div><label>Valid from (optional ISO timestamp)<input name="valid_from" placeholder="2026-10-10T00:00:00Z"></label></div><div><label>Valid until (optional ISO timestamp)<input name="valid_until" placeholder="No end date"></label></div></div><label>Carrier account ID (optional)<input name="carrier_account_id" placeholder="Tenant-assigned account UUID"></label><label class="check"><input name="is_active" type="checkbox" checked>Active in pricing selection</label><button class="primary full">Save pricing rule</button>
+</form></dialog>
+<dialog id="carrier-admin-dialog"><button class="close" data-enterprise-close="carrier-admin-dialog" aria-label="Close carrier form">×</button><h2 id="carrier-form-title">Add carrier connection</h2><form id="carrier-admin-form">
+ <div id="carrier-create-fields"><label>Assigned client<select name="tenant_id" required></select></label><label>Account name<input name="account_name" maxlength="200" required></label><div class="fields"><div><label>Provider<select name="aggregator"><option>EASYPOST</option><option>REGIONAL</option></select></label></div><div><label>Environment<select name="environment"><option>TEST</option><option>LIVE</option></select></label></div></div><label>API endpoint<input name="api_base_url" value="https://api.easypost.com/v2" type="url" required></label><label>Regional provider code<input name="regional_provider_code" placeholder="Required for REGIONAL"></label><label>API key (write-only)<input name="api_key" type="password" autocomplete="new-password" required maxlength="4096"></label><label>Upstream account ID (optional)<input name="upstream_account_id"></label></div>
+ <div class="fields"><div><label>Priority<input name="priority" value="100" type="number" min="0" max="1000000" step="1" required></label></div><div><label>Timeout seconds<input name="timeout_seconds" value="30" type="number" min="1" max="120" step="1" required></label></div></div><label class="check"><input name="is_active" type="checkbox">Enable provider for ratings</label><button class="primary full">Save connection</button><p class="footnote">Existing secrets are never returned. No carrier API calls are made by this form.</p>
+</form></dialog>
+<dialog id="store-admin-dialog"><button class="close" data-enterprise-close="store-admin-dialog" aria-label="Close store form">×</button><h2>Register a workspace store</h2><form id="store-admin-form"><label>Display name<input name="display_name" required maxlength="200"></label><label>Platform<select name="platform"><option>SHOPIFY</option><option>WOOCOMMERCE</option><option>AMAZON</option></select></label><button class="primary full">Register store</button></form></dialog>
+<dialog id="retire-admin-dialog"><button class="close" data-enterprise-close="retire-admin-dialog" aria-label="Close retirement review">×</button><h2>Review configuration removal</h2><p id="retire-context" class="subtle"></p><p class="notice">This removes the configuration from active selection and preserves historical shipment references.</p><button id="retire-confirm" class="primary full">Retire configuration</button></dialog>
+<dialog id="exception-sheet" class="exception-sheet"><button class="close" data-enterprise-close="exception-sheet" aria-label="Close exception drawer">×</button><div class="eyebrow">Proactive exception support</div><h2 id="exception-title"></h2><div class="notice" id="exception-summary"></div><div class="actions"><button class="secondary" id="exception-pod">View POD Token</button><button class="primary" id="exception-dispute">Auto-Draft Surcharge Dispute Ticket</button></div><p class="footnote">Review drafts before submission. No WhatsApp message or dispute is sent.</p></dialog>
+`);
+const personaControls = $('#role-admin').parentElement;
+personaControls.classList.add('header-personas');
+document.querySelector('.topbar-actions').prepend(personaControls);
+const enterpriseNavItems = {
+  dashboard: ['Overview', 'layout-dashboard'],
+  'admin-clients': ['Client Accounts Node', 'building-2'],
+  'admin-carriers': ['Carrier Connectors', 'plug'],
+  'admin-margins': ['Margin Rule Matrix', 'sliders-horizontal'],
+  dispatch: ['Speed Quote Matrix', 'send'],
+  boxes: ['Box Profiles', 'boxes'],
+  manifest: ['Manifest & Labels', 'package-check'],
+  wallet: ['Wallet & Billing', 'wallet'],
+  customs: ['Customs Harmonizer', 'shield-check'],
+  stores: ['Store Integrations', 'store']
+};
+
+function allowedEnterpriseViews() {
+  if (state.session && !portal.profile) return [];
+  if (portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN'))
+    return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins'];
+  if (portal.profile?.workspace_role === 'DISPATCHER') return ['dispatch', 'boxes', 'manifest'];
+  if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'wallet', 'customs', 'stores'];
+  if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard'];
+  return ['dashboard', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores'];
+}
+
+function enterpriseAdminGuard() {
+  if (!allowedEnterpriseViews().includes('admin-clients')) throw Error('Platform-owner authorization is required.');
+}
+let enterpriseNavKey = '';
+let enterpriseSession = state.session;
+
+function refreshEnterpriseNavigation() {
+  if (enterpriseSession !== state.session) {
+    enterpriseSession = state.session;
+    enterprise.generation++;
+    for (const key of ['tenants', 'carriers', 'margins', 'transactions', 'stores']) enterprise[key] = [];
+    for (const id of ['tenant-rows', 'carrier-rows', 'margin-rows', 'transaction-rows', 'store-list']) $('#' + id).replaceChildren();
+    for (const id of ['tenant-admin-dialog', 'margin-admin-dialog', 'carrier-admin-dialog', 'retire-admin-dialog', 'store-admin-dialog', 'exception-sheet']) $('#' + id).close();
+    $('#carrier-admin-form').reset();
+  }
+  const allowed = allowedEnterpriseViews();
+  const key = allowed.join('|');
+  if (key !== enterpriseNavKey) {
+    enterpriseNavKey = key;
+    const buttons = allowed.map(view => {
+      const [label, icon] = enterpriseNavItems[view];
+      const fallback = ({
+        dashboard: 'grid',
+        'admin-clients': 'grid',
+        'admin-carriers': 'truck',
+        'admin-margins': 'chart',
+        dispatch: 'truck',
+        boxes: 'box',
+        manifest: 'list',
+        wallet: 'wallet',
+        customs: 'globe',
+        stores: 'box'
+      })[view];
+      return `<button id="tab-${view}" role="tab" data-enterprise-view="${view}" aria-selected="${enterprise.currentView === view}"><span class="nav-symbol"><i data-lucide="${icon}"></i><svg class="icon-fallback" fill="none" stroke="currentColor" stroke-width="1.6"><use href="#i-${fallback}"></use></svg></span><span>${label}</span></button>`;
+    }).join('');
+    document.querySelector('.sidebar nav').innerHTML = buttons;
+    document.querySelector('.mobile-nav').innerHTML = buttons.replaceAll('id="tab-', 'id="mobile-');
+  }
+  const warehouse = portal.profile?.workspace_role === 'DISPATCHER';
+  const admin = portal.role === 'SUPER_ADMIN';
+  if (!state.session && admin) $('#mode-label').textContent = 'SAMPLE PLATFORM CONTROL PLANE · Sign in as an authorized owner to manage database configuration.';
+  $('#role-admin').hidden = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
+  $('#role-client').hidden = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
+  $('.sidebar-caption').textContent = admin ? 'Platform control plane' : warehouse ? 'Warehouse operations' : 'Client workspace';
+  $('#dashboard .quick-grid').hidden = admin || warehouse;
+  $('#dashboard .support-card').hidden = warehouse;
+  $$('[data-admin-source]').forEach(node => node.textContent = state.session ?
+    'OWNER-AUTHORIZED DATABASE CONTROLS · All mutations are validated server-side.' :
+    'SAMPLE CONTROL PLANE · Changes affect this browser session only. Sign in as an authorized platform owner to modify the database.');
+  $('#dashboard').hidden = enterprise.currentView !== 'dashboard' || !allowed.includes('dashboard');
+  if (allowed.length && !allowed.includes(enterprise.currentView)) setView(allowed[0]);
+  refreshIcons();
+}
+const enterpriseRenderPortalBase = renderPortal;
+const enterpriseFeeRowsBase = feeRows;
+feeRows = function(rate) {
+  if (portal.profile?.workspace_role === 'DISPATCHER') return '<p class="subtle">Customer quote shown above. Detailed billing and platform margins require a financial role.</p>';
+  return enterpriseFeeRowsBase(rate);
+};
+renderPortal = function() {
+  enterpriseRenderPortalBase();
+  refreshEnterpriseNavigation();
+};
+const enterpriseSetViewBase = setView;
+setView = function(view) {
+  const allowed = allowedEnterpriseViews();
+  if (!allowed.includes(view)) {
+    notify('This module is unavailable for your verified persona.', true);
+    return;
+  }
+  enterprise.currentView = view;
+  if (!enterpriseViews.includes(view)) enterpriseSetViewBase(view);
+  $$('main > section').forEach(section => section.hidden = section.id !== view);
+  $('#customs-backdrop').hidden = !(view === 'customs' && matchMedia('(max-width:767px)').matches);
+  $('#box-backdrop').hidden = !(view === 'boxes' && matchMedia('(max-width:767px)').matches);
+  $$('[data-enterprise-view]').forEach(button => {
+    button.setAttribute('aria-selected', String(button.dataset.enterpriseView === view));
+    button.setAttribute('aria-current', button.dataset.enterpriseView === view ? 'page' : 'false');
+  });
+  if (enterpriseViews.includes(view)) busy($(`#${view} .primary`) || $('#store-refresh'), () => loadEnterpriseView(view));
+  refreshIcons();
+};
+document.addEventListener('click', event => {
+  const nav = event.target.closest('[data-enterprise-view]');
+  if (nav) setView(nav.dataset.enterpriseView);
+  const close = event.target.closest('[data-enterprise-close]');
+  if (close) $('#' + close.dataset.enterpriseClose).close();
+  const refresh = event.target.closest('[data-admin-refresh]');
+  if (refresh) busy(refresh, () => loadEnterpriseView(refresh.dataset.adminRefresh));
+});
+
+function sampleAdminData() {
+  if (enterprise.tenants.length) return;
+  enterprise.tenants = [{
+    tenant_id: 'sample-harbor',
+    company_name: 'Harbor Commerce · sample',
+    workspace_slug: 'harbor-demo',
+    billing_email: 'harbor@example.invalid',
+    billing_plan: 'PREPAID_WALLET',
+    default_currency: 'GBP',
+    workspace_status: 'ACTIVE',
+    is_sandbox: true
+  }, {
+    tenant_id: 'sample-northstar',
+    company_name: 'Northstar Textiles · sample',
+    workspace_slug: 'northstar-demo',
+    billing_email: 'northstar@example.invalid',
+    billing_plan: 'POSTPAID_30_DAY',
+    default_currency: 'EUR',
+    workspace_status: 'ACTIVE',
+    is_sandbox: true
+  }];
+  enterprise.carriers = [{
+    id: 'sample-carrier',
+    tenant_id: 'sample-harbor',
+    company_name: enterprise.tenants[0].company_name,
+    account_name: 'EasyPost test account · sample',
+    aggregator: 'EASYPOST',
+    environment: 'TEST',
+    is_active: false,
+    priority: 100,
+    timeout_seconds: 30
+  }];
+  enterprise.margins = [{
+    id: 'sample-margin',
+    tenant_id: 'sample-harbor',
+    company_name: enterprise.tenants[0].company_name,
+    rule_name: 'Sample US lane',
+    origin_country: 'GB',
+    destination_country: 'US',
+    currency: 'GBP',
+    markup_type: 'PERCENTAGE',
+    markup_value: '20',
+    priority: 10,
+    minimum_markup: '0.00',
+    is_active: true
+  }];
+  enterprise.transactions = [{
+    id: 'sample-ledger-reserve',
+    company_name: enterprise.tenants[0].company_name,
+    entry_type: 'RESERVE',
+    balance_delta: '0.00',
+    reserved_delta: '24.00',
+    currency: 'GBP',
+    created_at: new Date(Date.now() - 3600000).toISOString()
+  }, {
+    id: 'sample-ledger-capture',
+    company_name: enterprise.tenants[0].company_name,
+    entry_type: 'CAPTURE',
+    balance_delta: '-24.00',
+    reserved_delta: '-24.00',
+    currency: 'GBP',
+    created_at: new Date(Date.now() - 3500000).toISOString()
+  }];
+}
+async function loadEnterpriseView(view) {
+  const generation = enterprise.generation;
+  if (view === 'stores') {
+    if (!state.session) enterprise.stores = [{
+      id: 'sample-store',
+      display_name: 'Sample Shopify store',
+      platform: 'SHOPIFY',
+      is_active: true
+    }];
+    else {
+      const result = await api('/api/v1/workspace/stores', {
+        auth: true
+      });
+      if (generation !== enterprise.generation) return;
+      enterprise.stores = result.stores;
+    }
+    renderEnterpriseStores();
+    return;
+  }
+  enterpriseAdminGuard();
+  if (!state.session) sampleAdminData();
+  else {
+    const paths = {
+      'admin-clients': '/tenants',
+      'admin-carriers': '/carriers',
+      'admin-margins': '/margins',
+      transactions: '/transactions'
+    };
+    const result = await api('/api/v1/admin' + paths[view], {
+      auth: true
+    });
+    if (generation !== enterprise.generation) return;
+    enterprise[({
+      'admin-clients': 'tenants',
+      'admin-carriers': 'carriers',
+      'admin-margins': 'margins',
+      transactions: 'transactions'
+    })[view]] = result.tenants || result.connections || result.rules || result.transactions;
+    if (view !== 'admin-clients' && view !== 'transactions') {
+      const tenants = await api('/api/v1/admin/tenants', {
+        auth: true
+      });
+      if (generation !== enterprise.generation) return;
+      enterprise.tenants = tenants.tenants;
+    }
+  }
+  renderEnterpriseTables();
+  if (view === 'admin-clients') await loadEnterpriseView('transactions');
+}
+
+function tenantOptions(includeAll = false) {
+  return (includeAll ? '<option value="">All clients</option>' : '') + enterprise.tenants.map(t => `<option value="${escapeHTML(t.tenant_id)}">${escapeHTML(t.company_name || t.workspace_slug)}</option>`).join('');
+}
+
+function renderEnterpriseTables() {
+  const query = $('#tenant-search').value.toLowerCase();
+  $('#tenant-rows').innerHTML = enterprise.tenants.filter(t => JSON.stringify(t).toLowerCase().includes(query)).map(t => `<tr><td><b>${escapeHTML(t.company_name || t.workspace_slug)}</b><p class="subtle">${escapeHTML(t.billing_email)} · ${escapeHTML(t.workspace_slug)}</p><span class="mono subtle">${escapeHTML(t.tenant_id)}</span></td><td>${escapeHTML(t.billing_plan)}<br>${escapeHTML(t.default_currency)}</td><td><span class="tag green">${escapeHTML(t.workspace_status)}</span></td><td>${t.is_sandbox ? 'SANDBOX' : 'PRODUCTION'}</td><td><button class="secondary" data-client-margins="${escapeHTML(t.tenant_id)}">Pricing rules</button></td></tr>`).join('') || '<tr><td colspan="5">No client accounts match this view.</td></tr>';
+  const filter = $('#margin-tenant-filter').value;
+  $('#margin-tenant-filter').innerHTML = tenantOptions(true);
+  $('#margin-tenant-filter').value = filter;
+  $('#carrier-rows').innerHTML = enterprise.carriers.map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(c.aggregator)}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions"><button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Parameters</button><button class="secondary" data-carrier-retire="${escapeHTML(c.id)}">Remove</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
+  $('#margin-rows').innerHTML = enterprise.margins.filter(m => !filter || m.tenant_id === filter).map(m => `<tr><td><b>${escapeHTML(m.company_name || enterprise.tenants.find(t => t.tenant_id === m.tenant_id)?.company_name || m.tenant_id)}</b><p class="subtle">${escapeHTML(m.rule_name || m.id)}</p></td><td>${escapeHTML(m.origin_country || 'ANY')} → ${escapeHTML(m.destination_country || 'ANY')}<br><span class="subtle">${escapeHTML(m.carrier_code || 'Any carrier')} ? ${escapeHTML(m.cargo_type || 'Any cargo')} ? ${escapeHTML(m.billing_plan || 'Any tier')}<br>Volume: ${escapeHTML(m.min_volume_m3 ?? '0')}?${escapeHTML(m.max_volume_m3 ?? 'unlimited')} m?</span></td><td class="finance-value">${escapeHTML(m.markup_value)} ${m.markup_type === 'PERCENTAGE' ? '%' : escapeHTML(m.currency)}</td><td>${m.priority}</td><td><span class="tag ${m.is_active ? 'green' : ''}">${m.is_active ? 'ACTIVE' : 'RETIRED'}</span></td><td><div class="actions"><button class="secondary" data-margin-edit="${escapeHTML(m.id)}">Edit</button><button class="secondary" data-margin-retire="${escapeHTML(m.id)}">Delete</button></div></td></tr>`).join('') || '<tr><td colspan="6">No pricing rules for this selection.</td></tr>';
+  $('#transaction-rows').innerHTML = enterprise.transactions.map(t => `<tr><td>${escapeHTML(t.company_name)}</td><td><span class="tag">${escapeHTML(t.entry_type)}</span></td><td class="finance-value">${money(t.balance_delta, t.currency)}</td><td>${money(t.reserved_delta, t.currency)}</td><td>${escapeHTML(new Date(t.created_at).toLocaleString())}</td></tr>`).join('') || '<tr><td colspan="5">No ledger entries available in this view.</td></tr>';
+}
+$('#tenant-search').addEventListener('input', renderEnterpriseTables);
+$('#margin-tenant-filter').addEventListener('change', renderEnterpriseTables);
+
+function openTenantForm() {
+  enterpriseAdminGuard();
+  $('#tenant-admin-form').reset();
+  $('#tenant-admin-form').dataset.requestId = crypto.randomUUID();
+  $('#tenant-admin-dialog').showModal();
+}
+$('#tenant-new').addEventListener('click', openTenantForm);
+$('#tenant-admin-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('button'), async () => {
+    enterpriseAdminGuard();
+    const f = new FormData(event.target);
+    const company_profile = Object.fromEntries(['company_name', 'contact_name', 'billing_email', 'address_line1', 'city', 'postal_code', 'country_code'].map(k => [k, String(f.get(k)).trim()]));
+    if (f.get('tax_id')) company_profile.tax_id = String(f.get('tax_id'));
+    const body = {
+      request_id: event.target.dataset.requestId,
+      company_profile,
+      billing_plan: f.get('billing_plan'),
+      default_currency: f.get('default_currency'),
+      is_sandbox: f.has('is_sandbox'),
+      ...(f.get('owner_auth_user_id') ? {
+        owner_auth_user_id: f.get('owner_auth_user_id')
+      } : {})
+    };
+    if (state.session) await api('/api/v1/admin/tenants', {
+      method: 'POST',
+      body,
+      auth: true
+    });
+    else enterprise.tenants.unshift({
+      tenant_id: crypto.randomUUID(),
+      ...company_profile,
+      ...body,
+      workspace_slug: 'sample-' + Date.now(),
+      workspace_status: 'ACTIVE'
+    });
+    $('#tenant-admin-dialog').close();
+    await loadEnterpriseView('admin-clients');
+    notify(state.session ? 'Customer account and wallet created.' : 'Sample customer created in browser memory only.');
+  });
+});
+
+function openMarginForm(id = null) {
+  enterpriseAdminGuard();
+  const form = $('#margin-admin-form');
+  form.reset();
+  enterprise.editMargin = id;
+  form.dataset.requestId = crypto.randomUUID();
+  form.elements.tenant_id.innerHTML = tenantOptions();
+  form.elements.tenant_id.disabled = !!id;
+  $('#margin-form-title').textContent = id ? 'Update pricing rule' : 'Add pricing rule';
+  if (id) {
+    const row = enterprise.margins.find(m => m.id === id);
+    for (const [key, value] of Object.entries(row))
+      if (form.elements[key]) {
+        if (key === 'is_active') form.elements[key].checked = value;
+        else form.elements[key].value = key === 'markup_type' && value === 'FIXED' ? 'FLAT_RATE' : value ?? '';
+      }
+  }
+  $('#margin-admin-dialog').showModal();
+}
+$('#margin-new').addEventListener('click', () => openMarginForm());
+$('#margin-admin-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('button'), async () => {
+    enterpriseAdminGuard();
+    const form = event.target;
+    const body = {
+      request_id: form.dataset.requestId
+    };
+    for (const element of form.elements) {
+      if (!element.name) continue;
+      if (element.name === 'is_active') body.is_active = element.checked;
+      else if (element.name === 'priority') body.priority = Number(element.value);
+      else if (element.value.trim()) body[element.name] = element.value.trim();
+    }
+    const id = enterprise.editMargin;
+    if (state.session) await api('/api/v1/admin/margins' + (id ? '/' + encodeURIComponent(id) : ''), {
+      method: id ? 'PUT' : 'POST',
+      body,
+      auth: true
+    });
+    else {
+      const row = {
+        ...body,
+        id: id || crypto.randomUUID(),
+        rule_name: 'Sample pricing rule'
+      };
+      if (id) enterprise.margins = enterprise.margins.map(m => m.id === id ? row : m);
+      else enterprise.margins.unshift(row);
+    }
+    $('#margin-admin-dialog').close();
+    await loadEnterpriseView('admin-margins');
+    notify(state.session ? 'Pricing rule saved.' : 'Sample rule saved in browser memory only.');
+  });
+});
+
+function openCarrierForm(id = null) {
+  enterpriseAdminGuard();
+  const form = $('#carrier-admin-form');
+  form.reset();
+  enterprise.editCarrier = id;
+  form.dataset.requestId = crypto.randomUUID();
+  form.elements.tenant_id.innerHTML = tenantOptions();
+  $('#carrier-create-fields').hidden = !!id;
+  $('#carrier-create-fields').querySelectorAll('input,select').forEach(input => input.disabled = !!id);
+  $('#carrier-form-title').textContent = id ? 'Provider parameters' : 'Add carrier connection';
+  if (id) {
+    const row = enterprise.carriers.find(c => c.id === id);
+    for (const k of ['priority', 'timeout_seconds']) form.elements[k].value = row[k];
+    form.elements.is_active.checked = row.is_active;
+  }
+  if (!state.session) {
+    form.elements.api_key.required = false;
+    form.elements.api_key.placeholder = 'Not stored in sample mode';
+  } else {
+    form.elements.api_key.required = !id;
+    form.elements.api_key.placeholder = 'Encrypted on the server';
+  }
+  $('#carrier-admin-dialog').showModal();
+}
+$('#carrier-new').addEventListener('click', () => openCarrierForm());
+$('#carrier-admin-form [name="aggregator"]').addEventListener('change', event => {
+  const form = $('#carrier-admin-form'),
+    regional = event.target.value === 'REGIONAL';
+  form.elements.api_base_url.value = regional ? '' : 'https://api.easypost.com/v2';
+  form.elements.api_base_url.placeholder = regional ? 'Server-approved regional HTTPS endpoint' : '';
+  form.elements.regional_provider_code.required = regional;
+});
+$('#carrier-admin-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('button'), async () => {
+    enterpriseAdminGuard();
+    const f = new FormData(event.target),
+      id = enterprise.editCarrier;
+    const body = {
+      priority: Number(f.get('priority')),
+      timeout_seconds: Number(f.get('timeout_seconds')),
+      is_active: f.has('is_active')
+    };
+    if (!id) body.request_id = event.target.dataset.requestId;
+    if (!id)
+      for (const k of ['tenant_id', 'account_name', 'aggregator', 'api_base_url', 'api_key', 'environment', 'regional_provider_code', 'upstream_account_id'])
+        if (f.get(k)) body[k] = String(f.get(k)).trim();
+    try {
+      if (state.session) await api('/api/v1/admin/carriers' + (id ? '/' + encodeURIComponent(id) : ''), {
+        method: id ? 'PATCH' : 'POST',
+        body,
+        auth: true
+      });
+      else {
+        delete body.api_key;
+        const row = {
+          ...body,
+          id: id || crypto.randomUUID(),
+          company_name: enterprise.tenants.find(t => t.tenant_id === body.tenant_id)?.company_name
+        };
+        if (id) enterprise.carriers = enterprise.carriers.map(c => c.id === id ? {
+          ...c,
+          ...row,
+          company_name: c.company_name
+        } : c);
+        else enterprise.carriers.unshift(row);
+      }
+      $('#carrier-admin-dialog').close();
+      await loadEnterpriseView('admin-carriers');
+      notify(state.session ? 'Connection configuration saved.' : 'Sample connection updated. No provider API call occurred.');
+    } finally {
+      event.target.elements.api_key.value = '';
+    }
+  });
+});
+let pendingRetirement = null;
+document.addEventListener('click', event => {
+  const m = event.target.closest('[data-margin-edit]');
+  if (m) openMarginForm(m.dataset.marginEdit);
+  const c = event.target.closest('[data-carrier-edit]');
+  if (c) openCarrierForm(c.dataset.carrierEdit);
+  const retire = event.target.closest('[data-margin-retire],[data-carrier-retire]');
+  if (retire) {
+    enterpriseAdminGuard();
+    pendingRetirement = retire.dataset.marginRetire ? ['margins', retire.dataset.marginRetire] : ['carriers', retire.dataset.carrierRetire];
+    $('#retire-context').textContent = `Retire ${pendingRetirement[0]} configuration ${pendingRetirement[1]}?`;
+    $('#retire-admin-dialog').showModal();
+  }
+  const client = event.target.closest('[data-client-margins]');
+  if (client) {
+    setView('admin-margins');
+    $('#margin-tenant-filter').value = client.dataset.clientMargins;
+    renderEnterpriseTables();
+  }
+});
+$('#retire-confirm').addEventListener('click', () => busy($('#retire-confirm'), async () => {
+  enterpriseAdminGuard();
+  const [kind, id] = pendingRetirement;
+  if (state.session) await api('/api/v1/admin/' + kind + '/' + encodeURIComponent(id), {
+    method: 'DELETE',
+    auth: true
+  });
+  else enterprise[kind] = enterprise[kind].map(r => r.id === id ? {
+    ...r,
+    is_active: false
+  } : r);
+  $('#retire-admin-dialog').close();
+  pendingRetirement = null;
+  await loadEnterpriseView('admin-' + kind);
+  notify('Configuration retired. Shipment history retained.');
+}));
+
+function renderEnterpriseStores() {
+  $('#store-list').innerHTML = enterprise.stores.map(s => `<article class="card"><span class="tag">${escapeHTML(s.platform)}</span><h2>${escapeHTML(s.display_name)}</h2><p class="subtle">${s.is_active ? 'Active import association' : 'Disabled import association'}</p><span class="mono subtle">${escapeHTML(s.id)}</span><button class="secondary full" data-store-state="${escapeHTML(s.id)}" style="margin-top:12px">${s.is_active ? 'Disable' : 'Enable'} store association</button></article>`).join('') || '<div class="notice">No stores registered in this workspace.</div>';
+}
+$('#store-new').addEventListener('click', () => {
+  $('#store-admin-form').reset();
+  $('#store-admin-dialog').showModal();
+});
+$('#store-refresh').addEventListener('click', () => busy($('#store-refresh'), () => loadEnterpriseView('stores')));
+$('#store-admin-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('button'), async () => {
+    if (!allowedEnterpriseViews().includes('stores')) throw Error('Store configuration permission required.');
+    const body = Object.fromEntries(new FormData(event.target));
+    if (state.session) await api('/api/v1/workspace/stores', {
+      method: 'POST',
+      body,
+      auth: true
+    });
+    else enterprise.stores.push({
+      id: crypto.randomUUID(),
+      ...body,
+      is_active: true
+    });
+    $('#store-admin-dialog').close();
+    if (state.session) await loadEnterpriseView('stores');
+    else renderEnterpriseStores();
+    notify('Workspace store registered. Remote app installation is separate.');
+  });
+});
+$('#store-list').addEventListener('click', event => {
+  const b = event.target.closest('[data-store-state]');
+  if (!b) return;
+  busy(b, async () => {
+    const store = enterprise.stores.find(s => s.id === b.dataset.storeState);
+    if (state.session) await api('/api/v1/workspace/stores/' + encodeURIComponent(store.id), {
+      method: 'PATCH',
+      body: {
+        is_active: !store.is_active
+      },
+      auth: true
+    });
+    store.is_active = !store.is_active;
+    renderEnterpriseStores();
+  });
+});
+let activeExceptionTicket = null;
+$('#manifest-body').addEventListener('click', event => {
+  const b = event.target.closest('[data-exception-sheet]');
+  if (!b) return;
+  busy(b, async () => {
+    const row = manifestRecords().find(r => r.id === b.dataset.exceptionSheet);
+    let tickets = portal.tickets;
+    if (state.session) {
+      const result = await api(portal.role === 'SUPER_ADMIN' ? '/api/v1/admin/support/tickets' : '/api/v1/support/tickets', {
+        auth: true
+      });
+      tickets = result.tickets;
+    }
+    activeExceptionTicket = tickets.find(t => t.shipment_id === row.id) || {
+      id: row.id,
+      shipment_id: row.id,
+      tenant_id: row.tenant_id,
+      tracking_number: row.tracking_number,
+      demo: !!row.simulated,
+      proof_of_delivery_url: row.proof_of_delivery_url,
+      ai_summary: row.simulated ? 'Sample remedy: verify the receiver address and itemized customs declaration with the dispatcher.' : 'No generated support summary is stored yet. Review the latest carrier exception and supporting shipment records.'
+    };
+    $('#exception-title').textContent = (row.reference || row.id) + ' · EXCEPTION';
+    $('#exception-summary').textContent = activeExceptionTicket.ai_summary;
+    $('#exception-dispute').hidden = portal.profile?.workspace_role === 'DISPATCHER';
+    $('#exception-sheet').showModal();
+  });
+});
+$('#exception-pod').addEventListener('click', () => {
+  const url = safeHTTPS(activeExceptionTicket?.proof_of_delivery_url);
+  $('#pod-content').innerHTML = url ? `<a class="primary" href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">Open carrier delivery proof</a>` : '<div class="notice">No carrier POD signature or photo has been supplied.</div>';
+  $('#pod-dialog').showModal();
+});
+$('#exception-dispute').addEventListener('click', () => {
+  $('#exception-sheet').close();
+  openDispute(activeExceptionTicket);
+});
+$('#hs-results').addEventListener('click', event => {
+  const b = event.target.closest('[data-use-hs]');
+  if (!b) return;
+  $('#qc-hs').value = b.dataset.useHs;
+  $('#decl-hs').value = b.dataset.useHs;
+  $('#qc-reviewed').checked = false;
+  $('#decl-reviewed').checked = false;
+  invalidateCustoms();
+  notify('Commodity suggestion injected into the declaration draft. Review it before generating a label payload.');
+});
+const enterpriseClearSessionBase = clearSession;
+clearSession = function() {
+  enterprise.generation++;
+  enterprise.tenants = [];
+  enterprise.carriers = [];
+  enterprise.margins = [];
+  enterprise.transactions = [];
+  enterprise.stores = [];
+  enterpriseClearSessionBase();
+  enterpriseViews.forEach(id => $('#' + id).hidden = true);
+  ['tenant-admin-dialog', 'carrier-admin-dialog', 'margin-admin-dialog', 'retire-admin-dialog', 'store-admin-dialog', 'exception-sheet'].forEach(id => $('#' + id).close());
+  $('#carrier-admin-form').reset();
+  pendingRetirement = null;
+  activeExceptionTicket = null;
+  enterprise.currentView = 'dashboard';
+  enterpriseNavKey = '';
+  refreshEnterpriseNavigation();
+};
+refreshEnterpriseNavigation();
+</script>
+</body>
+</html>

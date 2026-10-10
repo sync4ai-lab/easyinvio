@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+httpx
+pydantic>=2,<3
+pydantic-settings>=2,<3
+python-dotenv>=1,<2
+PyJWT[crypto]
+cryptography
+asyncpg
+stripe>=13,<15
+twilio>=9,<10
+pycountry>=24.6,<25

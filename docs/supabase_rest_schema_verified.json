@@ -1,0 +1,1374 @@
+{
+  "api_verified": true,
+  "table_statuses": {
+    "tenants": 200,
+    "users": 200,
+    "carrier_accounts": 200,
+    "margin_rules": 200,
+    "shipments": 200,
+    "wallets": 200,
+    "wallet_topups": 200,
+    "wallet_reservations": 200,
+    "wallet_ledger": 200,
+    "whatsapp_bindings": 200,
+    "whatsapp_routes": 200,
+    "whatsapp_quote_choices": 200,
+    "whatsapp_receipts": 200,
+    "admin_configuration_events": 200,
+    "ecommerce_stores": 200,
+    "ecommerce_tracking_outbox": 200,
+    "hubspot_sync_jobs": 200,
+    "hubspot_tenant_links": 200
+  },
+  "table_definitions": {
+    "tenants": {
+      "required": [
+        "tenant_id",
+        "workspace_slug",
+        "workspace_name",
+        "legal_company_name",
+        "billing_email",
+        "billing_address",
+        "country_code",
+        "default_currency",
+        "timezone",
+        "billing_plan",
+        "billing_status",
+        "workspace_status",
+        "credit_limit",
+        "created_at",
+        "updated_at",
+        "company_name",
+        "company_profile",
+        "is_sandbox"
+      ],
+      "properties": {
+        "tenant_id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "workspace_slug": {
+          "format": "text",
+          "type": "string"
+        },
+        "workspace_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "legal_company_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "company_registration_number": {
+          "format": "text",
+          "type": "string"
+        },
+        "vat_registration_number": {
+          "format": "text",
+          "type": "string"
+        },
+        "eori_number": {
+          "format": "text",
+          "type": "string"
+        },
+        "billing_email": {
+          "format": "text",
+          "type": "string"
+        },
+        "billing_address": {
+          "format": "jsonb"
+        },
+        "country_code": {
+          "default": "GB",
+          "format": "text",
+          "type": "string"
+        },
+        "default_currency": {
+          "default": "GBP",
+          "format": "text",
+          "type": "string"
+        },
+        "timezone": {
+          "default": "Europe/London",
+          "format": "text",
+          "type": "string"
+        },
+        "billing_plan": {
+          "default": "PREPAID_WALLET",
+          "format": "text",
+          "type": "string"
+        },
+        "billing_status": {
+          "default": "PENDING",
+          "format": "text",
+          "type": "string"
+        },
+        "workspace_status": {
+          "default": "ACTIVE",
+          "format": "text",
+          "type": "string"
+        },
+        "stripe_customer_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "gocardless_customer_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "gocardless_mandate_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "credit_limit": {
+          "default": 0,
+          "format": "numeric",
+          "type": "number"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "company_name": {
+          "default": "",
+          "format": "text",
+          "type": "string"
+        },
+        "company_profile": {
+          "description": "Validated B2B company and billing profile recorded by platform administration.",
+          "format": "jsonb"
+        },
+        "is_sandbox": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "users": {
+      "required": [
+        "id",
+        "tenant_id",
+        "auth_user_id",
+        "role",
+        "full_name",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "auth_user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "role": {
+          "format": "text",
+          "type": "string"
+        },
+        "full_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "phone_e164": {
+          "format": "text",
+          "type": "string"
+        },
+        "is_active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "carrier_accounts": {
+      "required": [
+        "id",
+        "tenant_id",
+        "account_name",
+        "aggregator",
+        "api_base_url",
+        "environment",
+        "credentials_ciphertext",
+        "credential_key_id",
+        "credential_version",
+        "priority",
+        "timeout_seconds",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "account_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "aggregator": {
+          "format": "text",
+          "type": "string"
+        },
+        "regional_provider_code": {
+          "format": "text",
+          "type": "string"
+        },
+        "api_base_url": {
+          "format": "text",
+          "type": "string"
+        },
+        "environment": {
+          "default": "TEST",
+          "format": "text",
+          "type": "string"
+        },
+        "upstream_account_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "carrier_code": {
+          "format": "text",
+          "type": "string"
+        },
+        "credentials_ciphertext": {
+          "format": "bytea",
+          "type": "string"
+        },
+        "credential_key_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "credential_version": {
+          "default": 1,
+          "format": "int32",
+          "type": "integer"
+        },
+        "priority": {
+          "default": 100,
+          "format": "int32",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 30,
+          "format": "int32",
+          "type": "integer"
+        },
+        "is_active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "credentials_rotated_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "margin_rules": {
+      "required": [
+        "id",
+        "tenant_id",
+        "rule_name",
+        "currency",
+        "markup_type",
+        "markup_value",
+        "minimum_markup",
+        "priority",
+        "is_active",
+        "valid_from",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "rule_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "carrier_account_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "carrier_code": {
+          "format": "text",
+          "type": "string"
+        },
+        "service_code": {
+          "format": "text",
+          "type": "string"
+        },
+        "origin_country": {
+          "format": "text",
+          "type": "string"
+        },
+        "destination_country": {
+          "format": "text",
+          "type": "string"
+        },
+        "currency": {
+          "default": "GBP",
+          "format": "text",
+          "type": "string"
+        },
+        "min_weight_kg": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "max_weight_kg": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "min_wholesale_cost": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "max_wholesale_cost": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "markup_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "markup_value": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "minimum_markup": {
+          "default": 0,
+          "format": "numeric",
+          "type": "number"
+        },
+        "maximum_markup": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "priority": {
+          "default": 100,
+          "format": "int32",
+          "type": "integer"
+        },
+        "is_active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "valid_from": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "valid_until": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "shipments": {
+      "required": [
+        "id",
+        "tenant_id",
+        "created_by_user_id",
+        "carrier_account_id",
+        "idempotency_key",
+        "status",
+        "origin_country",
+        "destination_country",
+        "sender_address",
+        "recipient_address",
+        "parcel_weight_kg",
+        "parcel_length_cm",
+        "parcel_width_cm",
+        "parcel_height_cm",
+        "parcel_count",
+        "currency",
+        "wholesale_cost",
+        "profit_markup",
+        "tax_amount",
+        "pricing_snapshot",
+        "quoted_at",
+        "quote_expires_at",
+        "customs_required",
+        "customs_items",
+        "ai_hs_status",
+        "ai_hs_suggestions",
+        "created_at",
+        "updated_at",
+        "logistics_metadata"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_by_user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "carrier_account_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "applied_margin_rule_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "customer_reference": {
+          "format": "text",
+          "type": "string"
+        },
+        "internal_notes": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "DRAFT",
+          "format": "text",
+          "type": "string"
+        },
+        "upstream_shipment_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "upstream_rate_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "carrier_code": {
+          "format": "text",
+          "type": "string"
+        },
+        "service_code": {
+          "format": "text",
+          "type": "string"
+        },
+        "tracking_number": {
+          "format": "text",
+          "type": "string"
+        },
+        "tracking_url": {
+          "format": "text",
+          "type": "string"
+        },
+        "label_storage_path": {
+          "format": "text",
+          "type": "string"
+        },
+        "origin_country": {
+          "format": "text",
+          "type": "string"
+        },
+        "destination_country": {
+          "format": "text",
+          "type": "string"
+        },
+        "sender_address": {
+          "format": "jsonb"
+        },
+        "recipient_address": {
+          "format": "jsonb"
+        },
+        "parcel_weight_kg": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "parcel_length_cm": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "parcel_width_cm": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "parcel_height_cm": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "parcel_count": {
+          "default": 1,
+          "format": "int32",
+          "type": "integer"
+        },
+        "currency": {
+          "default": "GBP",
+          "format": "text",
+          "type": "string"
+        },
+        "wholesale_cost": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "profit_markup": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "tax_amount": {
+          "default": 0,
+          "format": "numeric",
+          "type": "number"
+        },
+        "client_price_ex_tax": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "final_client_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "pricing_snapshot": {
+          "format": "jsonb"
+        },
+        "quoted_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "quote_expires_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "customs_required": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "customs_items": {
+          "format": "jsonb"
+        },
+        "customs_content_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "customs_incoterm": {
+          "format": "text",
+          "type": "string"
+        },
+        "ai_hs_status": {
+          "default": "NOT_REQUESTED",
+          "format": "text",
+          "type": "string"
+        },
+        "ai_hs_model": {
+          "format": "text",
+          "type": "string"
+        },
+        "ai_hs_model_version": {
+          "format": "text",
+          "type": "string"
+        },
+        "ai_hs_request_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "ai_hs_suggestions": {
+          "format": "jsonb"
+        },
+        "ai_hs_processed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "customs_reviewed_by_user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "customs_reviewed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "booked_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "dispatched_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "delivered_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "cancelled_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "last_tracking_event_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "logistics_metadata": {
+          "description": "Server-recorded invoice_baseline, tracking history and logistics metadata. Never accept audit baselines from invoice uploaders.",
+          "format": "jsonb"
+        },
+        "ecommerce_store_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "store_order_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "store_import_hash": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "wallets": {
+      "required": [
+        "tenant_id",
+        "currency",
+        "balance",
+        "reserved_balance",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "tenant_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "currency": {
+          "format": "text",
+          "type": "string"
+        },
+        "balance": {
+          "default": 0,
+          "format": "numeric",
+          "type": "number"
+        },
+        "reserved_balance": {
+          "default": 0,
+          "format": "numeric",
+          "type": "number"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "wallet_topups": {
+      "required": [
+        "id",
+        "tenant_id",
+        "requested_by_auth_user_id",
+        "stripe_customer_id",
+        "amount",
+        "currency",
+        "status",
+        "created_at",
+        "updated_at",
+        "is_sandbox"
+      ],
+      "properties": {
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "requested_by_auth_user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "stripe_customer_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "stripe_session_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "amount": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "currency": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "PENDING",
+          "format": "text",
+          "type": "string"
+        },
+        "checkout_url": {
+          "format": "text",
+          "type": "string"
+        },
+        "credited_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "is_sandbox": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "sandbox_test_token": {
+          "format": "text",
+          "type": "string"
+        },
+        "stripe_payment_intent_id": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "wallet_reservations": {
+      "required": [
+        "id",
+        "tenant_id",
+        "shipment_id",
+        "billing_plan",
+        "amount",
+        "currency",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "shipment_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "billing_plan": {
+          "format": "text",
+          "type": "string"
+        },
+        "amount": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "currency": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "RESERVED",
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "wallet_ledger": {
+      "required": [
+        "id",
+        "tenant_id",
+        "entry_type",
+        "balance_delta",
+        "reserved_delta",
+        "balance_after",
+        "reserved_after",
+        "currency",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `wallets.tenant_id`.<fk table='wallets' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "entry_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "balance_delta": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "reserved_delta": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "balance_after": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "reserved_after": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "currency": {
+          "format": "text",
+          "type": "string"
+        },
+        "reservation_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "topup_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "stripe_session_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "stripe_event_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "stripe_payment_intent_id": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "whatsapp_bindings": {
+      "required": [
+        "id",
+        "tenant_id",
+        "user_id",
+        "sender_e164",
+        "receiver_e164",
+        "verified_at",
+        "is_active"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "sender_e164": {
+          "format": "text",
+          "type": "string"
+        },
+        "receiver_e164": {
+          "format": "text",
+          "type": "string"
+        },
+        "verified_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "is_active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "whatsapp_routes": {
+      "required": [
+        "id",
+        "tenant_id",
+        "route_code",
+        "origin_country",
+        "destination_country",
+        "origin_address",
+        "destination_address",
+        "dimensions",
+        "currency",
+        "is_active"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "route_code": {
+          "format": "text",
+          "type": "string"
+        },
+        "origin_country": {
+          "format": "text",
+          "type": "string"
+        },
+        "destination_country": {
+          "format": "text",
+          "type": "string"
+        },
+        "origin_address": {
+          "format": "jsonb"
+        },
+        "destination_address": {
+          "format": "jsonb"
+        },
+        "dimensions": {
+          "format": "jsonb"
+        },
+        "currency": {
+          "format": "text",
+          "type": "string"
+        },
+        "is_active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "whatsapp_quote_choices": {
+      "required": [
+        "id",
+        "tenant_id",
+        "auth_user_id",
+        "rating_request",
+        "selected_rate",
+        "expires_at",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "auth_user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "rating_request": {
+          "format": "jsonb"
+        },
+        "selected_rate": {
+          "format": "jsonb"
+        },
+        "expires_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "whatsapp_receipts": {
+      "required": [
+        "tenant_id",
+        "message_sid",
+        "response_xml",
+        "created_at"
+      ],
+      "properties": {
+        "tenant_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "message_sid": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "text",
+          "type": "string"
+        },
+        "response_xml": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "admin_configuration_events": {
+      "required": [
+        "id",
+        "actor_auth_user_id",
+        "operation",
+        "request_id",
+        "tenant_id",
+        "payload_sha256",
+        "response",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "actor_auth_user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "operation": {
+          "format": "text",
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "payload_sha256": {
+          "format": "text",
+          "type": "string"
+        },
+        "response": {
+          "format": "jsonb"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ecommerce_stores": {
+      "required": [
+        "id",
+        "tenant_id",
+        "platform",
+        "display_name",
+        "is_active",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "description": "Note:\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "platform": {
+          "format": "text",
+          "type": "string"
+        },
+        "display_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "is_active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ecommerce_tracking_outbox": {
+      "required": [
+        "id",
+        "tenant_id",
+        "shipment_id",
+        "store_id",
+        "store_order_id",
+        "payload",
+        "status",
+        "attempts",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "tenant_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "shipment_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "store_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "store_order_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "payload": {
+          "format": "jsonb"
+        },
+        "status": {
+          "default": "PENDING",
+          "format": "text",
+          "type": "string"
+        },
+        "attempts": {
+          "default": 0,
+          "format": "int32",
+          "type": "integer"
+        },
+        "response": {
+          "format": "jsonb"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "delivered_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "hubspot_sync_jobs": {
+      "required": [
+        "tenant_id",
+        "revision",
+        "attempts",
+        "blocked",
+        "next_attempt_at",
+        "created_at"
+      ],
+      "properties": {
+        "tenant_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "revision": {
+          "default": 1,
+          "format": "int64",
+          "type": "integer"
+        },
+        "attempts": {
+          "default": 0,
+          "format": "int32",
+          "type": "integer"
+        },
+        "blocked": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "next_attempt_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "last_error": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "hubspot_tenant_links": {
+      "required": [
+        "tenant_id",
+        "company_id",
+        "last_synced_at"
+      ],
+      "properties": {
+        "tenant_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `tenants.tenant_id`.<fk table='tenants' column='tenant_id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "company_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "upsell_deal_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "last_synced_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

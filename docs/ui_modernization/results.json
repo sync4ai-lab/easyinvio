@@ -1,0 +1,188 @@
+[
+  {
+    "test": "Fluid layouts, six views and 80% zoom",
+    "status": "PASS",
+    "evidence": [
+      [
+        375,
+        "dashboard",
+        0
+      ],
+      [
+        375,
+        "dispatch",
+        0
+      ],
+      [
+        375,
+        "manifest",
+        0
+      ],
+      [
+        375,
+        "wallet",
+        0
+      ],
+      [
+        375,
+        "boxes",
+        0
+      ],
+      [
+        375,
+        "customs",
+        0
+      ],
+      [
+        768,
+        "dashboard",
+        0
+      ],
+      [
+        768,
+        "dispatch",
+        0
+      ],
+      [
+        768,
+        "manifest",
+        0
+      ],
+      [
+        768,
+        "wallet",
+        0
+      ],
+      [
+        768,
+        "boxes",
+        0
+      ],
+      [
+        768,
+        "customs",
+        0
+      ],
+      [
+        1024,
+        "dashboard",
+        0
+      ],
+      [
+        1024,
+        "dispatch",
+        0
+      ],
+      [
+        1024,
+        "manifest",
+        0
+      ],
+      [
+        1024,
+        "wallet",
+        0
+      ],
+      [
+        1024,
+        "boxes",
+        0
+      ],
+      [
+        1024,
+        "customs",
+        0
+      ],
+      [
+        1280,
+        "dashboard",
+        0
+      ],
+      [
+        1280,
+        "dispatch",
+        0
+      ],
+      [
+        1280,
+        "manifest",
+        0
+      ],
+      [
+        1280,
+        "wallet",
+        0
+      ],
+      [
+        1280,
+        "boxes",
+        0
+      ],
+      [
+        1280,
+        "customs",
+        0
+      ],
+      [
+        1440,
+        "dashboard",
+        0
+      ],
+      [
+        1440,
+        "dispatch",
+        0
+      ],
+      [
+        1440,
+        "manifest",
+        0
+      ],
+      [
+        1440,
+        "wallet",
+        0
+      ],
+      [
+        1440,
+        "boxes",
+        0
+      ],
+      [
+        1440,
+        "customs",
+        0
+      ]
+    ]
+  },
+  {
+    "test": "Cargo calculations and sample rates",
+    "status": "PASS",
+    "evidence": "Letter dimensions omitted; pallet floor 700 kg; road freight floor 1750 kg; sample freight rates rendered."
+  },
+  {
+    "test": "International customs preview and exports",
+    "status": "PASS",
+    "evidence": "Reviewed JSON and printable HTML downloaded; commodity and signature fields verified."
+  },
+  {
+    "test": "Manifest status pipeline and actions",
+    "status": "PASS",
+    "evidence": "Three labelled sample rows, milestone pipeline, exception filter and timeline dialog."
+  },
+  {
+    "test": "Support surcharge dispute action",
+    "status": "PASS",
+    "evidence": "Dispute review opens without sending messages or making payments."
+  },
+  {
+    "test": "Owner/client portal and mobile drawers",
+    "status": "PASS",
+    "evidence": "Owner macro metrics, client isolation, mobile owner layout and customs drawer."
+  },
+  {
+    "test": "JavaScript runtime",
+    "status": "PASS",
+    "errors": []
+  }
+]

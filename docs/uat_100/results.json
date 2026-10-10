@@ -1,0 +1,918 @@
+{
+  "generated_at": "2026-10-10T10:16:24.525976+00:00",
+  "counts": {
+    "PASS": 86,
+    "FAIL": 5,
+    "BLOCKED": 1,
+    "PARTIAL": 7,
+    "EXCLUDED": 1
+  },
+  "cases": [
+    {
+      "id": "TC-001",
+      "case": "Login validation with valid OIDC token context",
+      "expected": "Grants secure access, sets dynamic tenant session state.",
+      "status": "PASS",
+      "observed": "Actual Supabase ES256 login succeeded; backend accepted server-owned app_metadata tenant identity, confirmed active membership and loaded private browser dashboard.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-002",
+      "case": "Login rejection with malformed or expired token payload",
+      "expected": "HTTP 401 Unauthorized response generated.",
+      "status": "PASS",
+      "observed": "Controlled authentication tests reject missing, expired and tampered tokens.",
+      "evidence": "core_regression.log: test_missing_expired_and_tampered_tokens"
+    },
+    {
+      "id": "TC-003",
+      "case": "Row-Level Security (RLS) shipment search bypass attempt",
+      "expected": "Client A querying Client B's shipment ID returns 0 rows or 404.",
+      "status": "PASS",
+      "observed": "Authenticated RLS returned exactly 8 own shipments; zero other-tenant rows.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-004",
+      "case": "Cross-tenant URL tampering via parameter injection",
+      "expected": "Changing tenant parameters on the dashboard displays an error and resets to the session identity.",
+      "status": "PASS",
+      "observed": "Actual authenticated tenant URL tampering preserved session identity, removed the conflicting query parameter and displayed a rejection notification.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-005",
+      "case": "Accountant role boundary restriction check",
+      "expected": "Allowed to view invoices and financial reports; blocked from clicking \"Book Label\".",
+      "status": "PASS",
+      "observed": "Actual accountant login: financial reports 200; sample ZPL preview 403; quote button disabled and dispatch viewport blocked.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-006",
+      "case": "Dispatcher role boundary restriction check",
+      "expected": "Allowed to quote and print labels; completely blocked from viewing platform margin reports or admin settings.",
+      "status": "PASS",
+      "observed": "Actual dispatcher login: quote viewport allowed and sample ZPL preview 200; financial reports/platform admin 403. Actual carrier purchase is a separate unverified integration.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-007",
+      "case": "Admin role boundary verification",
+      "expected": "Allowed to add new warehouse users within their own tenant space.",
+      "status": "PASS",
+      "observed": "Administrator enrolled a pre-provisioned same-tenant auth principal through real ASGI route and database; dispatcher denied. All changes rolled back. UI enrolls existing pre-provisioned auth UUIDs; does not create login credentials.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-008",
+      "case": "Super-Admin role viewport toggle restriction",
+      "expected": "Only users with system-wide metadata can toggle the dashboard layout switcher.",
+      "status": "PASS",
+      "observed": "Actual signed-in client roles could not toggle Super-Admin; server returned 403 for macro dashboard. Server subject allowlist remains the sole owner authority.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-009",
+      "case": "JWT token claim expiration handling",
+      "expected": "System signs the user out automatically when the session expires.",
+      "status": "PASS",
+      "observed": "Expired session timer executed actual clearSession controller; session became null.",
+      "evidence": "remediation_frontend_evidence.json"
+    },
+    {
+      "id": "TC-010",
+      "case": "Multi-device active login validation",
+      "expected": "Tenant metrics load correctly when accessed concurrently on two separate devices.",
+      "status": "PASS",
+      "observed": "Actual real-auth tenant metrics/manifest matched across concurrent HTTP requests and isolated desktop/mobile browser contexts.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-011",
+      "case": "Direct SQL injection payload testing via text inputs",
+      "expected": "Input data is securely sanitized; queries return 0 results.",
+      "status": "PASS",
+      "observed": "Actual signed-in manifest search returned zero matches for three SQL/HTML injection payloads; injected API tenant parameter returned only authorized tenant tickets.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-012",
+      "case": "Disabled user login validation",
+      "expected": "Active status flag check defaults to false; access is blocked.",
+      "status": "PASS",
+      "observed": "Actual non-banned Supabase auth account with inactive membership signed in at Supabase but was rejected by Veloce with 403.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-013",
+      "case": "Tenant workspace data leak isolation test",
+      "expected": "System-wide background tasks verify that tenant data isolation remains intact during bulk processes.",
+      "status": "PASS",
+      "observed": "Concurrent real PostgreSQL QUOTE_ONLY writes for GBP and EUR tenants stored their own 11.50/12.00 prices. Other-tenant ID lookups returned zero. Controlled provider responses, no external carrier calls, all writes rolled back.",
+      "evidence": "bulk_isolation_evidence.json"
+    },
+    {
+      "id": "TC-014",
+      "case": "Unauthorized API route access verification",
+      "expected": "Direct backend queries to endpoints like /api/v1/admin/* fail without an active admin token.",
+      "status": "PASS",
+      "observed": "Actual running backend owner dashboard rejects unauthenticated requests with 401.",
+      "evidence": "database_evidence.json unauthenticated_http"
+    },
+    {
+      "id": "TC-015",
+      "case": "Empty header validation check",
+      "expected": "Dropping authorization headers triggers a missing credential response.",
+      "status": "PASS",
+      "observed": "Actual analytics and tickets routes reject missing Authorization headers with 401.",
+      "evidence": "database_evidence.json unauthenticated_http"
+    },
+    {
+      "id": "TC-016",
+      "case": "Standard package weight validation",
+      "expected": "System uses dead weight if it is greater than the calculated volumetric weight.",
+      "status": "PASS",
+      "observed": "{'actual_weight_kg': '2', 'volumetric_weight_kg': '0.200', 'billable_weight_kg': '2.000', 'divisor_cm3_per_kg': '5000', 'basis': 'actual'}",
+      "evidence": "direct_observations.json; core_regression.log"
+    },
+    {
+      "id": "TC-017",
+      "case": "Volumetric weight calculation override check",
+      "expected": "A light but large box (e.g., 50x50x50cm, 2kg) triggers volumetric billing: 50×50×50 / 5000 = 25kg billed.",
+      "status": "PASS",
+      "observed": "{'actual_weight_kg': '2', 'volumetric_weight_kg': '25.000', 'billable_weight_kg': '25.000', 'divisor_cm3_per_kg': '5000', 'basis': 'volumetric'}",
+      "evidence": "direct_observations.json; core_regression.log"
+    },
+    {
+      "id": "TC-018",
+      "case": "Edge-case volumetric weight match",
+      "expected": "If actual weight equals volumetric weight, the system charges the base rate correctly.",
+      "status": "PASS",
+      "observed": "{'actual_weight_kg': '0.200', 'volumetric_weight_kg': '0.200', 'billable_weight_kg': '0.200', 'divisor_cm3_per_kg': '5000', 'basis': 'actual'}",
+      "evidence": "direct_observations.json; core_regression.log"
+    },
+    {
+      "id": "TC-019",
+      "case": "Fractional weight precision handling",
+      "expected": "The database correctly handles highly precise weights like 0.155kg without rounding issues.",
+      "status": "PASS",
+      "observed": "Real numeric column retained 0.155 exactly.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-020",
+      "case": "Negative dimension parameter validation",
+      "expected": "Entering negative dimensions (e.g., -10cm) triggers a validation error.",
+      "status": "PASS",
+      "observed": "Rejected invalid numeric input",
+      "evidence": "direct_observations.json; core_regression.log"
+    },
+    {
+      "id": "TC-021",
+      "case": "Zero dimension weight validation",
+      "expected": "Entering 0 values for dimensions triggers an input block error.",
+      "status": "PASS",
+      "observed": "Rejected invalid numeric input",
+      "evidence": "direct_observations.json; core_regression.log"
+    },
+    {
+      "id": "TC-022",
+      "case": "Excessive dimension value restriction",
+      "expected": "Packages that exceed carrier maximum limits (e.g., 500cm length) display a warning message.",
+      "status": "PASS",
+      "observed": "500cm form measurement produced an explicit oversize/freight warning; no universal carrier limit is assumed.",
+      "evidence": "remediation_frontend_evidence.json"
+    },
+    {
+      "id": "TC-023",
+      "case": "Box layout metric unit validation",
+      "expected": "Confirm that the front-end interface correctly converts metric units before submitting backend quote queries.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"submitted\": {\"length_cm\": \"35\", \"width_cm\": \"30\", \"height_cm\": \"20\", \"actual_weight_kg\": \"1.55\"}, \"backend_status\": 200, \"units\": \"centimetres and kilograms; Decimal strings\"}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-024",
+      "case": "Custom box template selection tool",
+      "expected": "Selecting a saved template automatically populates the length, width, and height inputs.",
+      "status": "PASS",
+      "observed": "Actual controller applyBox(0) populated length 24 and switched to Dispatch.",
+      "evidence": "frontend_evidence.json; tests/frontend_contract.cjs"
+    },
+    {
+      "id": "TC-025",
+      "case": "Volumetric calculation divider accuracy",
+      "expected": "Confirm that the backend logic divides by exactly 5000 for standard express routes.",
+      "status": "PASS",
+      "observed": "{'actual_weight_kg': '2', 'volumetric_weight_kg': '25.000', 'billable_weight_kg': '25.000', 'divisor_cm3_per_kg': '5000', 'basis': 'volumetric'}",
+      "evidence": "direct_observations.json; core_regression.log"
+    },
+    {
+      "id": "TC-026",
+      "case": "Maximum weight limit check",
+      "expected": "Shipments over 1000kg display an overland freight warning.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"Weight exceeds 1000 kg parcel limit. Use an overland freight quote.\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-027",
+      "case": "Form text validation check",
+      "expected": "Entering alphabetic text inside numeric weight fields triggers a formatting error.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"Real Chromium rejected alphabetic fill into numeric weight input\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-028",
+      "case": "Volumetric conversion precision check",
+      "expected": "Calculated weights match exact fixed-point parameters without any trailing float artifacts.",
+      "status": "PASS",
+      "observed": "{'actual_weight_kg': '0.155', 'volumetric_weight_kg': '1.999', 'billable_weight_kg': '1.999', 'divisor_cm3_per_kg': '5000', 'basis': 'volumetric'}",
+      "evidence": "direct_observations.json; core_regression.log"
+    },
+    {
+      "id": "TC-029",
+      "case": "Multi-box package metric check",
+      "expected": "Bulk shipments evaluate and add up the weights of individual boxes correctly.",
+      "status": "FAIL",
+      "observed": "Single-parcel schema limits dimensions to one and parcel_count to 1; a multibox shipment sum is unsupported.",
+      "evidence": "main.py RatingRequest; database shipment constraints",
+      "remediation_disposition": "Deferred: current providers and database support one parcel per shipment. Multiple orders in bulk remain supported. Carrier multi-piece purchases require a new provider/database contract; summing boxes into one pretend parcel would be incorrect."
+    },
+    {
+      "id": "TC-030",
+      "case": "Dimension form autofill consistency",
+      "expected": "Interface fields update immediately when swapping predefined box types.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"first_length\": \"24\", \"second_length\": \"40\"}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-031",
+      "case": "Asynchronous multi-carrier query test",
+      "expected": "Backend queries both providers at the same time and returns the results within 0.8 seconds.",
+      "status": "BLOCKED",
+      "observed": "Both seeded carrier integrations are inactive with intentionally unusable credentials; real two-provider sub-0.8-second result unavailable.",
+      "evidence": "Not executed end-to-end; prerequisite missing"
+    },
+    {
+      "id": "TC-032",
+      "case": "Single aggregator down fault-tolerance test",
+      "expected": "If one provider is down, the app still loads the remaining carrier options smoothly.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"Fault-injected backend response rendered surviving DPD rate plus upstream timeout notice\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-033",
+      "case": "Global fallback margin rule validation",
+      "expected": "Applies the system-wide baseline markup if no specific tenant rules exist.",
+      "status": "PASS",
+      "observed": "Actual Supabase no-rule supplemental tenant returned 12.00 for 10.00 (20% fallback); applied supplemental fixtures verified read-only.",
+      "evidence": "supplement_evidence.json"
+    },
+    {
+      "id": "TC-034",
+      "case": "Specific lane margin rule priority check",
+      "expected": "If a country-specific rule exists (e.g., UK to USA), it takes priority over global rules.",
+      "status": "PASS",
+      "observed": "US/account rule wins over default: 20%, final 12.00",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-035",
+      "case": "Tenant-specific margin rule override check",
+      "expected": "Confirms that custom client rules successfully override system-wide defaults.",
+      "status": "PASS",
+      "observed": "Controlled live-pipeline test gives different client prices for identical wholesale costs; actual tenant 1 rule returns 11.50.",
+      "evidence": "core_regression.log test_two_tenants_receive_different_prices_for_same_wholesale; database_evidence.json"
+    },
+    {
+      "id": "TC-036",
+      "case": "Percentage-based markup calculation validation",
+      "expected": "A 15% markup rule on a £10.00 base cost calculates a final client price of exactly £11.50.",
+      "status": "PASS",
+      "observed": "Real tenant 1 rule: 10.00 + 15% = 11.50",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-037",
+      "case": "Flat-rate markup calculation validation",
+      "expected": "A flat £5.50 markup rule on a £10.00 base cost calculates a final client price of exactly £15.50.",
+      "status": "PASS",
+      "observed": "Admin service saved FLAT_RATE 5.50 as schema-compatible FIXED Decimal; full database/audit writes rolled back. Stored FIXED 5.50 rule returns 15.50 on base 10.00.",
+      "evidence": "database_evidence.json; supplement_evidence.json"
+    },
+    {
+      "id": "TC-038",
+      "case": "Zero margin base parameter validation",
+      "expected": "Setting a 0% markup rule passes the raw wholesale cost directly to the client.",
+      "status": "PASS",
+      "observed": "Actual zero percentage supplemental rule returned 10.00; applied fixtures verified read-only.",
+      "evidence": "supplement_evidence.json"
+    },
+    {
+      "id": "TC-039",
+      "case": "Dynamic sorting verification",
+      "expected": "Rates display in ascending order, showing the cheapest option at the top of the interface.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"Unsorted rates rendered cheapest first using integer-pence comparison\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-040",
+      "case": "Maximum markup rule limits check",
+      "expected": "Attempting to save a 500% markup rule flags an administrative warning.",
+      "status": "PASS",
+      "observed": "500% model input now rejected with pricing-policy-review validation message; 499% remains accepted.",
+      "evidence": "remediation_core_regression.log"
+    },
+    {
+      "id": "TC-041",
+      "case": "Destination ISO code validation check",
+      "expected": "Entering invalid country codes (e.g., \"XYZ\") returns an invalid route code error.",
+      "status": "PASS",
+      "observed": "XYZ rejected as invalid ISO country.",
+      "evidence": "direct_observations.json"
+    },
+    {
+      "id": "TC-042",
+      "case": "Weight boundary rule validation",
+      "expected": "Margins scale accurately when crossing predefined weight tiers (e.g., >20kg rules).",
+      "status": "PASS",
+      "observed": "Actual stored tier: 19.999kg gives 11.00; 20kg gives 12.50 on 10.00 base. Upper bound is exclusive. Applied fixtures verified read-only.",
+      "evidence": "supplement_evidence.json"
+    },
+    {
+      "id": "TC-043",
+      "case": "Dynamic carrier filtering tool",
+      "expected": "Selecting DPD only hides the remaining carrier cards in the results panel.",
+      "status": "PASS",
+      "observed": "Actual DPD selection controller rendered DPD and omitted DHL; original rate indices remain intact.",
+      "evidence": "remediation_frontend_evidence.json"
+    },
+    {
+      "id": "TC-044",
+      "case": "Surcharge breakdown component check",
+      "expected": "Clicking a rate option correctly reveals individual base costs and markup splits.",
+      "status": "PASS",
+      "observed": "Actual JavaScript rendered expandable fee disclosure including residential accessorial fee.",
+      "evidence": "frontend_evidence.json"
+    },
+    {
+      "id": "TC-045",
+      "case": "Smart routing speed anomaly check",
+      "expected": "The system accurately flags routes with high transit delays.",
+      "status": "PASS",
+      "observed": "Five 5-day delays classified as high risk; controlled history classifier, not live carrier prediction.",
+      "evidence": "direct_observations.json"
+    },
+    {
+      "id": "TC-046",
+      "case": "Multi-user concurrent quoting validation",
+      "expected": "Multiple tenants running quotes at the same time receive their respective custom prices without lag.",
+      "status": "PASS",
+      "observed": "Concurrent tenant-specific quote processing with controlled provider responses and real PostgreSQL writes: [{\"tenant\": \"seed24-01\", \"currency\": \"GBP\", \"customer_price\": \"11.50\", \"other_tenant_lookup_rows\": 0, \"shipment_written\": true, \"quote_process_ms\": 503.64}, {\"tenant\": \"seed24-02\", \"currency\": \"EUR\", \"customer_price\": \"12.00\", \"other_tenant_lookup_rows\": 0, \"shipment_written\": true, \"quote_process_ms\": 790.52}]. Live provider response latency remains outside this controlled test.",
+      "evidence": "bulk_isolation_evidence.json"
+    },
+    {
+      "id": "TC-047",
+      "case": "Currency baseline enforcement check",
+      "expected": "Financial calculations maintain standard GBP currency baselines across the app.",
+      "status": "FAIL",
+      "observed": "Application intentionally supports GBP, EUR and USD; seed includes all three. GBP-only expectation does not match design.",
+      "evidence": "docs/rigorous_seed_catalog.json; main.py currency models",
+      "remediation_disposition": "Specification conflict: GBP/EUR/USD support is deliberate. No cross-currency totals are silently combined; GBP-only enforcement would remove existing required functionality."
+    },
+    {
+      "id": "TC-048",
+      "case": "Priority index evaluation check",
+      "expected": "If multiple custom rules match, the system selects the one with the highest priority score.",
+      "status": "FAIL",
+      "observed": "Actual overlapping priority 10 and 100 rules returned priority 10 price 11.00. Implementation uses lower numeric priority first, contrary to highest-score expectation.",
+      "evidence": "supplement_evidence.json; backend/admin_portal.py ORDER BY priority ASC",
+      "remediation_disposition": "Specification conflict: existing pricing rules use lower numeric priority first. Reversing the order would alter current customer prices. The convention remains unchanged."
+    },
+    {
+      "id": "TC-049",
+      "case": "Database rule caching speed check",
+      "expected": "Margin lookup queries resolve in under 15 milliseconds.",
+      "status": "FAIL",
+      "observed": "Five real lookups: [49.74, 43.63, 44.62, 45.64, 43.84] ms; all exceed 15 ms. End-to-end lookup includes network, two SQL queries, no cache.",
+      "evidence": "database_evidence.json",
+      "remediation_disposition": "Performance target unmet: remote PostgreSQL lookups still exceed 15ms. No stale financial cache was introduced to manufacture a pass."
+    },
+    {
+      "id": "TC-050",
+      "case": "Interface quote refresh check",
+      "expected": "Modifying package dimensions automatically clears out old carrier rates.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"Real input event cleared stale quotes\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-051",
+      "case": "Postpaid 30-day user exemption check",
+      "expected": "Postpaid clients can book labels regardless of their current wallet balance.",
+      "status": "PARTIAL",
+      "observed": "Actual postpaid tenant with 0.00 wallet accepted reservation; rolled back. Purchased label remains gated.",
+      "evidence": "post_apply_evidence.json"
+    },
+    {
+      "id": "TC-052",
+      "case": "Solvent prepaid wallet transaction check",
+      "expected": "A prepaid client with a £100 balance can comfortably book a £20 label.",
+      "status": "PARTIAL",
+      "observed": "Actual 100.00 wallet successfully reserved 20.00; no purchased label or final capture performed.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-053",
+      "case": "Balanced-to-zero wallet constraint check",
+      "expected": "Booking a label that costs exactly the remaining wallet balance brings the wallet to £0.00 and passes.",
+      "status": "PARTIAL",
+      "observed": "Actual exact-funds reservation accepted: 20.00 balance, 20.00 reserved, zero available. Final debit/label not performed.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-054",
+      "case": "Prepaid wallet circuit breaker check",
+      "expected": "A client with a £10 balance trying to book a £12 label is blocked with an HTTP 402 error.",
+      "status": "PASS",
+      "observed": "Actual wallet 10.00 versus label 12.00 rejected with HTTP 402.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-055",
+      "case": "Exact £0.00 wallet baseline block check",
+      "expected": "Clients with a zero-balance wallet are immediately blocked from booking labels.",
+      "status": "PASS",
+      "observed": "Actual wallet zero rejected with HTTP 402.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-056",
+      "case": "High-concurrency race condition testing",
+      "expected": "A client with a £20 balance who rapidly clicks \"Book\" twice on two £15 labels only generates one label, while the second request is safely blocked.",
+      "status": "PARTIAL",
+      "observed": "Actual simultaneous independent transactions: exactly one 15.00 reservation accepted and second returned 402. Hold released; wallet restored to 20.00 with zero reserved. No label purchase, so full label-generation acceptance remains partial.",
+      "evidence": "post_apply_evidence.json"
+    },
+    {
+      "id": "TC-057",
+      "case": "Transaction ledger subtraction verification",
+      "expected": "Label generation accurately subtracts funds from the wallet and creates a matching audit history row.",
+      "status": "PASS",
+      "observed": "Actual PostgreSQL finance service with controlled carrier receipt: capture reduced wallet 100.00 to 80.00, inserted RESERVE/CAPTURE audit rows and marked the shipment BOOKED. All records rolled back; no carrier label purchased.",
+      "evidence": "finance_capture_evidence.json"
+    },
+    {
+      "id": "TC-058",
+      "case": "Mock test environment top-up check",
+      "expected": "Running the test endpoint accurately increments the wallet balance.",
+      "status": "EXCLUDED",
+      "observed": "Stripe-dependent test-topup intentionally excluded per your instruction; Stripe disabled.",
+      "evidence": "Configuration; no Stripe API calls"
+    },
+    {
+      "id": "TC-059",
+      "case": "Negative wallet balance protection check",
+      "expected": "The database rejects any direct attempts to set negative wallet balances.",
+      "status": "PASS",
+      "observed": "PostgreSQL CHECK rejected balance=-1 (23514).",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-060",
+      "case": "Wallet balance update speed check",
+      "expected": "The dashboard profile balance widget updates immediately after a shipment is processed.",
+      "status": "PARTIAL",
+      "observed": "Preview JavaScript updates wallet immediately; configured paid-shipment dashboard refresh was not exercised.",
+      "evidence": "frontend_evidence.json"
+    },
+    {
+      "id": "TC-061",
+      "case": "Decimal precision deduction check",
+      "expected": "Deducting values with complex fractions (e.g., £12.33) leaves exact balances without any rounding issues.",
+      "status": "PASS",
+      "observed": "Actual PostgreSQL settlement with controlled carrier receipt deducted exactly 12.33 from 100.00, leaving 87.67 and zero reserved. All records rolled back.",
+      "evidence": "finance_capture_evidence.json"
+    },
+    {
+      "id": "TC-062",
+      "case": "Account status wallet check",
+      "expected": "Deactivating a tenant automatically locks out their remaining wallet balance.",
+      "status": "PASS",
+      "observed": "Actual suspended tenant rejected wallet reservation with HTTP 403.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-063",
+      "case": "User-role wallet verification",
+      "expected": "Dispatchers can spend wallet funds on labels, but are blocked from viewing the main wallet configuration settings.",
+      "status": "PASS",
+      "observed": "Actual dispatcher successfully reserved wallet funds in a rolled-back transaction; wallet configuration viewport was blocked, financial reports 403, operational affordability summary accessible.",
+      "evidence": "real_auth_evidence.json"
+    },
+    {
+      "id": "TC-064",
+      "case": "Wallet transaction duplicate protection",
+      "expected": "Resubmitting identical shipment payloads generates a duplicate transaction error.",
+      "status": "PASS",
+      "observed": "Repeated reservation against same shipment produced HTTP 409.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-065",
+      "case": "Consolidated invoicing calculation check",
+      "expected": "Weekly account summaries calculate overall shipment totals accurately.",
+      "status": "PASS",
+      "observed": "Actual weekly report reconciled to direct tenant-scoped SQL: 3 packages, GBP 214.36 spend and 27.96 margin, 2026-09-22 through 2026-09-28.",
+      "evidence": "post_apply_evidence.json"
+    },
+    {
+      "id": "TC-066",
+      "case": "AI Customs Harmonizer text interpretation",
+      "expected": "Entering \"running leather shoes\" successfully predicts the correct HS code card.",
+      "status": "PARTIAL",
+      "observed": "Classifier returns 640399 for running leather shoes, a review-required simulated suggestion; true tariff correctness requires product construction detail. Card presentation only controlled.",
+      "evidence": "direct_observations.json; frontend_evidence.json"
+    },
+    {
+      "id": "TC-067",
+      "case": "AI Customs confidence rating check",
+      "expected": "High-quality inputs render clear match confidence badges.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"70% MOCK CONFIDENCE\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-068",
+      "case": "Malformed text description handling",
+      "expected": "Entering random text characters defaults to a generic fallback HS code classification.",
+      "status": "FAIL",
+      "observed": "Random description abstains with hs_code=null, insufficient_information; does not invent a generic fallback code. This safer behavior conflicts with expected test.",
+      "evidence": "direct_observations.json",
+      "remediation_disposition": "Specification conflict: no valid universal generic HS code exists for arbitrary random text. Classifier preserves review-required abstention rather than fabricating a commodity code."
+    },
+    {
+      "id": "TC-069",
+      "case": "Inbound exception webhook status update",
+      "expected": "Simulating an exception payload from a carrier updates the shipment row status to 'EXCEPTION'.",
+      "status": "PASS",
+      "observed": "Real shipment changed to EXCEPTION and tracking receipt was inserted; transaction rolled back.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-070",
+      "case": "Automated AI support ticket creation",
+      "expected": "An exception status update automatically triggers a new row in the support tickets table.",
+      "status": "PASS",
+      "observed": "Actual pending tracking event produced one OPEN support ticket; rolled back.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-071",
+      "case": "AI summary parsing verification",
+      "expected": "The system takes a raw error code like \"E_CUSTOMS_40\" and translates it into a clear, human-readable summary.",
+      "status": "PASS",
+      "observed": "E_CUSTOMS_40 produces readable customs-clearance review advice via deterministic classifier, not an external LLM.",
+      "evidence": "direct_observations.json"
+    },
+    {
+      "id": "TC-072",
+      "case": "Manual ticket intervention control",
+      "expected": "Clicking \"Manually Intervene\" changes the ticket status to 'IN_REVIEW'.",
+      "status": "PASS",
+      "observed": "Real ASGI route changed own ticket to IN_REVIEW; rolled back.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-073",
+      "case": "AI Invoice Surcharge Auditor matching check",
+      "expected": "Uploading an invoice with a mismatched package weight accurately flags an overcharge row.",
+      "status": "PASS",
+      "observed": "Actual stored baseline versus 10kg billed weight and 5.00 excess base charge: weight discrepancy and exact 5.00 overcharge flagged. Weight alone does not invent a monetary charge.",
+      "evidence": "database_evidence.json"
+    },
+    {
+      "id": "TC-074",
+      "case": "Automated dispute draft generation",
+      "expected": "Flagged overcharges generate a ready-to-send claim text template.",
+      "status": "PASS",
+      "observed": "Controlled audit calculated 11.58 overcharge and produced an explicitly unsent dispute draft.",
+      "evidence": "core_regression.log test_audit_exact_sums_no_weight_double_count"
+    },
+    {
+      "id": "TC-075",
+      "case": "Support ticket tenant isolation verification",
+      "expected": "Clients can only see support tickets associated with their own shipments.",
+      "status": "PASS",
+      "observed": "Controlled route tests scope ticket selection/intervention by authenticated tenant; no cross-tenant update.",
+      "evidence": "core_regression.log test_client_tickets_and_intervention_scope"
+    },
+    {
+      "id": "TC-076",
+      "case": "Ticket counter indicator check",
+      "expected": "The client dashboard accurately displays the count of open exceptions.",
+      "status": "PASS",
+      "observed": "One OPEN and one CLOSED test ticket rendered exactly one OPEN EXCEPTION.",
+      "evidence": "remediation_frontend_evidence.json"
+    },
+    {
+      "id": "TC-077",
+      "case": "Re-route delay predictor execution",
+      "expected": "An active exception ticket updates the carrier routing delay matrix.",
+      "status": "PASS",
+      "observed": "Actual exception webhook persisted provider-scoped active_exception metadata; routing reported high risk even without historical delay samples. Delivery clears the exception. No delay duration invented.",
+      "evidence": "database_evidence.json; remediation_core_regression.log"
+    },
+    {
+      "id": "TC-078",
+      "case": "Text language variation test",
+      "expected": "The AI engine parses descriptive inputs accurately regardless of alternative phrasing.",
+      "status": "PASS",
+      "observed": "Executed supported synonyms: leather footwear for jogging → 640399; knitted cotton garment → 610910. Rule-based suggestions still require review. Arbitrary natural language coverage is not claimed.",
+      "evidence": "remediation_core_regression.log"
+    },
+    {
+      "id": "TC-079",
+      "case": "Proof of Delivery link attachment check",
+      "expected": "Successful deliveries correctly save and display the POD URL on the tracking row.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"displayed_https_url\": \"https://seed-pod.example.invalid/uat.jpg\", \"scope\": \"Stored URL linkage; no real carrier signature image fetched\"}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-080",
+      "case": "Ticket history archive logging",
+      "expected": "Resolving an exception ticket updates its status to 'CLOSED' and moves it to the archive.",
+      "status": "PASS",
+      "observed": "Actual delivery changed ticket to CLOSED and set archived_at; archive details render closed records.",
+      "evidence": "database_evidence.json; remediation_frontend_evidence.json"
+    },
+    {
+      "id": "TC-081",
+      "case": "Mobile layout viewport verification",
+      "expected": "Interface scales down neatly into a single-column layout on mobile screen widths.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"cols\": \"343px\", \"overflow\": 0}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-082",
+      "case": "Desktop layout expansion check",
+      "expected": "Widescreen viewports display the side-by-side split columns correctly.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: [{\"x\": 258, \"y\": 301, \"width\": 575.703125}, {\"x\": 853.703125, \"y\": 301, \"width\": 548.296875}]",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-083",
+      "case": "Bottom drawer sheet slide interaction",
+      "expected": "Clicking \"Box Profiles\" smoothly reveals the configuration sheet from the bottom on mobile devices.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"x\": 0, \"y\": 121.8125, \"width\": 375, \"height\": 690.1875}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-084",
+      "case": "Backdrop shadow overlay dismissal check",
+      "expected": "Tapping outside an open bottom sheet hides the overlay and sheet smoothly.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"Real backdrop click dismissed sheet\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-085",
+      "case": "Speed quote loader state animation",
+      "expected": "Clicking calculate displays a pulsing loading indicator until the rates return.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"animation\": \"uat-pulse\", \"finished\": true}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-086",
+      "case": "Client dashboard tab toggle navigation",
+      "expected": "Clicking the tabs menu swaps the active viewport cards without reloading the page.",
+      "status": "PASS",
+      "observed": "Actual JavaScript navigation hides/shows panels without a page reload.",
+      "evidence": "frontend_evidence.json"
+    },
+    {
+      "id": "TC-087",
+      "case": "Admin viewport data view protection",
+      "expected": "Client users cannot view or toggle into the Super-Admin view panels.",
+      "status": "PASS",
+      "observed": "Actual controller refused SUPER_ADMIN for CLIENT profile; protected backend macro endpoint denies customer owner.",
+      "evidence": "frontend_evidence.json; core_regression.log"
+    },
+    {
+      "id": "TC-088",
+      "case": "Data grid element scaling stability",
+      "expected": "Resizing the browser window updates chart components without breaking the interface layout.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: [{\"width\": 375, \"scroll\": 375, \"charts\": [{\"width\": 343, \"scroll\": 341}, {\"width\": 343, \"scroll\": 341}]}, {\"width\": 768, \"scroll\": 768, \"charts\": [{\"width\": 500, \"scroll\": 498}, {\"width\": 500, \"scroll\": 498}]}, {\"width\": 1440, \"scroll\": 1440, \"charts\": [{\"width\": 562, \"scroll\": 560}, {\"width\": 562, \"scroll\": 560}]}]",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-089",
+      "case": "Custom theme color configuration check",
+      "expected": "Dashboard panels apply the predefined dark mode slate theme styles correctly.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"rgb(15, 23, 42)\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-090",
+      "case": "Micro-copy readability check",
+      "expected": "Subheaders and parameters display clearly with correct font sizes.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"minimum_px\": 11}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-091",
+      "case": "Form entry reset button check",
+      "expected": "Generating a successful shipment clears out the quoting inputs for the next entry.",
+      "status": "PASS",
+      "observed": "Successful preview dispatch invokes resetQuoteForm; executed reset emptied dimensional/weight fields and invalidated rates. Live purchases remain gated.",
+      "evidence": "remediation_frontend_evidence.json"
+    },
+    {
+      "id": "TC-092",
+      "case": "Empty state fallback illustration text",
+      "expected": "A new workspace with no dispatches shows a clean \"No Active Shipments\" notification card.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"No Active Shipments — no shipments match this view.\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-093",
+      "case": "Mobile bottom bar icon alignment",
+      "expected": "Target layout links maintain uniform spacing across various smartphone screen boundaries.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: [{\"x\": 12.25, \"width\": 48, \"height\": 46.5}, {\"x\": 72.75, \"width\": 48, \"height\": 46.5}, {\"x\": 133.25, \"width\": 48, \"height\": 46.5}, {\"x\": 193.75, \"width\": 48, \"height\": 46.5}, {\"x\": 254.25, \"width\": 48, \"height\": 46.5}, {\"x\": 314.75, \"width\": 48, \"height\": 46.5}]",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-094",
+      "case": "Long company text rendering containment",
+      "expected": "Extremely long business names wrap neatly within their containers without breaking layout blocks.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"characters\": 186, \"horizontal_overflow\": 0}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-095",
+      "case": "Action link tap target spacing",
+      "expected": "Buttons and interactive links are sized large enough for comfortable finger taps on mobile screens.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"All visible controls at least 44px in both dimensions\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-096",
+      "case": "Dynamic error container rendering",
+      "expected": "Active balance restriction errors display in a bold, notice card style.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"weight\": \"700\", \"text\": \"Insufficient wallet balance\"}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-097",
+      "case": "Analytical graph container box visibility",
+      "expected": "Financial summary metric bars align perfectly across comparative intervals.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: [{\"bottom\": 1133.4730224609375, \"width\": 24}, {\"bottom\": 1133.4730224609375, \"width\": 24}, {\"bottom\": 1133.4730224609375, \"width\": 24}, {\"bottom\": 1133.4730224609375, \"width\": 24}, {\"bottom\": 1133.4730224609375, \"width\": 24}, {\"bottom\": 1133.4730224609375, \"width\": 24}]",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-098",
+      "case": "Interactive dropdown hover feedback",
+      "expected": "Action elements display clear visual hover states on desktop devices.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: \"brightness(1.15)\"",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    },
+    {
+      "id": "TC-099",
+      "case": "Cross-browser input box rendering",
+      "expected": "Input layout parameters display consistently across Chrome, Safari, and Edge.",
+      "status": "PARTIAL",
+      "observed": "Installed Google Chrome, Microsoft Edge, Firefox and Playwright WebKit loaded the real UI with visible weight inputs and zero mobile overflow. Actual Apple Safari on macOS/iOS remains untested; WebKit is not a substitute for Safari release validation.",
+      "evidence": "browser/results.json cross_engine"
+    },
+    {
+      "id": "TC-100",
+      "case": "Global interface initialization check",
+      "expected": "Complete script execution runs flawlessly, with all system icons loading correctly on the initial page load.",
+      "status": "PASS",
+      "observed": "Actual Chromium browser: {\"status\": \"PASS\", \"page_errors\": [], \"svg_icons\": 21}",
+      "evidence": "browser/results.json; browser/mobile.png; browser/desktop.png"
+    }
+  ],
+  "scope": "Updated after code fixes and real sandbox migration 014. Partial/browser/blocked cases are not passes. Previously retained race audit remains; new database probes all rolled back. No payment, message or label purchased.",
+  "environment": {
+    "backend": "configured localhost:8000",
+    "database": "actual configured Supabase sandbox",
+    "browser": "Unavailable; DOM test double only",
+    "providers": "Controlled doubles/inactive seeded accounts",
+    "external_integrations": "HubSpot/Twilio/Stripe not contacted"
+  },
+  "core_regression": {
+    "tests": 5,
+    "failures": 0,
+    "errors": 5,
+    "skipped": 0,
+    "scope": "Controlled in-process tests; not live-provider or browser UAT."
+  },
+  "applied_fixture_evidence": {
+    "TC-012": {
+      "backend_status": 403,
+      "oidc_login_tested": false
+    },
+    "TC-051": {
+      "reservation": "accepted",
+      "wallet_balance": "0.00",
+      "label_purchased": false,
+      "rolled_back": true
+    },
+    "TC-061": {
+      "balance": "20.00",
+      "reserved_balance": "12.33",
+      "available": "7.67",
+      "capture_tested": false,
+      "rolled_back": true
+    },
+    "TC-065": {
+      "start": "2026-09-22",
+      "end": "2026-09-28",
+      "report": {
+        "start_date": "2026-09-22",
+        "end_date": "2026-09-28",
+        "timezone": "UTC",
+        "total_package_count": 3,
+        "totals_by_currency": [
+          {
+            "currency": "GBP",
+            "package_count": 3,
+            "shipping_spend": "214.36",
+            "platform_margin": "27.96"
+          }
+        ],
+        "wallet_payments": [],
+        "page": 1,
+        "page_size": 100,
+        "has_more": false,
+        "payment_source": "wallet_topups",
+        "margin_basis": "stored shipment profit_markup; not net accounting profit"
+      },
+      "direct_sql_reconciled": true
+    },
+    "TC-092": {
+      "empty_workspace_shipment_count": 0,
+      "browser_card_verified": false
+    },
+    "TC-056": {
+      "simultaneous_requests": [
+        {
+          "outcome": "RESERVED",
+          "shipment_id": "d943da1b-5ca7-4e41-a56a-630bab8ed688"
+        },
+        {
+          "http_status": 402,
+          "shipment_id": "c53a934d-c733-4297-bdd1-bb1d685c5353"
+        }
+      ],
+      "label_purchased": false,
+      "method": "Actual asyncpg pool, independently committed concurrent reservation transactions"
+    },
+    "race_cleanup": {
+      "balance": "20.00",
+      "reserved_balance": "0.00",
+      "retained_audit": "Two FAILED scratch quotes, one RELEASED reservation, RESERVE/RELEASE ledger entries",
+      "scratch_shipment_ids": [
+        "d943da1b-5ca7-4e41-a56a-630bab8ed688",
+        "c53a934d-c733-4297-bdd1-bb1d685c5353"
+      ]
+    }
+  },
+  "remediation": {
+    "core_tests": 65,
+    "failures": 0,
+    "errors": 0,
+    "actual_database_checks": "database_evidence.json",
+    "backend_restarted": true,
+    "health": {
+      "status": "ok",
+      "mode": "configured"
+    },
+    "new_routes_live": true,
+    "migration_014_applied": true,
+    "browser_rendering": "Real Chromium, installed Chrome/Edge, Firefox and WebKit; screenshots and measured geometry verified. Actual Apple Safari remains untested.",
+    "external_provider_calls": 0
+  }
+}

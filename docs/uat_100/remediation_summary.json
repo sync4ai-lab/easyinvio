@@ -1,0 +1,15 @@
+{
+  "core_tests": 65,
+  "failures": 0,
+  "errors": 0,
+  "actual_database_checks": "database_evidence.json",
+  "backend_restarted": true,
+  "health": {
+    "status": "ok",
+    "mode": "configured"
+  },
+  "new_routes_live": true,
+  "migration_014_applied": true,
+  "browser_rendering": "Real Chromium, installed Chrome/Edge, Firefox and WebKit; screenshots and measured geometry verified. Actual Apple Safari remains untested.",
+  "external_provider_calls": 0
+}

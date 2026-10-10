@@ -1,0 +1,3346 @@
+{
+  "tenants": [
+    {
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "workspace_slug": "seed24-01",
+      "company_name": "SEED24 - Harbor Commerce 01",
+      "default_currency": "GBP",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "575.00",
+      "reserved_balance": "44.39"
+    },
+    {
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "workspace_slug": "seed24-02",
+      "company_name": "SEED24 - Northstar Textiles 02",
+      "default_currency": "EUR",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "650.00",
+      "reserved_balance": "47.52"
+    },
+    {
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "workspace_slug": "seed24-03",
+      "company_name": "SEED24 - Orchard Electronics 03",
+      "default_currency": "USD",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "10.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "workspace_slug": "seed24-04",
+      "company_name": "SEED24 - Maple Components 04",
+      "default_currency": "GBP",
+      "billing_plan": "POSTPAID_30_DAY",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "0.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "workspace_slug": "seed24-05",
+      "company_name": "SEED24 - Cedar Homewares 05",
+      "default_currency": "EUR",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "875.00",
+      "reserved_balance": "46.86"
+    },
+    {
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "workspace_slug": "seed24-06",
+      "company_name": "SEED24 - Riverside Books 06",
+      "default_currency": "USD",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "0.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "workspace_slug": "seed24-07",
+      "company_name": "SEED24 - Harbor Commerce 07",
+      "default_currency": "GBP",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "PAST_DUE",
+      "workspace_status": "ACTIVE",
+      "balance": "1025.00",
+      "reserved_balance": "53.52"
+    },
+    {
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "workspace_slug": "seed24-08",
+      "company_name": "SEED24 - Northstar Textiles 08",
+      "default_currency": "EUR",
+      "billing_plan": "POSTPAID_30_DAY",
+      "billing_status": "SUSPENDED",
+      "workspace_status": "SUSPENDED",
+      "balance": "0.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "workspace_slug": "seed24-09",
+      "company_name": "SEED24 - Orchard Electronics 09",
+      "default_currency": "USD",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "10.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "workspace_slug": "seed24-10",
+      "company_name": "SEED24 - Maple Components 10",
+      "default_currency": "GBP",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "1250.00",
+      "reserved_balance": "52.36"
+    },
+    {
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "workspace_slug": "seed24-11",
+      "company_name": "SEED24 - Cedar Homewares 11",
+      "default_currency": "EUR",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "1325.00",
+      "reserved_balance": "55.89"
+    },
+    {
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "workspace_slug": "seed24-12",
+      "company_name": "SEED24 - Riverside Books 12",
+      "default_currency": "USD",
+      "billing_plan": "POSTPAID_30_DAY",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "0.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "workspace_slug": "seed24-13",
+      "company_name": "SEED24 - Harbor Commerce 13",
+      "default_currency": "GBP",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "1475.00",
+      "reserved_balance": "63.25"
+    },
+    {
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "workspace_slug": "seed24-14",
+      "company_name": "SEED24 - Northstar Textiles 14",
+      "default_currency": "EUR",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "PAST_DUE",
+      "workspace_status": "ACTIVE",
+      "balance": "1550.00",
+      "reserved_balance": "67.08"
+    },
+    {
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "workspace_slug": "seed24-15",
+      "company_name": "SEED24 - Orchard Electronics 15",
+      "default_currency": "USD",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "10.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "workspace_slug": "seed24-16",
+      "company_name": "SEED24 - Maple Components 16",
+      "default_currency": "GBP",
+      "billing_plan": "POSTPAID_30_DAY",
+      "billing_status": "SUSPENDED",
+      "workspace_status": "SUSPENDED",
+      "balance": "0.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "workspace_slug": "seed24-17",
+      "company_name": "SEED24 - Cedar Homewares 17",
+      "default_currency": "EUR",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "1775.00",
+      "reserved_balance": "65.52"
+    },
+    {
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "workspace_slug": "seed24-18",
+      "company_name": "SEED24 - Riverside Books 18",
+      "default_currency": "USD",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "0.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "workspace_slug": "seed24-19",
+      "company_name": "SEED24 - Harbor Commerce 19",
+      "default_currency": "GBP",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "1925.00",
+      "reserved_balance": "73.58"
+    },
+    {
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "workspace_slug": "seed24-20",
+      "company_name": "SEED24 - Northstar Textiles 20",
+      "default_currency": "EUR",
+      "billing_plan": "POSTPAID_30_DAY",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "0.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "workspace_slug": "seed24-21",
+      "company_name": "SEED24 - Orchard Electronics 21",
+      "default_currency": "USD",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "PAST_DUE",
+      "workspace_status": "ACTIVE",
+      "balance": "10.00",
+      "reserved_balance": "0.00"
+    },
+    {
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "workspace_slug": "seed24-22",
+      "company_name": "SEED24 - Maple Components 22",
+      "default_currency": "GBP",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "2150.00",
+      "reserved_balance": "71.52"
+    },
+    {
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "workspace_slug": "seed24-23",
+      "company_name": "SEED24 - Cedar Homewares 23",
+      "default_currency": "EUR",
+      "billing_plan": "PREPAID_WALLET",
+      "billing_status": "ACTIVE",
+      "workspace_status": "ACTIVE",
+      "balance": "2225.00",
+      "reserved_balance": "75.75"
+    },
+    {
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "workspace_slug": "seed24-24",
+      "company_name": "SEED24 - Riverside Books 24",
+      "default_currency": "USD",
+      "billing_plan": "POSTPAID_30_DAY",
+      "billing_status": "SUSPENDED",
+      "workspace_status": "SUSPENDED",
+      "balance": "0.00",
+      "reserved_balance": "0.00"
+    }
+  ],
+  "members": [
+    {
+      "id": "1c88e9e9-9b41-3978-1cdb-431a8f38249c",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "auth_user_id": "e9f508cc-9498-0496-7f1b-1065f6fbdc5f",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "0c51cb28-f90a-ae86-322b-b8055a8be42a",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "auth_user_id": "b82eb0db-17ce-3b06-ba6a-e7b80b97afe8",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "089c0de2-60c1-0a2f-1965-7d5cae35f4d1",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "auth_user_id": "0a9d1214-6296-cf7f-566c-3f7c88fb0ca0",
+      "role": "OWNER"
+    },
+    {
+      "id": "3516f38e-043a-6fc1-505d-b71634966709",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "auth_user_id": "14947dc6-294b-6eaa-974f-49885e1b8c20",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "4af71e7e-05d7-91bc-4ea0-74ff27e3fda3",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "auth_user_id": "faffb926-93dd-5fc9-8cfb-d05fa2090a60",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "c8ab8386-b5b4-5277-59e5-56be2c0b7f74",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "auth_user_id": "a56e92a0-e73a-91f2-fcee-8e2b8e58847b",
+      "role": "OWNER"
+    },
+    {
+      "id": "04dd19c2-14b3-ed91-fc6d-e03a9f1c1bc1",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "auth_user_id": "a9e8bbb7-fea7-586a-b3fd-b148b077f1f7",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "81398791-4d5b-a111-28c8-91c323eaf3a5",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "auth_user_id": "980a0120-ab35-601c-b5cc-1507cf90992d",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "553b6363-b280-f431-d499-1670fad7a774",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "auth_user_id": "b649cd85-51b9-135c-2818-7e3dceefa05c",
+      "role": "OWNER"
+    },
+    {
+      "id": "46c84175-5256-df8c-6a76-97f4656a9896",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "auth_user_id": "65ee212e-bfb7-b237-7e4e-fb580f06e63c",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "1d157ded-db18-ecd4-9d60-7ad7539ee794",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "auth_user_id": "9aa5a7da-f435-bd5a-85df-eb8de1bd0f14",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "589a9974-4bf4-13de-3a1a-b188bbc44358",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "auth_user_id": "c7230e39-bd63-b678-b2a5-7ceeed89e491",
+      "role": "OWNER"
+    },
+    {
+      "id": "1ea98a21-3ba7-e006-1fde-ad989bd7d87a",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "auth_user_id": "343a6fbc-ec43-3a90-355d-9ac74ae4a943",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "1563267b-db75-c2cc-7a6d-92352476d316",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "auth_user_id": "4dbf4d01-5370-0fb7-17ab-15a6dc311df1",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "381ff614-c641-a6b0-5c85-44b9b082fce3",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "auth_user_id": "c710e893-a9c0-3fe0-a2f3-f245f2b046f7",
+      "role": "OWNER"
+    },
+    {
+      "id": "41e07be7-3e8d-578a-dcb7-5f326306f9cc",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "auth_user_id": "f6563d09-d070-2ba4-5a0d-ffe28851f518",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "5abd945c-795e-84fa-9028-ec2ad467006d",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "auth_user_id": "c19c2afa-76d8-51d9-37cb-3849bcfa2228",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "7dc8b2c4-6e3e-5d30-9c71-6dc43ab687c1",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "auth_user_id": "afab4059-34cc-117b-bb25-24700e6f2ee5",
+      "role": "OWNER"
+    },
+    {
+      "id": "6d047740-afcf-48bc-76da-1335cb6501e6",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "auth_user_id": "4afaeb64-89ff-34ee-3541-1b08c43194b7",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "4d53bd42-aca7-ba7b-6877-8f44e7c3ce40",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "auth_user_id": "ec2fc7e6-7c4f-24c3-6bc4-7a7c6fba36fb",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "70189f71-4561-8194-0b6d-3f6038678fc7",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "auth_user_id": "4d5cda1c-a1a3-a5fb-21f0-0bfbadb2e8de",
+      "role": "OWNER"
+    },
+    {
+      "id": "23a18f38-1f8a-e385-9c84-d6748e9958da",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "auth_user_id": "e606b174-8d99-6cdc-43f9-f1b37dc1877f",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "0f68d14f-7105-d1ac-3f4c-409ff22f2497",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "auth_user_id": "5162083a-c356-c210-5680-86a248d4d2f3",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "ddd4435f-812d-b21c-f4ff-01ad8570b56e",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "auth_user_id": "7e4c3370-df3c-1a91-5024-ba6475f3fe22",
+      "role": "OWNER"
+    },
+    {
+      "id": "ea616f76-edb3-ea66-5184-accb084bda13",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "auth_user_id": "691941eb-3d25-6bc6-e97e-95c5035410ea",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "9978e575-f086-1233-a781-140e5d629754",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "auth_user_id": "6fe55c47-2f28-8472-1484-4d7d14d32a59",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "93c5ac54-d12b-a38f-aaa2-15d14745bd4e",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "auth_user_id": "55feb52f-7482-5430-2d94-9cec909b79e6",
+      "role": "OWNER"
+    },
+    {
+      "id": "0b6d0421-4ec3-bf94-a385-749e279629b0",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "auth_user_id": "6302a7d7-365b-85dc-7188-5caa811b2d71",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "52cc79d2-78e0-70a8-9b9f-d7059be82ae4",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "auth_user_id": "c5832b53-22a7-adb8-460a-ddf8978478b8",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "41079242-cae4-619c-7691-bbfa5da57da9",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "auth_user_id": "edf0bd95-00d5-8db3-013c-cdac90012247",
+      "role": "OWNER"
+    },
+    {
+      "id": "c5837f45-aabb-b058-e837-31b71a61943d",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "auth_user_id": "fc8a6d6a-9203-d155-a27c-7b703045ea06",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "91b3e2e4-3dc9-e348-c9ac-57406f6f6a63",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "auth_user_id": "acded66c-d7b4-a9f1-66c1-bf131969632e",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "71d34331-f3e4-2481-b00a-38f18d3e36a9",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "auth_user_id": "6deb1f0c-7ced-6dae-6791-118d48881199",
+      "role": "OWNER"
+    },
+    {
+      "id": "96ad7e05-29ab-3d37-e2d8-a94e5a9c66fd",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "auth_user_id": "e2511ec2-0e3c-b37e-8a9b-d48336c45710",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "b188895c-093b-2746-a794-ee12d1dec172",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "auth_user_id": "0b91fee0-be10-09d7-dc01-43b5caf2693d",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "629c6d11-df7a-b8f1-30d3-69dd0097efb7",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "auth_user_id": "0c04cd24-bb82-527e-af9b-90b60a6847b2",
+      "role": "OWNER"
+    },
+    {
+      "id": "294ca25e-99f6-cb35-3572-52ae7129ee24",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "auth_user_id": "aab8a1df-9b45-63c8-ba99-c13cc289bc2d",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "e9c1db2e-799a-da84-724a-7c6e79d8fbd9",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "auth_user_id": "acb331b7-f82e-b5c9-e5d5-3856de9a7beb",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "05090507-5c04-3296-d23a-c34bebee59f8",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "auth_user_id": "835c6721-7fae-da55-111b-1e670567ee01",
+      "role": "OWNER"
+    },
+    {
+      "id": "eb533e72-5386-5e18-7853-2bada3b50c4e",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "auth_user_id": "abdcf6a8-3f4e-2c6a-5b1f-5411cd9d3d65",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "5ce4a9ed-fad9-6cf2-ca6e-39afe4d50464",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "auth_user_id": "d4aab0bc-9387-db57-f183-2fc3cf972c2c",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "9aba8482-e390-2c06-bd95-d88c64255ef0",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "auth_user_id": "e092ba30-865b-3d35-cd5f-ba616281bd90",
+      "role": "OWNER"
+    },
+    {
+      "id": "65475c83-c2e4-adf2-27fe-fb0fffd29017",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "auth_user_id": "3bf0e20f-0df3-add0-cf8b-788506eb5dcf",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "a50dbe98-c374-8dc9-d879-daf6920be52f",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "auth_user_id": "70d47d05-0dc6-274c-7988-ba555fc8a9d4",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "ac5e6661-9fb0-dff1-565b-1a5f6561b92b",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "auth_user_id": "499df807-31db-e67c-cb99-8c7898b77abb",
+      "role": "OWNER"
+    },
+    {
+      "id": "5291712d-8f2e-6e87-22a9-2d3104e59b0f",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "auth_user_id": "3799cb3a-a9a4-0c15-e765-6f8cdac9847f",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "92263d55-ab53-cc53-f9ef-51b9d9b0f094",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "auth_user_id": "3f013420-010d-2563-44cd-b9b61683dd95",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "34b859e3-1dd8-2c63-6076-ebb6e44b7a49",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "auth_user_id": "8dfa63ed-5177-490d-3597-a443e577b8c1",
+      "role": "OWNER"
+    },
+    {
+      "id": "7a746b44-8c31-aaef-d391-d72304ba4ed2",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "auth_user_id": "0989f288-8e65-2bbd-a8a8-0ab6c6d7aec7",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "f2acda8c-7261-9689-2f68-744979922b41",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "auth_user_id": "62f5eca5-b3ac-4a2e-cc07-278d723398ac",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "fe4cb126-2313-a8d6-3090-6d587b4d0a7c",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "auth_user_id": "f7bfb960-3b49-efbc-ffe4-d8e8f417bf7f",
+      "role": "OWNER"
+    },
+    {
+      "id": "8799c807-9628-c4a4-efd0-21d3c84ad451",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "auth_user_id": "672cea52-9fb4-9947-7886-4fce964d476d",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "b3ada90a-5eb5-37cb-f3b8-2baa8991e3cf",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "auth_user_id": "0ff58584-3ba8-5c98-7078-d38b2c5149d4",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "9b7aa1cc-e63e-3ce9-03a3-6cef19a68641",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "auth_user_id": "08d15cba-0a88-11b3-7cd0-7b3463bc39cd",
+      "role": "OWNER"
+    },
+    {
+      "id": "38a6a7d7-13e1-0da1-c8bc-13809e8ec781",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "auth_user_id": "b821aa48-d943-6d08-4e4d-6014f5a807c8",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "b11b7185-a0f2-9f23-a467-67de72ee341c",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "auth_user_id": "09e9c80a-995a-0f51-ff8a-abda050bac63",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "c2659e40-3fe2-c7ac-d350-201adfb9fe7f",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "auth_user_id": "83c3d4e7-ef00-5f40-cebd-1a26a10e441a",
+      "role": "OWNER"
+    },
+    {
+      "id": "02af7716-0b57-4815-ea03-d124c4b8be0e",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "auth_user_id": "5ed874db-9b53-c944-27ed-275d307c4235",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "620854a2-e6dc-3a82-4cf5-4b4e3f790136",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "auth_user_id": "7918675b-35c9-d793-d9cc-80fca606ac56",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "4b38b69a-6633-88a6-3384-2d45d4744ea3",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "auth_user_id": "0223c9c7-4197-9ebd-ed4b-696441ec78c6",
+      "role": "OWNER"
+    },
+    {
+      "id": "b3cf730c-4f61-c4d8-3467-8b70999f0b8f",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "auth_user_id": "d2266d6a-0578-de76-f395-8663a59ead79",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "06d33f03-bfbd-d4f0-c4d6-59fb039e143f",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "auth_user_id": "b81d5bb0-bb04-d874-d092-602d04417af5",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "2ee45e61-4a55-f8b0-fab6-2e4e3140e6d5",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "auth_user_id": "e4c41e6e-4df7-2af9-bc23-ec42a2891c18",
+      "role": "OWNER"
+    },
+    {
+      "id": "64fab4ec-639b-622f-ae60-bb4239d8ff13",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "auth_user_id": "5a2e14b5-909a-27b5-11d9-e5e526475cb1",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "2a63bcd2-5c18-66b1-846a-df679b66a6a2",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "auth_user_id": "f7b34dce-fb56-2f45-d64e-78d9ce3e679e",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "9157e8d4-a93f-664b-2cce-b2f79d4c75c8",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "auth_user_id": "494fa64b-3793-4942-0689-41d2d37ddac5",
+      "role": "OWNER"
+    },
+    {
+      "id": "b6e9821a-cfbc-3987-475f-30b03db0c853",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "auth_user_id": "a9542304-7a4e-513c-7c34-2caa2fa470d5",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "d8ce594b-d19a-2217-95c4-0e0e0545e28d",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "auth_user_id": "19ef886b-4371-ba85-795f-7c2bf6dc55a3",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "942fe5b5-60eb-14a0-4b5c-e7d0242d83a9",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "auth_user_id": "8a8425b3-ec28-77ef-64ab-e6ca920569be",
+      "role": "OWNER"
+    },
+    {
+      "id": "c4c5679b-cf58-c8c6-1779-57fe9cc5206d",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "auth_user_id": "383fefcc-871b-59d8-5aa8-19daed9cbdf2",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "dfc7f15d-3c40-573f-a1ea-57cabd788c9f",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "auth_user_id": "3a2d01c0-8921-a892-f81d-d0f6348f85ca",
+      "role": "DISPATCHER"
+    },
+    {
+      "id": "49201f48-1d7b-a11c-f1b3-f7ffe03abfb0",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "auth_user_id": "87a93a67-e898-a25f-5e54-f9e7cabc3993",
+      "role": "OWNER"
+    }
+  ],
+  "carrier_accounts": [
+    {
+      "id": "e3fe9706-40e7-748d-3f45-44ca22ff5905",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "616a6b0f-1fb3-3d18-c152-2479b37cb50e",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "6eaccf53-21ce-fdeb-bbbe-a9093c1c5a4f",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "56824eda-bd33-06e2-3f29-c186c31049b2",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "9adb9e3b-a195-6472-aac5-19c9671f48b6",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "677ee119-f335-fabd-7376-30c8a8ad658e",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "66fd4a1c-1149-6358-e79a-ef730e374e44",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "a0cc1088-0e0d-0ab5-284e-7bb5aaab826c",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "f2d3e53f-6244-e27d-c527-4a390f1195f2",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "cd05488e-180e-0c4e-1e07-2649620d1a38",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "d3d7582f-864b-1e7c-17cb-3591fe80232c",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "9c3edec2-1970-7742-61e2-a35ce3bf9c67",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "ac59cd8c-b2a7-ae00-7a79-d5c24b3edae5",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "778732af-e8b2-105a-b52d-efed76240766",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "bf7c578d-eb3b-2881-ab54-337329dec377",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "0493bb93-6f9d-c432-81ed-0489b0cc53f0",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "b53b5858-7c4b-cbc3-93b9-740639225d64",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "594e6c0c-086b-ac1d-ca70-d1d5a5e5f124",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "138943bb-53ea-e000-aafc-18a1eda725fd",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "efd329c1-bf6b-898c-db45-cc5f4275ddac",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "a4917785-a6ba-41bc-09c9-93d28604d97a",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "c12f4435-56fe-a647-25f8-b446e8e935e3",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "3b10ec97-6ff2-e5ac-938d-4fca6373dd5b",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "0704bd9f-ae5e-12f2-9453-416bc39743b7",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "8f71b552-9c2e-3d9f-35a3-601880c3eb3a",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "783095ba-46b4-c45c-b5ae-73a0519b5545",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "69fd3206-c577-ec7c-072d-303f7b1d703b",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "e2ba79a5-f7b5-f28b-f77c-cf6338cb43d4",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "3f93a974-66c7-912d-058f-155b59c9e6ed",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "ba617605-b923-0fd3-b195-2bef62200ecf",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "3ff2091d-b064-ee3d-dbbc-8944608e1c3c",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "57eb5baa-7984-31f3-0595-93e1e4d16509",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "4e78ed3a-4915-c2af-fba9-6adcb82cce78",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "7005ef5a-bcda-d5bd-dfd0-9aba2b7498e2",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "da9a3e51-f579-e40e-c1b7-da9750960f32",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "e71422a5-9055-eb90-b3a9-99e32fbee7c8",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "f7af6886-7315-4243-c359-d976650e7eed",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "415f0e2a-d1ee-9d89-e97e-8ad24a26ca11",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "72c642bb-e9a3-146a-081f-bc7c654bf78f",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "a369c302-45ee-c21d-8aee-a5d9ab70a39d",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "4a541a93-4119-ff79-610d-d571523445dd",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "d7bae8e0-fe57-5a45-6467-c070ba2602d2",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "4477cb12-2253-562c-d792-a27500f3768c",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "609e1aff-d39b-7ea5-adfe-8a453f916b00",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "479524f4-fd42-5ac7-1b9a-9f7dae2c80df",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "3afe63ad-68ff-d5d0-06ac-9da85e957234",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "471c9e6e-7ca5-332b-07b6-05d9a579ab73",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "aggregator": "EASYPOST",
+      "environment": "TEST",
+      "is_active": false
+    },
+    {
+      "id": "02be07af-8be3-ec52-44d1-ec168e061fe6",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "aggregator": "REGIONAL",
+      "environment": "TEST",
+      "is_active": false
+    }
+  ],
+  "shipments": [
+    {
+      "id": "fbb55eab-14bc-4745-0523-3abc04948924",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "customer_reference": "SEED24-1-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "16.20",
+      "profit_markup": "2.43",
+      "final_client_price": "18.63"
+    },
+    {
+      "id": "83391a37-5f1d-1500-6d4b-b72331d53b4e",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "customer_reference": "SEED24-1-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "19.40",
+      "profit_markup": "2.91",
+      "final_client_price": "22.31"
+    },
+    {
+      "id": "ccb46f3c-e6cc-e25d-f809-21b63654e40a",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "customer_reference": "SEED24-1-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "GBP",
+      "wholesale_cost": "22.60",
+      "profit_markup": "4.52",
+      "final_client_price": "27.12"
+    },
+    {
+      "id": "a104d6cf-25ce-a074-e92b-74a3f3310ae6",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "customer_reference": "SEED24-1-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "125.20",
+      "profit_markup": "18.78",
+      "final_client_price": "143.98"
+    },
+    {
+      "id": "743894ca-72a3-e442-12d1-f4199037fad8",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "customer_reference": "SEED24-1-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "29.00",
+      "profit_markup": "4.35",
+      "final_client_price": "33.35"
+    },
+    {
+      "id": "fd8a8a3e-ffbf-5bd5-219c-6fce6776720e",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "customer_reference": "SEED24-1-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "GBP",
+      "wholesale_cost": "32.20",
+      "profit_markup": "4.83",
+      "final_client_price": "37.03"
+    },
+    {
+      "id": "214c9bdf-ff81-9e65-5597-5179c9fd831b",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "customer_reference": "SEED24-1-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "260.00",
+      "profit_markup": "39.00",
+      "final_client_price": "299.00"
+    },
+    {
+      "id": "033d1082-7da9-c8a1-95ad-d909647f6805",
+      "tenant_id": "11de776d-4faf-f071-eb53-76d35aa619db",
+      "customer_reference": "SEED24-1-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "38.60",
+      "profit_markup": "5.79",
+      "final_client_price": "44.39"
+    },
+    {
+      "id": "2c7ab8c1-0408-ad19-6a03-51db03861f0d",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "customer_reference": "SEED24-2-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "17.20",
+      "profit_markup": "3.44",
+      "final_client_price": "20.64"
+    },
+    {
+      "id": "db95c033-ad40-5a77-99c3-45abe5a19f86",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "customer_reference": "SEED24-2-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "20.40",
+      "profit_markup": "4.08",
+      "final_client_price": "24.48"
+    },
+    {
+      "id": "b242a3d1-d854-ae5a-4a2d-434688784b8c",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "customer_reference": "SEED24-2-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "EUR",
+      "wholesale_cost": "23.60",
+      "profit_markup": "5.90",
+      "final_client_price": "29.50"
+    },
+    {
+      "id": "c7f74530-71e9-60ec-ff13-f4756da1431f",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "customer_reference": "SEED24-2-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "130.40",
+      "profit_markup": "26.08",
+      "final_client_price": "156.48"
+    },
+    {
+      "id": "87ffdb84-c5a8-cf7d-0803-f8862f6e0fbc",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "customer_reference": "SEED24-2-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "30.00",
+      "profit_markup": "6.00",
+      "final_client_price": "36.00"
+    },
+    {
+      "id": "2a047096-b652-fe5b-5df2-0baf8d6d204a",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "customer_reference": "SEED24-2-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "EUR",
+      "wholesale_cost": "33.20",
+      "profit_markup": "6.64",
+      "final_client_price": "39.84"
+    },
+    {
+      "id": "54bdeeb4-1bba-e3f3-f752-9310c54dc0ba",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "customer_reference": "SEED24-2-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "270.00",
+      "profit_markup": "54.00",
+      "final_client_price": "324.00"
+    },
+    {
+      "id": "a2056b6d-465a-d403-dbdb-de2939b26169",
+      "tenant_id": "78c4bd95-fc32-4ea1-1554-b74836529bfe",
+      "customer_reference": "SEED24-2-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "39.60",
+      "profit_markup": "7.92",
+      "final_client_price": "47.52"
+    },
+    {
+      "id": "b77b6648-dab6-4b61-09a7-105f05620b63",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "customer_reference": "SEED24-3-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "18.20",
+      "profit_markup": "4.55",
+      "final_client_price": "22.75"
+    },
+    {
+      "id": "1bf447b1-1235-8483-041b-b1152f69c9eb",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "customer_reference": "SEED24-3-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "21.40",
+      "profit_markup": "5.35",
+      "final_client_price": "26.75"
+    },
+    {
+      "id": "62379a60-8dd3-16a1-55dd-ba80873a363a",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "customer_reference": "SEED24-3-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "USD",
+      "wholesale_cost": "24.60",
+      "profit_markup": "7.38",
+      "final_client_price": "31.98"
+    },
+    {
+      "id": "b82cbaa3-0c5d-1b5f-f53a-ac122bad293f",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "customer_reference": "SEED24-3-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "135.60",
+      "profit_markup": "33.90",
+      "final_client_price": "169.50"
+    },
+    {
+      "id": "5aba1c88-fc94-eb08-ac41-0319f5067650",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "customer_reference": "SEED24-3-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "31.00",
+      "profit_markup": "7.75",
+      "final_client_price": "38.75"
+    },
+    {
+      "id": "bd05f713-7d1a-175d-781e-1697898af300",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "customer_reference": "SEED24-3-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "USD",
+      "wholesale_cost": "34.20",
+      "profit_markup": "8.55",
+      "final_client_price": "42.75"
+    },
+    {
+      "id": "3ab7748b-2c47-193d-b1e8-a988d871eaac",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "customer_reference": "SEED24-3-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "280.00",
+      "profit_markup": "70.00",
+      "final_client_price": "350.00"
+    },
+    {
+      "id": "12ce3867-bb80-3615-0daf-49db08d0308f",
+      "tenant_id": "41769685-bcf9-99a2-9118-34b95609418c",
+      "customer_reference": "SEED24-3-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "40.60",
+      "profit_markup": "10.15",
+      "final_client_price": "50.75"
+    },
+    {
+      "id": "18eb979f-c5f8-8112-45dc-af8feb4cf8cf",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "customer_reference": "SEED24-4-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "19.20",
+      "profit_markup": "5.76",
+      "final_client_price": "24.96"
+    },
+    {
+      "id": "4263d185-24b3-d5b1-ff63-95012657f296",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "customer_reference": "SEED24-4-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "22.40",
+      "profit_markup": "6.72",
+      "final_client_price": "29.12"
+    },
+    {
+      "id": "9f022ffa-0496-2baf-c1f9-fb3680242b57",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "customer_reference": "SEED24-4-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "GBP",
+      "wholesale_cost": "25.60",
+      "profit_markup": "8.96",
+      "final_client_price": "34.56"
+    },
+    {
+      "id": "52b2faf5-d2bc-7931-8c73-a0023bd69469",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "customer_reference": "SEED24-4-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "140.80",
+      "profit_markup": "42.24",
+      "final_client_price": "183.04"
+    },
+    {
+      "id": "16a2e727-b7bf-20f1-e9be-49548376644b",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "customer_reference": "SEED24-4-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "32.00",
+      "profit_markup": "9.60",
+      "final_client_price": "41.60"
+    },
+    {
+      "id": "8ba80602-386a-2671-58f2-7aefa152e26e",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "customer_reference": "SEED24-4-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "GBP",
+      "wholesale_cost": "35.20",
+      "profit_markup": "10.56",
+      "final_client_price": "45.76"
+    },
+    {
+      "id": "a89a9172-e343-13f3-571d-260487c0242f",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "customer_reference": "SEED24-4-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "290.00",
+      "profit_markup": "87.00",
+      "final_client_price": "377.00"
+    },
+    {
+      "id": "3351fd53-87e6-b3e4-ef4d-51291f67eebf",
+      "tenant_id": "afb7e3ed-e10d-f650-1fc3-9a29b7945495",
+      "customer_reference": "SEED24-4-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "41.60",
+      "profit_markup": "12.48",
+      "final_client_price": "54.08"
+    },
+    {
+      "id": "75cc4243-7bee-feb2-a135-74085cad6ecb",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "customer_reference": "SEED24-5-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "20.20",
+      "profit_markup": "2.02",
+      "final_client_price": "22.22"
+    },
+    {
+      "id": "6e87bf12-f12c-fa4b-f9ed-bd422069ac2a",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "customer_reference": "SEED24-5-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "23.40",
+      "profit_markup": "2.34",
+      "final_client_price": "25.74"
+    },
+    {
+      "id": "be7ceb46-7329-edba-e12a-ce85e9c7a8f0",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "customer_reference": "SEED24-5-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "EUR",
+      "wholesale_cost": "26.60",
+      "profit_markup": "3.99",
+      "final_client_price": "30.59"
+    },
+    {
+      "id": "cf218683-ea22-e56e-eb91-a8e23feb2ccc",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "customer_reference": "SEED24-5-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "146.00",
+      "profit_markup": "14.60",
+      "final_client_price": "160.60"
+    },
+    {
+      "id": "b5ec23d4-5e19-6ae1-bd35-75905873bdff",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "customer_reference": "SEED24-5-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "33.00",
+      "profit_markup": "3.30",
+      "final_client_price": "36.30"
+    },
+    {
+      "id": "ba5fec80-e3d7-b2eb-cf3b-dcbe9b0a952e",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "customer_reference": "SEED24-5-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "EUR",
+      "wholesale_cost": "36.20",
+      "profit_markup": "3.62",
+      "final_client_price": "39.82"
+    },
+    {
+      "id": "7bba7433-2039-7d9a-d7f0-468b31766ab3",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "customer_reference": "SEED24-5-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "300.00",
+      "profit_markup": "30.00",
+      "final_client_price": "330.00"
+    },
+    {
+      "id": "5e264532-34d0-036b-20e4-f6ce37c0156a",
+      "tenant_id": "278a026c-e2e7-0e08-d03a-eb7fe60a5dc8",
+      "customer_reference": "SEED24-5-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "42.60",
+      "profit_markup": "4.26",
+      "final_client_price": "46.86"
+    },
+    {
+      "id": "efdd3725-ced7-85ae-971b-3873660c0d0a",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "customer_reference": "SEED24-6-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "21.20",
+      "profit_markup": "3.18",
+      "final_client_price": "24.38"
+    },
+    {
+      "id": "154fe768-969e-f695-bebc-34bafaf50950",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "customer_reference": "SEED24-6-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "24.40",
+      "profit_markup": "3.66",
+      "final_client_price": "28.06"
+    },
+    {
+      "id": "9035281c-cd53-9dd6-b822-48c7df4a4d9c",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "customer_reference": "SEED24-6-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "USD",
+      "wholesale_cost": "27.60",
+      "profit_markup": "5.52",
+      "final_client_price": "33.12"
+    },
+    {
+      "id": "403e077a-cf20-eeef-418b-6418d1735d5c",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "customer_reference": "SEED24-6-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "151.20",
+      "profit_markup": "22.68",
+      "final_client_price": "173.88"
+    },
+    {
+      "id": "3494da71-4072-fffe-d4e5-e8c9d3bef4a4",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "customer_reference": "SEED24-6-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "34.00",
+      "profit_markup": "5.10",
+      "final_client_price": "39.10"
+    },
+    {
+      "id": "fdaa2a99-fd0b-542d-3f73-4ab3f9eadc04",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "customer_reference": "SEED24-6-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "USD",
+      "wholesale_cost": "37.20",
+      "profit_markup": "5.58",
+      "final_client_price": "42.78"
+    },
+    {
+      "id": "0ff03eeb-8907-0a89-fa82-9fc09aa575f0",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "customer_reference": "SEED24-6-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "310.00",
+      "profit_markup": "46.50",
+      "final_client_price": "356.50"
+    },
+    {
+      "id": "118f2da2-62c8-7153-f6b5-584fdeadb016",
+      "tenant_id": "074f2251-8b88-fe70-e5f4-91925f3bd129",
+      "customer_reference": "SEED24-6-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "43.60",
+      "profit_markup": "6.54",
+      "final_client_price": "50.14"
+    },
+    {
+      "id": "481c7bf2-8628-de19-6852-910fd714ec5b",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "customer_reference": "SEED24-7-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "22.20",
+      "profit_markup": "4.44",
+      "final_client_price": "26.64"
+    },
+    {
+      "id": "df782a15-ea35-cb20-5058-67eb8bf19b05",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "customer_reference": "SEED24-7-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "25.40",
+      "profit_markup": "5.08",
+      "final_client_price": "30.48"
+    },
+    {
+      "id": "4d6a552f-8bf1-c028-3857-b87b0360940c",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "customer_reference": "SEED24-7-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "GBP",
+      "wholesale_cost": "28.60",
+      "profit_markup": "7.15",
+      "final_client_price": "35.75"
+    },
+    {
+      "id": "94c0ab2e-a7d0-3c85-0498-7eac640f5af1",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "customer_reference": "SEED24-7-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "156.40",
+      "profit_markup": "31.28",
+      "final_client_price": "187.68"
+    },
+    {
+      "id": "dec3328c-eeca-9840-8482-7f5db4e17757",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "customer_reference": "SEED24-7-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "35.00",
+      "profit_markup": "7.00",
+      "final_client_price": "42.00"
+    },
+    {
+      "id": "68e70436-61a5-a78c-1235-8337ef75093d",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "customer_reference": "SEED24-7-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "GBP",
+      "wholesale_cost": "38.20",
+      "profit_markup": "7.64",
+      "final_client_price": "45.84"
+    },
+    {
+      "id": "91e51a2d-dd6b-9ed9-49b5-527203996820",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "customer_reference": "SEED24-7-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "320.00",
+      "profit_markup": "64.00",
+      "final_client_price": "384.00"
+    },
+    {
+      "id": "dd065578-5e82-7b3e-5d97-e531b7fd7670",
+      "tenant_id": "ba01050e-7945-5ecf-695a-56dc45d080d3",
+      "customer_reference": "SEED24-7-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "44.60",
+      "profit_markup": "8.92",
+      "final_client_price": "53.52"
+    },
+    {
+      "id": "a0881621-2b3f-8b3c-6bea-60294e9e27aa",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "customer_reference": "SEED24-8-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "23.20",
+      "profit_markup": "5.80",
+      "final_client_price": "29.00"
+    },
+    {
+      "id": "377ef106-b74c-0de8-de82-58a1b3c750cc",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "customer_reference": "SEED24-8-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "26.40",
+      "profit_markup": "6.60",
+      "final_client_price": "33.00"
+    },
+    {
+      "id": "c518e4e8-0754-e70e-b292-de49ffb65628",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "customer_reference": "SEED24-8-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "EUR",
+      "wholesale_cost": "29.60",
+      "profit_markup": "8.88",
+      "final_client_price": "38.48"
+    },
+    {
+      "id": "94066241-0ee4-60d5-2674-7c777136cc93",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "customer_reference": "SEED24-8-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "161.60",
+      "profit_markup": "40.40",
+      "final_client_price": "202.00"
+    },
+    {
+      "id": "0418fa61-38ca-7f3e-eadd-5d01b5142851",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "customer_reference": "SEED24-8-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "36.00",
+      "profit_markup": "9.00",
+      "final_client_price": "45.00"
+    },
+    {
+      "id": "8b8ecdd3-da83-fabf-0840-6722d1ca11f0",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "customer_reference": "SEED24-8-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "EUR",
+      "wholesale_cost": "39.20",
+      "profit_markup": "9.80",
+      "final_client_price": "49.00"
+    },
+    {
+      "id": "c7f38a0d-66f0-3046-ec3d-0cc9e22635ed",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "customer_reference": "SEED24-8-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "330.00",
+      "profit_markup": "82.50",
+      "final_client_price": "412.50"
+    },
+    {
+      "id": "5a2d964c-e590-61c1-839f-a19b38f37c78",
+      "tenant_id": "a837745b-60db-b5d9-a927-da15d127bd39",
+      "customer_reference": "SEED24-8-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "45.60",
+      "profit_markup": "11.40",
+      "final_client_price": "57.00"
+    },
+    {
+      "id": "467167cb-a32a-2484-3bb1-f37231a660b4",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "customer_reference": "SEED24-9-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "24.20",
+      "profit_markup": "7.26",
+      "final_client_price": "31.46"
+    },
+    {
+      "id": "56c3673c-6fcd-2d2a-bb6f-7a1bd38099e8",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "customer_reference": "SEED24-9-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "27.40",
+      "profit_markup": "8.22",
+      "final_client_price": "35.62"
+    },
+    {
+      "id": "22f22499-e743-771e-8ae1-af354bbad5a1",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "customer_reference": "SEED24-9-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "USD",
+      "wholesale_cost": "30.60",
+      "profit_markup": "10.71",
+      "final_client_price": "41.31"
+    },
+    {
+      "id": "f415ca57-7ac8-8d75-b496-de31bc60947b",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "customer_reference": "SEED24-9-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "166.80",
+      "profit_markup": "50.04",
+      "final_client_price": "216.84"
+    },
+    {
+      "id": "c28da662-8393-eb4d-702b-5f113ffcbc9c",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "customer_reference": "SEED24-9-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "37.00",
+      "profit_markup": "11.10",
+      "final_client_price": "48.10"
+    },
+    {
+      "id": "c9f7edc5-5e13-c667-1672-c6013cdb84c2",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "customer_reference": "SEED24-9-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "USD",
+      "wholesale_cost": "40.20",
+      "profit_markup": "12.06",
+      "final_client_price": "52.26"
+    },
+    {
+      "id": "4787e3a0-01f1-b4be-752f-2801a4a24759",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "customer_reference": "SEED24-9-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "340.00",
+      "profit_markup": "102.00",
+      "final_client_price": "442.00"
+    },
+    {
+      "id": "8544013b-1bd9-c52e-ef24-409a223c0a26",
+      "tenant_id": "c7e4840b-dc33-a1ee-bb80-9dedf451bac2",
+      "customer_reference": "SEED24-9-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "46.60",
+      "profit_markup": "13.98",
+      "final_client_price": "60.58"
+    },
+    {
+      "id": "c26b37da-fb7c-cc37-55ce-9f0c168e0b57",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "customer_reference": "SEED24-10-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "25.20",
+      "profit_markup": "2.52",
+      "final_client_price": "27.72"
+    },
+    {
+      "id": "bc6969f2-c391-9096-cc7a-f9f99448dac7",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "customer_reference": "SEED24-10-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "28.40",
+      "profit_markup": "2.84",
+      "final_client_price": "31.24"
+    },
+    {
+      "id": "156c2ed2-dd42-c7c3-f640-d399a28936be",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "customer_reference": "SEED24-10-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "GBP",
+      "wholesale_cost": "31.60",
+      "profit_markup": "4.74",
+      "final_client_price": "36.34"
+    },
+    {
+      "id": "6ed8a160-a16c-7d28-e006-20df20e800f8",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "customer_reference": "SEED24-10-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "172.00",
+      "profit_markup": "17.20",
+      "final_client_price": "189.20"
+    },
+    {
+      "id": "dd151b2c-092b-db27-d940-c004ebb71502",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "customer_reference": "SEED24-10-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "38.00",
+      "profit_markup": "3.80",
+      "final_client_price": "41.80"
+    },
+    {
+      "id": "832886a9-d92b-6e26-025a-443b0b7c705b",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "customer_reference": "SEED24-10-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "GBP",
+      "wholesale_cost": "41.20",
+      "profit_markup": "4.12",
+      "final_client_price": "45.32"
+    },
+    {
+      "id": "d1276ff4-87b7-2edb-f5a3-73603b7491f5",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "customer_reference": "SEED24-10-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "350.00",
+      "profit_markup": "35.00",
+      "final_client_price": "385.00"
+    },
+    {
+      "id": "c3f44726-973b-d985-120b-9760860ca7d3",
+      "tenant_id": "f4631b25-0191-e7b7-c21b-f0b6857ba625",
+      "customer_reference": "SEED24-10-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "47.60",
+      "profit_markup": "4.76",
+      "final_client_price": "52.36"
+    },
+    {
+      "id": "3fd46e6a-96e8-c0e2-1001-6119714276c3",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "customer_reference": "SEED24-11-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "26.20",
+      "profit_markup": "3.93",
+      "final_client_price": "30.13"
+    },
+    {
+      "id": "f49dd4a4-828d-a1be-3306-552569a32fd6",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "customer_reference": "SEED24-11-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "29.40",
+      "profit_markup": "4.41",
+      "final_client_price": "33.81"
+    },
+    {
+      "id": "e25c3c5f-9d17-f761-5586-1cdef74ffd8e",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "customer_reference": "SEED24-11-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "EUR",
+      "wholesale_cost": "32.60",
+      "profit_markup": "6.52",
+      "final_client_price": "39.12"
+    },
+    {
+      "id": "a172c33a-0728-86fb-b8e5-ce029b88fd40",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "customer_reference": "SEED24-11-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "177.20",
+      "profit_markup": "26.58",
+      "final_client_price": "203.78"
+    },
+    {
+      "id": "3c756acf-0caf-aa42-0770-ec2bfd97a26c",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "customer_reference": "SEED24-11-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "39.00",
+      "profit_markup": "5.85",
+      "final_client_price": "44.85"
+    },
+    {
+      "id": "4d255755-a5c9-f338-e702-e8aa1c58368c",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "customer_reference": "SEED24-11-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "EUR",
+      "wholesale_cost": "42.20",
+      "profit_markup": "6.33",
+      "final_client_price": "48.53"
+    },
+    {
+      "id": "0e9a8f34-a2d9-5722-e5a7-473d954f40d1",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "customer_reference": "SEED24-11-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "360.00",
+      "profit_markup": "54.00",
+      "final_client_price": "414.00"
+    },
+    {
+      "id": "baae6917-7bbb-cd0f-32b3-c73bda3dd55b",
+      "tenant_id": "3eae3257-8125-aea4-e3bc-8a92baa46be0",
+      "customer_reference": "SEED24-11-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "48.60",
+      "profit_markup": "7.29",
+      "final_client_price": "55.89"
+    },
+    {
+      "id": "8f402fbd-7f43-e733-12bb-857c5f417043",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "customer_reference": "SEED24-12-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "27.20",
+      "profit_markup": "5.44",
+      "final_client_price": "32.64"
+    },
+    {
+      "id": "1f12028e-ed51-97ad-360c-56e6a70e0332",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "customer_reference": "SEED24-12-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "30.40",
+      "profit_markup": "6.08",
+      "final_client_price": "36.48"
+    },
+    {
+      "id": "4d992ebd-a1f7-e432-da06-e5cfa5d5b055",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "customer_reference": "SEED24-12-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "USD",
+      "wholesale_cost": "33.60",
+      "profit_markup": "8.40",
+      "final_client_price": "42.00"
+    },
+    {
+      "id": "a70b9795-2815-5a61-381f-ea6152ac5dc1",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "customer_reference": "SEED24-12-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "182.40",
+      "profit_markup": "36.48",
+      "final_client_price": "218.88"
+    },
+    {
+      "id": "79e286a6-aa83-312a-880d-22ac506e00e1",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "customer_reference": "SEED24-12-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "40.00",
+      "profit_markup": "8.00",
+      "final_client_price": "48.00"
+    },
+    {
+      "id": "50ba0ca2-cf18-6d26-0583-a0437efe8752",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "customer_reference": "SEED24-12-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "USD",
+      "wholesale_cost": "43.20",
+      "profit_markup": "8.64",
+      "final_client_price": "51.84"
+    },
+    {
+      "id": "390f707a-78b8-849b-ff49-ca743c2da8cd",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "customer_reference": "SEED24-12-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "370.00",
+      "profit_markup": "74.00",
+      "final_client_price": "444.00"
+    },
+    {
+      "id": "dbddc877-eb60-5230-57d9-44516ae6f60e",
+      "tenant_id": "33990e2e-968d-8c15-4873-c8b869d0b28e",
+      "customer_reference": "SEED24-12-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "49.60",
+      "profit_markup": "9.92",
+      "final_client_price": "59.52"
+    },
+    {
+      "id": "449f4db8-b938-16f4-694a-39741880d95f",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "customer_reference": "SEED24-13-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "28.20",
+      "profit_markup": "7.05",
+      "final_client_price": "35.25"
+    },
+    {
+      "id": "f293f465-aabc-a4e8-fdc0-c22f8a5915ea",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "customer_reference": "SEED24-13-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "31.40",
+      "profit_markup": "7.85",
+      "final_client_price": "39.25"
+    },
+    {
+      "id": "2ebf7ce9-8671-3160-e201-e84530d6a261",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "customer_reference": "SEED24-13-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "GBP",
+      "wholesale_cost": "34.60",
+      "profit_markup": "10.38",
+      "final_client_price": "44.98"
+    },
+    {
+      "id": "6ff90fda-66ee-a5bb-522b-a6ee5f53beef",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "customer_reference": "SEED24-13-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "187.60",
+      "profit_markup": "46.90",
+      "final_client_price": "234.50"
+    },
+    {
+      "id": "9bd68279-7b5e-6cdc-8836-3ed3680468c3",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "customer_reference": "SEED24-13-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "41.00",
+      "profit_markup": "10.25",
+      "final_client_price": "51.25"
+    },
+    {
+      "id": "7c933541-b367-27af-42f6-9b386b64a762",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "customer_reference": "SEED24-13-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "GBP",
+      "wholesale_cost": "44.20",
+      "profit_markup": "11.05",
+      "final_client_price": "55.25"
+    },
+    {
+      "id": "27af2fc7-7e8e-fe77-20f8-b0f2e2b5e40f",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "customer_reference": "SEED24-13-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "380.00",
+      "profit_markup": "95.00",
+      "final_client_price": "475.00"
+    },
+    {
+      "id": "04fd78d3-cf43-ab05-91ff-55fd8c89f503",
+      "tenant_id": "92c1c887-0404-d89f-6320-47055e06d957",
+      "customer_reference": "SEED24-13-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "50.60",
+      "profit_markup": "12.65",
+      "final_client_price": "63.25"
+    },
+    {
+      "id": "30bf8ddf-733c-6edd-7ebd-3e267b89523a",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "customer_reference": "SEED24-14-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "29.20",
+      "profit_markup": "8.76",
+      "final_client_price": "37.96"
+    },
+    {
+      "id": "1572f141-4d29-9472-68ce-6024e14b1d73",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "customer_reference": "SEED24-14-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "32.40",
+      "profit_markup": "9.72",
+      "final_client_price": "42.12"
+    },
+    {
+      "id": "c2c0ca34-a8ba-a1f0-6314-8fc1b6ec2f97",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "customer_reference": "SEED24-14-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "EUR",
+      "wholesale_cost": "35.60",
+      "profit_markup": "12.46",
+      "final_client_price": "48.06"
+    },
+    {
+      "id": "7177dd3c-cc11-5785-e126-d9315e1683c0",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "customer_reference": "SEED24-14-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "192.80",
+      "profit_markup": "57.84",
+      "final_client_price": "250.64"
+    },
+    {
+      "id": "5b068e44-e94b-5834-0c3b-ac716a63e24a",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "customer_reference": "SEED24-14-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "42.00",
+      "profit_markup": "12.60",
+      "final_client_price": "54.60"
+    },
+    {
+      "id": "50b9f40b-0ba0-c809-1367-e31fba2eba8b",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "customer_reference": "SEED24-14-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "EUR",
+      "wholesale_cost": "45.20",
+      "profit_markup": "13.56",
+      "final_client_price": "58.76"
+    },
+    {
+      "id": "b9746b61-0c55-7563-b2ef-fe828e0be15a",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "customer_reference": "SEED24-14-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "390.00",
+      "profit_markup": "117.00",
+      "final_client_price": "507.00"
+    },
+    {
+      "id": "6b5c1194-73c5-7a83-c09e-7dff7f20fac6",
+      "tenant_id": "40afede9-88d4-b6bb-5a0b-d418dcbb52df",
+      "customer_reference": "SEED24-14-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "51.60",
+      "profit_markup": "15.48",
+      "final_client_price": "67.08"
+    },
+    {
+      "id": "2c05821a-0e36-bbb5-7464-62491b4ae99e",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "customer_reference": "SEED24-15-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "30.20",
+      "profit_markup": "3.02",
+      "final_client_price": "33.22"
+    },
+    {
+      "id": "142fce65-c47c-2e47-d98f-9e432eff4485",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "customer_reference": "SEED24-15-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "33.40",
+      "profit_markup": "3.34",
+      "final_client_price": "36.74"
+    },
+    {
+      "id": "0822d6b9-506c-17f5-1a56-487987e9e2bc",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "customer_reference": "SEED24-15-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "USD",
+      "wholesale_cost": "36.60",
+      "profit_markup": "5.49",
+      "final_client_price": "42.09"
+    },
+    {
+      "id": "8c9a328d-2dff-4113-98bd-3a7cde1559a5",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "customer_reference": "SEED24-15-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "198.00",
+      "profit_markup": "19.80",
+      "final_client_price": "217.80"
+    },
+    {
+      "id": "f2e1b440-403b-bbe5-fdcc-cc97ebb784ab",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "customer_reference": "SEED24-15-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "43.00",
+      "profit_markup": "4.30",
+      "final_client_price": "47.30"
+    },
+    {
+      "id": "b6158987-c3bf-2bf7-576b-e76ee1f5b1f0",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "customer_reference": "SEED24-15-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "USD",
+      "wholesale_cost": "46.20",
+      "profit_markup": "4.62",
+      "final_client_price": "50.82"
+    },
+    {
+      "id": "69756b13-0c31-2c74-8d6a-d41b48e13d12",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "customer_reference": "SEED24-15-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "400.00",
+      "profit_markup": "40.00",
+      "final_client_price": "440.00"
+    },
+    {
+      "id": "ef7e8b85-e4fb-84c8-c13d-e1fffb564e29",
+      "tenant_id": "0e4c728b-7fb6-ce51-dbf2-3b638b1ecfb8",
+      "customer_reference": "SEED24-15-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "52.60",
+      "profit_markup": "5.26",
+      "final_client_price": "57.86"
+    },
+    {
+      "id": "a97a0ad4-4198-6802-594f-4eac52750144",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "customer_reference": "SEED24-16-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "31.20",
+      "profit_markup": "4.68",
+      "final_client_price": "35.88"
+    },
+    {
+      "id": "ab5ac782-fd01-d978-0b4f-2b1c82adc5ce",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "customer_reference": "SEED24-16-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "34.40",
+      "profit_markup": "5.16",
+      "final_client_price": "39.56"
+    },
+    {
+      "id": "81746c18-18e8-3da4-0e8a-7a5005197a90",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "customer_reference": "SEED24-16-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "GBP",
+      "wholesale_cost": "37.60",
+      "profit_markup": "7.52",
+      "final_client_price": "45.12"
+    },
+    {
+      "id": "903f9a67-cda2-59b8-b9b0-6488c4005c1a",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "customer_reference": "SEED24-16-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "203.20",
+      "profit_markup": "30.48",
+      "final_client_price": "233.68"
+    },
+    {
+      "id": "1972b466-476a-fbc0-6e8f-69860ee79281",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "customer_reference": "SEED24-16-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "44.00",
+      "profit_markup": "6.60",
+      "final_client_price": "50.60"
+    },
+    {
+      "id": "a1c650df-8cef-7f28-e050-1a0a21a7d406",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "customer_reference": "SEED24-16-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "GBP",
+      "wholesale_cost": "47.20",
+      "profit_markup": "7.08",
+      "final_client_price": "54.28"
+    },
+    {
+      "id": "758d0ed4-6f4e-c09d-3d7f-7ae6374dfbde",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "customer_reference": "SEED24-16-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "410.00",
+      "profit_markup": "61.50",
+      "final_client_price": "471.50"
+    },
+    {
+      "id": "fed92ad9-a25c-0657-1739-0513e72def86",
+      "tenant_id": "31371470-75fd-49dd-5087-5de1120d9ab7",
+      "customer_reference": "SEED24-16-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "53.60",
+      "profit_markup": "8.04",
+      "final_client_price": "61.64"
+    },
+    {
+      "id": "1140170b-9810-5518-a70f-5d7e83386b75",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "customer_reference": "SEED24-17-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "32.20",
+      "profit_markup": "6.44",
+      "final_client_price": "38.64"
+    },
+    {
+      "id": "07ea191d-40d2-8fed-f0b9-b283dbc69c73",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "customer_reference": "SEED24-17-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "35.40",
+      "profit_markup": "7.08",
+      "final_client_price": "42.48"
+    },
+    {
+      "id": "cb498c0e-7250-baff-85e5-f0d55e640818",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "customer_reference": "SEED24-17-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "EUR",
+      "wholesale_cost": "38.60",
+      "profit_markup": "9.65",
+      "final_client_price": "48.25"
+    },
+    {
+      "id": "e8517925-23a8-d5fc-aa4b-6aaeb6e2d58a",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "customer_reference": "SEED24-17-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "208.40",
+      "profit_markup": "41.68",
+      "final_client_price": "250.08"
+    },
+    {
+      "id": "0d7e6a6f-2d76-44db-d4bc-e10d0168efd5",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "customer_reference": "SEED24-17-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "45.00",
+      "profit_markup": "9.00",
+      "final_client_price": "54.00"
+    },
+    {
+      "id": "71b7e6c9-0374-7185-0fbf-e5301872528b",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "customer_reference": "SEED24-17-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "EUR",
+      "wholesale_cost": "48.20",
+      "profit_markup": "9.64",
+      "final_client_price": "57.84"
+    },
+    {
+      "id": "dac311cc-8af7-02b6-a440-3a6d4c6a0bde",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "customer_reference": "SEED24-17-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "420.00",
+      "profit_markup": "84.00",
+      "final_client_price": "504.00"
+    },
+    {
+      "id": "915ff2b4-0a88-028d-1e42-e34d544a9271",
+      "tenant_id": "e6437ec3-3f8d-ffe0-8350-eeb04c4c904e",
+      "customer_reference": "SEED24-17-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "54.60",
+      "profit_markup": "10.92",
+      "final_client_price": "65.52"
+    },
+    {
+      "id": "671598f6-e2a8-a514-6cc6-ad95fc066af5",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "customer_reference": "SEED24-18-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "33.20",
+      "profit_markup": "8.30",
+      "final_client_price": "41.50"
+    },
+    {
+      "id": "b1cd219e-e562-6299-ad94-2bcb44ec8c54",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "customer_reference": "SEED24-18-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "36.40",
+      "profit_markup": "9.10",
+      "final_client_price": "45.50"
+    },
+    {
+      "id": "bb4ea772-92ba-6de5-a955-4ec12ba53a3e",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "customer_reference": "SEED24-18-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "USD",
+      "wholesale_cost": "39.60",
+      "profit_markup": "11.88",
+      "final_client_price": "51.48"
+    },
+    {
+      "id": "a01c409c-3d5e-871f-fa2f-b9537304681f",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "customer_reference": "SEED24-18-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "213.60",
+      "profit_markup": "53.40",
+      "final_client_price": "267.00"
+    },
+    {
+      "id": "982ea565-61c8-95e9-1deb-53baed57ff5b",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "customer_reference": "SEED24-18-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "46.00",
+      "profit_markup": "11.50",
+      "final_client_price": "57.50"
+    },
+    {
+      "id": "278359bd-7b17-91f6-e7c4-d5f75877d0a3",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "customer_reference": "SEED24-18-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "USD",
+      "wholesale_cost": "49.20",
+      "profit_markup": "12.30",
+      "final_client_price": "61.50"
+    },
+    {
+      "id": "8d3e2da5-ff18-8094-3fbe-5424bcb9840b",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "customer_reference": "SEED24-18-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "430.00",
+      "profit_markup": "107.50",
+      "final_client_price": "537.50"
+    },
+    {
+      "id": "387de463-bcf4-86e1-50e8-2b6e0995bf06",
+      "tenant_id": "10c2b067-6b28-ce85-8c9c-3d48998c2c5d",
+      "customer_reference": "SEED24-18-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "55.60",
+      "profit_markup": "13.90",
+      "final_client_price": "69.50"
+    },
+    {
+      "id": "ab7e3f72-8fed-174b-5675-9f16e01237c5",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "customer_reference": "SEED24-19-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "34.20",
+      "profit_markup": "10.26",
+      "final_client_price": "44.46"
+    },
+    {
+      "id": "9a2b1ffa-0531-21b8-0fcc-4995a6832dc5",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "customer_reference": "SEED24-19-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "37.40",
+      "profit_markup": "11.22",
+      "final_client_price": "48.62"
+    },
+    {
+      "id": "5a2e6031-cb68-5a83-10da-bc6d1d8aea81",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "customer_reference": "SEED24-19-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "GBP",
+      "wholesale_cost": "40.60",
+      "profit_markup": "14.21",
+      "final_client_price": "54.81"
+    },
+    {
+      "id": "ec2da513-5680-f871-342d-81b5513e8112",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "customer_reference": "SEED24-19-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "218.80",
+      "profit_markup": "65.64",
+      "final_client_price": "284.44"
+    },
+    {
+      "id": "145365e1-9ce3-ed74-eaf0-e230080d904b",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "customer_reference": "SEED24-19-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "47.00",
+      "profit_markup": "14.10",
+      "final_client_price": "61.10"
+    },
+    {
+      "id": "be8e126d-e362-76f0-a7fd-24ea6bbc0600",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "customer_reference": "SEED24-19-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "GBP",
+      "wholesale_cost": "50.20",
+      "profit_markup": "15.06",
+      "final_client_price": "65.26"
+    },
+    {
+      "id": "3e5c96a1-1b9e-8535-d120-d34d642731ad",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "customer_reference": "SEED24-19-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "440.00",
+      "profit_markup": "132.00",
+      "final_client_price": "572.00"
+    },
+    {
+      "id": "90f806b9-49db-a956-825b-229beeb492c5",
+      "tenant_id": "cb61e8fb-94a5-05c4-5d58-0924595374f3",
+      "customer_reference": "SEED24-19-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "56.60",
+      "profit_markup": "16.98",
+      "final_client_price": "73.58"
+    },
+    {
+      "id": "bb964114-82ba-a5a9-5f5b-2ceb52f2f494",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "customer_reference": "SEED24-20-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "35.20",
+      "profit_markup": "3.52",
+      "final_client_price": "38.72"
+    },
+    {
+      "id": "ceb14d1a-065a-fc5c-2e6c-3d80a4cf92be",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "customer_reference": "SEED24-20-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "38.40",
+      "profit_markup": "3.84",
+      "final_client_price": "42.24"
+    },
+    {
+      "id": "61056f4f-516f-ca8d-bee1-8773564f176b",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "customer_reference": "SEED24-20-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "EUR",
+      "wholesale_cost": "41.60",
+      "profit_markup": "6.24",
+      "final_client_price": "47.84"
+    },
+    {
+      "id": "84493de2-810d-a5d4-b487-1830f58807e6",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "customer_reference": "SEED24-20-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "224.00",
+      "profit_markup": "22.40",
+      "final_client_price": "246.40"
+    },
+    {
+      "id": "0795146a-ea9e-eb5a-9516-b44745c7665d",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "customer_reference": "SEED24-20-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "48.00",
+      "profit_markup": "4.80",
+      "final_client_price": "52.80"
+    },
+    {
+      "id": "15eb36d9-7749-2d35-c5e0-553ef59d8fa0",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "customer_reference": "SEED24-20-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "EUR",
+      "wholesale_cost": "51.20",
+      "profit_markup": "5.12",
+      "final_client_price": "56.32"
+    },
+    {
+      "id": "0a59b8c8-fbe9-cef5-84d5-53135531eb1b",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "customer_reference": "SEED24-20-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "450.00",
+      "profit_markup": "45.00",
+      "final_client_price": "495.00"
+    },
+    {
+      "id": "1c76b6d2-8096-a81d-772f-296af0e7f905",
+      "tenant_id": "2e1193d8-88c0-f05c-c6f7-c43303ccec24",
+      "customer_reference": "SEED24-20-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "57.60",
+      "profit_markup": "5.76",
+      "final_client_price": "63.36"
+    },
+    {
+      "id": "7276493e-7585-8031-ad55-c7c2391b6804",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "customer_reference": "SEED24-21-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "36.20",
+      "profit_markup": "5.43",
+      "final_client_price": "41.63"
+    },
+    {
+      "id": "d9a3769f-9ddd-0a9c-920d-4731cebdc016",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "customer_reference": "SEED24-21-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "39.40",
+      "profit_markup": "5.91",
+      "final_client_price": "45.31"
+    },
+    {
+      "id": "595d3890-b72d-9006-2146-f6939f917f13",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "customer_reference": "SEED24-21-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "USD",
+      "wholesale_cost": "42.60",
+      "profit_markup": "8.52",
+      "final_client_price": "51.12"
+    },
+    {
+      "id": "cab0c285-e83f-ab7b-ba3c-2acae3678f50",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "customer_reference": "SEED24-21-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "229.20",
+      "profit_markup": "34.38",
+      "final_client_price": "263.58"
+    },
+    {
+      "id": "8202311a-828b-2d8e-390d-a0ff402c3f48",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "customer_reference": "SEED24-21-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "49.00",
+      "profit_markup": "7.35",
+      "final_client_price": "56.35"
+    },
+    {
+      "id": "cf9dfcc9-96bc-28eb-96cd-82760e532f77",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "customer_reference": "SEED24-21-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "USD",
+      "wholesale_cost": "52.20",
+      "profit_markup": "7.83",
+      "final_client_price": "60.03"
+    },
+    {
+      "id": "1350bc40-68bf-508b-cae8-54ec203038dc",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "customer_reference": "SEED24-21-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "460.00",
+      "profit_markup": "69.00",
+      "final_client_price": "529.00"
+    },
+    {
+      "id": "79c2b82a-5eed-4706-3df8-e89ae8cb0dcc",
+      "tenant_id": "10aa45d1-0227-3d90-6404-492377981983",
+      "customer_reference": "SEED24-21-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "58.60",
+      "profit_markup": "8.79",
+      "final_client_price": "67.39"
+    },
+    {
+      "id": "03e1a4e0-c621-1470-1155-bedae3a3aa7d",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "customer_reference": "SEED24-22-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "37.20",
+      "profit_markup": "7.44",
+      "final_client_price": "44.64"
+    },
+    {
+      "id": "2193d19a-8911-d814-ba6a-262ef40b3205",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "customer_reference": "SEED24-22-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "40.40",
+      "profit_markup": "8.08",
+      "final_client_price": "48.48"
+    },
+    {
+      "id": "7e885870-3f87-212d-a8f2-32f93896d0f3",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "customer_reference": "SEED24-22-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "GBP",
+      "wholesale_cost": "43.60",
+      "profit_markup": "10.90",
+      "final_client_price": "54.50"
+    },
+    {
+      "id": "e3f8ff70-9472-dff0-34ab-e4c0cf7f84c8",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "customer_reference": "SEED24-22-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "234.40",
+      "profit_markup": "46.88",
+      "final_client_price": "281.28"
+    },
+    {
+      "id": "4c53f8fe-212e-8202-8bcc-b4ea7c191836",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "customer_reference": "SEED24-22-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "50.00",
+      "profit_markup": "10.00",
+      "final_client_price": "60.00"
+    },
+    {
+      "id": "efb380c2-f3d6-8a5d-b2f5-c6d3f8c1f6e6",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "customer_reference": "SEED24-22-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "GBP",
+      "wholesale_cost": "53.20",
+      "profit_markup": "10.64",
+      "final_client_price": "63.84"
+    },
+    {
+      "id": "5480bede-3fb1-4029-2745-611dd6bea375",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "customer_reference": "SEED24-22-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "470.00",
+      "profit_markup": "94.00",
+      "final_client_price": "564.00"
+    },
+    {
+      "id": "5a0571fb-8872-f39e-c09b-ce59ab0195ed",
+      "tenant_id": "105f5c2e-0a01-a88f-e087-8f30404d079d",
+      "customer_reference": "SEED24-22-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "GBP",
+      "wholesale_cost": "59.60",
+      "profit_markup": "11.92",
+      "final_client_price": "71.52"
+    },
+    {
+      "id": "883b66d9-ae81-2f0a-dcce-10b7269759c3",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "customer_reference": "SEED24-23-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "38.20",
+      "profit_markup": "9.55",
+      "final_client_price": "47.75"
+    },
+    {
+      "id": "7d5346c7-f76e-d45a-f832-caef1282e241",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "customer_reference": "SEED24-23-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "41.40",
+      "profit_markup": "10.35",
+      "final_client_price": "51.75"
+    },
+    {
+      "id": "e1089cd6-ba14-c6a2-8dda-aaa8fecd291c",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "customer_reference": "SEED24-23-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "EUR",
+      "wholesale_cost": "44.60",
+      "profit_markup": "13.38",
+      "final_client_price": "57.98"
+    },
+    {
+      "id": "420f404e-082c-5304-3374-f93d626d117c",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "customer_reference": "SEED24-23-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "239.60",
+      "profit_markup": "59.90",
+      "final_client_price": "299.50"
+    },
+    {
+      "id": "1fde44fe-b1c1-074c-2266-9151135a6dbc",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "customer_reference": "SEED24-23-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "51.00",
+      "profit_markup": "12.75",
+      "final_client_price": "63.75"
+    },
+    {
+      "id": "5021e53f-6ae8-dfb6-8d61-b1e032a29a72",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "customer_reference": "SEED24-23-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "EUR",
+      "wholesale_cost": "54.20",
+      "profit_markup": "13.55",
+      "final_client_price": "67.75"
+    },
+    {
+      "id": "57ac337b-e69b-6347-15e2-4866f1794dbf",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "customer_reference": "SEED24-23-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "480.00",
+      "profit_markup": "120.00",
+      "final_client_price": "600.00"
+    },
+    {
+      "id": "3096d36a-0d8e-28a8-34b4-0ee6b5dfe12b",
+      "tenant_id": "2eeceb72-cd1a-a5b4-e8d9-1103b2c93800",
+      "customer_reference": "SEED24-23-8",
+      "status": "BOOKING",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "EUR",
+      "wholesale_cost": "60.60",
+      "profit_markup": "15.15",
+      "final_client_price": "75.75"
+    },
+    {
+      "id": "2fcefda1-ddec-ea97-b2a9-98d99daf1c14",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "customer_reference": "SEED24-24-1",
+      "status": "DRAFT",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "39.20",
+      "profit_markup": "11.76",
+      "final_client_price": "50.96"
+    },
+    {
+      "id": "54087997-d558-c192-7de2-18ddf2c8180d",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "customer_reference": "SEED24-24-2",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "42.40",
+      "profit_markup": "12.72",
+      "final_client_price": "55.12"
+    },
+    {
+      "id": "2082adfa-8be4-f805-ca02-ed1a91fec852",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "customer_reference": "SEED24-24-3",
+      "status": "BOOKED",
+      "cargo_type": "PARCEL",
+      "destination_country": "US",
+      "currency": "USD",
+      "wholesale_cost": "45.60",
+      "profit_markup": "15.96",
+      "final_client_price": "61.56"
+    },
+    {
+      "id": "a549f195-c5c3-9606-9e8f-337b593f1ef7",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "customer_reference": "SEED24-24-4",
+      "status": "IN_TRANSIT",
+      "cargo_type": "PALLET",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "244.80",
+      "profit_markup": "73.44",
+      "final_client_price": "318.24"
+    },
+    {
+      "id": "50dd92a4-7ccb-f5d0-cec1-60d928b59010",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "customer_reference": "SEED24-24-5",
+      "status": "DELIVERED",
+      "cargo_type": "LETTER",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "52.00",
+      "profit_markup": "15.60",
+      "final_client_price": "67.60"
+    },
+    {
+      "id": "13c57f66-7fb6-60ab-cec0-cfff4e9f7755",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "customer_reference": "SEED24-24-6",
+      "status": "EXCEPTION",
+      "cargo_type": "PARCEL",
+      "destination_country": "DE",
+      "currency": "USD",
+      "wholesale_cost": "55.20",
+      "profit_markup": "16.56",
+      "final_client_price": "71.76"
+    },
+    {
+      "id": "71eaa063-5cc6-28d4-29b0-997670390a35",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "customer_reference": "SEED24-24-7",
+      "status": "FAILED",
+      "cargo_type": "OVERLAND_FREIGHT",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "490.00",
+      "profit_markup": "147.00",
+      "final_client_price": "637.00"
+    },
+    {
+      "id": "defcbe29-8f61-2739-bf43-9fdf62cd323f",
+      "tenant_id": "48010b40-c51a-dc92-115b-38f88bd53b46",
+      "customer_reference": "SEED24-24-8",
+      "status": "QUOTED",
+      "cargo_type": "PARCEL",
+      "destination_country": "GB",
+      "currency": "USD",
+      "wholesale_cost": "61.60",
+      "profit_markup": "18.48",
+      "final_client_price": "80.08"
+    }
+  ]
+}

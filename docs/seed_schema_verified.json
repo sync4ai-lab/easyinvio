@@ -1,0 +1,3448 @@
+{
+  "columns": [
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "instance_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "aud",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "role",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "email",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "encrypted_password",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "email_confirmed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "invited_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "confirmation_token",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "confirmation_sent_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "recovery_token",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "recovery_sent_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "email_change_token_new",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "email_change",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "email_change_sent_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "last_sign_in_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "raw_app_meta_data",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "raw_user_meta_data",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "is_super_admin",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "phone",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": "NULL::character varying",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "phone_confirmed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "phone_change",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": "''::character varying",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "phone_change_token",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": "''::character varying",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "phone_change_sent_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "confirmed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "ALWAYS",
+      "generation_expression": "LEAST(email_confirmed_at, phone_confirmed_at)"
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "email_change_token_current",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": "''::character varying",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "email_change_confirm_status",
+      "data_type": "smallint",
+      "udt_name": "int2",
+      "is_nullable": "YES",
+      "column_default": "0",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "banned_until",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "reauthentication_token",
+      "data_type": "character varying",
+      "udt_name": "varchar",
+      "is_nullable": "YES",
+      "column_default": "''::character varying",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "reauthentication_sent_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "is_sso_user",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "deleted_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "auth",
+      "table_name": "users",
+      "column_name": "is_anonymous",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "automation_failures",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "automation_failures",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "automation_failures",
+      "column_name": "idempotency_key",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "automation_failures",
+      "column_name": "order_reference",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "automation_failures",
+      "column_name": "shipment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "automation_failures",
+      "column_name": "error_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "automation_failures",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "account_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "aggregator",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "regional_provider_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "api_base_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "environment",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'TEST'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "upstream_account_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "carrier_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "credentials_ciphertext",
+      "data_type": "bytea",
+      "udt_name": "bytea",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "credential_key_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "credential_version",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "1",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "priority",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "100",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "timeout_seconds",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "30",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "credentials_rotated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "carrier_accounts",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "ecommerce_stores",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "ecommerce_stores",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "ecommerce_stores",
+      "column_name": "platform",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "ecommerce_stores",
+      "column_name": "display_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "ecommerce_stores",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "ecommerce_stores",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "rule_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "carrier_account_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "carrier_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "service_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "origin_country",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "destination_country",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "currency",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'GBP'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "min_weight_kg",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "max_weight_kg",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "min_wholesale_cost",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "max_wholesale_cost",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "markup_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "markup_value",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "minimum_markup",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "maximum_markup",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "priority",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "100",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "valid_from",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "valid_until",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "margin_rules",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "created_by_user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "carrier_account_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "applied_margin_rule_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "idempotency_key",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "customer_reference",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "internal_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'DRAFT'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "upstream_shipment_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "upstream_rate_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "carrier_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "service_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "tracking_number",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "tracking_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "label_storage_path",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "origin_country",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "destination_country",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "sender_address",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "recipient_address",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "parcel_weight_kg",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "parcel_length_cm",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "parcel_width_cm",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "parcel_height_cm",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "parcel_count",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "1",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "currency",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'GBP'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "wholesale_cost",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "profit_markup",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "tax_amount",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "client_price_ex_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "ALWAYS",
+      "generation_expression": "(wholesale_cost + profit_markup)"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "final_client_price",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "ALWAYS",
+      "generation_expression": "((wholesale_cost + profit_markup) + tax_amount)"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "pricing_snapshot",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "quoted_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "quote_expires_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "customs_required",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "customs_items",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'[]'::jsonb",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "customs_content_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "customs_incoterm",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "ai_hs_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'NOT_REQUESTED'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "ai_hs_model",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "ai_hs_model_version",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "ai_hs_request_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "ai_hs_suggestions",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'[]'::jsonb",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "ai_hs_processed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "customs_reviewed_by_user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "customs_reviewed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "booked_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "dispatched_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "delivered_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "cancelled_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "last_tracking_event_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "logistics_metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "ecommerce_store_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "store_order_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "store_import_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "proof_of_delivery_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "shipments",
+      "column_name": "cargo_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'PARCEL'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "shipment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "tracking_event_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "ai_summary",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "ai_method",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "prompt_version",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "manual_note",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "support_tickets",
+      "column_name": "automation_failure_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "workspace_slug",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "workspace_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "legal_company_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "company_registration_number",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "vat_registration_number",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "eori_number",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "billing_email",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "billing_address",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "country_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'GB'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "default_currency",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'GBP'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "timezone",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'Europe/London'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "billing_plan",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'PREPAID_WALLET'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "billing_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'PENDING'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "workspace_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'ACTIVE'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "stripe_customer_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "gocardless_customer_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "gocardless_mandate_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "credit_limit",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "company_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "company_profile",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tenants",
+      "column_name": "is_sandbox",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "shipment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "integration_key_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "event_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "body_sha256",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "occurred_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "received_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "raw_error",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "response",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "tracking_events",
+      "column_name": "support_pending",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "auth_user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "role",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "full_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "phone_e164",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "users",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "entry_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "balance_delta",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "reserved_delta",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "balance_after",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "reserved_after",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "currency",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "reservation_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "topup_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "stripe_session_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "stripe_event_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_ledger",
+      "column_name": "stripe_payment_intent_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "shipment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "billing_plan",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "amount",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "currency",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'RESERVED'::text",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallet_reservations",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallets",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallets",
+      "column_name": "currency",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallets",
+      "column_name": "balance",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallets",
+      "column_name": "reserved_balance",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallets",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "wallets",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "is_generated": "NEVER",
+      "generation_expression": null
+    }
+  ],
+  "constraints": [
+    {
+      "schema": "auth",
+      "table_name": "users",
+      "conname": "users_email_change_confirm_status_check",
+      "definition": "CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))"
+    },
+    {
+      "schema": "auth",
+      "table_name": "users",
+      "conname": "users_phone_key",
+      "definition": "UNIQUE (phone)"
+    },
+    {
+      "schema": "auth",
+      "table_name": "users",
+      "conname": "users_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "automation_failures",
+      "conname": "automation_failures_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "automation_failures",
+      "conname": "automation_failures_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "automation_failures",
+      "conname": "automation_failures_tenant_id_id_key",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "automation_failures",
+      "conname": "automation_failures_tenant_id_idempotency_key_key",
+      "definition": "UNIQUE (tenant_id, idempotency_key)"
+    },
+    {
+      "schema": "public",
+      "table_name": "automation_failures",
+      "conname": "automation_failures_tenant_id_shipment_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id, shipment_id) REFERENCES shipments(tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_aggregator_check",
+      "definition": "CHECK ((aggregator = ANY (ARRAY['EASYPOST'::text, 'REGIONAL'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_ciphertext_check",
+      "definition": "CHECK (((octet_length(credentials_ciphertext) > 0) AND (length(btrim(credential_key_id)) > 0) AND (credential_version > 0)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_easypost_endpoint_check",
+      "definition": "CHECK (((aggregator <> 'EASYPOST'::text) OR (api_base_url = 'https://api.easypost.com/v2'::text)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_endpoint_check",
+      "definition": "CHECK ((api_base_url ~ '^https://[^[:space:]]+$'::text))"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_environment_check",
+      "definition": "CHECK ((environment = ANY (ARRAY['TEST'::text, 'LIVE'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_name_check",
+      "definition": "CHECK (((length(btrim(account_name)) >= 1) AND (length(btrim(account_name)) <= 200)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_name_unique",
+      "definition": "UNIQUE (tenant_id, account_name, environment)"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_priority_check",
+      "definition": "CHECK ((priority >= 0))"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_regional_check",
+      "definition": "CHECK ((((aggregator = 'REGIONAL'::text) AND (regional_provider_code IS NOT NULL) AND (regional_provider_code ~ '^[A-Z0-9_]{2,64}$'::text)) OR ((aggregator = 'EASYPOST'::text) AND (regional_provider_code IS NULL))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_tenant_id_unique",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "conname": "carrier_accounts_timeout_check",
+      "definition": "CHECK (((timeout_seconds >= 1) AND (timeout_seconds <= 120)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "ecommerce_stores",
+      "conname": "ecommerce_stores_display_name_check",
+      "definition": "CHECK (((length(display_name) >= 1) AND (length(display_name) <= 200)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "ecommerce_stores",
+      "conname": "ecommerce_stores_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "ecommerce_stores",
+      "conname": "ecommerce_stores_platform_check",
+      "definition": "CHECK (((platform = ANY (ARRAY['SHOPIFY'::text, 'WOOCOMMERCE'::text])) OR (platform = 'AMAZON'::text)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "ecommerce_stores",
+      "conname": "ecommerce_stores_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "ecommerce_stores",
+      "conname": "ecommerce_stores_tenant_id_id_key",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_account_fk",
+      "definition": "FOREIGN KEY (tenant_id, carrier_account_id) REFERENCES carrier_accounts(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_cost_check",
+      "definition": "CHECK ((((min_wholesale_cost IS NULL) OR ((min_wholesale_cost >= (0)::numeric) AND (min_wholesale_cost < ('100000000000000000'::bigint)::numeric))) AND ((max_wholesale_cost IS NULL) OR ((max_wholesale_cost > (0)::numeric) AND (max_wholesale_cost < ('100000000000000000'::bigint)::numeric))) AND ((min_wholesale_cost IS NULL) OR (max_wholesale_cost IS NULL) OR (max_wholesale_cost > min_wholesale_cost))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_countries_check",
+      "definition": "CHECK ((((origin_country IS NULL) OR (origin_country ~ '^[A-Z]{2}$'::text)) AND ((destination_country IS NULL) OR (destination_country ~ '^[A-Z]{2}$'::text))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_currency_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_markup_bounds_check",
+      "definition": "CHECK (((minimum_markup >= (0)::numeric) AND (minimum_markup < ('100000000000000000'::bigint)::numeric) AND ((maximum_markup IS NULL) OR ((maximum_markup >= minimum_markup) AND (maximum_markup < ('100000000000000000'::bigint)::numeric)))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_name_check",
+      "definition": "CHECK (((length(btrim(rule_name)) >= 1) AND (length(btrim(rule_name)) <= 200)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_name_unique",
+      "definition": "UNIQUE (tenant_id, rule_name)"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_priority_check",
+      "definition": "CHECK ((priority >= 0))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_tenant_id_unique",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_type_check",
+      "definition": "CHECK ((markup_type = ANY (ARRAY['FIXED'::text, 'PERCENTAGE'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_validity_check",
+      "definition": "CHECK (((valid_until IS NULL) OR (valid_until > valid_from)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_value_check",
+      "definition": "CHECK (((markup_value >= (0)::numeric) AND (markup_value < ('100000000000000'::bigint)::numeric)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "conname": "margin_rules_weight_check",
+      "definition": "CHECK ((((min_weight_kg IS NULL) OR ((min_weight_kg >= (0)::numeric) AND (min_weight_kg < (1000000000)::numeric))) AND ((max_weight_kg IS NULL) OR ((max_weight_kg > (0)::numeric) AND (max_weight_kg < (1000000000)::numeric))) AND ((min_weight_kg IS NULL) OR (max_weight_kg IS NULL) OR (max_weight_kg > min_weight_kg))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_account_fk",
+      "definition": "FOREIGN KEY (tenant_id, carrier_account_id) REFERENCES carrier_accounts(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_addresses_check",
+      "definition": "CHECK (((jsonb_typeof(sender_address) = 'object'::text) AND (jsonb_typeof(recipient_address) = 'object'::text) AND (sender_address ?& ARRAY['name'::text, 'line1'::text, 'city'::text, 'postal_code'::text, 'country_code'::text]) AND (recipient_address ?& ARRAY['name'::text, 'line1'::text, 'city'::text, 'postal_code'::text, 'country_code'::text]) AND (length(btrim((sender_address ->> 'name'::text))) > 0) AND (length(btrim((sender_address ->> 'line1'::text))) > 0) AND (length(btrim((sender_address ->> 'city'::text))) > 0) AND (length(btrim((sender_address ->> 'postal_code'::text))) > 0) AND (length(btrim((recipient_address ->> 'name'::text))) > 0) AND (length(btrim((recipient_address ->> 'line1'::text))) > 0) AND (length(btrim((recipient_address ->> 'city'::text))) > 0) AND (length(btrim((recipient_address ->> 'postal_code'::text))) > 0) AND ((sender_address ->> 'country_code'::text) = origin_country) AND ((recipient_address ->> 'country_code'::text) = destination_country)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_ai_reviewed_check",
+      "definition": "CHECK (((ai_hs_status <> 'REVIEWED'::text) OR (customs_reviewed_at IS NOT NULL)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_ai_status_check",
+      "definition": "CHECK ((ai_hs_status = ANY (ARRAY['NOT_REQUESTED'::text, 'PENDING'::text, 'PROCESSING'::text, 'SUGGESTED'::text, 'REVIEWED'::text, 'FAILED'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_ai_suggestions_check",
+      "definition": "CHECK ((jsonb_typeof(ai_hs_suggestions) = 'array'::text))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_amounts_check",
+      "definition": "CHECK (((wholesale_cost >= (0)::numeric) AND (wholesale_cost < ('100000000000000000'::bigint)::numeric) AND (profit_markup >= (0)::numeric) AND (profit_markup < ('100000000000000000'::bigint)::numeric) AND (tax_amount >= (0)::numeric) AND (tax_amount < ('100000000000000000'::bigint)::numeric) AND (final_client_price < ('100000000000000000'::bigint)::numeric)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_booking_customs_check",
+      "definition": "CHECK (((NOT customs_required) OR (status <> ALL (ARRAY['BOOKING'::text, 'BOOKED'::text, 'IN_TRANSIT'::text, 'DELIVERED'::text, 'EXCEPTION'::text, 'RETURNED'::text])) OR ((jsonb_array_length(customs_items) > 0) AND (customs_content_type IS NOT NULL) AND (customs_incoterm IS NOT NULL) AND (customs_reviewed_at IS NOT NULL))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_cargo_dimensions",
+      "definition": "CHECK ((((cargo_type = 'LETTER'::text) AND (parcel_weight_kg < 0.5) AND (parcel_length_cm IS NULL) AND (parcel_width_cm IS NULL) AND (parcel_height_cm IS NULL)) OR ((cargo_type <> 'LETTER'::text) AND (parcel_length_cm IS NOT NULL) AND (parcel_width_cm IS NOT NULL) AND (parcel_height_cm IS NOT NULL))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_cargo_type_check",
+      "definition": "CHECK ((cargo_type = ANY (ARRAY['LETTER'::text, 'PARCEL'::text, 'PALLET'::text, 'OVERLAND_FREIGHT'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_country_check",
+      "definition": "CHECK (((origin_country ~ '^[A-Z]{2}$'::text) AND (destination_country ~ '^[A-Z]{2}$'::text)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_creator_fk",
+      "definition": "FOREIGN KEY (tenant_id, created_by_user_id) REFERENCES users(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_currency_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_customs_content_check",
+      "definition": "CHECK (((customs_content_type IS NULL) OR (customs_content_type = ANY (ARRAY['MERCHANDISE'::text, 'DOCUMENTS'::text, 'GIFT'::text, 'SAMPLE'::text, 'RETURNED_GOODS'::text, 'OTHER'::text]))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_customs_items_check",
+      "definition": "CHECK (veloce_private.valid_customs_items(customs_items))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_customs_review_check",
+      "definition": "CHECK ((((customs_reviewed_by_user_id IS NULL) AND (customs_reviewed_at IS NULL)) OR ((customs_reviewed_by_user_id IS NOT NULL) AND (customs_reviewed_at IS NOT NULL))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_customs_reviewer_fk",
+      "definition": "FOREIGN KEY (tenant_id, customs_reviewed_by_user_id) REFERENCES users(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_dimensions_check",
+      "definition": "CHECK (((parcel_weight_kg > (0)::numeric) AND (parcel_weight_kg < (1000000000)::numeric) AND (parcel_length_cm > (0)::numeric) AND (parcel_length_cm < (1000000000)::numeric) AND (parcel_width_cm > (0)::numeric) AND (parcel_width_cm < (1000000000)::numeric) AND (parcel_height_cm > (0)::numeric) AND (parcel_height_cm < (1000000000)::numeric) AND (parcel_count = 1)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_ecommerce_store_fk",
+      "definition": "FOREIGN KEY (tenant_id, ecommerce_store_id) REFERENCES ecommerce_stores(tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_idempotency_unique",
+      "definition": "UNIQUE (tenant_id, idempotency_key)"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_incoterm_check",
+      "definition": "CHECK (((customs_incoterm IS NULL) OR (customs_incoterm = ANY (ARRAY['EXW'::text, 'FCA'::text, 'CPT'::text, 'CIP'::text, 'DAP'::text, 'DPU'::text, 'DDP'::text, 'FAS'::text, 'FOB'::text, 'CFR'::text, 'CIF'::text]))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_margin_rule_fk",
+      "definition": "FOREIGN KEY (tenant_id, applied_margin_rule_id) REFERENCES margin_rules(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_pricing_snapshot_check",
+      "definition": "CHECK (((jsonb_typeof(pricing_snapshot) = 'object'::text) AND (pricing_snapshot ?& ARRAY['markup_type'::text, 'markup_value'::text, 'currency'::text]) AND ((pricing_snapshot ->> 'markup_type'::text) = ANY (ARRAY['FIXED'::text, 'PERCENTAGE'::text, 'MANUAL'::text])) AND (jsonb_typeof((pricing_snapshot -> 'markup_value'::text)) = 'string'::text) AND ((pricing_snapshot ->> 'markup_value'::text) ~ '^[0-9]{1,14}(\\.[0-9]{1,6})?$'::text) AND ((pricing_snapshot ->> 'currency'::text) = currency)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_quote_validity_check",
+      "definition": "CHECK ((quote_expires_at > quoted_at))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_status_check",
+      "definition": "CHECK (((status = ANY (ARRAY['DRAFT'::text, 'QUOTED'::text, 'BOOKING'::text, 'BOOKED'::text, 'IN_TRANSIT'::text, 'DELIVERED'::text, 'EXCEPTION'::text, 'CANCELLED'::text, 'FAILED'::text, 'RETURNED'::text])) OR (status = 'PENDING_IMPORT'::text)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_tenant_id_unique",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_tracking_check",
+      "definition": "CHECK (((tracking_number IS NULL) OR ((length(btrim(tracking_number)) >= 1) AND (length(btrim(tracking_number)) <= 200))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "conname": "shipments_tracking_url_check",
+      "definition": "CHECK (((tracking_url IS NULL) OR (tracking_url ~ '^https://[^[:space:]]+$'::text)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "support_tickets",
+      "conname": "support_automation_failure_fk",
+      "definition": "FOREIGN KEY (tenant_id, automation_failure_id) REFERENCES automation_failures(tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "support_tickets",
+      "conname": "support_ticket_source",
+      "definition": "CHECK ((((tracking_event_id IS NOT NULL) AND (automation_failure_id IS NULL) AND (shipment_id IS NOT NULL)) OR ((tracking_event_id IS NULL) AND (automation_failure_id IS NOT NULL))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "support_tickets",
+      "conname": "support_tickets_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "support_tickets",
+      "conname": "support_tickets_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['OPEN'::text, 'RESOLVED'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "support_tickets",
+      "conname": "support_tickets_tenant_id_id_key",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "support_tickets",
+      "conname": "support_tickets_tenant_id_shipment_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id, shipment_id) REFERENCES shipments(tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "support_tickets",
+      "conname": "support_tickets_tenant_id_tracking_event_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id, tracking_event_id) REFERENCES tracking_events(tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "support_tickets",
+      "conname": "support_tickets_tracking_event_id_key",
+      "definition": "UNIQUE (tracking_event_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_address_check",
+      "definition": "CHECK (((jsonb_typeof(billing_address) = 'object'::text) AND (billing_address ?& ARRAY['line1'::text, 'city'::text, 'postal_code'::text, 'country_code'::text]) AND (length(btrim((billing_address ->> 'line1'::text))) > 0) AND (length(btrim((billing_address ->> 'city'::text))) > 0) AND (length(btrim((billing_address ->> 'postal_code'::text))) > 0) AND ((billing_address ->> 'country_code'::text) = country_code)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_billing_plan_check",
+      "definition": "CHECK ((billing_plan = ANY (ARRAY['PREPAID_WALLET'::text, 'POSTPAID_30_DAY'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_billing_status_check",
+      "definition": "CHECK ((billing_status = ANY (ARRAY['PENDING'::text, 'ACTIVE'::text, 'PAST_DUE'::text, 'SUSPENDED'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_country_check",
+      "definition": "CHECK ((country_code ~ '^[A-Z]{2}$'::text))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_credit_limit_check",
+      "definition": "CHECK (((credit_limit >= (0)::numeric) AND (credit_limit < ('100000000000000000'::bigint)::numeric)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_currency_check",
+      "definition": "CHECK ((default_currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_email_check",
+      "definition": "CHECK ((billing_email ~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'::text))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_eori_check",
+      "definition": "CHECK (((eori_number IS NULL) OR (eori_number ~ '^[A-Z]{2}[A-Z0-9]{1,15}$'::text)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_gocardless_customer_id_key",
+      "definition": "UNIQUE (gocardless_customer_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_gocardless_mandate_id_key",
+      "definition": "UNIQUE (gocardless_mandate_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_names_check",
+      "definition": "CHECK ((((length(btrim(workspace_name)) >= 1) AND (length(btrim(workspace_name)) <= 200)) AND ((length(btrim(legal_company_name)) >= 1) AND (length(btrim(legal_company_name)) <= 250))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_pkey",
+      "definition": "PRIMARY KEY (tenant_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_prepaid_credit_check",
+      "definition": "CHECK (((billing_plan <> 'PREPAID_WALLET'::text) OR (credit_limit = (0)::numeric)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_slug_check",
+      "definition": "CHECK ((workspace_slug ~ '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$'::text))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_stripe_customer_id_key",
+      "definition": "UNIQUE (stripe_customer_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_workspace_slug_key",
+      "definition": "UNIQUE (workspace_slug)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "conname": "tenants_workspace_status_check",
+      "definition": "CHECK ((workspace_status = ANY (ARRAY['ACTIVE'::text, 'SUSPENDED'::text, 'CLOSED'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tracking_events",
+      "conname": "tracking_events_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tracking_events",
+      "conname": "tracking_events_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['IN_TRANSIT'::text, 'DELIVERED'::text, 'EXCEPTION'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "tracking_events",
+      "conname": "tracking_events_tenant_id_id_key",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tracking_events",
+      "conname": "tracking_events_tenant_id_integration_key_id_event_id_key",
+      "definition": "UNIQUE (tenant_id, integration_key_id, event_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "tracking_events",
+      "conname": "tracking_events_tenant_id_shipment_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id, shipment_id) REFERENCES shipments(tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "conname": "users_auth_user_id_fkey",
+      "definition": "FOREIGN KEY (auth_user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "conname": "users_name_check",
+      "definition": "CHECK (((length(btrim(full_name)) >= 1) AND (length(btrim(full_name)) <= 200)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "conname": "users_phone_check",
+      "definition": "CHECK (((phone_e164 IS NULL) OR (phone_e164 ~ '^\\+[1-9][0-9]{7,14}$'::text)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "conname": "users_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "conname": "users_role_check",
+      "definition": "CHECK ((role = ANY (ARRAY['OWNER'::text, 'ADMIN'::text, 'DISPATCHER'::text, 'ACCOUNTANT'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "conname": "users_tenant_auth_unique",
+      "definition": "UNIQUE (tenant_id, auth_user_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "conname": "users_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "conname": "users_tenant_id_unique",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_balances_check",
+      "definition": "CHECK (((balance_after >= (0)::numeric) AND (balance_after < ('100000000000000000'::bigint)::numeric) AND (reserved_after >= (0)::numeric) AND (reserved_after <= balance_after)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_currency_check",
+      "definition": "CHECK ((currency = ANY (ARRAY['GBP'::text, 'EUR'::text, 'USD'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_entry_check",
+      "definition": "CHECK ((((entry_type = 'TOPUP'::text) AND (balance_delta > (0)::numeric) AND (reserved_delta = (0)::numeric) AND (topup_id IS NOT NULL) AND (reservation_id IS NULL) AND (stripe_session_id IS NOT NULL) AND (stripe_event_id IS NOT NULL)) OR ((entry_type = 'RESERVE'::text) AND (balance_delta = (0)::numeric) AND (reserved_delta >= (0)::numeric) AND (reservation_id IS NOT NULL) AND (topup_id IS NULL) AND (stripe_session_id IS NULL) AND (stripe_event_id IS NULL)) OR ((entry_type = 'CAPTURE'::text) AND (balance_delta <= (0)::numeric) AND (reserved_delta = balance_delta) AND (reservation_id IS NOT NULL) AND (topup_id IS NULL) AND (stripe_session_id IS NULL) AND (stripe_event_id IS NULL)) OR ((entry_type = 'RELEASE'::text) AND (balance_delta = (0)::numeric) AND (reserved_delta <= (0)::numeric) AND (reservation_id IS NOT NULL) AND (topup_id IS NULL) AND (stripe_session_id IS NULL) AND (stripe_event_id IS NULL))))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_reservation_fk",
+      "definition": "FOREIGN KEY (tenant_id, reservation_id) REFERENCES wallet_reservations(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_stripe_event_id_key",
+      "definition": "UNIQUE (stripe_event_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_stripe_session_id_key",
+      "definition": "UNIQUE (stripe_session_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES wallets(tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "conname": "wallet_ledger_topup_fk",
+      "definition": "FOREIGN KEY (tenant_id, topup_id) REFERENCES wallet_topups(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_amount_check",
+      "definition": "CHECK (((amount >= (0)::numeric) AND (amount < ('100000000000000000'::bigint)::numeric)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_currency_check",
+      "definition": "CHECK ((currency = ANY (ARRAY['GBP'::text, 'EUR'::text, 'USD'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_plan_check",
+      "definition": "CHECK ((billing_plan = ANY (ARRAY['PREPAID_WALLET'::text, 'POSTPAID_30_DAY'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_shipment_fk",
+      "definition": "FOREIGN KEY (tenant_id, shipment_id) REFERENCES shipments(tenant_id, id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_shipment_unique",
+      "definition": "UNIQUE (tenant_id, shipment_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['RESERVED'::text, 'SUBMITTED'::text, 'CAPTURED'::text, 'RELEASED'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "conname": "wallet_reservations_tenant_id_unique",
+      "definition": "UNIQUE (tenant_id, id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallets",
+      "conname": "wallets_balance_check",
+      "definition": "CHECK (((balance >= (0)::numeric) AND (balance < ('100000000000000000'::bigint)::numeric) AND (reserved_balance >= (0)::numeric) AND (reserved_balance <= balance)))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallets",
+      "conname": "wallets_currency_check",
+      "definition": "CHECK ((currency = ANY (ARRAY['GBP'::text, 'EUR'::text, 'USD'::text])))"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallets",
+      "conname": "wallets_pkey",
+      "definition": "PRIMARY KEY (tenant_id)"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallets",
+      "conname": "wallets_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE RESTRICT"
+    }
+  ],
+  "triggers": [
+    {
+      "schema": "public",
+      "table_name": "carrier_accounts",
+      "tgname": "protect_row_identity",
+      "definition": "CREATE TRIGGER protect_row_identity BEFORE UPDATE ON public.carrier_accounts FOR EACH ROW EXECUTE FUNCTION veloce_private.protect_row_identity()"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "tgname": "guard_platform_configuration",
+      "definition": "CREATE TRIGGER guard_platform_configuration BEFORE INSERT OR DELETE OR UPDATE ON public.margin_rules FOR EACH ROW EXECUTE FUNCTION guard_platform_configuration()"
+    },
+    {
+      "schema": "public",
+      "table_name": "margin_rules",
+      "tgname": "protect_row_identity",
+      "definition": "CREATE TRIGGER protect_row_identity BEFORE UPDATE ON public.margin_rules FOR EACH ROW EXECUTE FUNCTION veloce_private.protect_row_identity()"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "tgname": "guard_delivery_proof",
+      "definition": "CREATE TRIGGER guard_delivery_proof BEFORE INSERT OR UPDATE OF proof_of_delivery_url ON public.shipments FOR EACH ROW EXECUTE FUNCTION guard_delivery_proof()"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "tgname": "guard_ecommerce_import_fields",
+      "definition": "CREATE TRIGGER guard_ecommerce_import_fields BEFORE INSERT OR UPDATE OF ecommerce_store_id, store_order_id, store_import_hash ON public.shipments FOR EACH ROW EXECUTE FUNCTION guard_ecommerce_import_fields()"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "tgname": "guard_logistics_metadata",
+      "definition": "CREATE TRIGGER guard_logistics_metadata BEFORE INSERT OR UPDATE OF logistics_metadata ON public.shipments FOR EACH ROW EXECUTE FUNCTION guard_logistics_metadata()"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "tgname": "hubspot_shipping_milestone",
+      "definition": "CREATE TRIGGER hubspot_shipping_milestone AFTER INSERT OR UPDATE OF status, final_client_price, currency ON public.shipments FOR EACH ROW EXECUTE FUNCTION queue_hubspot_sync()"
+    },
+    {
+      "schema": "public",
+      "table_name": "shipments",
+      "tgname": "protect_row_identity",
+      "definition": "CREATE TRIGGER protect_row_identity BEFORE UPDATE ON public.shipments FOR EACH ROW EXECUTE FUNCTION veloce_private.protect_row_identity()"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "tgname": "create_tenant_wallet",
+      "definition": "CREATE TRIGGER create_tenant_wallet AFTER INSERT ON public.tenants FOR EACH ROW EXECUTE FUNCTION veloce_private.create_tenant_wallet()"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "tgname": "guard_platform_configuration",
+      "definition": "CREATE TRIGGER guard_platform_configuration BEFORE INSERT OR DELETE OR UPDATE ON public.tenants FOR EACH ROW EXECUTE FUNCTION guard_platform_configuration()"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "tgname": "guard_sandbox_flags",
+      "definition": "CREATE TRIGGER guard_sandbox_flags BEFORE INSERT OR UPDATE OF is_sandbox ON public.tenants FOR EACH ROW EXECUTE FUNCTION guard_sandbox_flags()"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "tgname": "hubspot_tenant_created",
+      "definition": "CREATE TRIGGER hubspot_tenant_created AFTER INSERT OR UPDATE OF company_name, company_profile ON public.tenants FOR EACH ROW EXECUTE FUNCTION queue_hubspot_sync()"
+    },
+    {
+      "schema": "public",
+      "table_name": "tenants",
+      "tgname": "protect_row_identity",
+      "definition": "CREATE TRIGGER protect_row_identity BEFORE UPDATE ON public.tenants FOR EACH ROW EXECUTE FUNCTION veloce_private.protect_row_identity()"
+    },
+    {
+      "schema": "public",
+      "table_name": "users",
+      "tgname": "protect_row_identity",
+      "definition": "CREATE TRIGGER protect_row_identity BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION veloce_private.protect_row_identity()"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_ledger",
+      "tgname": "wallet_ledger_immutable",
+      "definition": "CREATE TRIGGER wallet_ledger_immutable BEFORE DELETE OR UPDATE ON public.wallet_ledger FOR EACH ROW EXECUTE FUNCTION veloce_private.reject_ledger_mutation()"
+    },
+    {
+      "schema": "public",
+      "table_name": "wallet_reservations",
+      "tgname": "protect_row_identity",
+      "definition": "CREATE TRIGGER protect_row_identity BEFORE UPDATE ON public.wallet_reservations FOR EACH ROW EXECUTE FUNCTION veloce_private.protect_row_identity()"
+    }
+  ],
+  "customs_validator": "CREATE OR REPLACE FUNCTION veloce_private.valid_customs_items(items jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO ''\nAS $function$\r\nDECLARE\r\n    item JSONB;\r\n    quantity_value NUMERIC;\r\n    unit_value NUMERIC;\r\n    unit_weight NUMERIC;\r\nBEGIN\r\n    IF items IS NULL OR jsonb_typeof(items) <> 'array' THEN\r\n        RETURN FALSE;\r\n    END IF;\r\n\r\n    IF jsonb_array_length(items) > 500 THEN\r\n        RETURN FALSE;\r\n    END IF;\r\n\r\n    FOR item IN SELECT value FROM jsonb_array_elements(items)\r\n    LOOP\r\n        IF jsonb_typeof(item) <> 'object'\r\n           OR NOT item ?& ARRAY[\r\n               'description', 'quantity', 'unit_value',\r\n               'unit_weight_kg', 'origin_country', 'hs_code'\r\n           ]\r\n        THEN\r\n            RETURN FALSE;\r\n        END IF;\r\n\r\n        IF jsonb_typeof(item -> 'description') IS DISTINCT FROM 'string'\r\n           OR length(btrim(item ->> 'description')) NOT BETWEEN 1 AND 500\r\n           OR jsonb_typeof(item -> 'origin_country')\r\n                IS DISTINCT FROM 'string'\r\n           OR (item ->> 'origin_country') !~ '^[A-Z]{2}$'\r\n           OR jsonb_typeof(item -> 'hs_code') IS DISTINCT FROM 'string'\r\n           OR (item ->> 'hs_code') !~ '^([0-9]{6}|[0-9]{8}|[0-9]{10})$'\r\n           OR jsonb_typeof(item -> 'quantity') IS DISTINCT FROM 'number'\r\n           OR jsonb_typeof(item -> 'unit_value') IS DISTINCT FROM 'string'\r\n           OR jsonb_typeof(item -> 'unit_weight_kg')\r\n                IS DISTINCT FROM 'string'\r\n        THEN\r\n            RETURN FALSE;\r\n        END IF;\r\n\r\n        -- Decimal strings preserve exact values across JSON clients.\r\n        IF (item ->> 'unit_value') !~ '^[0-9]{1,18}(\\.[0-9]{1,2})?$'\r\n           OR (item ->> 'unit_weight_kg')\r\n                !~ '^[0-9]{1,9}(\\.[0-9]{1,3})?$'\r\n        THEN\r\n            RETURN FALSE;\r\n        END IF;\r\n\r\n        quantity_value := (item ->> 'quantity')::NUMERIC;\r\n        unit_value := (item ->> 'unit_value')::NUMERIC;\r\n        unit_weight := (item ->> 'unit_weight_kg')::NUMERIC;\r\n\r\n        IF quantity_value <> trunc(quantity_value)\r\n           OR quantity_value NOT BETWEEN 1 AND 1000000\r\n           OR unit_value < 0\r\n           OR unit_weight <= 0\r\n        THEN\r\n            RETURN FALSE;\r\n        END IF;\r\n    END LOOP;\r\n\r\n    RETURN TRUE;\r\nEXCEPTION\r\n    WHEN invalid_text_representation OR numeric_value_out_of_range THEN\r\n        RETURN FALSE;\r\nEND;\r\n$function$\n"
+}

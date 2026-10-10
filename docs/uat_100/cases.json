@@ -1,0 +1,502 @@
+[
+  {
+    "id": "TC-001",
+    "case": "Login validation with valid OIDC token context",
+    "expected": "Grants secure access, sets dynamic tenant session state."
+  },
+  {
+    "id": "TC-002",
+    "case": "Login rejection with malformed or expired token payload",
+    "expected": "HTTP 401 Unauthorized response generated."
+  },
+  {
+    "id": "TC-003",
+    "case": "Row-Level Security (RLS) shipment search bypass attempt",
+    "expected": "Client A querying Client B's shipment ID returns 0 rows or 404."
+  },
+  {
+    "id": "TC-004",
+    "case": "Cross-tenant URL tampering via parameter injection",
+    "expected": "Changing tenant parameters on the dashboard displays an error and resets to the session identity."
+  },
+  {
+    "id": "TC-005",
+    "case": "Accountant role boundary restriction check",
+    "expected": "Allowed to view invoices and financial reports; blocked from clicking \"Book Label\"."
+  },
+  {
+    "id": "TC-006",
+    "case": "Dispatcher role boundary restriction check",
+    "expected": "Allowed to quote and print labels; completely blocked from viewing platform margin reports or admin settings."
+  },
+  {
+    "id": "TC-007",
+    "case": "Admin role boundary verification",
+    "expected": "Allowed to add new warehouse users within their own tenant space."
+  },
+  {
+    "id": "TC-008",
+    "case": "Super-Admin role viewport toggle restriction",
+    "expected": "Only users with system-wide metadata can toggle the dashboard layout switcher."
+  },
+  {
+    "id": "TC-009",
+    "case": "JWT token claim expiration handling",
+    "expected": "System signs the user out automatically when the session expires."
+  },
+  {
+    "id": "TC-010",
+    "case": "Multi-device active login validation",
+    "expected": "Tenant metrics load correctly when accessed concurrently on two separate devices."
+  },
+  {
+    "id": "TC-011",
+    "case": "Direct SQL injection payload testing via text inputs",
+    "expected": "Input data is securely sanitized; queries return 0 results."
+  },
+  {
+    "id": "TC-012",
+    "case": "Disabled user login validation",
+    "expected": "Active status flag check defaults to false; access is blocked."
+  },
+  {
+    "id": "TC-013",
+    "case": "Tenant workspace data leak isolation test",
+    "expected": "System-wide background tasks verify that tenant data isolation remains intact during bulk processes."
+  },
+  {
+    "id": "TC-014",
+    "case": "Unauthorized API route access verification",
+    "expected": "Direct backend queries to endpoints like /api/v1/admin/* fail without an active admin token."
+  },
+  {
+    "id": "TC-015",
+    "case": "Empty header validation check",
+    "expected": "Dropping authorization headers triggers a missing credential response."
+  },
+  {
+    "id": "TC-016",
+    "case": "Standard package weight validation",
+    "expected": "System uses dead weight if it is greater than the calculated volumetric weight."
+  },
+  {
+    "id": "TC-017",
+    "case": "Volumetric weight calculation override check",
+    "expected": "A light but large box (e.g., 50x50x50cm, 2kg) triggers volumetric billing: 50×50×50 / 5000 = 25kg billed."
+  },
+  {
+    "id": "TC-018",
+    "case": "Edge-case volumetric weight match",
+    "expected": "If actual weight equals volumetric weight, the system charges the base rate correctly."
+  },
+  {
+    "id": "TC-019",
+    "case": "Fractional weight precision handling",
+    "expected": "The database correctly handles highly precise weights like 0.155kg without rounding issues."
+  },
+  {
+    "id": "TC-020",
+    "case": "Negative dimension parameter validation",
+    "expected": "Entering negative dimensions (e.g., -10cm) triggers a validation error."
+  },
+  {
+    "id": "TC-021",
+    "case": "Zero dimension weight validation",
+    "expected": "Entering 0 values for dimensions triggers an input block error."
+  },
+  {
+    "id": "TC-022",
+    "case": "Excessive dimension value restriction",
+    "expected": "Packages that exceed carrier maximum limits (e.g., 500cm length) display a warning message."
+  },
+  {
+    "id": "TC-023",
+    "case": "Box layout metric unit validation",
+    "expected": "Confirm that the front-end interface correctly converts metric units before submitting backend quote queries."
+  },
+  {
+    "id": "TC-024",
+    "case": "Custom box template selection tool",
+    "expected": "Selecting a saved template automatically populates the length, width, and height inputs."
+  },
+  {
+    "id": "TC-025",
+    "case": "Volumetric calculation divider accuracy",
+    "expected": "Confirm that the backend logic divides by exactly 5000 for standard express routes."
+  },
+  {
+    "id": "TC-026",
+    "case": "Maximum weight limit check",
+    "expected": "Shipments over 1000kg display an overland freight warning."
+  },
+  {
+    "id": "TC-027",
+    "case": "Form text validation check",
+    "expected": "Entering alphabetic text inside numeric weight fields triggers a formatting error."
+  },
+  {
+    "id": "TC-028",
+    "case": "Volumetric conversion precision check",
+    "expected": "Calculated weights match exact fixed-point parameters without any trailing float artifacts."
+  },
+  {
+    "id": "TC-029",
+    "case": "Multi-box package metric check",
+    "expected": "Bulk shipments evaluate and add up the weights of individual boxes correctly."
+  },
+  {
+    "id": "TC-030",
+    "case": "Dimension form autofill consistency",
+    "expected": "Interface fields update immediately when swapping predefined box types."
+  },
+  {
+    "id": "TC-031",
+    "case": "Asynchronous multi-carrier query test",
+    "expected": "Backend queries both providers at the same time and returns the results within 0.8 seconds."
+  },
+  {
+    "id": "TC-032",
+    "case": "Single aggregator down fault-tolerance test",
+    "expected": "If one provider is down, the app still loads the remaining carrier options smoothly."
+  },
+  {
+    "id": "TC-033",
+    "case": "Global fallback margin rule validation",
+    "expected": "Applies the system-wide baseline markup if no specific tenant rules exist."
+  },
+  {
+    "id": "TC-034",
+    "case": "Specific lane margin rule priority check",
+    "expected": "If a country-specific rule exists (e.g., UK to USA), it takes priority over global rules."
+  },
+  {
+    "id": "TC-035",
+    "case": "Tenant-specific margin rule override check",
+    "expected": "Confirms that custom client rules successfully override system-wide defaults."
+  },
+  {
+    "id": "TC-036",
+    "case": "Percentage-based markup calculation validation",
+    "expected": "A 15% markup rule on a £10.00 base cost calculates a final client price of exactly £11.50."
+  },
+  {
+    "id": "TC-037",
+    "case": "Flat-rate markup calculation validation",
+    "expected": "A flat £5.50 markup rule on a £10.00 base cost calculates a final client price of exactly £15.50."
+  },
+  {
+    "id": "TC-038",
+    "case": "Zero margin base parameter validation",
+    "expected": "Setting a 0% markup rule passes the raw wholesale cost directly to the client."
+  },
+  {
+    "id": "TC-039",
+    "case": "Dynamic sorting verification",
+    "expected": "Rates display in ascending order, showing the cheapest option at the top of the interface."
+  },
+  {
+    "id": "TC-040",
+    "case": "Maximum markup rule limits check",
+    "expected": "Attempting to save a 500% markup rule flags an administrative warning."
+  },
+  {
+    "id": "TC-041",
+    "case": "Destination ISO code validation check",
+    "expected": "Entering invalid country codes (e.g., \"XYZ\") returns an invalid route code error."
+  },
+  {
+    "id": "TC-042",
+    "case": "Weight boundary rule validation",
+    "expected": "Margins scale accurately when crossing predefined weight tiers (e.g., >20kg rules)."
+  },
+  {
+    "id": "TC-043",
+    "case": "Dynamic carrier filtering tool",
+    "expected": "Selecting DPD only hides the remaining carrier cards in the results panel."
+  },
+  {
+    "id": "TC-044",
+    "case": "Surcharge breakdown component check",
+    "expected": "Clicking a rate option correctly reveals individual base costs and markup splits."
+  },
+  {
+    "id": "TC-045",
+    "case": "Smart routing speed anomaly check",
+    "expected": "The system accurately flags routes with high transit delays."
+  },
+  {
+    "id": "TC-046",
+    "case": "Multi-user concurrent quoting validation",
+    "expected": "Multiple tenants running quotes at the same time receive their respective custom prices without lag."
+  },
+  {
+    "id": "TC-047",
+    "case": "Currency baseline enforcement check",
+    "expected": "Financial calculations maintain standard GBP currency baselines across the app."
+  },
+  {
+    "id": "TC-048",
+    "case": "Priority index evaluation check",
+    "expected": "If multiple custom rules match, the system selects the one with the highest priority score."
+  },
+  {
+    "id": "TC-049",
+    "case": "Database rule caching speed check",
+    "expected": "Margin lookup queries resolve in under 15 milliseconds."
+  },
+  {
+    "id": "TC-050",
+    "case": "Interface quote refresh check",
+    "expected": "Modifying package dimensions automatically clears out old carrier rates."
+  },
+  {
+    "id": "TC-051",
+    "case": "Postpaid 30-day user exemption check",
+    "expected": "Postpaid clients can book labels regardless of their current wallet balance."
+  },
+  {
+    "id": "TC-052",
+    "case": "Solvent prepaid wallet transaction check",
+    "expected": "A prepaid client with a £100 balance can comfortably book a £20 label."
+  },
+  {
+    "id": "TC-053",
+    "case": "Balanced-to-zero wallet constraint check",
+    "expected": "Booking a label that costs exactly the remaining wallet balance brings the wallet to £0.00 and passes."
+  },
+  {
+    "id": "TC-054",
+    "case": "Prepaid wallet circuit breaker check",
+    "expected": "A client with a £10 balance trying to book a £12 label is blocked with an HTTP 402 error."
+  },
+  {
+    "id": "TC-055",
+    "case": "Exact £0.00 wallet baseline block check",
+    "expected": "Clients with a zero-balance wallet are immediately blocked from booking labels."
+  },
+  {
+    "id": "TC-056",
+    "case": "High-concurrency race condition testing",
+    "expected": "A client with a £20 balance who rapidly clicks \"Book\" twice on two £15 labels only generates one label, while the second request is safely blocked."
+  },
+  {
+    "id": "TC-057",
+    "case": "Transaction ledger subtraction verification",
+    "expected": "Label generation accurately subtracts funds from the wallet and creates a matching audit history row."
+  },
+  {
+    "id": "TC-058",
+    "case": "Mock test environment top-up check",
+    "expected": "Running the test endpoint accurately increments the wallet balance."
+  },
+  {
+    "id": "TC-059",
+    "case": "Negative wallet balance protection check",
+    "expected": "The database rejects any direct attempts to set negative wallet balances."
+  },
+  {
+    "id": "TC-060",
+    "case": "Wallet balance update speed check",
+    "expected": "The dashboard profile balance widget updates immediately after a shipment is processed."
+  },
+  {
+    "id": "TC-061",
+    "case": "Decimal precision deduction check",
+    "expected": "Deducting values with complex fractions (e.g., £12.33) leaves exact balances without any rounding issues."
+  },
+  {
+    "id": "TC-062",
+    "case": "Account status wallet check",
+    "expected": "Deactivating a tenant automatically locks out their remaining wallet balance."
+  },
+  {
+    "id": "TC-063",
+    "case": "User-role wallet verification",
+    "expected": "Dispatchers can spend wallet funds on labels, but are blocked from viewing the main wallet configuration settings."
+  },
+  {
+    "id": "TC-064",
+    "case": "Wallet transaction duplicate protection",
+    "expected": "Resubmitting identical shipment payloads generates a duplicate transaction error."
+  },
+  {
+    "id": "TC-065",
+    "case": "Consolidated invoicing calculation check",
+    "expected": "Weekly account summaries calculate overall shipment totals accurately."
+  },
+  {
+    "id": "TC-066",
+    "case": "AI Customs Harmonizer text interpretation",
+    "expected": "Entering \"running leather shoes\" successfully predicts the correct HS code card."
+  },
+  {
+    "id": "TC-067",
+    "case": "AI Customs confidence rating check",
+    "expected": "High-quality inputs render clear match confidence badges."
+  },
+  {
+    "id": "TC-068",
+    "case": "Malformed text description handling",
+    "expected": "Entering random text characters defaults to a generic fallback HS code classification."
+  },
+  {
+    "id": "TC-069",
+    "case": "Inbound exception webhook status update",
+    "expected": "Simulating an exception payload from a carrier updates the shipment row status to 'EXCEPTION'."
+  },
+  {
+    "id": "TC-070",
+    "case": "Automated AI support ticket creation",
+    "expected": "An exception status update automatically triggers a new row in the support tickets table."
+  },
+  {
+    "id": "TC-071",
+    "case": "AI summary parsing verification",
+    "expected": "The system takes a raw error code like \"E_CUSTOMS_40\" and translates it into a clear, human-readable summary."
+  },
+  {
+    "id": "TC-072",
+    "case": "Manual ticket intervention control",
+    "expected": "Clicking \"Manually Intervene\" changes the ticket status to 'IN_REVIEW'."
+  },
+  {
+    "id": "TC-073",
+    "case": "AI Invoice Surcharge Auditor matching check",
+    "expected": "Uploading an invoice with a mismatched package weight accurately flags an overcharge row."
+  },
+  {
+    "id": "TC-074",
+    "case": "Automated dispute draft generation",
+    "expected": "Flagged overcharges generate a ready-to-send claim text template."
+  },
+  {
+    "id": "TC-075",
+    "case": "Support ticket tenant isolation verification",
+    "expected": "Clients can only see support tickets associated with their own shipments."
+  },
+  {
+    "id": "TC-076",
+    "case": "Ticket counter indicator check",
+    "expected": "The client dashboard accurately displays the count of open exceptions."
+  },
+  {
+    "id": "TC-077",
+    "case": "Re-route delay predictor execution",
+    "expected": "An active exception ticket updates the carrier routing delay matrix."
+  },
+  {
+    "id": "TC-078",
+    "case": "Text language variation test",
+    "expected": "The AI engine parses descriptive inputs accurately regardless of alternative phrasing."
+  },
+  {
+    "id": "TC-079",
+    "case": "Proof of Delivery link attachment check",
+    "expected": "Successful deliveries correctly save and display the POD URL on the tracking row."
+  },
+  {
+    "id": "TC-080",
+    "case": "Ticket history archive logging",
+    "expected": "Resolving an exception ticket updates its status to 'CLOSED' and moves it to the archive."
+  },
+  {
+    "id": "TC-081",
+    "case": "Mobile layout viewport verification",
+    "expected": "Interface scales down neatly into a single-column layout on mobile screen widths."
+  },
+  {
+    "id": "TC-082",
+    "case": "Desktop layout expansion check",
+    "expected": "Widescreen viewports display the side-by-side split columns correctly."
+  },
+  {
+    "id": "TC-083",
+    "case": "Bottom drawer sheet slide interaction",
+    "expected": "Clicking \"Box Profiles\" smoothly reveals the configuration sheet from the bottom on mobile devices."
+  },
+  {
+    "id": "TC-084",
+    "case": "Backdrop shadow overlay dismissal check",
+    "expected": "Tapping outside an open bottom sheet hides the overlay and sheet smoothly."
+  },
+  {
+    "id": "TC-085",
+    "case": "Speed quote loader state animation",
+    "expected": "Clicking calculate displays a pulsing loading indicator until the rates return."
+  },
+  {
+    "id": "TC-086",
+    "case": "Client dashboard tab toggle navigation",
+    "expected": "Clicking the tabs menu swaps the active viewport cards without reloading the page."
+  },
+  {
+    "id": "TC-087",
+    "case": "Admin viewport data view protection",
+    "expected": "Client users cannot view or toggle into the Super-Admin view panels."
+  },
+  {
+    "id": "TC-088",
+    "case": "Data grid element scaling stability",
+    "expected": "Resizing the browser window updates chart components without breaking the interface layout."
+  },
+  {
+    "id": "TC-089",
+    "case": "Custom theme color configuration check",
+    "expected": "Dashboard panels apply the predefined dark mode slate theme styles correctly."
+  },
+  {
+    "id": "TC-090",
+    "case": "Micro-copy readability check",
+    "expected": "Subheaders and parameters display clearly with correct font sizes."
+  },
+  {
+    "id": "TC-091",
+    "case": "Form entry reset button check",
+    "expected": "Generating a successful shipment clears out the quoting inputs for the next entry."
+  },
+  {
+    "id": "TC-092",
+    "case": "Empty state fallback illustration text",
+    "expected": "A new workspace with no dispatches shows a clean \"No Active Shipments\" notification card."
+  },
+  {
+    "id": "TC-093",
+    "case": "Mobile bottom bar icon alignment",
+    "expected": "Target layout links maintain uniform spacing across various smartphone screen boundaries."
+  },
+  {
+    "id": "TC-094",
+    "case": "Long company text rendering containment",
+    "expected": "Extremely long business names wrap neatly within their containers without breaking layout blocks."
+  },
+  {
+    "id": "TC-095",
+    "case": "Action link tap target spacing",
+    "expected": "Buttons and interactive links are sized large enough for comfortable finger taps on mobile screens."
+  },
+  {
+    "id": "TC-096",
+    "case": "Dynamic error container rendering",
+    "expected": "Active balance restriction errors display in a bold, notice card style."
+  },
+  {
+    "id": "TC-097",
+    "case": "Analytical graph container box visibility",
+    "expected": "Financial summary metric bars align perfectly across comparative intervals."
+  },
+  {
+    "id": "TC-098",
+    "case": "Interactive dropdown hover feedback",
+    "expected": "Action elements display clear visual hover states on desktop devices."
+  },
+  {
+    "id": "TC-099",
+    "case": "Cross-browser input box rendering",
+    "expected": "Input layout parameters display consistently across Chrome, Safari, and Edge."
+  },
+  {
+    "id": "TC-100",
+    "case": "Global interface initialization check",
+    "expected": "Complete script execution runs flawlessly, with all system icons loading correctly on the initial page load."
+  }
+]

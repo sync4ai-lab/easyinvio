@@ -1,0 +1,7 @@
+{
+  "tests": 5,
+  "failures": 0,
+  "errors": 5,
+  "skipped": 0,
+  "scope": "Controlled in-process tests; not live-provider or browser UAT."
+}

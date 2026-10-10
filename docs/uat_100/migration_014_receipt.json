@@ -1,0 +1,6 @@
+{
+  "migration": "014_support_ticket_lifecycle.sql",
+  "sandbox_applied": true,
+  "rollback_validation_passed": true,
+  "existing_rows_preserved": true
+}
