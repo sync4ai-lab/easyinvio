@@ -34,7 +34,9 @@ async def audit(connection, actor, tenant_id, action, target_id, snapshot):
 async def tenants(request: Request, owner=owner_dependency, limit: int=Query(200,ge=1,le=500)):
     async with request.app.state.finance.pool.acquire() as c:
         rows=await c.fetch('''SELECT tenant_id,company_name,workspace_slug,billing_email,billing_plan,
-            default_currency,workspace_status,billing_status,is_sandbox,created_at
+            default_currency,workspace_status,billing_status,is_sandbox,created_at,
+            company_profile->'hubspot'->>'company_id' AS hubspot_company_id,
+            company_profile->'hubspot'->>'portal_id' AS hubspot_portal_id
             FROM public.tenants ORDER BY created_at DESC,tenant_id LIMIT $1''',limit)
     return {'tenants':[public_record(r) for r in rows], 'limit':limit}
 

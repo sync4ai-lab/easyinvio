@@ -19,7 +19,7 @@ from uuid import UUID, uuid4, uuid5, NAMESPACE_URL
 
 import asyncpg
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.ai_engine import country_code, predict_hs_code, strict_decimal, record_invoice_baseline
@@ -473,7 +473,7 @@ def build_router(authenticate):
     async def reconcile(shipment_id:UUID,request:Request,context:Any=Depends(authenticate)):
         return await request.app.state.automation_freight.reconcile(context,shipment_id)
     @router.post('/bulk-fulfill')
-    async def bulk(request:Request,context:Any=Depends(authenticate)):
+    async def bulk(request:Request,background_tasks:BackgroundTasks,context:Any=Depends(authenticate)):
         if context.role not in {'OWNER','ADMIN','DISPATCHER'}: raise HTTPException(403,'Dispatch permission required')
         if request.headers.get('content-type','').split(';',1)[0]!='application/json': raise HTTPException(415,'Use application/json')
         raw=bytearray()
@@ -490,6 +490,9 @@ def build_router(authenticate):
         async def run(order):
             async with limiter: return await service.process(context,order,mode)
         results=await asyncio.gather(*(run(order) for order in data))
+        if any(r['status']=='BOOKED' for r in results) and getattr(request.app.state,'hubspot',None) is not None:
+            from backend.hubspot_crm import sync_tenant_metrics_to_crm
+            background_tasks.add_task(sync_tenant_metrics_to_crm,context.tenant_id)
         return {'mode':mode,'total':len(results),'booked':sum(r['status']=='BOOKED' for r in results),'quoted':sum(r['status']=='QUOTED' for r in results),
                 'failed':sum(r['status'] in {'FAILED','RECONCILIATION_REQUIRED'} for r in results),'results':results,
                 'labels':[r['label'] for r in results if r.get('label')]}

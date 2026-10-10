@@ -29,7 +29,7 @@ class Merchant:
         body = json.loads(request.content) if request.content else {}
         if path=='/account-info/v3/details':return httpx.Response(200,json={'portalId':12345,'accountType':'DEVELOPER_TEST'})
         if path.startswith("/crm/v3/properties/"):
-            numeric=path.rsplit('/',1)[-1] in {'veloce_package_count','veloce_total_spend'}
+            numeric=path.rsplit('/',1)[-1] in {'veloce_package_count','veloce_total_shipments','veloce_total_spend','veloce_wallet_balance'}
             return httpx.Response(200, json={"hasUniqueValue": True,'type':'number' if numeric else 'string','fieldType':'number' if numeric else 'text'})
         if path.startswith("/crm/v3/pipelines/"):
             return httpx.Response(200, json={"stages": [{"id": "stage1"}]})
