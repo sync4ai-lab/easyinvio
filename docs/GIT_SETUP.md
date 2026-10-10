@@ -1,6 +1,15 @@
 # Veloce.AI Git workflow
 
-Git is installed. This workspace is not yet a Git repository. `.gitignore` now
+## Automatic synchronization preference
+
+The user has authorized the coding agent to commit and push completed, checked
+changes after each requested task. `AGENTS.md` records this preference for future
+sessions. The agent stages only task-related changes, excludes secrets and reports
+the commit/push result. Direct editor changes still require manual synchronization.
+There is no automatic file watcher, database deployment or force-push workflow.
+
+Git is installed and this workspace is now synchronized with GitHub. The first
+upload instructions below are retained as a setup reference. `.gitignore` now
 excludes `.env` variants, private keys, virtual environments, browser binaries,
 logs, database dumps and selected environment-specific test receipts. Track
 `.env.example`, application source, requirements, migrations, synthetic seeds,
