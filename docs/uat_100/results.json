@@ -101,7 +101,7 @@
       "case": "Disabled user login validation",
       "expected": "Active status flag check defaults to false; access is blocked.",
       "status": "PASS",
-      "observed": "Actual non-banned Supabase auth account with inactive membership signed in at Supabase but was rejected by Veloce with 403.",
+      "observed": "Actual non-banned Supabase auth account with inactive membership signed in at Supabase but was rejected by EasyInvio with 403.",
       "evidence": "real_auth_evidence.json"
     },
     {

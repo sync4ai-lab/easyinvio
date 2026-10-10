@@ -90,7 +90,7 @@ async def simulate_stripe_test_payment(client: Any, secret_key: str, customer_id
         intent = await client.v1.payment_intents.create_async(
             {"amount": 10000, "currency": "gbp", "customer": customer_id,
              "payment_method": method.id, "payment_method_types": ["card"], "confirm": True,
-             "error_on_requires_action": True, "description": "Veloce sandbox wallet test — no live funds",
+             "error_on_requires_action": True, "description": "EasyInvio sandbox wallet test — no live funds",
              "metadata": {"purpose": "sandbox_test_topup", "tenant_id": str(tenant_id), "topup_id": str(request_id)}},
             options={"idempotency_key": f"sandbox-payment:{tenant_id}:{request_id}"})
     except stripe.CardError:
@@ -159,7 +159,7 @@ class SandboxBillingService:
         try:
             if customer_id is None:
                 customer = await self.client.v1.customers.create_async(
-                    {"name": "Veloce sandbox tenant", "metadata": {"tenant_id": str(context.tenant_id), "environment": "SANDBOX"}},
+                    {"name": "EasyInvio sandbox tenant", "metadata": {"tenant_id": str(context.tenant_id), "environment": "SANDBOX"}},
                     options={"idempotency_key": f"sandbox-customer:{context.tenant_id}"})
             else:
                 customer = await self.client.v1.customers.retrieve_async(customer_id)

@@ -1,1 +1,1 @@
-"""Veloce logistics extensions."""
+"""EasyInvio logistics extensions."""

@@ -55,7 +55,7 @@ Create the following custom properties in HubSpot before enabling sync:
 
 The seven company properties are required. The deal property and pipeline/stage
 IDs are optional while `HUBSPOT_UPSELL_ENABLED=false`; provisioning Sales Hub or
-Operations Hub does not create Veloce's custom properties automatically. Complete
+Operations Hub does not create EasyInvio's custom properties automatically. Complete
 creation payloads are in `config/hubspot_properties.json`. The worker checks types,
 writability and unique tenant identity rather than silently changing CRM schema.
 
@@ -65,7 +65,7 @@ For unique properties, use the properties API with `hasUniqueValue: true`. Examp
 {
   "groupName": "companyinformation",
   "name": "veloce_tenant_id",
-  "label": "Veloce Tenant ID",
+  "label": "EasyInvio Tenant ID",
   "type": "string",
   "fieldType": "text",
   "hasUniqueValue": true
@@ -84,7 +84,7 @@ It returns HTTP 202 and QUEUED; it does not claim remote completion. Company nam
 
 ## Behavior and reliability
 
-The background worker creates or updates a company using its unique Veloce tenant UUID, creates/updates a contact by email, and calls `/crm/v3/associations/contacts/companies/batch/create`. Equal company display names never merge tenants. HubSpot contacts are email identities: the same email may legitimately be associated with multiple companies.
+The background worker creates or updates a company using its unique EasyInvio tenant UUID, creates/updates a contact by email, and calls `/crm/v3/associations/contacts/companies/batch/create`. Equal company display names never merge tenants. HubSpot contacts are email identities: the same email may legitimately be associated with multiple companies.
 
 On confirmed shipment events, the worker recomputes package count using `sum(parcel_count)` and exact customer spend from tenant-scoped rows. With upsells enabled, count 50 does not create a deal; count 51 or more creates one deal in the configured stage and associates it with the company. A unique milestone property prevents duplicate deals after retries and ambiguous create timeouts. No speculative deal amount is assigned. Mixed-currency totals are blocked rather than summing unlike currencies. Counts/spend exclude failed bookings, pending imports and unbooked quotes. Totals are operational booked spend, not net accounting revenue.
 

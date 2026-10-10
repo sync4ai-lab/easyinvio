@@ -1,4 +1,4 @@
-"""Veloce.AI: combined rating, financial controls and WhatsApp service.
+"""EasyInvio.com: combined rating, financial controls and WhatsApp service.
 
 Python 3.12 or newer. Install dependencies:
     python -m pip install fastapi 'uvicorn[standard]' httpx pydantic \
@@ -1322,7 +1322,7 @@ class FinanceEngine:
                 elif tenant["billing_plan"] != "POSTPAID_30_DAY":
                     raise HTTPException(403, "Unsupported billing plan")
                 tracking = re.sub(r"[^A-Za-z0-9 ._-]", "", shipment["tracking_number"] or str(shipment_id))[:100]
-                zpl = ("^XA\n^PW812\n^LL1218\n^FO50,60^A0N,45,45^FDVELOCE.AI - SAMPLE ONLY^FS\n"
+                zpl = ("^XA\n^PW812\n^LL1218\n^FO50,60^A0N,45,45^FDEASYINVIO.COM - SAMPLE ONLY^FS\n"
                        "^FO50,140^A0N,28,28^FDNOT A CARRIER SHIPPING LABEL^FS\n"
                        f"^FO50,220^A0N,30,30^FD{shipment_id}^FS\n"
                        f"^FO50,350^BY3^BCN,120,Y,N,N^FD{tracking}^FS\n^XZ")
@@ -1384,7 +1384,7 @@ class FinanceEngine:
                              "topup_id": str(body.request_id)},
                 "line_items": [{"quantity": 1, "price_data": {
                     "currency": currency.lower(), "unit_amount": to_minor_units(body.amount, currency),
-                    "product_data": {"name": "Veloce.AI wallet top-up"},
+                    "product_data": {"name": "EasyInvio.com wallet top-up"},
                 }}],
             }, options={"idempotency_key": f"wallet-topup:{body.request_id}"})
         except stripe.StripeError:
@@ -1605,7 +1605,7 @@ class WhatsAppService:
                             result = await self.rating.quote(context, rating_request,
                                                              self.settings.whatsapp_provider_seconds)
                         sandbox = getattr(self.settings, "twilio_whatsapp_sandbox_enabled", False)
-                        lines = ["Veloce.AI sandbox quotes" if sandbox else "Veloce.AI live quotes",
+                        lines = ["EasyInvio.com sandbox quotes" if sandbox else "EasyInvio.com live quotes",
                                  f"{parsed.weight_kg}kg | {parsed.origin_country} → {parsed.destination_country}",
                                  "Prices exclude tax. Final total is confirmed in app."]
                         for position, rate in enumerate(result.rates[:3], 1):
@@ -1757,7 +1757,7 @@ async def lifespan(application: FastAPI):
             await pool.close()
 
 
-app = FastAPI(title="Veloce.AI Backend", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="EasyInvio.com Backend", version="1.0.0", lifespan=lifespan)
 from dotenv import dotenv_values
 try:
     _origin_values = os.environ.get("FRONTEND_ALLOWED_ORIGINS", dotenv_values(".env").get("FRONTEND_ALLOWED_ORIGINS"))
@@ -1964,7 +1964,7 @@ async def inbound_whatsapp(request: Request) -> Response:
         async with asyncio.timeout(settings.whatsapp_deadline_seconds):
             context = await request.app.state.whatsapp.resolve_sender(sender.group(1), receiver.group(1))
             if context is None:
-                return xml_response(twiml("This number is not registered for Veloce.AI dispatch.\n"
+                return xml_response(twiml("This number is not registered for EasyInvio.com dispatch.\n"
                     "Ask your workspace owner to verify and register your WhatsApp number, then resend."))
             if form.get("NumMedia", "0") != "0":
                 return xml_response(twiml("Please send text: Quote 4.5kg from GBR to USA"))
@@ -2078,7 +2078,7 @@ def verify_local_logic() -> None:
         except ValueError:
             pass
     from xml.etree import ElementTree
-    text = "Rate & Service <Express> https://app.veloce.ai/book?t=1&quote=2"
+    text = "Rate & Service <Express> https://app.easyinvio.com/book?t=1&quote=2"
     assert ElementTree.fromstring(twiml(text)).find("Message").text == text
     key = Fernet.generate_key().decode()
     encrypted = encrypt_carrier_credentials(tenant_id, account_id, "fixture-secret", key)

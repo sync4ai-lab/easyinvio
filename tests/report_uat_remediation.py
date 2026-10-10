@@ -74,7 +74,7 @@ if (folder/'real_auth_evidence.json').exists():
  'TC-008':'Actual signed-in client roles could not toggle Super-Admin; server returned 403 for macro dashboard. Server subject allowlist remains the sole owner authority.',
  'TC-010':'Actual real-auth tenant metrics/manifest matched across concurrent HTTP requests and isolated desktop/mobile browser contexts.',
  'TC-011':'Actual signed-in manifest search returned zero matches for three SQL/HTML injection payloads; injected API tenant parameter returned only authorized tenant tickets.',
- 'TC-012':'Actual non-banned Supabase auth account with inactive membership signed in at Supabase but was rejected by Veloce with 403.',
+ 'TC-012':'Actual non-banned Supabase auth account with inactive membership signed in at Supabase but was rejected by EasyInvio with 403.',
  'TC-063':'Actual dispatcher successfully reserved wallet funds in a rolled-back transaction; wallet configuration viewport was blocked, financial reports 403, operational affordability summary accessible.'}
  assert auth['TC-004']['browser_parameter_removed'] and auth['TC-004']['browser_error_shown']
  assert auth['TC-011']['live_browser_search_counts']==['0','0','0']
@@ -105,7 +105,7 @@ report['remediation']=evidence
 (folder/'remediation_summary.json').write_text(json.dumps(evidence,indent=2))
 report['scope']='Updated after code fixes and real sandbox migration 014. Partial/browser/blocked cases are not passes. Previously retained race audit remains; new database probes all rolled back. No payment, message or label purchased.'
 (folder/'results.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
-lines=['# Veloce.AI — consolidated 100-case report after remediation','',report['generated_at'],'',
+lines=['# EasyInvio.com — consolidated 100-case report after remediation','',report['generated_at'],'',
  ', '.join(f'{v} {k}' for k,v in report['counts'].items())+'.','',
  f"**Validation:** {result.testsRun} selected regression tests passed. Real browser geometry/interactions were tested in Chromium, Chrome, Edge, Firefox and WebKit. Actual Supabase logins, role dashboards, tenant isolation, wallet capture, invoice comparisons and ticket lifecycle were tested. Controlled carrier receipts were used for financial settlement; no real carrier label was purchased. Actual Apple Safari remains untested.",'',
  '**Database:** `migrations/014_support_ticket_lifecycle.sql` was rollback-validated and applied to your configured Supabase sandbox. It adds `IN_REVIEW`/`CLOSED` ticket states, `archived_at` and an index; preserves historical `RESOLVED` data. No further SQL needs to be run in this sandbox. Apply the migration when deploying to any other database. Receipt: `migration_014_receipt.json`.','',

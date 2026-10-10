@@ -1,4 +1,4 @@
-# Veloce.AI — consolidated 100-case report after remediation
+# EasyInvio.com — consolidated 100-case report after remediation
 
 2026-10-10T10:16:24.525976+00:00
 
@@ -114,7 +114,7 @@ Evidence: real_auth_evidence.json
 
 Expected: Active status flag check defaults to false; access is blocked.
 
-Observed: Actual non-banned Supabase auth account with inactive membership signed in at Supabase but was rejected by Veloce with 403.
+Observed: Actual non-banned Supabase auth account with inactive membership signed in at Supabase but was rejected by EasyInvio with 403.
 
 Evidence: real_auth_evidence.json
 

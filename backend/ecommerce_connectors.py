@@ -168,7 +168,7 @@ class ShopifyFulfillment:
         order_id = body['store_order_id']
         if not re.fullmatch(r'[1-9][0-9]{0,30}',order_id):
             raise HTTPException(422, 'Shopify requires its numeric order ID')
-        data = await self.graphql('''query VeloceOrder($id:ID!) { order(id:$id) {
+        data = await self.graphql('''query EasyInvioOrder($id:ID!) { order(id:$id) {
             fulfillments(first:250) { id status trackingInfo { number } }
             fulfillmentOrders(first:100) { pageInfo { hasNextPage } nodes {
                 id status assignedLocation { location { id } } } } } }''',
@@ -191,7 +191,7 @@ class ShopifyFulfillment:
         info = {'company':body['carrier_name'],'number':body['tracking_number']}
         if body.get('tracking_url'):
             info['url'] = body['tracking_url']
-        result = await self.graphql('''mutation VeloceShip($fulfillment:FulfillmentInput!) {
+        result = await self.graphql('''mutation EasyInvioShip($fulfillment:FulfillmentInput!) {
             fulfillmentCreate(fulfillment:$fulfillment) { fulfillment { id status } userErrors { field message } } }''',
             {'fulfillment':{'lineItemsByFulfillmentOrder':[{'fulfillmentOrderId':o['id']} for o in eligible],
                             'trackingInfo':info,'notifyCustomer':False}})

@@ -1,4 +1,6 @@
-# Veloce.AI operations prototype
+# EasyInvio.com operations prototype
+
+The product is branded **EasyInvio.com**. Existing `veloce_*` database/CRM identifiers, webhook headers, token issuers, browser storage keys and fixture IDs remain compatible with deployed data and integrations. The local project folder and configured Git remote keep their existing names.
 
 The [CSV orders v2 guide](docs/bulk_csv/REPORT.md) covers the 21-column client template,
 per-order persistence, cargo routing, customs review and optional storefront associations.

@@ -5,7 +5,7 @@ document.head.insertAdjacentHTML('beforeend','<style>.batchrows .scrolltable{ove
 function csvTemplateDownload(button, extended) {
   return busy(button, async () => {
     const data = await api('/api/v1/shipments/batch-template?extended=' + extended);
-    exportCSV(extended ? 'veloce-orders-extended-template.csv' : 'veloce-orders-template.csv',
+    exportCSV(extended ? 'easyinvio-orders-extended-template.csv' : 'easyinvio-orders-template.csv',
       [data.columns, ...data.examples]);
     notify('Template downloaded. Replace the example rows with your orders.');
   });
@@ -51,7 +51,7 @@ $('#batch-btn').addEventListener('click', () => busy($('#batch-btn'), async () =
 
 $('#batch-export').addEventListener('click', () => {
   if (!state.batch) return;
-  exportCSV('veloce-batch-results.csv', [['Order','Cargo','Status','Shipment ID','Currency','Lowest quote','Missing fields / error'],
+  exportCSV('easyinvio-batch-results.csv', [['Order','Cargo','Status','Shipment ID','Currency','Lowest quote','Missing fields / error'],
     ...state.batch.results.map(row => [row.order_reference,row.cargo_type || '',row.status,row.shipment_id || '',
       row.quote?.currency || row.order?.currency || '',row.quote?.rates?.[0]?.client_price_ex_tax || '',
       row.error || (row.missing_fields || []).join('; ')])]);

@@ -126,7 +126,7 @@ async function downloadWorkspacePDF(ids) {
   if (session!==state.session) throw Error('Session changed.');
   if (!response.ok) {const result=await response.json();throw Error(result.detail||'PDF generation failed.');}
   const blob=await response.blob();if(session!==state.session)throw Error('Session changed.');
-  download('veloce-dispatch-bundle.pdf',blob,'application/pdf');
+  download('easyinvio-dispatch-bundle.pdf',blob,'application/pdf');
 }
 $('#workspace-pdf').addEventListener('click',()=>busy($('#workspace-pdf'),()=>downloadWorkspacePDF(workspaceSelection())));
 const workspaceClearBase=clearSession;

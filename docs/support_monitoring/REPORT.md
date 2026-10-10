@@ -104,7 +104,7 @@ To activate a real Flow 2:
 1. Register a public HTTPS webhook URL in EasyPost, set its separate webhook
    secret, and configure the matching `TRACKING_WEBHOOK_KEYS` entry with tenant
    UUID, carrier account UUID, secret and `easypost_mode: "test"` or `"production"`.
-   The signature is the native `X-Hmac-Signature`, not a made-up Veloce header.
+   The signature is the native `X-Hmac-Signature`, not a made-up EasyInvio header.
 2. Configure the existing Twilio account/auth token, WhatsApp sender and inbound
    webhook settings; verify/bind the intended merchant number. Sandbox users
    must join the sandbox. Explicitly opt in using the merchant Wallet controls.

@@ -156,7 +156,7 @@ if post:
  report['scope']='All 100 cases assessed with evidence; partial/blocked cases are not passes. User-applied supplement verified. Rollback probes left no changes; concurrent reservation test retained two named FAILED scratch quotes and released reservation/ledger audit records. No labels purchased or external messages/payments sent.'
  report['applied_fixture_evidence']=post
 (folder/'results.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
-lines=['# Veloce.AI — 100-case UAT assessment', '', 'Generated: '+report['generated_at'], '',
+lines=['# EasyInvio.com — 100-case UAT assessment', '', 'Generated: '+report['generated_at'], '',
  '**Disposition:** '+', '.join(f'{v} {k}' for k,v in counts.items())+'.', '',
  'This is an evidence-based assessment, not an all-pass certification. PASS meets the stated scope; PARTIAL has verified components but incomplete acceptance evidence. BLOCKED was not executed end-to-end. FAIL includes executed mismatches and confirmed missing features. EXCLUDED is intentionally omitted.', '',
  '62 selected core regression checks passed. These use controlled dependencies and are separate from the 100 acceptance cases. Real Supabase probes verified RLS, numeric precision, wallet blocks/reservations, pricing, exception ingestion, ticket creation and POD storage. Every test write rolled back; original seed row counts were unchanged. No label was purchased and no payment or message was sent.', '',

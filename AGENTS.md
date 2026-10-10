@@ -1,4 +1,4 @@
-# Veloce.AI project instructions
+# EasyInvio.com project instructions
 
 ## Authorized automatic Git synchronization
 

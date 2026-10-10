@@ -1,4 +1,4 @@
-# Veloce.AI Git workflow
+# EasyInvio.com Git workflow
 
 ## Automatic synchronization preference
 
@@ -17,7 +17,7 @@ test scripts and documentation. The public Supabase CA certificate may be tracke
 
 ## First upload
 
-Create an **empty private repository** named `veloce-ai` in your Git provider.
+Create an **empty private repository** named `easyinvio` in your Git provider.
 For GitHub, do not select initial README/license/gitignore files: they already
 exist here. Copy the HTTPS clone URL.
 
@@ -42,8 +42,8 @@ database dumps should not. Ignore rules do not remove already tracked files.
 Replace the URL below with your empty repository's actual clone URL:
 
 ```powershell
-git commit -m "Initial Veloce.AI application"
-git remote add origin https://github.com/YOUR-ACCOUNT/veloce-ai.git
+git commit -m "Initial EasyInvio.com application"
+git remote add origin https://github.com/YOUR-ACCOUNT/easyinvio.git
 git push -u origin main
 ```
 

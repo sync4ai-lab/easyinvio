@@ -1,4 +1,4 @@
-# Veloce interface modernization verification
+# EasyInvio interface modernization verification
 
 The complete interface is saved in `index.html`. The running backend serves it at http://127.0.0.1:8000.
 

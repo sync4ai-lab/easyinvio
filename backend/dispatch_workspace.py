@@ -228,6 +228,6 @@ def build_router(authenticate):
         rows = await selected_rows(request.app.state.ecommerce, context, selection.shipment_ids)
         data = await bundle_shipments(rows)
         return Response(data, media_type='application/pdf', headers={
-            'Content-Disposition': 'attachment; filename="veloce-dispatch-bundle.pdf"', 'Cache-Control': 'no-store'})
+            'Content-Disposition': 'attachment; filename="easyinvio-dispatch-bundle.pdf"', 'Cache-Control': 'no-store'})
 
     return router

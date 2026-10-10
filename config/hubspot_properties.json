@@ -3,7 +3,7 @@
     {
       "groupName": "companyinformation",
       "name": "veloce_tenant_id",
-      "label": "Veloce Tenant ID",
+      "label": "EasyInvio Tenant ID",
       "type": "string",
       "fieldType": "text",
       "hasUniqueValue": true
@@ -11,42 +11,42 @@
     {
       "groupName": "companyinformation",
       "name": "veloce_vat_number",
-      "label": "Veloce VAT Number",
+      "label": "EasyInvio VAT Number",
       "type": "string",
       "fieldType": "text"
     },
     {
       "groupName": "companyinformation",
       "name": "veloce_package_count",
-      "label": "Veloce Package Count",
+      "label": "EasyInvio Package Count",
       "type": "number",
       "fieldType": "number"
     },
     {
       "groupName": "companyinformation",
       "name": "veloce_total_spend",
-      "label": "Veloce Total Spend",
+      "label": "EasyInvio Total Spend",
       "type": "number",
       "fieldType": "number"
     },
     {
       "groupName": "companyinformation",
       "name": "veloce_currency",
-      "label": "Veloce Spend Currency",
+      "label": "EasyInvio Spend Currency",
       "type": "string",
       "fieldType": "text"
     },
     {
       "groupName": "companyinformation",
       "name": "veloce_total_shipments",
-      "label": "Veloce Lifetime Shipments",
+      "label": "EasyInvio Lifetime Shipments",
       "type": "number",
       "fieldType": "number"
     },
     {
       "groupName": "companyinformation",
       "name": "veloce_wallet_balance",
-      "label": "Veloce Wallet Balance",
+      "label": "EasyInvio Wallet Balance",
       "type": "number",
       "fieldType": "number"
     }
@@ -55,7 +55,7 @@
     {
       "groupName": "dealinformation",
       "name": "veloce_milestone_id",
-      "label": "Veloce Milestone ID",
+      "label": "EasyInvio Milestone ID",
       "type": "string",
       "fieldType": "text",
       "hasUniqueValue": true

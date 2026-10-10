@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Veloce.AI | Dispatch intelligence</title>
+<title>EasyInvio.com | Dispatch intelligence</title>
 <script async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4">
 </script>
 <script async onload="window.refreshIcons?.()" src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js">
@@ -69,7 +69,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </symbol>
 </svg>
 <header class="topbar">
-<div class="brand">veloce<em>.ai</em>
+<div class="brand">EasyInvio<em>.com</em>
 <small>Shipping intelligence platform</small>
 </div>
 <div class="topbar-actions">
@@ -970,7 +970,7 @@ const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({
   "'": '&#39;'
 } [c]));
 const addressDefaults = {
-  origin: ['Veloce Warehouse', '10 Example Street', 'London', 'SW1A 1AA', 'GB'],
+  origin: ['EasyInvio Warehouse', '10 Example Street', 'London', 'SW1A 1AA', 'GB'],
   destination: ['Example Customer', '20 Sample Avenue', 'Paris', '75001', 'FR']
 };
 const addressNames = ['name', 'line1', 'city', 'postal_code', 'country_code'];
@@ -1197,7 +1197,7 @@ function feeRows(rate) {
       ['Residential accessorial fee', f.residential_fee],
       ['Remote area fee', f.remote_area_fee],
       ['Wholesale carrier total', f.wholesale_total],
-      ['Veloce platform markup', f.platform_markup]
+      ['EasyInvio platform markup', f.platform_markup]
     ];
   return rows.map(([label, value]) => `<div class="fee"><span>${label}</span><b class="mono">${value==null?'Not reported':money(value,rate.currency)}</b></div>`).join('') + `<div class="fee total"><span>Final price excl. tax</span><b>${money(rate.client_price_ex_tax,rate.currency)}</b></div><p class="footnote">${f.source==='simulation'?'Illustrative fee split. No carrier API called.':f.source==='provider'?'Fee split reported by provider.':'Provider did not supply individual accessorial fees. These are included in its quoted total where applicable.'}</p>`
 }
@@ -1347,7 +1347,7 @@ $('#declaration-form').addEventListener('submit', event => {
     publishCustoms(result);
     $('#declaration-result').innerHTML = '<h3 style="margin-top:22px">Print-ready JSON metadata · draft</h3><pre></pre><button class="secondary" id="download-declaration">Download declaration JSON</button>';
     $('#declaration-result pre').textContent = JSON.stringify(result, null, 2);
-    $('#download-declaration').addEventListener('click', () => download('veloce-commercial-invoice.json', JSON.stringify(result, null, 2), 'application/json'))
+    $('#download-declaration').addEventListener('click', () => download('easyinvio-commercial-invoice.json', JSON.stringify(result, null, 2), 'application/json'))
   })
 });
 
@@ -1362,7 +1362,7 @@ function renderManifest() {
 $('#manifest-search').addEventListener('input', () => renderManifest());
 $('#manifest-filter').addEventListener('change', () => renderManifest());
 $('#manifest-refresh').addEventListener('click', () => busy($('#manifest-refresh'), refreshManifestRecords));
-$('#manifest-export').addEventListener('click', () => exportCSV('veloce-manifest.csv', [
+$('#manifest-export').addEventListener('click', () => exportCSV('easyinvio-manifest.csv', [
   ['ID', 'Reference', 'Tracking', 'Status', 'Currency', 'Price'], ...state.manifest.map(row => [row.id, row.reference, row.tracking_number, row.status, row.currency, row.price])
 ]));
 
@@ -1377,7 +1377,7 @@ $('#manifest-body').addEventListener('click', event => {
   busy(button, async () => {
     if (state.mode === 'local-preview' || row.simulated) {
       if (state.wallet - state.reserved <= 0n) throw Error('402: insufficient preview wallet funds. Printing is blocked at zero available balance.');
-      state.print = `^XA\n^PW812\n^LL1218\n^FO50,60^A0N,45,45^FDVELOCE.AI - SAMPLE ONLY^FS\n^FO50,140^A0N,28,28^FDNOT A CARRIER SHIPPING LABEL^FS\n^FO50,220^A0N,36,36^FD${safeZPL(row.reference||row.id)}^FS\n^FO50,280^A0N,28,28^FD${safeZPL(row.metadata?.carrier||'Carrier')}^FS\n^FO50,350^BY3^BCN,120,Y,N,N^FD${safeZPL(row.tracking_number||row.id)}^FS\n^FO50,570^A0N,25,25^FDWireless print simulation - no broadcast^FS\n^XZ`
+      state.print = `^XA\n^PW812\n^LL1218\n^FO50,60^A0N,45,45^FDEASYINVIO.COM - SAMPLE ONLY^FS\n^FO50,140^A0N,28,28^FDNOT A CARRIER SHIPPING LABEL^FS\n^FO50,220^A0N,36,36^FD${safeZPL(row.reference||row.id)}^FS\n^FO50,280^A0N,28,28^FD${safeZPL(row.metadata?.carrier||'Carrier')}^FS\n^FO50,350^BY3^BCN,120,Y,N,N^FD${safeZPL(row.tracking_number||row.id)}^FS\n^FO50,570^A0N,25,25^FDWireless print simulation - no broadcast^FS\n^XZ`
     } else {
       const result = await api(`/api/v1/shipments/${encodeURIComponent(row.id)}/label/preview`, {
         auth: true
@@ -1388,7 +1388,7 @@ $('#manifest-body').addEventListener('click', event => {
     $('#print-dialog').showModal()
   })
 });
-$('#zpl-download').addEventListener('click', () => download('veloce-sample-label.zpl', state.print || '', 'text/plain'));
+$('#zpl-download').addEventListener('click', () => download('easyinvio-sample-label.zpl', state.print || '', 'text/plain'));
 $('#airprint-btn').addEventListener('click', () => notify('Mock AirPrint broadcast queued to warehouse thermal printer. Simulation only; no network broadcast sent.'));
 
 function renderWallet() {
@@ -2203,12 +2203,12 @@ function printableDocument(doc) {
   const d = doc.commercial_invoice || doc,
     items = d.items || [],
     party = p => p ? ['name', 'line1', 'city', 'postal_code', 'country_code', 'eori', 'eori_number'].map(k => p[k] ? escapeHTML(p[k]) : '').filter(Boolean).join('<br>') : 'Not supplied';
-  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Veloce customs declaration draft</title><style>body{font:14px/1.6 system-ui;color:#18283b;margin:32px}h1{font-size:25px}.parties{display:grid;grid-template-columns:1fr 1fr;gap:24px}table{width:100%;border-collapse:collapse;margin:24px 0}td,th{padding:10px;border-bottom:1px solid #ccd4dd;text-align:left}small{color:#556574}.stamp{border:2px solid #c28024;padding:12px;color:#754600}button{padding:10px 18px;margin:12px 0}@media print{button{display:none}body{margin:15mm}}</style></head><body><button onclick="window.print()">Print document</button><h1>Commercial customs declaration</h1><div class="stamp">DRAFT · Signature and carrier eligibility review required · Not submitted</div><p><b>Reference:</b> ' + escapeHTML(d.invoice_reference || d.shipment_id || 'Draft') + '<br><b>Document set:</b> ' + escapeHTML(d.postal_declaration_form || 'Commercial Invoice') + '<br><b>Currency:</b> ' + escapeHTML(d.currency || 'Not supplied') + '</p><div class="parties"><section><h2>Sender</h2>' + party(d.sender || d.origin) + '</section><section><h2>Recipient</h2>' + party(d.recipient || d.destination) + '</section></div><table><thead><tr><th>Goods</th><th>HS code</th><th>Origin</th><th>Qty</th><th>Unit value</th><th>Net kg / unit</th></tr></thead><tbody>' + items.map(i => '<tr><td>' + escapeHTML(i.description || '') + '</td><td>' + escapeHTML(i.hs_code || 'Review required') + '</td><td>' + escapeHTML(i.origin_country || '') + '</td><td>' + escapeHTML(i.quantity ?? '') + '</td><td>' + escapeHTML(i.unit_value ?? '') + '</td><td>' + escapeHTML(i.unit_net_weight_kg ?? i.unit_weight_kg ?? '') + '</td></tr>').join('') + '</tbody></table><p><b>Totals:</b> ' + escapeHTML(JSON.stringify(d.totals || {})) + '</p><p><b>Declaration:</b> I declare that the supplied particulars are accurate and the contents are correctly described. Review and sign before submission.</p><p>Signature ________________________ Date ________________________</p><small>' + escapeHTML(d.notice || 'Consult the carrier and applicable customs authority. This export does not purchase, dispatch or submit a shipment.') + '</small></body></html>'
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>EasyInvio customs declaration draft</title><style>body{font:14px/1.6 system-ui;color:#18283b;margin:32px}h1{font-size:25px}.parties{display:grid;grid-template-columns:1fr 1fr;gap:24px}table{width:100%;border-collapse:collapse;margin:24px 0}td,th{padding:10px;border-bottom:1px solid #ccd4dd;text-align:left}small{color:#556574}.stamp{border:2px solid #c28024;padding:12px;color:#754600}button{padding:10px 18px;margin:12px 0}@media print{button{display:none}body{margin:15mm}}</style></head><body><button onclick="window.print()">Print document</button><h1>Commercial customs declaration</h1><div class="stamp">DRAFT · Signature and carrier eligibility review required · Not submitted</div><p><b>Reference:</b> ' + escapeHTML(d.invoice_reference || d.shipment_id || 'Draft') + '<br><b>Document set:</b> ' + escapeHTML(d.postal_declaration_form || 'Commercial Invoice') + '<br><b>Currency:</b> ' + escapeHTML(d.currency || 'Not supplied') + '</p><div class="parties"><section><h2>Sender</h2>' + party(d.sender || d.origin) + '</section><section><h2>Recipient</h2>' + party(d.recipient || d.destination) + '</section></div><table><thead><tr><th>Goods</th><th>HS code</th><th>Origin</th><th>Qty</th><th>Unit value</th><th>Net kg / unit</th></tr></thead><tbody>' + items.map(i => '<tr><td>' + escapeHTML(i.description || '') + '</td><td>' + escapeHTML(i.hs_code || 'Review required') + '</td><td>' + escapeHTML(i.origin_country || '') + '</td><td>' + escapeHTML(i.quantity ?? '') + '</td><td>' + escapeHTML(i.unit_value ?? '') + '</td><td>' + escapeHTML(i.unit_net_weight_kg ?? i.unit_weight_kg ?? '') + '</td></tr>').join('') + '</tbody></table><p><b>Totals:</b> ' + escapeHTML(JSON.stringify(d.totals || {})) + '</p><p><b>Declaration:</b> I declare that the supplied particulars are accurate and the contents are correctly described. Review and sign before submission.</p><p>Signature ________________________ Date ________________________</p><small>' + escapeHTML(d.notice || 'Consult the carrier and applicable customs authority. This export does not purchase, dispatch or submit a shipment.') + '</small></body></html>'
 }
 
 function exportCustoms(doc, format) {
   if (!doc) throw Error('Generate or select a customs declaration first.');
-  download('veloce-customs-' + (format === 'json' ? 'declaration.json' : 'printable.html'), format === 'json' ? JSON.stringify(doc, null, 2) : printableDocument(doc), format === 'json' ? 'application/json' : 'text/html')
+  download('easyinvio-customs-' + (format === 'json' ? 'declaration.json' : 'printable.html'), format === 'json' ? JSON.stringify(doc, null, 2) : printableDocument(doc), format === 'json' ? 'application/json' : 'text/html')
 }
 $('#qc-generate').addEventListener('click', () => busy($('#qc-generate'), async () => {
   if (!$('#qc-reviewed').checked) throw Error('Review the commodity code and values, then tick the confirmation.');
@@ -2411,7 +2411,7 @@ $('#support-tickets').addEventListener('click', e => {
   const ticket = portal.tickets.find(t => t.id === b.dataset.disputeTicket);
   if (ticket) openDispute(ticket)
 });
-$('#dispute-download').addEventListener('click', () => download('veloce-dispute-draft.txt', $('#dispute-draft').value, 'text/plain'));
+$('#dispute-download').addEventListener('click', () => download('easyinvio-dispute-draft.txt', $('#dispute-draft').value, 'text/plain'));
 $('#dispute-copy').addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText($('#dispute-draft').value);
@@ -3174,7 +3174,7 @@ document.head.insertAdjacentHTML('beforeend', '<style>.batchrows .scrolltable{ov
 function csvTemplateDownload(button, extended) {
   return busy(button, async () => {
     const data = await api('/api/v1/shipments/batch-template?extended=' + extended);
-    exportCSV(extended ? 'veloce-orders-extended-template.csv' : 'veloce-orders-template.csv',
+    exportCSV(extended ? 'easyinvio-orders-extended-template.csv' : 'easyinvio-orders-template.csv',
       [data.columns, ...data.examples]);
     notify('Template downloaded. Replace the example rows with your orders.');
   });
@@ -3229,7 +3229,7 @@ $('#batch-btn').addEventListener('click', () => busy($('#batch-btn'), async () =
 
 $('#batch-export').addEventListener('click', () => {
   if (!state.batch) return;
-  exportCSV('veloce-batch-results.csv', [
+  exportCSV('easyinvio-batch-results.csv', [
     ['Order', 'Cargo', 'Status', 'Shipment ID', 'Currency', 'Lowest quote', 'Missing fields / error'],
     ...state.batch.results.map(row => [row.order_reference, row.cargo_type || '', row.status, row.shipment_id || '',
       row.quote?.currency || row.order?.currency || '', row.quote?.rates?.[0]?.client_price_ex_tax || '',
@@ -3620,7 +3620,7 @@ async function downloadWorkspacePDF(ids) {
   }
   const blob = await response.blob();
   if (session !== state.session) throw Error('Session changed.');
-  download('veloce-dispatch-bundle.pdf', blob, 'application/pdf');
+  download('easyinvio-dispatch-bundle.pdf', blob, 'application/pdf');
 }
 $('#workspace-pdf').addEventListener('click', () => busy($('#workspace-pdf'), () => downloadWorkspacePDF(workspaceSelection())));
 const workspaceClearBase = clearSession;

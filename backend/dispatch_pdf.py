@@ -81,7 +81,7 @@ def invoice_pdf(reference, declaration):
               paragraph('HS classification and declaration facts were reviewed by the shipper. This page does not replace carrier-issued CN22/CN23 forms.')]
     def footer(canvas, doc):
         canvas.setFont('Helvetica', 8)
-        canvas.drawString(42, 24, 'Veloce.AI | Reviewed commercial declaration | Page ' + str(doc.page))
+        canvas.drawString(42, 24, 'EasyInvio.com | Reviewed commercial declaration | Page ' + str(doc.page))
     SimpleDocTemplate(output, pagesize=A4, leftMargin=42, rightMargin=42, topMargin=36, bottomMargin=42).build(story, onFirstPage=footer, onLaterPages=footer)
     return output.getvalue()
 
