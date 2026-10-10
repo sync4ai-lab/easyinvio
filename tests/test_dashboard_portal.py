@@ -77,7 +77,7 @@ class DashboardTests(unittest.TestCase):
         self.assertFalse(self.db.calls)
     def test_client_tickets_and_intervention_scope(self):
         self.assertEqual(self.client.get('/api/v1/support/tickets').status_code,200)
-        self.assertEqual(self.db.calls[-1][1],(self.context.tenant_id,))
+        self.assertEqual(self.db.calls[-1][1],(self.context.tenant_id,None,False))
         ticket_id=uuid4()
         response=self.client.post(f'/api/v1/support/tickets/{ticket_id}/intervene',json={'note':'Ask carrier to check customs paperwork'})
         self.assertEqual(response.status_code,200)

@@ -87,6 +87,7 @@ from backend.hubspot_crm import (
 )
 from backend.database_tls import database_tls_context
 from backend.tracking_and_support import TrackingSettings, TrackingSupportService, build_router as tracking_router
+from backend.support_delivery import DeliverySettings, SupportDelivery, build_router as support_delivery_router
 from backend.dashboard_portal import build_router as dashboard_router
 from backend.automation_freight_engine import AutomationService, Cargo, calculate_cargo_charge, build_router as automation_router
 from backend.dispatch_workspace import build_router as dispatch_workspace_router
@@ -1544,7 +1545,7 @@ class WhatsAppService:
             "iat": int(datetime.now(timezone.utc).timestamp()), "exp": int(expires_at.timestamp()),
         }, self.settings.quote_link_secret.get_secret_value(), algorithm="HS256")
 
-    async def process(self, context: TenantContext, message_sid: str, body: str) -> str:
+    async def process(self, context: TenantContext, message_sid: str, body: str, sender_e164: str | None = None) -> str:
         async with self.pool.acquire() as connection:
             # READ COMMITTED sees a competing receipt after the advisory lock
             # wait. A repeatable-read snapshot taken before that wait would
@@ -1562,6 +1563,13 @@ class WhatsAppService:
                 )
                 if cached is not None:
                     return cached
+                if sender_e164 is not None:
+                    # Only the authenticated inbound route supplies the sender.
+                    # Existing SID receipts prevent replay from extending the window.
+                    await connection.execute('''UPDATE public.whatsapp_bindings b SET last_inbound_at=now()
+                        FROM public.users u WHERE b.tenant_id=$1 AND b.user_id=u.id AND u.tenant_id=b.tenant_id
+                         AND u.auth_user_id=$2 AND b.sender_e164=$3 AND b.receiver_e164=$4 AND b.is_active AND u.is_active''',
+                        context.tenant_id,context.user_id,sender_e164,self.settings.twilio_whatsapp_number)
                 try:
                     parsed = parse_quote(body)
                 except ValueError:
@@ -1693,6 +1701,7 @@ async def lifespan(application: FastAPI):
                 application.state.ecommerce = EcommerceService(pool,client=http_client,
                     connectors=StoreConnectorSettings().ecommerce_connectors)
                 application.state.tracking_support = TrackingSupportService(pool, TrackingSettings())
+                application.state.support_delivery = SupportDelivery(pool,http_client,settings,DeliverySettings())
                 application.state.sandbox_billing = SandboxBillingService(application.state.finance, settings) if settings.stripe_enabled else None
                 application.state.admin_portal = AdminService(pool)
                 application.state.whatsapp = WhatsAppService(pool, settings, rating)
@@ -1704,6 +1713,7 @@ async def lifespan(application: FastAPI):
                 configure_ecommerce_service(application.state.ecommerce)
                 ecommerce_task = asyncio.create_task(tracking_worker(application.state.ecommerce))
                 support_task = asyncio.create_task(application.state.tracking_support.worker())
+                notification_task = asyncio.create_task(application.state.support_delivery.worker())
                 crm_task = None
                 application.state.hubspot = None
                 try:
@@ -1717,6 +1727,11 @@ async def lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    notification_task.cancel()
+                    try:
+                        await notification_task
+                    except asyncio.CancelledError:
+                        pass
                     support_task.cancel()
                     try:
                         await support_task
@@ -1953,7 +1968,7 @@ async def inbound_whatsapp(request: Request) -> Response:
                     "Ask your workspace owner to verify and register your WhatsApp number, then resend."))
             if form.get("NumMedia", "0") != "0":
                 return xml_response(twiml("Please send text: Quote 4.5kg from GBR to USA"))
-            return xml_response(await request.app.state.whatsapp.process(context, form["MessageSid"], form["Body"]))
+            return xml_response(await request.app.state.whatsapp.process(context, form["MessageSid"], form["Body"], sender.group(1)))
     except TimeoutError:
         return xml_response(twiml("The carriers did not respond quickly enough. Please resend shortly."))
     except HTTPException as exc:
@@ -2010,6 +2025,7 @@ app.include_router(sandbox_router(authenticate, RatingRequest))
 app.include_router(ecommerce_router(authenticate))
 app.include_router(hubspot_router(authenticate))
 app.include_router(tracking_router(authenticate))
+app.include_router(support_delivery_router(authenticate))
 app.include_router(dashboard_router(authenticate))
 app.include_router(automation_router(authenticate))
 app.include_router(dispatch_workspace_router(authenticate))

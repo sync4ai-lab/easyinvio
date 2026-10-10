@@ -6,6 +6,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from backend.admin_portal import authenticate_platform_owner
+from backend.tracking_and_support import money
 
 
 class Intervention(BaseModel):
@@ -93,43 +94,67 @@ def build_router(authenticate):
 
     @router.get("/admin/analytics/dashboard")
     async def platform_report(request: Request, start_date: date, end_date: date,
+                              environment: Literal['PRODUCTION','SANDBOX']='PRODUCTION',
                               owner: Any = Depends(authenticate_platform_owner)):
         if end_date < start_date or end_date == date.max or (end_date-start_date).days > 366:
             raise HTTPException(422, "Use an ordered date range of at most 367 days")
         start = datetime.combine(start_date, datetime.min.time(), timezone.utc)
         end = datetime.combine(end_date+timedelta(days=1), datetime.min.time(), timezone.utc)
+        sandbox = environment=='SANDBOX'
         async with request.app.state.finance.pool.acquire() as connection:
             async with connection.transaction(isolation="repeatable_read", readonly=True):
                 totals = await connection.fetch("""SELECT currency,sum(final_client_price)::numeric AS revenue,
                     sum(profit_markup)::numeric AS margin,sum(parcel_count)::bigint AS package_count
                     FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
-                    WHERE NOT t.is_sandbox AND booked_at >= $1 AND booked_at < $2
-                    AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY currency""", start, end)
-                tenants = await connection.fetchval("SELECT count(*) FROM public.tenants WHERE workspace_status='ACTIVE' AND NOT is_sandbox")
+                    WHERE ((NOT t.is_sandbox AND NOT $3::boolean) OR (t.is_sandbox AND $3::boolean)) AND booked_at >= $1 AND booked_at < $2
+                    AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY currency""", start, end,sandbox)
+                tenants = await connection.fetchval("SELECT count(*) FROM public.tenants WHERE workspace_status='ACTIVE' AND is_sandbox=$1",sandbox)
                 carriers = await connection.fetch("""SELECT coalesce(carrier_code,'Unassigned') AS carrier,sum(parcel_count)::bigint AS volume
                     FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
-                    WHERE NOT t.is_sandbox AND booked_at >= $1 AND booked_at < $2
+                    WHERE t.is_sandbox=$3 AND booked_at >= $1 AND booked_at < $2
                     AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
-                    GROUP BY carrier_code ORDER BY volume DESC LIMIT 20""", start, end)
-        return {"active_tenants": tenants, "totals_by_currency": [{"currency": row["currency"], "revenue": format(row["revenue"],'.2f'), "margin": format(row["margin"],'.2f'), "package_count": row["package_count"]} for row in totals],
-                "carriers": [dict(row) for row in carriers], "margin_basis": "stored gross markup; net profit is unavailable"}
+                    GROUP BY carrier_code ORDER BY volume DESC""", start, end,sandbox)
+                billing = await connection.fetch('''SELECT billing_plan,billing_status,count(*)::bigint AS company_count
+                    FROM public.tenants WHERE is_sandbox=$1 GROUP BY billing_plan,billing_status ORDER BY billing_plan,billing_status''',sandbox)
+                payments = await connection.fetch('''SELECT p.currency,p.status,count(*)::bigint AS payment_count,coalesce(sum(p.amount),0)::numeric AS amount
+                    FROM public.wallet_topups p JOIN public.tenants t ON t.tenant_id=p.tenant_id
+                    WHERE t.is_sandbox=$3 AND p.created_at>=$1 AND p.created_at<$2
+                    GROUP BY p.currency,p.status ORDER BY p.currency,p.status''',start,end,sandbox)
+                threads = await connection.fetch('''SELECT q.status,count(*)::bigint AS ticket_count FROM public.support_tickets q
+                    JOIN public.tenants t ON t.tenant_id=q.tenant_id WHERE t.is_sandbox=$1 AND q.status IN ('OPEN','IN_REVIEW')
+                    GROUP BY q.status ORDER BY q.status''',sandbox)
+        return {"active_tenants": tenants, "totals_by_currency": [{"currency": row["currency"], "revenue": money(row["revenue"]), "margin": money(row["margin"]), "package_count": row["package_count"]} for row in totals],
+                "carriers": [dict(row) for row in carriers], "margin_basis": "stored gross markup; net profit is unavailable",
+                'environment':environment,'start_date':start_date.isoformat(),'end_date':end_date.isoformat(),
+                'billing_pipeline':[dict(row) for row in billing],
+                'payment_pipeline':[{'currency':r['currency'],'status':r['status'],'payment_count':r['payment_count'],'amount':money(r['amount'])} for r in payments],
+                'active_support':[dict(row) for row in threads]}
 
-    async def tickets_query(request, tenant_id=None):
+    async def tickets_query(request, tenant_id=None, sandbox=None, active_only=False):
         async with request.app.state.finance.pool.acquire() as connection:
             rows = await connection.fetch("""SELECT t.id,t.tenant_id,t.shipment_id,t.status,t.ai_summary,t.ai_method,
-                t.manual_note,t.archived_at,t.created_at,coalesce(s.tracking_number,a.order_reference) AS tracking_number,s.destination_country,s.proof_of_delivery_url
+                t.manual_note,t.archived_at,t.created_at,coalesce(s.tracking_number,a.order_reference) AS tracking_number,s.destination_country,s.proof_of_delivery_url,
+                company.company_name,
+                coalesce((SELECT jsonb_agg(jsonb_build_object('status',m.status,'updated_at',m.delivery_updated_at,'error_code',m.last_error_code))
+                    FROM public.support_message_outbox m WHERE m.tenant_id=t.tenant_id AND m.ticket_id=t.id),'[]'::jsonb) AS notifications
                 FROM public.support_tickets t LEFT JOIN public.shipments s ON s.id=t.shipment_id AND s.tenant_id=t.tenant_id
+                JOIN public.tenants company ON company.tenant_id=t.tenant_id
                 LEFT JOIN public.automation_failures a ON a.id=t.automation_failure_id AND a.tenant_id=t.tenant_id
-                WHERE ($1::uuid IS NULL OR t.tenant_id=$1) ORDER BY t.created_at DESC LIMIT 100""", tenant_id)
-        return {"tickets": [{**dict(row), "id": str(row["id"]), "tenant_id": str(row["tenant_id"]), "shipment_id": str(row["shipment_id"]), "created_at": row["created_at"].isoformat()} for row in rows]}
+                WHERE ($1::uuid IS NULL OR t.tenant_id=$1) AND ($2::boolean IS NULL OR company.is_sandbox=$2)
+                AND (NOT $3::boolean OR t.status IN ('OPEN','IN_REVIEW'))
+                ORDER BY t.created_at DESC LIMIT 100""", tenant_id,sandbox,active_only)
+        import json
+        return {"tickets": [{**dict(row), "id": str(row["id"]), "tenant_id": str(row["tenant_id"]), "shipment_id": str(row["shipment_id"]) if row['shipment_id'] else None,
+                'notifications':json.loads(row['notifications']) if isinstance(row.get('notifications'),str) else row.get('notifications',[]),
+                "created_at": row["created_at"].isoformat()} for row in rows]}
 
     @router.get("/support/tickets")
     async def client_tickets(request: Request, context: Any = Depends(authenticate)):
         return await tickets_query(request, context.tenant_id)
 
     @router.get("/admin/support/tickets")
-    async def all_tickets(request: Request, owner: Any = Depends(authenticate_platform_owner)):
-        return await tickets_query(request)
+    async def all_tickets(request: Request, environment: Literal['PRODUCTION','SANDBOX']='PRODUCTION',active_only:bool=False,owner: Any = Depends(authenticate_platform_owner)):
+        return await tickets_query(request,sandbox=environment=='SANDBOX',active_only=active_only)
 
     @router.post("/support/tickets/{ticket_id}/intervene")
     async def intervene(ticket_id: UUID, body: Intervention, request: Request, context: Any = Depends(authenticate)):

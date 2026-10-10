@@ -12,6 +12,7 @@ import ipaddress
 import json
 import re
 import time
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Literal
@@ -35,6 +36,7 @@ class TrackingKey(BaseModel):
     carrier_account_id: UUID
     secret: SecretStr
     pod_allowed_hosts: list[str] = Field(default_factory=list)
+    easypost_mode: Literal['test', 'production'] | None = None
 
     @field_validator("secret")
     @classmethod
@@ -97,6 +99,9 @@ def validate_pod_url(value: str | None, allowed_hosts: list[str]) -> str | None:
 def draft_remedy(raw_error: str) -> str:
     """Deterministic mock-AI classifier; never claims a model inference occurred."""
     text = re.sub(r"[\x00-\x1f\x7f]", " ", raw_error).lower()
+    if any(word in text for word in ('postcode', 'postal code', 'zip code')):
+        return ('The carrier reports a postal-code issue. Verify the recipient postal code against the full street, city and state with the merchant. '
+                'For a customs hold, also check that the invoice and consignee address agree. Ask the carrier to accept the correction; clearance or a delivery date is not confirmed.')
     categories = [
         (("customs", "duties", "clearance"), "The carrier reports a customs clearance issue. Review the commercial invoice, commodity codes and consignee details with the carrier before submitting corrections."),
         (("address", "postcode", "postal", "recipient"), "The carrier reports an address or recipient issue. Verify the delivery address and contact details with the merchant, then request a carrier correction."),
@@ -176,7 +181,7 @@ class TrackingSupportService:
                 events = await connection.fetch("""SELECT id,tenant_id,shipment_id,raw_error FROM public.tracking_events
                     WHERE support_pending ORDER BY received_at LIMIT 50 FOR UPDATE SKIP LOCKED""")
                 for event in events:
-                    shipment = await connection.fetchrow("SELECT status FROM public.shipments WHERE tenant_id=$1 AND id=$2 FOR SHARE", event["tenant_id"], event["shipment_id"])
+                    shipment = await connection.fetchrow("SELECT status,tracking_number FROM public.shipments WHERE tenant_id=$1 AND id=$2 FOR SHARE", event["tenant_id"], event["shipment_id"])
                     resolved = shipment is None or shipment["status"] == "DELIVERED"
                     ticket_id = uuid4()
                     summary = draft_remedy(event["raw_error"])
@@ -194,7 +199,7 @@ class TrackingSupportService:
                             await connection.execute("""INSERT INTO public.support_message_outbox
                                 (tenant_id,ticket_id,recipient_e164,body,status)
                                 VALUES($1,$2,$3,$4,'STAGED') ON CONFLICT DO NOTHING""",
-                                event["tenant_id"], ticket_id, binding["sender_e164"], summary)
+                                event["tenant_id"], ticket_id, binding["sender_e164"], 'Shipment '+str(shipment.get('tracking_number') or event['shipment_id'])+': '+summary)
                     await connection.execute("UPDATE public.tracking_events SET support_pending=false WHERE tenant_id=$1 AND id=$2", event["tenant_id"], event["id"])
 
     async def worker(self):
@@ -240,6 +245,8 @@ def build_router(authenticate):
         service = getattr(request.app.state, "tracking_support", None)
         if service is None:
             raise HTTPException(503, "Tracking integration unavailable")
+        if 'x-hmac-signature' in request.headers:
+            return await native_easypost_webhook(request, service)
         key_id = request.headers.get("x-veloce-key-id", "")
         key = service.settings.tracking_webhook_keys.get(key_id)
         stamp = request.headers.get("x-veloce-timestamp", "")
@@ -277,3 +284,49 @@ def build_router(authenticate):
             raise HTTPException(503, "Financial report unavailable") from None
 
     return router
+
+
+async def native_easypost_webhook(request, service):
+    """EasyPost SDK-compatible NFKD secret/raw-body HMAC and Tracker mapping."""
+    key_id = request.query_params.get('integration_key', '')
+    key = service.settings.tracking_webhook_keys.get(key_id)
+    if (key is None or key.easypost_mode is None or len(request.query_params.getlist('integration_key')) != 1
+        or len(request.headers.getlist('x-hmac-signature')) != 1):
+        raise HTTPException(401, 'Invalid EasyPost tracking configuration')
+    if request.headers.get('content-type', '').split(';')[0].strip().lower() != 'application/json':
+        raise HTTPException(415, 'Use application/json')
+    raw = bytearray()
+    async for chunk in request.stream():
+        raw.extend(chunk)
+        if len(raw) > 65536:
+            raise HTTPException(413, 'Tracking webhook exceeds 64 KB')
+    secret = unicodedata.normalize('NFKD', key.secret.get_secret_value()).encode()
+    expected = 'hmac-sha256-hex=' + hmac.new(secret, raw, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, request.headers['x-hmac-signature']):
+        raise HTTPException(401, 'Invalid EasyPost signature')
+    try:
+        body = json.loads(raw)
+        if body.get('description') != 'tracker.updated':
+            return {'accepted': True, 'ignored': True}
+        tracker = body['result']
+        if tracker.get('object') != 'Tracker' or tracker.get('mode') != key.easypost_mode:
+            raise ValueError()
+        statuses = {'in_transit':'IN_TRANSIT', 'out_for_delivery':'IN_TRANSIT', 'available_for_pickup':'IN_TRANSIT',
+                    'delivered':'DELIVERED', 'failure':'EXCEPTION', 'error':'EXCEPTION', 'return_to_sender':'EXCEPTION'}
+        status = statuses.get(tracker['status'])
+        if status is None:
+            return {'accepted': True, 'ignored': True, 'reason':'Non-dispatch tracking milestone'}
+        details = tracker.get('tracking_details') or []
+        latest = max(details, key=lambda d: datetime.fromisoformat(d['datetime'].replace('Z','+00:00'))) if details else None
+        event = TrackingEvent(event_id=body['id'], tracking_number=tracker['tracking_code'], status=status,
+                              occurred_at=tracker['updated_at'],
+                              raw_error=str(latest.get('message') or latest.get('status_detail') or tracker.get('status_detail') or '')[:4000] if latest else str(tracker.get('status_detail') or '')[:4000])
+    except (ValueError, KeyError, TypeError, AttributeError):
+        raise HTTPException(422, 'Invalid EasyPost tracker event') from None
+    try:
+        # Delivery metadata can vary across provider retries; fence the normalized
+        # tracking facts, not unrelated envelope counters.
+        canonical=json.dumps(event.model_dump(mode='json'),sort_keys=True,separators=(',',':')).encode()
+        return await service.ingest(key_id, key, event, hashlib.sha256(canonical).hexdigest())
+    except asyncpg.PostgresError:
+        raise HTTPException(503, 'Tracking database unavailable') from None

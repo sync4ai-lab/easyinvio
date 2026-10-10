@@ -334,8 +334,8 @@ def build_router(authenticate: Any, rating_model: Any) -> APIRouter:
                             body.tenant_id, user["id"], body.sender_e164, SANDBOX_NUMBER)
                     else:
                         await connection.execute(
-                            """INSERT INTO public.whatsapp_bindings (tenant_id,user_id,sender_e164,receiver_e164,is_active)
-                               VALUES ($1,$2,$3,$4,true)""", body.tenant_id, user["id"], body.sender_e164, SANDBOX_NUMBER)
+                            """INSERT INTO public.whatsapp_bindings (tenant_id,user_id,sender_e164,receiver_e164,verified_at,is_active)
+                               VALUES ($1,$2,$3,$4,now(),true)""", body.tenant_id, user["id"], body.sender_e164, SANDBOX_NUMBER)
                     await connection.execute("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", f"sandbox-route:{body.tenant_id}:{body.route_code}")
                     exists = await connection.fetchval("SELECT count(*) FROM public.whatsapp_routes WHERE tenant_id=$1 AND route_code=$2", body.tenant_id, body.route_code)
                     if exists > 1:
