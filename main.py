@@ -189,6 +189,8 @@ class Settings(BaseSettings):
             raise ValueError("Sandbox billing requires an sk_test_ key and STRIPE_LIVEMODE=false")
         if self.twilio_whatsapp_sandbox_enabled and self.twilio_whatsapp_number != "+14155238886":
             raise ValueError("Twilio WhatsApp Sandbox requires +14155238886")
+        if self.stripe_livemode and any(urlsplit(u).scheme=='http' for u in [self.checkout_success_url,self.checkout_cancel_url]):
+            raise ValueError('Live checkout requires HTTPS return URLs')
         return self
 
     @field_validator("supabase_url")
@@ -218,10 +220,18 @@ class Settings(BaseSettings):
             result.append(value)
         return result
 
-    @field_validator(
-        "checkout_success_url", "checkout_cancel_url",
-        "twilio_webhook_url", "booking_page_url",
-    )
+    @field_validator("checkout_success_url", "checkout_cancel_url")
+    @classmethod
+    def checkout_return_url(cls, value: str) -> str:
+        if not value:
+            return value
+        parts = urlsplit(value)
+        local = parts.scheme == 'http' and parts.hostname in {'localhost','127.0.0.1','::1'}
+        if (parts.scheme != 'https' and not local) or not parts.hostname or parts.username or parts.password or parts.fragment:
+            raise ValueError('Use a fixed HTTPS checkout return URL, or loopback HTTP for local testing')
+        return value
+
+    @field_validator("twilio_webhook_url", "booking_page_url")
     @classmethod
     def fixed_https_url(cls, value: str) -> str:
         if not value:
@@ -1329,7 +1339,7 @@ class FinanceEngine:
                 return {"shipment_id": str(shipment_id), "zpl": zpl, "simulated": True,
                         "charged": False, "printer_broadcast": False}
 
-    async def create_checkout(self, context: TenantContext, body: TopupRequest) -> TopupResponse:
+    async def create_checkout(self, context: TenantContext, body: TopupRequest, *, return_urls: tuple[str,str] | None = None) -> TopupResponse:
         if self.stripe is None:
             raise HTTPException(503, "Stripe integration is disabled")
         async with self.pool.acquire() as connection:
@@ -1377,8 +1387,8 @@ class FinanceEngine:
             # Native async Stripe SDK call; no network call inside a DB transaction.
             session = await self.stripe.v1.checkout.sessions.create_async({
                 "mode": "payment", "customer": customer, "payment_method_types": ["card"],
-                "success_url": self.settings.checkout_success_url,
-                "cancel_url": self.settings.checkout_cancel_url,
+                "success_url": return_urls[0] if return_urls else self.settings.checkout_success_url,
+                "cancel_url": return_urls[1] if return_urls else self.settings.checkout_cancel_url,
                 "client_reference_id": str(body.request_id),
                 "metadata": {"purpose": "wallet_topup", "tenant_id": str(context.tenant_id),
                              "topup_id": str(body.request_id)},
@@ -1451,8 +1461,8 @@ class FinanceEngine:
                     raise ValueError("Wallet currency mismatch")
                 balance = wallet["balance"] + amount
                 await connection.execute(
-                    "UPDATE public.wallets SET balance=$2,updated_at=now() WHERE tenant_id=$1",
-                    tenant_id, balance,
+                    "UPDATE public.wallets SET balance=balance+$2,updated_at=now() WHERE tenant_id=$1",
+                    tenant_id, amount,
                 )
                 await self.append_ledger(
                     connection, tenant_id=tenant_id, currency=currency, entry_type="TOPUP",
@@ -1924,7 +1934,8 @@ async def stripe_webhook(request: Request) -> dict[str, bool]:
     settings = request.app.state.settings
     if not settings.stripe_enabled:
         raise HTTPException(503, "Stripe integration is disabled")
-    signature = request.headers.get("stripe-signature")
+    signatures = request.headers.getlist("stripe-signature")
+    signature = signatures[0] if len(signatures)==1 else None
     if not signature:
         raise HTTPException(400, "Missing Stripe signature")
     raw = await limited_body(request, MAX_WEBHOOK_BYTES)
@@ -1951,6 +1962,10 @@ async def stripe_webhook(request: Request) -> dict[str, bool]:
         logger.error("Stripe wallet DB failure event=%s", event_id)
         raise HTTPException(503, "Wallet credit temporarily unavailable") from None
     return {"received": True, "credited": credited}
+
+
+from backend.payment_gateway import build_router as payment_gateway_router
+app.include_router(payment_gateway_router(authenticate, TopupRequest, stripe_webhook))
 
 
 @app.post("/webhooks/twilio/whatsapp")
