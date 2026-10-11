@@ -97,6 +97,7 @@ function refreshEnterpriseNavigation() {
     $('.sidebar-caption').textContent = admin ? 'Platform control plane' : warehouse ? 'Warehouse operations' : 'Client workspace';
     $('#dashboard .quick-grid').hidden = admin || warehouse;
     $('#dashboard .support-card').hidden = warehouse;
+    $('#tenant-new').innerHTML = '<i data-lucide="building-2"></i>' + (state.session ? 'Onboard New Tenant' : 'Sign in to onboard a tenant');
     $$('[data-admin-source]').forEach(node => node.textContent = state.session
         ? 'OWNER-AUTHORIZED DATABASE CONTROLS · All mutations are validated server-side.'
         : 'SAMPLE CONTROL PLANE · Changes affect this browser session only. Sign in as an authorized platform owner to modify the database.');
@@ -198,18 +199,22 @@ function renderEnterpriseTables() {
 $('#tenant-search').addEventListener('input', renderEnterpriseTables);
 $('#margin-tenant-filter').addEventListener('change', renderEnterpriseTables);
 function openTenantForm() {
-    enterpriseAdminGuard(); $('#tenant-admin-form').reset(); $('#tenant-admin-form').dataset.requestId=crypto.randomUUID(); $('#tenant-admin-dialog').showModal();
+    enterpriseAdminGuard();
+    if (!state.session) { notify('Sign in as an authorized platform owner to create a customer in the database.'); $('#account-dialog').showModal(); return; }
+    $('#tenant-admin-form').reset(); $('#tenant-admin-form').dataset.requestId=crypto.randomUUID(); $('#tenant-admin-dialog').showModal();
 }
 $('#tenant-new').addEventListener('click', openTenantForm);
 $('#tenant-admin-form').addEventListener('submit', event => {
     event.preventDefault(); busy(event.target.querySelector('button'), async () => {
-        enterpriseAdminGuard(); const f = new FormData(event.target);
+        enterpriseAdminGuard();
+        if (!state.session) throw Error('Sign in as an authorized platform owner. No customer has been created.');
+        const f = new FormData(event.target);
         const company_profile = Object.fromEntries(['company_name','contact_name','billing_email','address_line1','city','postal_code','country_code'].map(k => [k, String(f.get(k)).trim()]));
         if (f.get('tax_id')) company_profile.tax_id = String(f.get('tax_id'));
         const body = { request_id: event.target.dataset.requestId, company_profile, billing_plan: f.get('billing_plan'), default_currency: f.get('default_currency'), is_sandbox: f.has('is_sandbox'), ...(f.get('owner_auth_user_id') ? { owner_auth_user_id: f.get('owner_auth_user_id') } : {}) };
-        if (state.session) await api('/api/v1/admin/tenants', { method: 'POST', body, auth: true });
-        else enterprise.tenants.unshift({ tenant_id: crypto.randomUUID(), ...company_profile, ...body, workspace_slug: 'sample-' + Date.now(), workspace_status: 'ACTIVE' });
-        $('#tenant-admin-dialog').close(); await loadEnterpriseView('admin-clients'); notify(state.session ? 'Customer account and wallet created.' : 'Sample customer created in browser memory only.');
+        const created = await api('/api/v1/admin/tenants', { method: 'POST', body, auth: true });
+        if (!created.tenant_id || created.wallet_provisioned !== true) throw Error('Customer creation was not confirmed. Retry with the same form to reconcile.');
+        $('#tenant-admin-dialog').close(); await loadEnterpriseView('admin-clients'); notify('Customer account and wallet saved in the database.');
     });
 });
 function openMarginForm(id = null) {

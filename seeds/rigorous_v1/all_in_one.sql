@@ -265,7 +265,7 @@ END $$;
 DO $$ DECLARE n int; BEGIN
   SELECT count(*) INTO n FROM public.tenants WHERE company_profile->>'fixture_batch'='veloce-rigorous-v1';
   IF n<>24 THEN RAISE EXCEPTION 'Expected 24 tenants, got %',n; END IF;
-  IF (SELECT count(*) FROM public.users u JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1')<>72 THEN RAISE EXCEPTION 'Member count mismatch'; END IF;
+  IF (SELECT count(*) FROM public.users u JOIN public.tenants t USING(tenant_id) JOIN auth.users a ON a.id=u.auth_user_id WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1' AND a.raw_app_meta_data->>'fixture_batch'='veloce-rigorous-v1')<>72 THEN RAISE EXCEPTION 'Member count mismatch'; END IF;
   IF (SELECT count(*) FROM public.carrier_accounts a JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1')<>48 THEN RAISE EXCEPTION 'Carrier count mismatch'; END IF;
   IF (SELECT count(*) FROM public.margin_rules m JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1')<>48 THEN RAISE EXCEPTION 'Margin count mismatch'; END IF;
   IF (SELECT count(*) FROM public.ecommerce_stores s JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1')<>72 THEN RAISE EXCEPTION 'Store count mismatch'; END IF;
@@ -274,7 +274,7 @@ DO $$ DECLARE n int; BEGIN
   IF (SELECT count(*) FROM public.tracking_events e JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1')<>72 THEN RAISE EXCEPTION 'Tracking count mismatch'; END IF;
   IF (SELECT count(*) FROM public.support_tickets e JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1')<>24 THEN RAISE EXCEPTION 'Support count mismatch'; END IF;
   IF EXISTS(SELECT 1 FROM public.wallet_topups p JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1') THEN RAISE EXCEPTION 'Unexpected payment-provider fixture'; END IF;
-  IF EXISTS(SELECT 1 FROM public.whatsapp_bindings p JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1') THEN RAISE EXCEPTION 'Unexpected WhatsApp fixture'; END IF;
+  IF EXISTS(SELECT 1 FROM public.whatsapp_bindings p JOIN public.tenants t USING(tenant_id) JOIN public.users u ON u.id=p.user_id AND u.tenant_id=p.tenant_id JOIN auth.users a ON a.id=u.auth_user_id WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1' AND a.raw_app_meta_data->>'fixture_batch'='veloce-rigorous-v1') THEN RAISE EXCEPTION 'Unexpected WhatsApp fixture'; END IF;
   IF EXISTS(SELECT 1 FROM public.hubspot_sync_jobs p JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1') THEN RAISE EXCEPTION 'Unexpected CRM queue fixture'; END IF;
   IF EXISTS(SELECT 1 FROM public.tenants WHERE company_profile->>'fixture_batch'='veloce-rigorous-v1' AND NOT is_sandbox) THEN RAISE EXCEPTION 'Non-sandbox fixture'; END IF;
   IF EXISTS(SELECT 1 FROM public.carrier_accounts a JOIN public.tenants t USING(tenant_id) WHERE t.company_profile->>'fixture_batch'='veloce-rigorous-v1' AND (a.is_active OR a.environment<>'TEST')) THEN RAISE EXCEPTION 'Active/live seeded carrier'; END IF;
