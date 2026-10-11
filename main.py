@@ -154,6 +154,7 @@ class Settings(BaseSettings):
     checkout_success_url: str = ""
     checkout_cancel_url: str = ""
 
+    whatsapp_brand_name: str = Field(default="EasyInvio.com", min_length=1, max_length=80)
     twilio_enabled: bool = False
     twilio_account_sid: str = ""
     twilio_auth_token: SecretStr = SecretStr("")
@@ -1552,6 +1553,7 @@ class WhatsAppService:
                    JOIN public.users u ON u.tenant_id=b.tenant_id AND u.id=b.user_id
                    JOIN public.tenants t ON t.tenant_id=b.tenant_id
                    WHERE b.sender_e164=$1 AND b.receiver_e164=$2 AND b.is_active
+                     AND b.verified_at IS NOT NULL
                      AND u.is_active AND u.role IN ('OWNER','ADMIN','DISPATCHER')
                      AND t.workspace_status='ACTIVE'
                      AND (NOT $3::boolean OR t.is_sandbox) LIMIT 2""", sender, receiver,
@@ -1571,7 +1573,7 @@ class WhatsAppService:
             "iat": int(datetime.now(timezone.utc).timestamp()), "exp": int(expires_at.timestamp()),
         }, self.settings.quote_link_secret.get_secret_value(), algorithm="HS256")
 
-    async def process(self, context: TenantContext, message_sid: str, body: str, sender_e164: str | None = None) -> str:
+    async def process(self, context: TenantContext, message_sid: str, body: str, sender_e164: str | None = None, *, conversational: bool = False) -> str:
         async with self.pool.acquire() as connection:
             # READ COMMITTED sees a competing receipt after the advisory lock
             # wait. A repeatable-read snapshot taken before that wait would
@@ -1634,7 +1636,8 @@ class WhatsAppService:
                         lines = ["EasyInvio.com sandbox quotes" if sandbox else "EasyInvio.com live quotes",
                                  f"{parsed.weight_kg}kg | {parsed.origin_country} → {parsed.destination_country}",
                                  "Prices exclude tax. Final total is confirmed in app."]
-                        for position, rate in enumerate(result.rates[:3], 1):
+                        offers = []
+                        for position, rate in enumerate(sorted(result.rates, key=lambda r: r.client_price_ex_tax)[:3], 1):
                             choice_id = uuid4()
                             await connection.execute(
                                 """INSERT INTO public.whatsapp_quote_choices
@@ -1647,6 +1650,7 @@ class WhatsAppService:
                                 "t": str(context.tenant_id),
                                 "quote": self.sign_choice(context, choice_id, result.expires_at),
                             })
+                            offers.append((rate, link))
                             delivery = (f" | estimated {rate.delivery_days} days"
                                         if rate.delivery_days is not None else "")
                             lines.extend(["", f"{position}. {rate.carrier_code} {rate.service_code}",
@@ -1657,6 +1661,21 @@ class WhatsAppService:
                             lines.extend(["", "Sandbox pricing only. No carrier labels or live payments are created."])
                         lines.extend(["", f"Links expire at {result.expires_at:%H:%M:%S UTC}. Sign in to review and book."])
                         xml = twiml("\n".join(lines))
+                        if conversational:
+                            from backend.whatsapp_bot import format_quotes
+                            tenant = await connection.fetchrow(
+                                "SELECT billing_plan FROM public.tenants WHERE tenant_id=$1", context.tenant_id)
+                            wallet = await connection.fetchrow(
+                                "SELECT currency,balance,reserved_balance FROM public.wallets WHERE tenant_id=$1", context.tenant_id)
+                            prepaid = tenant is None or tenant["billing_plan"] == "PREPAID_WALLET"
+                            available = wallet["balance"] - wallet["reserved_balance"] if wallet else Decimal("0")
+                            cheapest = min((rate.client_price_ex_tax for rate, _ in offers), default=Decimal("0"))
+                            blocked = prepaid and (wallet is None or wallet["currency"] != rating_request.currency
+                                                   or available <= 0 or available < cheapest)
+                            xml = format_quotes(self.settings.whatsapp_brand_name, parsed.weight_kg,
+                                parsed.origin_country, parsed.destination_country, offers,
+                                sandbox=sandbox, partial=result.partial, wallet_blocked=blocked)
+
                 await connection.execute(
                     """INSERT INTO public.whatsapp_receipts (tenant_id,message_sid,response_xml)
                        VALUES ($1,$2,$3)""", context.tenant_id, message_sid, xml,
@@ -1673,6 +1692,8 @@ async def lifespan(application: FastAPI):
         return
     application.state.local_preview = False
     settings = Settings()
+    from backend.whatsapp_bot import initialize_whatsapp
+    initialize_whatsapp(settings)
     tls = database_tls_context(settings.database_ca_file, strict=settings.database_tls_strict)
     async with httpx.AsyncClient(
         follow_redirects=False, trust_env=False,
@@ -1991,6 +2012,10 @@ async def stripe_webhook(request: Request) -> dict[str, bool]:
 
 from backend.payment_gateway import build_router as payment_gateway_router
 app.include_router(payment_gateway_router(authenticate, TopupRequest, stripe_webhook))
+
+
+from backend.whatsapp_bot import router as whatsapp_bot_router
+app.include_router(whatsapp_bot_router)
 
 
 @app.post("/webhooks/twilio/whatsapp")
