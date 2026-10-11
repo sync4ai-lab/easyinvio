@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import time
 from urllib.parse import urlsplit
 
@@ -23,7 +24,7 @@ def running_tunnel(client: httpx.Client) -> str | None:
         response.raise_for_status()
         for tunnel in response.json().get("tunnels", []):
             if (tunnel.get("config", {}).get("addr") in
-                    {"http://localhost:8000", "http://127.0.0.1:8000", "localhost:8000", "8000"}
+                    {"http://localhost:8009", "http://127.0.0.1:8009", "localhost:8009", "8009"}
                     and urlsplit(tunnel.get("public_url", "")).scheme == "https"):
                 return tunnel["public_url"].rstrip("/")
     except (httpx.HTTPError, ValueError):
@@ -38,6 +39,29 @@ def main() -> None:
     values = dotenv_values(env_file)
     with httpx.Client(trust_env=False, timeout=2) as client:
         public_url = running_tunnel(client)
+        try:
+            gateway = client.get('http://127.0.0.1:8009/api/v1/integrations/whatsapp/webhook')
+            if gateway.headers.get('x-easyinvio-ingress') != 'twilio-only-v1':
+                raise SystemExit('Port 8009 belongs to another application; refusing to expose it.')
+        except httpx.HTTPError:
+            with (ROOT / 'whatsapp-ingress.log').open('ab') as log:
+                ingress = subprocess.Popen([sys.executable, '-m', 'uvicorn', 'backend.whatsapp_ingress:app',
+                    '--host', '127.0.0.1', '--port', '8009', '--no-access-log'], cwd=ROOT,
+                    stdout=log, stderr=log,
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+            for _ in range(20):
+                try:
+                    gateway = client.get('http://127.0.0.1:8009/api/v1/integrations/whatsapp/webhook')
+                    if gateway.headers.get('x-easyinvio-ingress') == 'twilio-only-v1':
+                        break
+                except httpx.HTTPError:
+                    pass
+                if ingress.poll() is not None:
+                    raise SystemExit('Restricted webhook ingress could not start.')
+                time.sleep(0.25)
+            else:
+                ingress.terminate()
+                raise SystemExit('Restricted webhook ingress startup timed out.')
         if not public_url:
             executable = shutil.which("ngrok")
             if not executable:
@@ -50,7 +74,7 @@ def main() -> None:
             if token:
                 environment["NGROK_AUTHTOKEN"] = token
             with (ROOT / "ngrok-output.log").open("ab") as log:
-                process = subprocess.Popen([executable, "http", "http://127.0.0.1:8000", "--log=stdout"],
+                process = subprocess.Popen([executable, "http", "http://127.0.0.1:8009", "--log=stdout"],
                     cwd=ROOT, env=environment, stdout=log, stderr=log,
                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
             for _ in range(30):
@@ -65,7 +89,6 @@ def main() -> None:
                 raise SystemExit("ngrok startup timed out. Check account authentication and network access.")
     updates = {
         "TWILIO_WEBHOOK_URL": public_url + "/api/v1/integrations/whatsapp/webhook",
-        "BOOKING_PAGE_URL": public_url + "/",
         "SUPPORT_WHATSAPP_STATUS_URL": public_url + "/api/v1/support/whatsapp/status",
     }
     text = env_file.read_text(encoding="utf-8")
@@ -75,8 +98,9 @@ def main() -> None:
             raise SystemExit(f"Remove duplicate {name} entries before configuring the tunnel.")
         text = pattern.sub(name + "=" + value, text) if pattern.search(text) else text.rstrip() + "\n" + name + "=" + value + "\n"
     env_file.write_text(text, encoding="utf-8")
-    print("Twilio Sandbox: When a message comes in → POST " + updates["TWILIO_WEBHOOK_URL"])
+    print("Twilio Sandbox: When a message comes in -> POST " + updates["TWILIO_WEBHOOK_URL"])
     print("Restart the backend to load these URLs. Leave ngrok running while testing.")
+    print("Only incoming-message and delivery-status webhooks are exposed. App pages remain local.")
     print("Join the Sandbox from your phone using the join code in the Twilio Console.")
 
 

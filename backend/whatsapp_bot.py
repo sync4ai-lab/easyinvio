@@ -38,7 +38,7 @@ def initialize_whatsapp(configuration: Any = None) -> bool:
     valid = bool(re.fullmatch(r"AC[0-9a-fA-F]{32}", config.twilio_account_sid)
                  and token and re.fullmatch(r"\+[1-9][0-9]{7,14}", number))
     if not valid:
-        logger.warning("⚠️ easynivio.com Initialization Warning: Twilio environment configuration keys are unmapped.")
+        logger.warning("⚠️ EasyInvio.com Initialization Warning: Twilio environment configuration keys are unmapped.")
     return valid
 
 

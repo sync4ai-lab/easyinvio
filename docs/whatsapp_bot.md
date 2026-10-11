@@ -23,8 +23,8 @@ path, host, scheme or query string are rejected. Never paste `POST ` into a URL.
    .\.venv\Scripts\python.exe scripts\configure_whatsapp_tunnel.py
    ```
 
-   The helper starts/reuses an HTTPS tunnel to port 8000, stores the webhook,
-   booking and support-status URLs in `.env`, and prints the incoming webhook URL.
+   The helper starts/reuses an HTTPS tunnel to a restricted webhook gateway on port 8009, stores the incoming
+   webhook and support-status URLs in `.env`, and prints the incoming webhook URL.
    It runs ngrok without a visible window and does not print tokens.
 4. Restart the backend to load the new URLs:
 
@@ -75,8 +75,8 @@ Twilio's Sandbox setting. Signature verification remains mandatory.
 - The existing proactive support delivery worker remains separate and requires
   merchant consent and a valid customer-service window or approved template.
   The tunnel helper configures its callback URL but does not enable outbound sends.
-- `WHATSAPP_BRAND_NAME` controls this endpoint's message branding. The current
-  default remains `EasyInvio.com` pending confirmation of the requested spelling.
+- `WHATSAPP_BRAND_NAME` controls this endpoint's message branding. The confirmed
+  brand is `EasyInvio.com`.
 
 ## Verification recorded on 11 October 2026
 
@@ -86,9 +86,13 @@ Twilio's Sandbox setting. Signature verification remains mandatory.
 | Real Supabase WhatsApp tables | All four present |
 | Configured backend startup and signed unknown-sender DB lookup | Passed |
 | Forged signature against configured backend | HTTP 403 |
-| Automated WhatsApp, sandbox, support and optional-integration suite | 42 test executions passed |
+| Automated WhatsApp, sandbox, support and optional-integration suite | 46 test executions passed |
 | Verified active phone bindings / saved routes / active TEST carrier accounts | 0 / 0 / 0 |
-| Real phone-to-Twilio-to-local-backend round trip | Pending ngrok authentication, Sandbox webhook, joining/pairing and carrier setup |
+| Restricted public ngrok tunnel | Running; callback URLs configured in private .env |
+| Public signed callback / forged signature | HTTP 200 with unregistered-sender TwiML / HTTP 403 |
+| Public app, docs, admin and billing paths | HTTP 404 |
+| Local backend health | HTTP 200 on port 8000 |
+| Real phone-to-Twilio-to-local-backend round trip | Pending Sandbox console setting, joining/pairing, saved route and carrier setup |
 
 No real WhatsApp message, carrier purchase, payment or permanent database mutation
 was performed during verification. The database probe disables unrelated workers
@@ -107,3 +111,10 @@ $env:PYTHONPATH='C:\Projects\veloce-ai;C:\Projects\veloce-ai\tests'
 Official references: [Twilio WhatsApp quickstart](https://www.twilio.com/docs/whatsapp/quickstart),
 [WhatsApp Sandbox](https://www.twilio.com/docs/whatsapp/sandbox),
 [ngrok Windows setup](https://ngrok.com/download/windows).
+
+The tunnel gateway forwards only the incoming WhatsApp POST and the UUID-scoped
+delivery-status POST to localhost:8000. App pages, administration, billing and API
+documentation return 404 at the public tunnel. Configure `BOOKING_PAGE_URL`
+separately to your authenticated deployed application; this restricted tunnel
+cannot serve booking pages. Local development can validate quote responses before
+a public booking UI is deployed.
