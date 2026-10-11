@@ -201,6 +201,8 @@ async def authenticate_platform_owner(
     settings = request.app.state.settings
     try:
         token = credentials.credentials
+        from backend.identity import unwrap_app_session
+        token = await unwrap_app_session(request, token)
         header = jwt.get_unverified_header(token)
         if header.get("alg") != settings.jwt_algorithm or not isinstance(header.get("kid"), str):
             raise unauthorized
@@ -210,6 +212,8 @@ async def authenticate_platform_owner(
                             options={"require": ["sub", "role", "exp", "iat", "iss", "aud"]})
         if claims["role"] != "authenticated":
             raise unauthorized
+        bound_session = getattr(request.state, "app_session_claims", None)
+        if bound_session and bound_session["user_id"] != claims["sub"]: raise unauthorized
         user_id = UUID(claims["sub"])
     except HTTPException:
         raise

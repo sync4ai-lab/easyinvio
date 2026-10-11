@@ -147,6 +147,7 @@ class Settings(BaseSettings):
     database_environment: Literal["SANDBOX", "LIVE"] = "LIVE"
     sandbox_hooks_enabled: bool = False
 
+    auth_jwt_secret: SecretStr = SecretStr("")
     stripe_enabled: bool = False
     stripe_secret_key: SecretStr = SecretStr("")
     stripe_webhook_secret: SecretStr = SecretStr("")
@@ -1852,6 +1853,8 @@ async def authenticate(
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise unauthorized
     token = credentials.credentials
+    from backend.identity import unwrap_app_session
+    token = await unwrap_app_session(request, token)
     if len(token) > 16000:
         raise unauthorized
     settings = request.app.state.settings
@@ -1867,12 +1870,15 @@ async def authenticate(
         )
         if claims["role"] != "authenticated":
             raise unauthorized
+        bound_session = getattr(request.state, 'app_session_claims', None)
+        if bound_session and bound_session['user_id'] != claims['sub']: raise unauthorized
         app_metadata = claims.get('app_metadata')
         metadata_tenant = app_metadata.get('tenant_id') if isinstance(app_metadata, dict) else None
-        tenant_claim = claims.get('tenant_id') or metadata_tenant
+        app_session = getattr(request.state, 'app_session_claims', None)
+        tenant_claim = app_session.get('tenant_id') if app_session else claims.get('tenant_id') or metadata_tenant
         if not isinstance(tenant_claim, str):
             raise unauthorized
-        if claims.get('tenant_id') and metadata_tenant and claims['tenant_id'] != metadata_tenant:
+        if not app_session and claims.get('tenant_id') and metadata_tenant and claims['tenant_id'] != metadata_tenant:
             raise unauthorized
         # app_metadata is issuer-controlled; user_metadata is never an identity source.
         user_id, tenant_id = UUID(claims["sub"]), UUID(tenant_claim)
@@ -1886,11 +1892,11 @@ async def authenticate(
         repository.select("users", {
             "select": "tenant_id,auth_user_id,role,is_active", "tenant_id": f"eq.{tenant_id}",
             "auth_user_id": f"eq.{user_id}", "is_active": "eq.true", "limit": "2",
-        }, context),
+        }, context, backend=bool(getattr(request.state, 'app_session_claims', None))),
         repository.select("tenants", {
             "select": "tenant_id,workspace_status", "tenant_id": f"eq.{tenant_id}",
             "workspace_status": "eq.ACTIVE", "limit": "2",
-        }, context),
+        }, context, backend=bool(getattr(request.state, 'app_session_claims', None))),
     )
     if len(members) != 1 or len(tenants) != 1:
         raise HTTPException(403, "Active workspace membership required")
@@ -2090,6 +2096,8 @@ from backend.admin_management import router as admin_management_router
 app.include_router(admin_management_router)
 from backend.platform_carriers import router as platform_carriers_router
 app.include_router(platform_carriers_router)
+from backend.identity import router as identity_router
+app.include_router(identity_router)
 app.include_router(sandbox_router(authenticate, RatingRequest))
 app.include_router(ecommerce_router(authenticate))
 app.include_router(hubspot_router(authenticate))

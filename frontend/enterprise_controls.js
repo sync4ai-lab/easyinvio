@@ -53,16 +53,16 @@ const enterpriseNavItems = {
     'admin-margins': ['Margin Rule Matrix', 'sliders-horizontal'],
     dispatch: ['Speed Quote Matrix', 'send'], boxes: ['Box Profiles', 'boxes'],
     manifest: ['Manifest & Labels', 'package-check'], wallet: ['Wallet & Billing', 'wallet'],
-    customs: ['Customs Harmonizer', 'shield-check'], stores: ['Store Integrations', 'store'], workspace: ['Marketplace Workspace', 'warehouse']
+    customs: ['Customs Harmonizer', 'shield-check'], profile: ['User Profile', 'user-round'], stores: ['Store Integrations', 'store'], workspace: ['Marketplace Workspace', 'warehouse']
 };
 function allowedEnterpriseViews() {
     if (state.session && !portal.profile) return [];
     if (portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN'))
-        return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins'];
-    if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest'];
-    if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'wallet', 'customs', 'stores'];
-    if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard'];
-    return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores'];
+        return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins', 'profile'];
+    if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest', 'profile'];
+    if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'wallet', 'customs', 'stores', 'profile'];
+    if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard','profile'];
+    return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile'];
 }
 function enterpriseAdminGuard() {
     if (!allowedEnterpriseViews().includes('admin-clients')) throw Error('Platform-owner authorization is required.');
@@ -121,7 +121,8 @@ setView = function (view) {
     const allowed = allowedEnterpriseViews();
     if (!allowed.includes(view)) { notify('This module is unavailable for your verified persona.', true); return; }
     enterprise.currentView = view;
-    if (!enterpriseViews.includes(view)) enterpriseSetViewBase(view);
+    if (view !== 'profile' && !enterpriseViews.includes(view)) enterpriseSetViewBase(view);
+    if (view === 'profile') loadIdentityProfile().catch(error => notify(error.message, true));
     $$('main > section').forEach(section => section.hidden = section.id !== view);
     $('#customs-backdrop').hidden = !(view === 'customs' && matchMedia('(max-width:767px)').matches);
     $('#box-backdrop').hidden = !(view === 'boxes' && matchMedia('(max-width:767px)').matches);

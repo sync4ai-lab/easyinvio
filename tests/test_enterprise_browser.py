@@ -13,9 +13,11 @@ async def run():
         page.on('pageerror',lambda e:errors.append(str(e)))
         await page.goto('http://127.0.0.1:8000',wait_until='domcontentloaded',timeout=30000)
         await page.wait_for_function("state.mode!=='checking'")
+        # Explicitly inspect isolated sample renderers; the real unauthenticated UI remains gated.
+        await page.evaluate("document.body.classList.remove('auth-locked');document.querySelector('#loginContainer').hidden=true")
         await page.locator('#role-admin').click()
         names=await page.locator('.sidebar [data-enterprise-view]').evaluate_all('(nodes)=>nodes.map(n=>n.dataset.enterpriseView)')
-        assert names==['dashboard','admin-clients','admin-carriers','admin-margins'],names
+        assert names==['dashboard','admin-clients','admin-carriers','admin-margins','profile'],names
         await page.evaluate("setView('dispatch')")
         assert not await page.locator('#dispatch').is_visible()
         checks.append('Admin navbar has overview and three management nodes; warehouse view blocked.')
@@ -102,7 +104,7 @@ async def run():
         checks.append({'native_control_contrast':controls})
         await page.evaluate("portal.profile={workspace_role:'DISPATCHER',portal_role:'CLIENT'};renderPortal()")
         nav=await page.locator('.sidebar [data-enterprise-view]').evaluate_all('(nodes)=>nodes.map(n=>n.dataset.enterpriseView)')
-        assert nav==['workspace','dispatch','boxes','manifest'],nav
+        assert nav==['workspace','dispatch','boxes','manifest','profile'],nav
         await page.evaluate("setView('wallet')")
         assert not await page.locator('#wallet').is_visible() and not await page.locator('#dashboard').is_visible()
         checks.append('Dispatcher navigation contains marketplace workspace, quote, box profiles and manifest; financial views denied.')
