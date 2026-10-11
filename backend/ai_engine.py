@@ -247,21 +247,14 @@ def build_router(authenticate: Callable) -> APIRouter:
             origin, destination = country_code(origin), country_code(destination)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
+        from backend.carrier_consolidation import route_history
         try:
-            async with request.app.state.finance.pool.acquire() as connection:
-                rows = await connection.fetch(
-                    """SELECT logistics_metadata->'tracking' AS tracking FROM public.shipments
-                       WHERE tenant_id=$1 AND origin_country=$2
-                       AND destination_country=$3
-                       AND logistics_metadata ? 'tracking' ORDER BY id LIMIT 1000""", context.tenant_id, origin, destination)
-        except asyncpg.PostgresError:
-            raise HTTPException(503, "Routing history unavailable; check logistics migration") from None
-        observations = []
-        for row in rows:
-            data = json.loads(row["tracking"]) if isinstance(row["tracking"], str) else row["tracking"]
-            if isinstance(data, dict):
-                observations.append(data)
-        return analyze_tracking_history(origin, destination, observations)
+            history=await route_history(request.app.state.finance.pool,context.tenant_id,destination)
+        except (asyncpg.PostgresError,ValueError):
+            raise HTTPException(503,'Carrier route history unavailable') from None
+        return {'carriers':[{'carrier_code':carrier,**{key:str(value) if isinstance(value,Decimal) else value for key,value in stats.items()}} for carrier,stats in history.items()],
+            'source':'tenant shipment history','window_days':90,'origin_filter_applied':False,
+            'notice':'Carrier/destination history for your workspace; synthetic fixtures excluded.'}
 
     @router.post("/audit/invoice")
     async def audit(body: InvoiceInput, request: Request, context: Any = Depends(authenticate)):

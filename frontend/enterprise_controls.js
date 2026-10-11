@@ -60,7 +60,7 @@ function allowedEnterpriseViews() {
     if (portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN'))
         return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins', 'profile'];
     if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest', 'profile'];
-    if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'wallet', 'customs', 'stores', 'profile'];
+    if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'dispatch', 'wallet', 'customs', 'stores', 'profile'];
     if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard','profile'];
     return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile'];
 }

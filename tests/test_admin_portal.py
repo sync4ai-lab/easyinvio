@@ -302,6 +302,9 @@ class LivePipelineTests(unittest.IsolatedAsyncioTestCase):
     async def test_two_tenants_receive_different_prices_for_same_wholesale(self):
         tenant_a, tenant_b = uuid4(), uuid4()
         class MatrixConnection(Connection):
+            async def fetch(self, sql, *args):
+                assert 'FROM public.shipments' in sql
+                return []
             async def fetchrow(self, sql, *args):
                 if "public.margin_rules" in sql:
                     self.calls.append((sql, args))

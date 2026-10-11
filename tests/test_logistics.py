@@ -216,6 +216,9 @@ class ProviderIntegrationTests(unittest.IsolatedAsyncioTestCase):
             async def accounts(self, context): return [account]
             async def load(self, context, currency): return []
         class PricingConnection:
+            async def fetch(self, sql, *args):
+                assert 'FROM public.shipments' in sql
+                return []
             def transaction(self, **kwargs): return Acquire(self)
             async def fetchrow(self, sql, *args):
                 return {"default_currency": "GBP", "workspace_status": "ACTIVE"} if "public.tenants" in sql else None

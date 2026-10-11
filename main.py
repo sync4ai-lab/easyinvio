@@ -405,6 +405,17 @@ class WholesaleRate(StrictModel):
 
 
 class ClientRate(StrictModel):
+    offer_id: UUID = Field(default_factory=uuid4)
+    on_time_rate: Decimal | None = None
+    avg_transit_days: Decimal | None = None
+    route_risk_level: Literal['LOW','MEDIUM','HIGH_DELAY_ALERT'] = 'LOW'
+    history_status: str = 'NO_HISTORY'
+    history_samples: int = 0
+    delivery_samples: int = 0
+    on_time_samples: int = 0
+    active_exceptions: int = 0
+    on_time_method: str = ''
+    transit_method: str = ''
     provider: Literal["EASYPOST", "REGIONAL"]
     account_id: UUID
     upstream_shipment_id: str
@@ -1061,8 +1072,15 @@ class RatingService:
                 "code": "NO_CARRIER_RATES_AVAILABLE",
                 "issues": [i.model_dump(mode="json") for i in issues],
             })
-        rates.sort(key=lambda r: (r.client_price_ex_tax, r.provider, str(r.account_id),
-                                 r.upstream_rate_id))
+        from backend.carrier_consolidation import consolidate_rates,route_history,carrier_identity,unknown_history
+        rates=consolidate_rates(rates)
+        try:
+            history=await route_history(self.pool,context.tenant_id,request.destination.country_code)
+            unavailable=False
+        except (asyncpg.PostgresError,ValueError,KeyError,TypeError):
+            logger.warning('Carrier performance history unavailable; no statistics fabricated')
+            history={};unavailable=True
+        rates=[rate.model_copy(update=history.get(carrier_identity(rate.carrier_code),unknown_history('HISTORY_UNAVAILABLE' if unavailable else 'NO_HISTORY'))) for rate in rates]
         return RatingResponse(
             request_id=uuid4(), currency=request.currency, quoted_at=quoted_at,
             expires_at=quoted_at + timedelta(seconds=self.settings.quote_ttl_seconds),
@@ -1836,6 +1854,29 @@ bearer = HTTPBearer(auto_error=False)
 
 
 @app.middleware("http")
+async def branded_carrier_transport(request: Request, call_next):
+    response=await call_next(request)
+    path=request.url.path
+    if path.startswith('/api/v1/admin/') or 'application/json' not in response.headers.get('content-type',''):
+        return response
+    branded=(path=='/v1/rates' or path=='/v1/whatsapp/quote-choice' or path.startswith('/api/v1/rates/')
+             or path.startswith('/api/v1/routing/') or path.startswith('/api/v1/shipments/')
+             or path.startswith('/api/v1/automation/') or path.startswith('/api/v1/dispatch-workspace/')
+             or path.startswith('/api/v1/support/tickets') or path=='/api/v1/analytics/carrier-performance')
+    if not branded:return response
+    from backend.carrier_consolidation import public_payload
+    from fastapi.responses import JSONResponse
+    raw=b''.join([chunk async for chunk in response.body_iterator])
+    try:
+        data=json.loads(raw)
+    except ValueError:
+        return JSONResponse(status_code=503,content={'detail':'Carrier response unavailable'})
+    financial=getattr(request.state,'workspace_role',None)!='DISPATCHER'
+    headers={key:value for key,value in response.headers.items() if key.lower() not in {'content-length','etag'}}
+    return JSONResponse(public_payload(data,financial),status_code=response.status_code,headers=headers,background=response.background)
+
+
+@app.middleware("http")
 async def preview_guard(request: Request, call_next):
     public_tools = {"/api/v1/config", "/api/v1/customs/harmonize", "/api/v1/customs/declaration",
                     "/api/v1/logistics/weight", "/api/v1/logistics/cargo-weight", "/api/v1/rates/sample", "/api/v1/routing/sample", "/api/v1/rates/preview", "/api/v1/routing/preview",
@@ -1930,6 +1971,7 @@ async def authenticate(
         raise HTTPException(403, "Active workspace membership required")
     # Authentication permits all defined roles. Each endpoint checks its
     # own authorization, so accountants can access financial operations.
+    request.state.workspace_role=member["role"]
     return TenantContext(tenant_id, user_id, member["role"], token)
 
 
@@ -1972,7 +2014,7 @@ async def public_config(request: Request):
 @app.post("/v1/rates", response_model=RatingResponse)
 async def get_rates(body: RatingRequest, request: Request,
                     context: Annotated[TenantContext, Depends(authenticate)]) -> RatingResponse:
-    if context.role not in DISPATCH_ROLES:
+    if context.role not in DISPATCH_ROLES | FINANCE_ROLES:
         raise HTTPException(403, "Dispatch permission required")
     try:
         result = await request.app.state.rating.quote(context, body)
@@ -1984,6 +2026,24 @@ async def get_rates(body: RatingRequest, request: Request,
     except Exception:
         logger.error("Rating processing failure tenant=%s", context.tenant_id)
         raise HTTPException(503, "Rating service temporarily unavailable") from None
+
+
+@app.get('/api/v1/analytics/carrier-performance')
+async def carrier_performance(destination_country: str,request: Request,
+        context: Annotated[TenantContext, Depends(authenticate)]):
+    from backend.carrier_consolidation import route_history
+    from backend.ai_engine import country_code
+    try:
+        destination=country_code(destination_country)
+    except ValueError:
+        raise HTTPException(422,'Provide a valid destination country') from None
+    try:
+        history=await route_history(request.app.state.finance.pool,context.tenant_id,destination)
+    except (asyncpg.PostgresError,ValueError):
+        raise HTTPException(503,'Carrier performance history unavailable') from None
+    return {'destination_country':destination,'window_days':90,'carriers':[
+        {'carrier_code':carrier,**{key:str(value) if isinstance(value,Decimal) else value for key,value in stats.items()}} for carrier,stats in history.items()],
+        'source':'tenant recorded shipment history','synthetic_fixtures_excluded':True}
 
 
 @app.post("/v1/wallet/topups", response_model=TopupResponse)

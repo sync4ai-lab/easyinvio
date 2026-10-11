@@ -36,6 +36,9 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 @media(max-width:1023px){.container{padding:16px}.topbar{position:relative}.topbar-actions{gap:8px}.brand{font-size:22px}.topbar-status{display:none}}
 @media(max-width:767px){.provider-grid{grid-template-columns:1fr}.header-personas{width:100%;order:2}.topbar-actions{flex:1;justify-content:flex-end}.topbar{padding:12px 16px;gap:8px}.header-personas button{flex:1;font-size:9px}.container{padding:16px 12px}.pagehead h1{font-size:25px}.pagehead .primary{width:100%}.toolbar{flex-wrap:wrap}.toolbar input,.toolbar select{flex:1;min-width:0}.exception-sheet{padding:24px 16px}}
 </style>
+<style>
+.carrier-wordmark{width:120px;height:34px;margin-bottom:10px}.trust-ribbon{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;color:#c7d2fe;font-size:12px}.rate-price{text-align:right;flex-shrink:0}.rate.route-delay-alert{border-color:#d97706;background:linear-gradient(120deg,#78350f22,#020617)}.route-warning{margin:12px 0;padding:12px;border:1px solid #92400e;border-radius:12px;color:#fde68a;background:#451a0333}.ratehead{flex-wrap:wrap;gap:12px}.ratehead>div{min-width:0}.rate h3{overflow-wrap:anywhere}
+</style>
 </head>
 <body class="bg-slate-900 text-slate-100">
 <svg aria-hidden="true" style="display:none">
@@ -449,7 +452,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div class="cardhead">
 <div>
 <h2>Predictive route intelligence</h2>
-<p class="subtle">EasyPost and regional provider delay anomalies.</p>
+<p class="subtle">Recorded carrier delivery trends and route exceptions.</p>
 </div>
 <button id="routing-btn" class="secondary">Evaluate route</button>
 </div>
@@ -1175,7 +1178,7 @@ $('#quote-form').addEventListener('submit', event => {
   busy($('#quote-btn'), async () => {
     const generation = ++state.generation,
       body = quotePayload();
-    $('#rates').innerHTML = '<div class="empty"><h3>Comparing provider strategies…</h3><p>EasyPost and regional integrations run concurrently.</p></div>';
+    $('#rates').innerHTML = '<div class="empty"><h3>Comparing provider strategies…</h3><p>EasyInvio checks available carrier services in parallel.</p></div>';
     try {
       const result = await api(state.mode === 'local-preview' ? '/api/v1/rates/preview' : !state.session ? '/api/v1/rates/sample' : '/v1/rates', {
         method: 'POST',
@@ -1207,28 +1210,42 @@ function feeRows(rate) {
   return rows.map(([label, value]) => `<div class="fee"><span>${label}</span><b class="mono">${value==null?'Not reported':money(value,rate.currency)}</b></div>`).join('') + `<div class="fee total"><span>Final price excl. tax</span><b>${money(rate.client_price_ex_tax,rate.currency)}</b></div><p class="footnote">${f.source==='simulation'?'Illustrative fee split. No carrier API called.':f.source==='provider'?'Fee split reported by provider.':'Provider did not supply individual accessorial fees. These are included in its quoted total where applicable.'}</p>`
 }
 
+function carrierDisplay(value) {
+  return String(value || '').replace(/easypost|sendcloud|shippo|shiprocket|localregional/gi, '').replace(/[_:]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim();
+}
+
+function carrierWordmark(code) {
+  const label = carrierDisplay(code).slice(0, 16);
+  return `<svg class="carrier-wordmark" viewBox="0 0 120 34" role="img" aria-label="${escapeHTML(label)} carrier"><rect width="120" height="34" rx="8" fill="#172554"/><text x="60" y="23" text-anchor="middle" fill="#e0e7ff" font-size="17" font-family="system-ui" font-weight="800">${escapeHTML(label)}</text></svg>`;
+}
+
+function historyRibbon(rate) {
+  const onTime = rate.on_time_rate == null ? 'On-time history unavailable' : `${escapeHTML(rate.on_time_rate)}% on time`;
+  const days = rate.avg_transit_days == null ? 'Transit history unavailable' : `${escapeHTML(rate.avg_transit_days)} days average`;
+  return `<div class="trust-ribbon" title="${escapeHTML(rate.on_time_method || 'Recorded shipment history')} &middot; ${escapeHTML(rate.transit_method || '')}"><span>&#11088; ${onTime}</span><span>&#9889; ${days}</span><span class="subtle">${Number(rate.delivery_samples || 0)} measured deliveries</span></div>`;
+}
+
 function renderRates(result) {
-  result.rates.sort((a, b) => {
-    if (a.currency !== b.currency) return a.currency.localeCompare(b.currency);
-    const left = cents(a.client_price_ex_tax),
-      right = cents(b.client_price_ex_tax);
-    return left < right ? -1 : left > right ? 1 : 0
-  });
+  result.rates.sort((a, b) => cents(a.client_price_ex_tax) < cents(b.client_price_ex_tax) ? -1 : cents(a.client_price_ex_tax) > cents(b.client_price_ex_tax) ? 1 : 0);
   const filter = $('#carrier-filter'),
     selected = filter.value;
-  filter.innerHTML = '<option value="">All carriers</option>' + [...new Set(result.rates.map(r => r.carrier_code))].map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+  filter.innerHTML = '<option value="">All carriers</option>' + [...new Set(result.rates.map(r => r.carrier_code))].map(c => `<option value="${escapeHTML(c)}">${escapeHTML(carrierDisplay(c))}</option>`).join('');
   filter.value = selected;
-  $('#rates-summary').textContent = `${result.rates.length} options · ${result.partial?'partial provider results':'sorted by final price'}`;
-  $('#rates-badge').textContent = result.simulated ? 'PREVIEW RATES' : 'LIVE RESPONSE';
-  $('#rates').innerHTML = (result.issues?.length ? `<div class="notice">${result.issues.map(issue=>escapeHTML(issue.provider+': '+issue.code)).join('<br>')}</div>` : '') + result.rates.map((rate, index) => ({
+  $('#rates-summary').textContent = `${result.rates.length} carrier services \u00b7 ${result.partial?'some options unavailable':'sorted by customer price'}`;
+  $('#rates-badge').textContent = result.simulated ? 'PREVIEW RATES' : 'EASYINVIO QUOTES';
+  const finance = ['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal?.profile?.workspace_role);
+  $('#rates').innerHTML = (result.issues?.length ? '<div class="notice">Some carrier options are temporarily unavailable. Available quotes are shown.</div>' : '') + result.rates.map((rate, index) => ({
     rate,
     index
   })).filter(({
     rate
-  }) => !$('#carrier-filter').value || rate.carrier_code === $('#carrier-filter').value).map(({
+  }) => !filter.value || rate.carrier_code === filter.value).map(({
     rate,
     index
-  }) => `<article class="rate"><div class="ratehead"><div><h3>${escapeHTML(rate.carrier_code)} ${index===0?'<span class="tag orange">LOWEST PRICE</span>':''}</h3><p class="subtle">${escapeHTML(rate.service_code)}</p><p class="subtle">${rate.delivery_days==null?'Delivery estimate unavailable':escapeHTML(rate.delivery_days)+' working days estimated'}</p></div><div style="text-align:right"><div class="price">${money(rate.client_price_ex_tax,rate.currency)}</div><span class="subtle">excl. tax · ${result.simulated?'simulated':'carrier quote'}</span></div></div><details><summary>View full surcharge breakdown ↓</summary>${feeRows(rate)}</details><div class="ratefooter"><span class="tag">${escapeHTML(rate.provider)}</span><button class="${index===0?'primary':'secondary'}" data-review="${index}">Review option →</button></div></article>`).join('')
+  }) => {
+    const alert = rate.route_risk_level === 'HIGH_DELAY_ALERT';
+    return `<article class="rate ${alert?'route-delay-alert':''}"><div class="ratehead"><div>${carrierWordmark(rate.carrier_code)}<h3>${escapeHTML(carrierDisplay(rate.carrier_code))} ${escapeHTML(carrierDisplay(rate.service_code))}</h3>${historyRibbon(rate)}<p class="subtle">${rate.delivery_days==null?'Delivery estimate unavailable':escapeHTML(rate.delivery_days)+' working days estimated'}</p>${index===0?'<span class="tag green">LOWEST CUSTOMER PRICE</span>':''}</div><div class="rate-price"><div class="price">${money(rate.client_price_ex_tax,rate.currency)}</div><span class="subtle">excl. tax &middot; ${result.simulated?'preview':'EasyInvio quote'}</span></div></div>${alert?'<div class="route-warning">&#9888;&#65039; AI Route Alert: Recent exceptions or delivery delays reported. Choose an alternative carrier for critical dispatches.</div>':''}${finance?`<details><summary>View surcharge breakdown &darr;</summary>${feeRows(rate)}</details>`:''}<div class="ratefooter"><span class="tag">EasyInvio.com</span><button class="${index===0?'primary':'secondary'}" data-review="${index}">Review option &rarr;</button></div></article>`;
+  }).join('');
 }
 $('#carrier-filter').addEventListener('change', () => {
   if (state.lastRateResult) renderRates(state.lastRateResult)
@@ -1239,7 +1256,7 @@ $('#rates').addEventListener('click', event => {
   const index = Number(button.dataset.review),
     rate = state.quotes[index];
   if (!rate || !state.quoteRequest) return;
-  $('#review-content').innerHTML = `<span class="tag orange">${rate.simulated?'PREVIEW DISPATCH':'LIVE QUOTE'}</span><h2 style="margin-top:15px">${escapeHTML(rate.carrier_code)} · ${escapeHTML(rate.service_code)}</h2><p>${escapeHTML(state.quoteRequest.origin.country_code)} → ${escapeHTML(state.quoteRequest.destination.country_code)}</p>${feeRows(rate)}<div class="notice">${rate.simulated?'Creates a browser-session manifest entry and deducts preview funds only.':'This quote is live. Carrier label purchase is not implemented; no booking or charge will be initiated.'}</div><button class="primary full" id="confirm-preview" ${rate.simulated?'':'disabled'}>Confirm preview dispatch</button>`;
+  $('#review-content').innerHTML = `<span class="tag orange">${rate.simulated?'PREVIEW DISPATCH':'LIVE QUOTE'}</span><h2 style="margin-top:15px">${escapeHTML(rate.carrier_code)} · ${escapeHTML(rate.service_code)}</h2><p>${escapeHTML(state.quoteRequest.origin.country_code)} → ${escapeHTML(state.quoteRequest.destination.country_code)}</p>${['OWNER','ADMIN','ACCOUNTANT'].includes(portal?.profile?.workspace_role)?feeRows(rate):''}<div class="notice">${rate.simulated?'Creates a browser-session manifest entry and deducts preview funds only.':'This quote is live. Carrier label purchase is not implemented; no booking or charge will be initiated.'}</div><button class="primary full" id="confirm-preview" ${rate.simulated?'':'disabled'}>Confirm preview dispatch</button>`;
   $('#confirm-preview').addEventListener('click', () => bookPreview(index));
   $('#review-dialog').showModal()
 });
@@ -1300,7 +1317,8 @@ $('#routing-btn').addEventListener('click', () => busy($('#routing-btn'), async 
   const result = await api(`/api/v1/routing/${state.mode==='local-preview'?'preview':!state.session?'sample':'disruptions'}?origin=${origin}&destination=${destination}`, {
     auth: state.mode !== 'local-preview' && !!state.session
   });
-  $('#routing-result').innerHTML = `<span class="tag orange">${result.simulated?'FIXTURE HISTORY':'RECORDED HISTORY'}</span>` + result.providers.map(provider => `<div class="riskrow"><div><b>${escapeHTML(provider.provider)}</b><p class="subtle">${provider.sample_size} samples · mean delay ${escapeHTML(provider.mean_delay_days??'unknown')} days</p></div><div style="text-align:right"><span class="tag ${provider.risk==='high'?'orange':'green'}">${escapeHTML(provider.risk)}</span><p class="subtle">${provider.anomaly_count} anomalies</p></div></div>`).join('') + `<p class="subtle" style="margin-top:14px">Suggested provider: <b>${escapeHTML(result.recommended_provider||'More tracking history needed')}</b></p><p class="footnote">${escapeHTML(result.notice)}</p>`
+  const carriers = result.carriers || [];
+  $('#routing-result').innerHTML = '<span class="tag green">YOUR RECORDED CARRIER HISTORY</span>' + carriers.map(carrier => `<div class="riskrow"><div><b>${escapeHTML(carrierDisplay(carrier.carrier_code))}</b><p class="subtle">${Number(carrier.history_samples || 0)} samples</p></div><div><span class="tag ${carrier.route_risk_level==='HIGH_DELAY_ALERT'?'orange':'green'}">${escapeHTML(carrier.route_risk_level || 'UNKNOWN')}</span></div></div>`).join('') + `<p class="footnote">${escapeHTML(result.notice || 'More shipment history is needed. No performance percentages are fabricated.')}</p>`;
 }));
 $('#harmonizer-form').addEventListener('submit', event => {
   event.preventDefault();
@@ -2584,7 +2602,7 @@ function allowedEnterpriseViews() {
   if (portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN'))
     return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins', 'profile'];
   if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest', 'profile'];
-  if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'wallet', 'customs', 'stores', 'profile'];
+  if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'dispatch', 'wallet', 'customs', 'stores', 'profile'];
   if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard', 'profile'];
   return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile'];
 }
