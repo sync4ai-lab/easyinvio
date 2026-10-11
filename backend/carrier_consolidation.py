@@ -7,8 +7,8 @@ import asyncpg
 
 ALIASES={'DHLEXPRESS':'DHL','DHL':'DHL','UNITEDPARCELSERVICE':'UPS','UPS':'UPS','DPD':'DPD','FEDEX':'FEDEX','FEDERALEXPRESS':'FEDEX'}
 SERVICE_ALIASES={'EXPRESSWORLDWIDE':'EXPRESSWORLDWIDE','WORLDWIDEEXPRESS':'EXPRESSWORLDWIDE','NEXTDAYAIR':'NEXTDAYAIR','UPS_NEXT_DAY_AIR':'NEXTDAYAIR'}
-PRIVATE_KEYS={'provider','aggregator','account_id','carrier_account_id','platform_connection_id','upstream_shipment_id','upstream_rate_id','recommended_provider'}
-BRANDS=re.compile(r'(?i)easypost|sendcloud|shiprocket|shippo|localregional')
+PRIVATE_KEYS={'provider','aggregator','account_id','carrier_account_id','platform_connection_id','upstream_shipment_id','upstream_rate_id','upstream_id','execution_details','recommended_provider'}
+BRANDS=re.compile(r'(?i)easypost|sendcloud|shippo|localregional')
 
 
 def carrier_identity(name):

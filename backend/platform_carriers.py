@@ -10,7 +10,7 @@ from backend.admin_portal import authenticate_platform_owner, database_error
 
 router = APIRouter(prefix='/api/v1/admin/platform-carriers', tags=['Platform carrier connections'])
 owner = Depends(authenticate_platform_owner)
-PUBLIC = 'id,account_name,aggregator,regional_provider_code,api_base_url,upstream_account_id,environment,priority,timeout_seconds,is_active'
+PUBLIC = 'id,account_name,aggregator,regional_provider_code,api_base_url,upstream_account_id,environment,priority,timeout_seconds,is_active,retired_at'
 
 
 class PlatformConnection(CarrierCreate):
@@ -26,7 +26,9 @@ async def save(body, request, actor, connection_id=None):
     if body.environment != settings.provider_environment:
         raise HTTPException(422, 'Environment must match the server provider mode')
     if body.aggregator == 'REGIONAL' and not body.regional_provider_code:
-        raise HTTPException(422, 'Regional provider identifier required')
+        from backend.aggregator_registry import identify_aggregator
+        spec=identify_aggregator(body.api_base_url)
+        body=body.model_copy(update={'regional_provider_code':spec.code if spec else 'CUSTOM'})
     if not body.account_name.strip() or not settings.credential_keys:
         raise HTTPException(422, 'Account name and server encryption configuration required')
     identifier = connection_id or body.request_id
@@ -40,6 +42,10 @@ async def save(body, request, actor, connection_id=None):
             sendcloud_credentials(secret)
         except (ValueError,TypeError,KeyError):
             raise HTTPException(422,'Supply both Sendcloud public and secret API keys') from None
+    if secret and body.api_base_url=='https://api.goshippo.com':
+        prefix='shippo_test_' if body.environment=='TEST' else 'shippo_live_'
+        if not secret.startswith(prefix):
+            raise HTTPException(422,'Use a Shippo token matching this connection environment')
     try:
         async with request.app.state.finance.pool.acquire() as c:
             async with c.transaction():
@@ -48,6 +54,16 @@ async def save(body, request, actor, connection_id=None):
                 previous = await c.fetchrow('SELECT * FROM public.platform_carrier_connections WHERE id=$1 FOR UPDATE', identifier)
                 if connection_id and previous is None:
                     raise HTTPException(404, 'Platform connection not found')
+                if previous is not None and not secret and any(previous[k] != getattr(body,k)
+                    for k in ('api_base_url','aggregator','environment')):
+                    raise HTTPException(422,'Changing provider or environment requires replacement credentials')
+                if previous is not None and connection_id and any(previous[k] != getattr(body,k)
+                    for k in ('api_base_url','aggregator','environment','upstream_account_id')):
+                    used = await c.fetchval('''SELECT EXISTS(SELECT 1 FROM public.shipments s
+                        JOIN public.carrier_accounts a ON a.tenant_id=s.tenant_id AND a.id=s.carrier_account_id
+                        WHERE a.platform_connection_id=$1)''', identifier)
+                    if used:
+                        raise HTTPException(409,'This connection has shipment history. Add a new connection and retire this one to preserve original label and refund access.')
                 if previous is None and not secret:
                     raise HTTPException(422, 'Supply the aggregator API key')
                 if previous and not connection_id:
@@ -75,7 +91,7 @@ async def save(body, request, actor, connection_id=None):
                     account_name=excluded.account_name,aggregator=excluded.aggregator,regional_provider_code=excluded.regional_provider_code,
                     api_base_url=excluded.api_base_url,upstream_account_id=excluded.upstream_account_id,environment=excluded.environment,
                     credentials_ciphertext=excluded.credentials_ciphertext,credential_key_id=excluded.credential_key_id,
-                    priority=excluded.priority,timeout_seconds=excluded.timeout_seconds,is_active=excluded.is_active''',
+                    priority=excluded.priority,timeout_seconds=excluded.timeout_seconds,is_active=excluded.is_active,retired_at=NULL''',
                     identifier,body.account_name.strip(),body.aggregator,body.regional_provider_code,body.api_base_url,
                     body.upstream_account_id,body.environment,cipher,key_id,body.priority,body.timeout_seconds,body.is_active)
                 snapshot = body.model_dump(mode='json', exclude={'api_key','tenant_id','request_id'})
@@ -106,7 +122,7 @@ async def update(connection_id: UUID, body: PlatformConnection, request: Request
 async def retire(connection_id: UUID, request: Request, actor=owner):
     async with request.app.state.finance.pool.acquire() as c:
         async with c.transaction():
-            row=await c.fetchrow('UPDATE public.platform_carrier_connections SET is_active=false WHERE id=$1 RETURNING id',connection_id)
+            row=await c.fetchrow('UPDATE public.platform_carrier_connections SET is_active=false,retired_at=now() WHERE id=$1 RETURNING id',connection_id)
             if not row: raise HTTPException(404,'Platform connection not found')
             await c.execute("INSERT INTO public.platform_carrier_events(actor_auth_user_id,connection_id,action,snapshot) VALUES($1,$2,'RETIRE','{}')",actor.user_id,connection_id)
     return {'id':str(connection_id),'is_active':False}
@@ -137,12 +153,18 @@ async def verify_connection(connection_id: UUID, request: Request, actor=owner):
         if envelope.get('platform_id')!=str(connection_id):raise ValueError('Credential identity mismatch')
         secret=envelope['api_key']
         auth=(sendcloud_credentials(secret) if spec.code.startswith('SENDCLOUD') else httpx.BasicAuth(secret,''))
+        headers={}
+        if spec.code=='SHIPPO':
+            if not secret.startswith('shippo_test_' if row['environment']=='TEST' else 'shippo_live_'):
+                raise ValueError('Connection token environment mismatch')
+            from backend.aggregator_lifecycle import ShippoAdapter
+            headers=ShippoAdapter(None,secret,environment=row['environment']).authentication()['headers'];auth=None
     except (ValueError,KeyError,TypeError,InvalidToken):
         raise HTTPException(503,'Private carrier credential configuration is unavailable') from None
-    path='/user/auth/metadata' if spec.code=='SENDCLOUD_V3' else '/shipping_methods' if spec.code=='SENDCLOUD_V2' else '/shipments'
+    path='/user/auth/metadata' if spec.code=='SENDCLOUD_V3' else '/shipping_methods' if spec.code=='SENDCLOUD_V2' else '/addresses/' if spec.code=='SHIPPO' else '/shipments'
     try:
         async with httpx.AsyncClient(trust_env=False,timeout=min(row['timeout_seconds'],20)) as client:
-            response=await client.get(spec.endpoint+path,auth=auth,params={'page_size':1} if spec.code=='EASYPOST' else None,follow_redirects=False)
+            response=await client.get(spec.endpoint+path,auth=auth,headers=headers,params={'page_size':1} if spec.code=='EASYPOST' else None,follow_redirects=False)
         return {'connection_id':str(connection_id),'provider':spec.name,'authenticated':response.status_code==200,
                 'upstream_http_status':response.status_code,'read_only':True,'label_created':False,
                 'label_purchase_supported':spec.label_purchase}

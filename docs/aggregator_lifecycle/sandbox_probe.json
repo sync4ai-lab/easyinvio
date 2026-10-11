@@ -1,0 +1,15 @@
+{
+  "executed_at": "2026-10-11T19:06:27.841424+00:00",
+  "database_writes_rolled_back": true,
+  "live_mode_purchases": 0,
+  "other_partner_labels": "NOT_EXECUTED",
+  "checks": [
+    "PASS: actual provider TEST rates with real sandbox margin calculation",
+    "PASS: real atomic wallet gate rejects insufficient credit with 402",
+    "PASS: genuine EasyPost TEST purchase, normalized tracking and one Decimal wallet capture",
+    "PASS: booking replay does not purchase again or debit twice",
+    "PASS: actual native cancellation result=CANCELLATION_PENDING; no premature or duplicate credit",
+    "PASS: controlled provider-confirmation simulation against real SQL credits once; repeat does not double-credit"
+  ],
+  "status": "PASS"
+}

@@ -1,4 +1,4 @@
-﻿"""Explicit aggregator capabilities: shared interface, provider-specific wire contracts."""
+"""Explicit aggregator capabilities: shared interface, provider-specific wire contracts."""
 from dataclasses import dataclass, asdict
 
 @dataclass(frozen=True)
@@ -13,9 +13,10 @@ class AggregatorCapabilities:
     authentication: str = 'API_KEY'
 
 AGGREGATORS = (
-    AggregatorCapabilities('EASYPOST','EasyPost','https://api.easypost.com/v2',True,True),
-    AggregatorCapabilities('SENDCLOUD_V3','Sendcloud v3','https://panel.sendcloud.sc/api/v3',True,False,authentication='BASIC_PUBLIC_SECRET'),
+    AggregatorCapabilities('EASYPOST','EasyPost','https://api.easypost.com/v2',True,True,returns=True),
+    AggregatorCapabilities('SENDCLOUD_V3','Sendcloud v3','https://panel.sendcloud.sc/api/v3',True,True,returns=True,authentication='BASIC_PUBLIC_SECRET'),
     AggregatorCapabilities('SENDCLOUD_V2','Sendcloud v2 legacy','https://panel.sendcloud.sc/api/v2',True,False,authentication='BASIC_PUBLIC_SECRET'),
+    AggregatorCapabilities('SHIPPO','Shippo','https://api.goshippo.com',True,True,returns=True,authentication='SHIPPO_TOKEN'),
 )
 
 def identify_aggregator(endpoint: str):

@@ -108,9 +108,12 @@ class CarrierUpdate(InputModel):
     timeout_seconds: int=Field(default=30,ge=1,le=120,strict=True)
 
 def validate_endpoint(provider, endpoint, settings):
+    from backend.aggregator_registry import identify_aggregator
     parsed=urlsplit(endpoint)
     if provider=='EASYPOST':
         if endpoint!='https://api.easypost.com/v2': raise HTTPException(422,'Use the official EasyPost v2 endpoint')
+    elif identify_aggregator(endpoint):
+        return
     elif (parsed.scheme!='https' or parsed.username or parsed.password or parsed.query or parsed.fragment
           or f'{parsed.scheme}://{parsed.netloc}' not in settings.regional_allowed_origins):
         raise HTTPException(422,'Regional endpoint origin must be explicitly approved in server configuration')
@@ -131,7 +134,10 @@ async def add_carrier(body: CarrierCreate, request: Request, owner=owner_depende
     settings=request.app.state.settings
     validate_endpoint(body.aggregator,body.api_base_url,settings)
     if body.environment!=settings.provider_environment: raise HTTPException(422,'Connection environment must match server provider environment')
-    if body.aggregator=='REGIONAL' and not body.regional_provider_code: raise HTTPException(422,'Regional provider code required')
+    if body.aggregator=='REGIONAL' and not body.regional_provider_code:
+        from backend.aggregator_registry import identify_aggregator
+        spec=identify_aggregator(body.api_base_url)
+        body=body.model_copy(update={'regional_provider_code':spec.code if spec else 'CUSTOM'})
     keys=settings.credential_keys
     if not keys: raise HTTPException(503,'Configure CREDENTIAL_KEYS on the server before storing connections')
     key_id=sorted(keys)[0];account_id=body.request_id

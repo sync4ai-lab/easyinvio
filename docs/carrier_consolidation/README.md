@@ -6,7 +6,7 @@ Customer quote cards show the carrier/service and EasyInvio.com, not the sourcin
 
 After every actual wholesale quote receives the tenant's indexed pricing rules, rates are grouped by normalized carrier, service and currency. The retained record maximizes **absolute profit = customer price excluding tax − wholesale cost**. Equal-profit ties prefer the lower customer price, lower wholesale cost, faster known estimate and stable internal reference order. The remaining carrier options are sorted by customer price.
 
-Only known spelling aliases are normalized. Different tiers, currency amounts and unknown service codes are not guessed to be equivalent. Adding Shippo/Shiprocket later requires their adapters to map carrier/service identities consistently; this change does not activate those providers or implement their booking workflows. Existing EasyPost/Sendcloud/regional routing remains the source of actual quotes.
+Only known spelling aliases are normalized. Different tiers, currency amounts and unknown service codes are not guessed to be equivalent. The native lifecycle factory now supports EasyPost, Sendcloud v3 and Shippo; see ../aggregator_lifecycle/README.md for booking, cancellation, returns and credential readiness. Registered adapters map their native carrier/service identities into this existing consolidation layer.
 
 ## Performance data
 

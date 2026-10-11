@@ -39,6 +39,7 @@ class DB:
         if 'public.wallets' in sql:return {'currency':'GBP','balance':self.balance,'reserved_balance':Decimal(0)}
         return None
     async def execute(self,sql,*args):self.calls.append((sql,args));return 'UPDATE 1'
+    async def executemany(self,sql,rows):self.calls.extend((sql,tuple(row)) for row in rows)
 
 
 class AutomationTests(unittest.IsolatedAsyncioTestCase):
@@ -115,6 +116,16 @@ class AutomationTests(unittest.IsolatedAsyncioTestCase):
         service.finance.reserve.assert_awaited_once()
         service.finance.mark_submitted.assert_awaited_once()
         self.assertEqual(service.finance.finish_booking.call_args.args[1],'SUCCESS')
+
+    async def test_prepared_quotes_persist_all_private_offers_without_purchase(self):
+        db,service,context,adapter=self.service()
+        result=await service.process(context,order(),'QUOTE_ONLY')
+        self.assertEqual(result['status'],'QUOTED')
+        stored=[args for sql,args in db.calls if 'INSERT INTO public.partner_shipping_offers' in sql]
+        self.assertEqual(len(stored),2)
+        self.assertEqual({row[1] for row in stored},{rate.offer_id for rate in service.rating.quote.return_value.rates})
+        self.assertTrue(all(row[0]==context.tenant_id for row in stored))
+        adapter.buy.assert_not_awaited()
 
     async def test_insufficient_credit_and_sandbox_never_purchase(self):
         for sandbox,balance,code in [(False,Decimal(0),'INSUFFICIENT_WALLET_CREDIT'),(True,Decimal('100'),'PURCHASE_DISABLED_FOR_THIS_ENVIRONMENT')]:

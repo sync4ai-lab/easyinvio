@@ -16,7 +16,7 @@ async def run():
     window.testRateResult={rates,issues:[{provider:'SENDCLOUD',code:'unavailable'}],partial:true,simulated:true};renderRates(testRateResult);
   """)
   text=await page.locator('#rates').inner_text()
-  assert all(name.lower() not in text.lower() for name in ['easypost','sendcloud','shippo','shiprocket'])
+  assert all(name.lower() not in text.lower() for name in ['easypost','sendcloud','shippo'])
   assert '98.4%' in text and '1.5 days' in text and 'history unavailable' in text
   await expect(page.locator('.route-delay-alert')).to_have_count(1)
   await page.locator('#rates details summary').first.click()

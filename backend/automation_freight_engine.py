@@ -128,9 +128,15 @@ class Order(StrictInput):
     postal_form: Literal['CN22','CN23'] | None = None
     customs_required_override: bool = False
     incoterm: Literal['DAP','DDP','FCA','EXW'] = 'DAP'
+    is_return: bool = False
+    return_of_shipment_id: UUID | None = None
+    original_invoice_number: str | None = Field(default=None, max_length=40)
+    return_data: dict | None = None
 
     @model_validator(mode='after')
     def store_pair(self):
+        if bool(self.is_return)!=bool(self.return_of_shipment_id):
+            raise ValueError('Returns require an original shipment reference')
         for party in [self.origin,self.destination]:
             if 'country_code' in party:
                 party['country_code']=country_code(party['country_code'])
@@ -161,10 +167,13 @@ def customs_matrix(shipment_id: UUID, order: Order, tenant: dict) -> dict:
         if weight>order.cargo.actual_weight_kg:
             raise HTTPException(422,'Goods net weight exceeds cargo gross weight')
     return {'required':True,'shipment_id':str(shipment_id),'document_type':'COMMERCIAL_INVOICE',
+            'invoice_number':order.original_invoice_number or str(shipment_id),
+            'export_reason':'returned_goods' if order.is_return else 'commercial_goods',
+            'return_data':order.return_data,
             'postal_form':order.postal_form,'status':'prepared' if ready else 'requires_customs_data',
             'ready_for_provider':ready,'currency':order.currency,'incoterm':order.incoterm,
-            'sender':{**order.origin,'eori':order.sender_eori or tenant.get('eori_number'),
-                      'vat_registration':order.sender_vat or tenant.get('vat_registration_number')},
+            'sender':{**order.origin,'eori':order.sender_eori or (None if order.is_return else tenant.get('eori_number')),
+                      'vat_registration':order.sender_vat or (None if order.is_return else tenant.get('vat_registration_number'))},
             'recipient':{**order.destination,'eori':order.recipient_eori,'vat_registration':order.recipient_vat},
             'items':items,'totals':{'goods_value':format(value,'.2f'),'net_weight_kg':str(weight),'gross_weight_kg':str(order.cargo.actual_weight_kg)},
             'declaration_statement':'I certify that the particulars given in this declaration are correct and that this consignment does not contain dangerous or prohibited goods.',
@@ -303,7 +312,7 @@ class AutomationService:
                     ON CONFLICT(automation_failure_id) DO UPDATE SET ai_summary=$4,status='OPEN'""",tenant_id,shipment_id,failure_id,
                     'Bulk order needs attention: '+code+'. Verify its address, packing, customs data, carrier configuration and wallet availability before retrying.')
 
-    async def process(self,context,raw,mode):
+    async def process(self,context,raw,mode,*,private_quote=None):
         shipment_id=None; permit=None;submitted=False;order=None
         reference=str(raw.get('order_reference','Invalid order'))[:100] if isinstance(raw,dict) else 'Invalid order'
         failure_key=uuid5(NAMESPACE_URL,str(context.tenant_id)+':'+hashlib.sha256(json.dumps(raw,sort_keys=True,default=str).encode()).hexdigest())
@@ -311,7 +320,8 @@ class AutomationService:
             order=Order.model_validate(raw);failure_key=order.idempotency_key
             request=self.rating_model.model_validate({'origin':order.origin,'destination':order.destination,'currency':order.currency,
                 'cargo_type':order.cargo.cargo_type,'stackable':order.cargo.stackable,'weights_kg':[str(order.cargo.actual_weight_kg)],
-                'dimensions':[] if order.cargo.cargo_type=='LETTER' else [{'length_cm':str(order.cargo.length_cm),'width_cm':str(order.cargo.width_cm),'height_cm':str(order.cargo.height_cm)}]})
+                'dimensions':[] if order.cargo.cargo_type=='LETTER' else [{'length_cm':str(order.cargo.length_cm),'width_cm':str(order.cargo.width_cm),'height_cm':str(order.cargo.height_cm)}],
+                'is_return':order.is_return})
             fingerprint=hashlib.sha256(order.model_dump_json().encode()).hexdigest()
             # Dedicated session lock prevents duplicate purchases across batches.
             async with self.pool.acquire() as lock:
@@ -338,6 +348,10 @@ class AutomationService:
                     tenant=await lock.fetchrow('SELECT * FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
                     if tenant is None or tenant['workspace_status']!='ACTIVE' or tenant['billing_status']!='ACTIVE':
                         raise HTTPException(403,'ACCOUNT_INACTIVE')
+                    if order.is_return and not await lock.fetchval('''SELECT EXISTS(SELECT 1 FROM public.shipments
+                        WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','IN_TRANSIT','EXCEPTION','DELIVERED'))''',
+                        context.tenant_id,order.return_of_shipment_id):
+                        raise HTTPException(404,'ORIGINAL_RETURN_SHIPMENT_NOT_FOUND')
                     if mode=='FULFILL':
                         if tenant['is_sandbox'] or self.settings.provider_environment!='LIVE' or getattr(self.settings,'database_environment','LIVE')!='LIVE' or not getattr(self.settings,'automation_purchase_enabled',False):
                             raise HTTPException(403,'PURCHASE_DISABLED_FOR_THIS_ENVIRONMENT')
@@ -394,7 +408,7 @@ class AutomationService:
                         WHERE public.shipments.status='PENDING_IMPORT'""",shipment_id,context.tenant_id,user_id,accounts[0].id,order.idempotency_key,reference,
                         request.origin.country_code,request.destination.country_code,request.origin.model_dump_json(),request.destination.model_dump_json(),order.cargo.actual_weight_kg,
                         dims.length_cm if dims else None,dims.width_cm if dims else None,dims.height_cm if dims else None,order.currency,json.dumps(metadata),declaration['required'],json.dumps(declaration.get('items',[])),order.store_id,order.store_order_id,order.cargo.cargo_type,order.incoterm)
-                    quote_result=await self.rating.quote(context,request)
+                    quote_result=private_quote if private_quote is not None else await self.rating.quote(context,request)
                     if mode=='FULFILL' and getattr(quote_result,'partial',False):
                         raise HTTPException(503,'PARTIAL_RATE_RESULTS_REQUIRE_RETRY')
                     rate=min(quote_result.rates,key=lambda r:(r.client_price_ex_tax,r.provider,str(r.account_id),r.upstream_rate_id))
@@ -414,6 +428,11 @@ class AutomationService:
                             {key:rate.fee_breakdown[key] for key in ('base_cost','fuel_surcharge','residential_fee','remote_area_fee')}|
                             {'currency':rate.currency,'billable_weight_kg':charge['billable_weight_kg']})
                     if mode=='QUOTE_ONLY':
+                        await lock.executemany('''INSERT INTO public.partner_shipping_offers
+                            (tenant_id,offer_id,shipment_id,rate_snapshot,expires_at)
+                            VALUES($1,$2,$3,$4::jsonb,$5) ON CONFLICT DO NOTHING''',
+                            [(context.tenant_id, option.offer_id, shipment_id, option.model_dump_json(), quote_result.expires_at)
+                             for option in quote_result.rates])
                         public_rates=[r.model_dump(mode='json') for r in quote_result.rates]
                         if context.role=='DISPATCHER':
                             for public_rate in public_rates:public_rate['fee_breakdown']={'source':'financial_role_required'}
@@ -436,6 +455,12 @@ class AutomationService:
                 finally:
                     await lock.execute('SELECT pg_advisory_unlock(hashtextextended($1,0))',lock_key)
         except Exception as exc:
+            import traceback
+            frames=traceback.extract_tb(exc.__traceback__)
+            frame=frames[-1] if frames else None
+            logger.warning('Automation operation deferred type=%s location=%s:%s constraint=%s',
+                type(exc).__name__, frame.name if frame else 'unknown', frame.lineno if frame else 0,
+                getattr(exc,'constraint_name',None) or 'none')
             if permit and not submitted:
                 try: await self.finance.finish_booking(permit,'NOT_SUBMITTED')
                 except Exception: pass

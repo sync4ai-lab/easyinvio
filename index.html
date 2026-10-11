@@ -21,6 +21,7 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
  .quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.quick-card{display:flex;align-items:center;gap:12px;text-align:left;background:#101a2e;border:1px solid #334155;color:#f1f5f9;border-radius:10px;padding:16px;min-width:0}.quick-card span{display:block;font-size:11px;color:#94a3b8}.quick-card b{display:block;font-size:12px}.quick-card:hover{border-color:#10b981}@media(max-width:767px){.quick-grid{grid-template-columns:1fr}} 
 /* Enterprise control plane: dark native controls and explicit persona panels. */
+#admin-carriers .cardhead{flex-wrap:wrap;gap:12px}#admin-carriers .cardhead h2{flex:1 1 100%}#admin-carriers .cardhead .check{min-width:0;max-width:100%;flex-wrap:wrap}
 .container{max-width:80rem;margin:0 auto;padding:20px;min-width:0}
 input,select,textarea,input[type=date],input[type=datetime-local]{background:#101a2e!important;color:#f1f5f9!important;border-color:#475569!important;color-scheme:dark}
 input:disabled,select:disabled{color:#cbd5e1!important;background:#172238!important}
@@ -1211,7 +1212,7 @@ function feeRows(rate) {
 }
 
 function carrierDisplay(value) {
-  return String(value || '').replace(/easypost|sendcloud|shippo|shiprocket|localregional/gi, '').replace(/[_:]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim();
+  return String(value || '').replace(/easypost|sendcloud|shippo|localregional/gi, '').replace(/[_:]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim();
 }
 
 function carrierWordmark(code) {
@@ -1256,8 +1257,8 @@ $('#rates').addEventListener('click', event => {
   const index = Number(button.dataset.review),
     rate = state.quotes[index];
   if (!rate || !state.quoteRequest) return;
-  $('#review-content').innerHTML = `<span class="tag orange">${rate.simulated?'PREVIEW DISPATCH':'LIVE QUOTE'}</span><h2 style="margin-top:15px">${escapeHTML(rate.carrier_code)} · ${escapeHTML(rate.service_code)}</h2><p>${escapeHTML(state.quoteRequest.origin.country_code)} → ${escapeHTML(state.quoteRequest.destination.country_code)}</p>${['OWNER','ADMIN','ACCOUNTANT'].includes(portal?.profile?.workspace_role)?feeRows(rate):''}<div class="notice">${rate.simulated?'Creates a browser-session manifest entry and deducts preview funds only.':'This quote is live. Carrier label purchase is not implemented; no booking or charge will be initiated.'}</div><button class="primary full" id="confirm-preview" ${rate.simulated?'':'disabled'}>Confirm preview dispatch</button>`;
-  $('#confirm-preview').addEventListener('click', () => bookPreview(index));
+  $('#review-content').innerHTML = `<span class="tag orange">${rate.simulated?'PREVIEW DISPATCH':'LIVE QUOTE'}</span><h2 style="margin-top:15px">${escapeHTML(rate.carrier_code)} · ${escapeHTML(rate.service_code)}</h2><p>${escapeHTML(state.quoteRequest.origin.country_code)} → ${escapeHTML(state.quoteRequest.destination.country_code)}</p>${['OWNER','ADMIN','ACCOUNTANT'].includes(portal?.profile?.workspace_role)?feeRows(rate):''}<div class="notice">${rate.simulated?'Creates a browser-session manifest entry and deducts preview funds only.':'Confirming purchases this stored offer. Wallet credit is reserved atomically and captured only after the shipping service confirms the label. International goods require reviewed customs data.'}</div><button class="primary full" id="confirm-preview" ${rate.simulated || (state.session && ['OWNER','ADMIN','DISPATCHER'].includes(portal.profile?.workspace_role))?'':'disabled'}>${rate.simulated?'Confirm preview dispatch':'Book shipping label'}</button>`;
+  $('#confirm-preview').addEventListener('click', () => rate.simulated ? bookPreview(index) : busy($('#confirm-preview'), () => bookLive(index)));
   $('#review-dialog').showModal()
 });
 
@@ -1269,6 +1270,37 @@ function resetQuoteForm() {
   state.generation++;
   $('#rates').innerHTML = '<div class="empty">Shipment completed. Enter the next parcel.</div>';
   $('#weight-result').textContent = 'Enter parcel measurements.'
+}
+
+async function bookLive(index) {
+  const rate = state.quotes[index];
+  if (!rate || rate.simulated || !portal.profile?.tenant_id) throw Error('An authenticated workspace is required.');
+  const result = await api('/api/v1/shipping/confirm-booking', {
+    method: 'POST',
+    auth: true,
+    body: {
+      offer_id: rate.offer_id,
+      tenant_id: portal.profile.tenant_id
+    }
+  });
+  $('#review-content').replaceChildren();
+  const summary = document.createElement('p');
+  summary.className = 'notice';
+  summary.textContent = 'Label confirmed. Tracking: ' + result.label.tracking_number;
+  $('#review-content').append(summary);
+  for (const document of [{
+      document_type: 'Shipping label',
+      url: result.label.label_url
+    }, ...(result.label.carrier_forms || [])]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'primary';
+    button.textContent = 'Download ' + document.document_type;
+    button.addEventListener('click', () => busy(button, () => downloadPartnerDocument(document.url)));
+    $('#review-content').append(button);
+  }
+  rate.booked = true;
+  notify('Label confirmed and wallet transaction recorded.');
 }
 
 function bookPreview(index) {
@@ -2525,7 +2557,27 @@ refreshIcons();
 </script>
 <script>
 // Embedded in index.html: server-verified personas and administrative control hubs.
+const defaultProviderProfiles = [{
+  code: 'EASYPOST',
+  name: 'EasyPost',
+  endpoint: 'https://api.easypost.com/v2',
+  authentication: 'API_KEY',
+  label_purchase: true
+}, {
+  code: 'SENDCLOUD_V3',
+  name: 'Sendcloud',
+  endpoint: 'https://panel.sendcloud.sc/api/v3',
+  authentication: 'BASIC_PUBLIC_SECRET',
+  label_purchase: true
+}, {
+  code: 'SHIPPO',
+  name: 'Shippo',
+  endpoint: 'https://api.goshippo.com',
+  authentication: 'SHIPPO_TOKEN',
+  label_purchase: true
+}];
 const enterprise = {
+  providerProfiles: defaultProviderProfiles,
   tenants: [],
   carriers: [],
   margins: [],
@@ -2546,10 +2598,10 @@ mainContent.insertAdjacentHTML('beforeend', `
   <article class="card" style="margin-top:20px"><div class="cardhead"><div><h2>Aggregate wallet transaction log</h2><p class="subtle">Newest 200 ledger entries. Currency values are kept separate.</p></div><button class="secondary" data-admin-refresh="transactions">Refresh log</button></div><div class="scrolltable"><table><thead><tr><th>Company</th><th>Entry</th><th>Balance movement</th><th>Reserved movement</th><th>Time</th></tr></thead><tbody id="transaction-rows"></tbody></table></div></article>
 </section>
 <section id="admin-carriers" hidden>
-  <div class="pagehead"><div><div class="eyebrow">Platform / Carrier connectors</div><h1>Carrier Provider Settings</h1><p>EasyInvio-owned provider connections serve all eligible clients. Credentials remain private on the server.</p></div><button class="primary" id="carrier-new"><i data-lucide="plug"></i>Add New Connection</button></div>
+  <div class="pagehead"><div><div class="eyebrow">Platform / Carrier connectors</div><h1>Carrier Provider Settings</h1><p>EasyInvio-owned provider connections serve all eligible clients. Credentials remain private on the server.</p></div><button class="primary" id="carrier-new"><i data-lucide="plug"></i>Add New Aggregator</button></div>
   <div class="enterprise-banner" data-admin-source></div>
-  <div class="provider-grid"><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>EasyPost</h2><p class="subtle">Official v2 endpoint. Tenant-bound encrypted credentials.</p><button class="primary" id="easypost-setup">Set Up</button><p class="subtle">Configure EasyInvio’s shared account once. No client assignment or key disclosure.</p></article><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>LocalRegional</h2><p class="subtle">Compatible regional API protocol; server-approved HTTPS origins.</p><button class="primary" id="regional-setup">Set Up</button></article><article class="card"><span class="tag green">READ-ONLY RATE ADAPTER</span><h2>Sendcloud</h2><p class="subtle">Discover active carriers and actual quotes through Sendcloud v3. Public + secret keys stay server-encrypted. Native label purchase is not enabled. Orders and Returns are separate capabilities.</p><button class="primary" id="sendcloud-setup">Set Up</button></article></div>
-  <article class="card"><div class="cardhead"><h2>Network connections</h2><button class="secondary" data-admin-refresh="admin-carriers">Refresh</button></div><div class="scrolltable"><table><thead><tr><th>Account / company</th><th>Provider</th><th>Environment</th><th>Status / priority</th><th>Actions</th></tr></thead><tbody id="carrier-rows"></tbody></table></div></article>
+  <div class="provider-grid" id="provider-catalogue"><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>EasyPost</h2><p class="subtle">Official v2 endpoint. Tenant-bound encrypted credentials.</p><button class="primary" id="easypost-setup">Set Up</button><p class="subtle">Configure EasyInvio’s shared account once. No client assignment or key disclosure.</p></article><article class="card"><span class="tag green">NATIVE V3 ADAPTER</span><h2>Sendcloud</h2><p class="subtle">Discover active carriers and actual quotes through Sendcloud v3. Public + secret keys stay server-encrypted. Native v3 label announcements and cancellation are available for LIVE accounts. Ordinary TEST accounts remain quotes-only because Sendcloud labels can be billed.</p><button class="primary" id="sendcloud-setup">Set Up</button></article><article class="card"><span class="tag green">NATIVE ADAPTER</span><h2>Shippo</h2><p class="subtle">Native parcel rates, transaction labels and confirmed refunds. Configure a private TEST or LIVE token.</p><button class="primary" id="shippo-setup">Set Up</button></article></div>
+  <article class="card"><div class="cardhead"><h2>Configured aggregators</h2><label class="check"><input id="carrier-show-legacy" type="checkbox">Show client-specific overrides</label><label class="check"><input id="carrier-show-removed" type="checkbox">Show removed connections</label><button class="secondary" data-admin-refresh="admin-carriers">Refresh</button></div><div class="scrolltable"><table><thead><tr><th>Account / company</th><th>Provider</th><th>Environment</th><th>Status / priority</th><th>Actions</th></tr></thead><tbody id="carrier-rows"></tbody></table></div></article>
 </section>
 <section id="admin-margins" hidden>
   <div class="pagehead"><div><div class="eyebrow">Platform / Pricing control</div><h1>Dynamic Margin Matrix</h1><p>Client and lane rules with exact Decimal values. Lower numeric priority wins.</p></div><button class="primary" id="margin-new"><i data-lucide="sliders-horizontal"></i>Add Pricing Rule</button></div>
@@ -2572,7 +2624,7 @@ document.body.insertAdjacentHTML('beforeend', `
  <label>Client account<select name="tenant_id" required></select></label><div class="fields"><div><label>Origin country (optional)<input name="origin_country" maxlength="3" placeholder="Any origin"></label></div><div><label>Destination country (optional)<input name="destination_country" maxlength="3" placeholder="Any destination"></label></div><div><label>Carrier code (optional)<input name="carrier_code" maxlength="100" placeholder="Any carrier"></label></div><div><label>Service code (optional)<input name="service_code" maxlength="100" placeholder="Any service"></label></div><div><label>Formula<select name="markup_type"><option value="PERCENTAGE">Percentage</option><option value="FLAT_RATE">Flat rate</option></select></label></div><div><label>Markup value<input name="markup_value" value="20" inputmode="decimal" required></label></div><div><label>Currency<select name="currency"><option>GBP</option><option>EUR</option><option>USD</option></select></label></div><div><label>Priority (lower wins)<input name="priority" type="number" min="0" max="1000000" step="1" value="100" required></label></div><div><label>Minimum markup<input name="minimum_markup" value="0.00" inputmode="decimal" required></label></div><div><label>Maximum markup (optional)<input name="maximum_markup" inputmode="decimal"></label></div><div><label>Billing tier (optional)<select name="billing_plan"><option value="">Any billing tier</option><option>PREPAID_WALLET</option><option>POSTPAID_30_DAY</option></select></label></div><div><label>Cargo type (optional)<select name="cargo_type"><option value="">Any cargo</option><option>LETTER</option><option>PARCEL</option><option>PALLET</option><option>OVERLAND_FREIGHT</option></select></label></div><div><label>Min volume m? (optional)<input name="min_volume_m3" inputmode="decimal"></label></div><div><label>Max volume m? (exclusive)<input name="max_volume_m3" inputmode="decimal"></label></div><div><label>Min weight kg (optional)<input name="min_weight_kg" inputmode="decimal"></label></div><div><label>Max weight kg (exclusive)<input name="max_weight_kg" inputmode="decimal"></label></div><div><label>Min wholesale cost (optional)<input name="min_wholesale_cost" inputmode="decimal"></label></div><div><label>Max wholesale cost (exclusive)<input name="max_wholesale_cost" inputmode="decimal"></label></div><div><label>Valid from (optional ISO timestamp)<input name="valid_from" placeholder="2026-10-10T00:00:00Z"></label></div><div><label>Valid until (optional ISO timestamp)<input name="valid_until" placeholder="No end date"></label></div></div><label>Carrier account ID (optional)<input name="carrier_account_id" placeholder="Tenant-assigned account UUID"></label><label class="check"><input name="is_active" type="checkbox" checked>Active in pricing selection</label><button class="primary full">Save pricing rule</button>
 </form></dialog>
 <dialog id="carrier-admin-dialog"><button class="close" data-enterprise-close="carrier-admin-dialog" aria-label="Close carrier form">×</button><h2 id="carrier-form-title">Add carrier connection</h2><form id="carrier-admin-form">
- <div id="carrier-create-fields"><label id="carrier-tenant-field">Assigned client<select name="tenant_id" required></select></label><p id="carrier-platform-note" class="notice" hidden>Owned by EasyInvio. Shared with all clients in the selected environment. Clients never receive this key.</p><label>Account name<input name="account_name" maxlength="200" required></label><div class="fields"><div><label id="carrier-aggregator-field">Provider<select name="aggregator"><option>EASYPOST</option><option>REGIONAL</option></select></label></div><div><label>Environment<select name="environment"><option>TEST</option><option>LIVE</option></select></label></div></div><label id="carrier-api_base_url-field">API endpoint<input name="api_base_url" value="https://api.easypost.com/v2" type="url" required></label><label id="carrier-regional_provider_code-field">Regional provider code<input name="regional_provider_code" placeholder="Required for REGIONAL"></label><label id="carrier-key-field">API key (write-only)<input name="api_key" type="password" autocomplete="new-password" required maxlength="4096"></label><div id="sendcloud-key-fields" hidden><label>Sendcloud public API key<input name="sendcloud_public_key" type="password" autocomplete="new-password"></label><label>Sendcloud secret API key<input name="sendcloud_secret_key" type="password" autocomplete="new-password"></label></div><label id="carrier-upstream_account_id-field">Upstream account ID (optional)<input name="upstream_account_id"></label></div>
+ <div id="carrier-create-fields"><label id="carrier-tenant-field">Assigned client<select name="tenant_id" required></select></label><p id="carrier-platform-note" class="notice" hidden>Owned by EasyInvio. Shared with all clients in the selected environment. Clients never receive this key.</p><label>Account name<input name="account_name" maxlength="200" required></label><div class="fields"><div><label id="carrier-aggregator-field">Provider<select name="aggregator"><option>EASYPOST</option><option>REGIONAL</option></select></label></div><div><label>Environment<select name="environment"><option>TEST</option><option>LIVE</option></select></label></div></div><label id="carrier-api_base_url-field">API endpoint<input name="api_base_url" value="https://api.easypost.com/v2" type="url" required></label><label id="carrier-regional_provider_code-field">Internal connector label (optional)<input name="regional_provider_code" placeholder="Automatic for supported aggregators"></label><label id="carrier-key-field">API key (write-only)<input name="api_key" type="password" autocomplete="new-password" required maxlength="4096"></label><div id="sendcloud-key-fields" hidden><label>Sendcloud public API key<input name="sendcloud_public_key" type="password" autocomplete="new-password"></label><label>Sendcloud secret API key<input name="sendcloud_secret_key" type="password" autocomplete="new-password"></label></div><label id="carrier-upstream_account_id-field">Upstream account ID (optional)<input name="upstream_account_id"></label></div>
  <details id="carrier-advanced"><summary>Advanced connection options</summary><div class="fields"><div><label>Provider selection priority<input name="priority" value="100" type="number" min="0" max="1000000" step="1" required></label></div><div><label>Timeout seconds<input name="timeout_seconds" value="30" type="number" min="1" max="120" step="1" required></label></div></div><p class="subtle">Priority orders provider selection when capacity is limited; prices are still compared in parallel. Timeout is the maximum wait for a provider response.</p></details><label class="check"><input name="is_active" type="checkbox">Enable provider for ratings</label><button class="primary full">Save connection</button><p class="footnote">Existing secrets are never returned. No carrier API calls are made by this form.</p>
 </form></dialog>
 <dialog id="store-admin-dialog"><button class="close" data-enterprise-close="store-admin-dialog" aria-label="Close store form">×</button><h2>Register a workspace store</h2><form id="store-admin-form"><label>Display name<input name="display_name" required maxlength="200"></label><label>Platform<select name="platform"><option>SHOPIFY</option><option>WOOCOMMERCE</option><option>AMAZON</option></select></label><button class="primary full">Register store</button></form></dialog>
@@ -2814,6 +2866,12 @@ async function loadEnterpriseView(view) {
       });
       if (generation !== enterprise.generation) return;
       enterprise.carriers = [...shared.connections, ...enterprise.carriers];
+      const capabilities = await api('/api/v1/admin/platform-carriers/capabilities', {
+        auth: true
+      });
+      if (generation !== enterprise.generation) return;
+      enterprise.providerProfiles = capabilities.providers;
+      renderProviderCatalogue();
     }
     if (view !== 'admin-clients' && view !== 'transactions') {
       const tenants = await api('/api/v1/admin/tenants', {
@@ -2831,6 +2889,15 @@ function tenantOptions(includeAll = false) {
   return (includeAll ? '<option value="">All clients</option>' : '') + enterprise.tenants.map(t => `<option value="${escapeHTML(t.tenant_id)}">${escapeHTML(t.company_name || t.workspace_slug)}</option>`).join('');
 }
 
+function providerDisplayName(connection) {
+  return ({
+    'https://api.easypost.com/v2': 'EasyPost',
+    'https://panel.sendcloud.sc/api/v3': 'Sendcloud',
+    'https://panel.sendcloud.sc/api/v2': 'Sendcloud legacy',
+    'https://api.goshippo.com': 'Shippo'
+  })[connection.api_base_url] || (connection.aggregator === 'EASYPOST' ? 'EasyPost' : connection.regional_provider_code || 'Custom regional connector');
+}
+
 function renderEnterpriseTables() {
   const query = $('#tenant-search').value.toLowerCase();
   const crmLink = t => /^\d+$/.test(String(t.hubspot_company_id || '')) && /^\d+$/.test(String(t.hubspot_portal_id || '')) ?
@@ -2840,7 +2907,7 @@ function renderEnterpriseTables() {
   const filter = $('#margin-tenant-filter').value;
   $('#margin-tenant-filter').innerHTML = tenantOptions(true);
   $('#margin-tenant-filter').value = filter;
-  $('#carrier-rows').innerHTML = enterprise.carriers.map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(c.aggregator)}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions">${c.platform_owned ? `<button class="secondary" data-carrier-verify="${escapeHTML(c.id)}">Verify Connection</button>` : ""}<button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Parameters</button><button class="secondary" data-carrier-retire="${escapeHTML(c.id)}">Remove</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
+  $('#carrier-rows').innerHTML = enterprise.carriers.filter(c => (!c.retired_at || $('#carrier-show-removed').checked) && (!state.session || c.platform_owned || $('#carrier-show-legacy').checked)).map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(providerDisplayName(c))}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions">${c.platform_owned ? `<button class="secondary" data-carrier-verify="${escapeHTML(c.id)}">Verify Connection</button>` : ""}<button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Edit Settings</button><button class="secondary" data-carrier-retire="${escapeHTML(c.id)}">Remove</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
   $('#margin-rows').innerHTML = enterprise.margins.filter(m => !filter || m.tenant_id === filter).map(m => `<tr><td><b>${escapeHTML(m.company_name || enterprise.tenants.find(t => t.tenant_id === m.tenant_id)?.company_name || m.tenant_id)}</b><p class="subtle">${escapeHTML(m.rule_name || m.id)}</p></td><td>${escapeHTML(m.origin_country || 'ANY')} → ${escapeHTML(m.destination_country || 'ANY')}<br><span class="subtle">${escapeHTML(m.carrier_code || 'Any carrier')} ? ${escapeHTML(m.cargo_type || 'Any cargo')} ? ${escapeHTML(m.billing_plan || 'Any tier')}<br>Volume: ${escapeHTML(m.min_volume_m3 ?? '0')}?${escapeHTML(m.max_volume_m3 ?? 'unlimited')} m?</span></td><td class="finance-value">${escapeHTML(m.markup_value)} ${m.markup_type === 'PERCENTAGE' ? '%' : escapeHTML(m.currency)}</td><td>${m.priority}</td><td><span class="tag ${m.is_active ? 'green' : ''}">${m.is_active ? 'ACTIVE' : 'RETIRED'}</span></td><td><div class="actions"><button class="secondary" data-margin-edit="${escapeHTML(m.id)}">Edit</button><button class="secondary" data-margin-retire="${escapeHTML(m.id)}">Delete</button></div></td></tr>`).join('') || '<tr><td colspan="6">No pricing rules for this selection.</td></tr>';
   $('#transaction-rows').innerHTML = enterprise.transactions.map(t => `<tr><td>${escapeHTML(t.company_name)}</td><td><span class="tag">${escapeHTML(t.entry_type)}</span></td><td class="finance-value">${money(t.balance_delta, t.currency)}</td><td>${money(t.reserved_delta, t.currency)}</td><td>${escapeHTML(new Date(t.created_at).toLocaleString())}</td></tr>`).join('') || '<tr><td colspan="5">No ledger entries available in this view.</td></tr>';
 }
@@ -2982,7 +3049,8 @@ function openCarrierForm(id = null, provider = null) {
   if (shared) {
     if (row)
       for (const k of ['account_name', 'aggregator', 'api_base_url', 'environment', 'regional_provider_code', 'upstream_account_id']) form.elements[k].value = row[k] || '';
-    const selected = provider || (['https://panel.sendcloud.sc/api/v2', 'https://panel.sendcloud.sc/api/v3'].includes(row?.api_base_url) ? 'SENDCLOUD' : row?.aggregator || 'EASYPOST');
+    const specification = enterprise.providerProfiles.find(p => p.code === provider || (row && p.endpoint === row.api_base_url) || (provider === 'SENDCLOUD' && p.code === 'SENDCLOUD_V3'));
+    const selected = specification?.authentication === 'BASIC_PUBLIC_SECRET' ? 'SENDCLOUD' : specification?.code || provider || row?.aggregator || 'EASYPOST';
     form.dataset.provider = selected;
     const sendcloud = selected === 'SENDCLOUD';
     $('#sendcloud-key-fields').hidden = !sendcloud;
@@ -2993,12 +3061,12 @@ function openCarrierForm(id = null, provider = null) {
     }
     form.elements.api_key.disabled = sendcloud;
     form.elements.aggregator.value = selected === 'EASYPOST' ? 'EASYPOST' : 'REGIONAL';
-    form.elements.api_base_url.value = selected === 'EASYPOST' ? 'https://api.easypost.com/v2' : selected === 'SENDCLOUD' ? row?.api_base_url || 'https://panel.sendcloud.sc/api/v3' : row?.api_base_url || '';
-    form.elements.regional_provider_code.value = selected === 'SENDCLOUD' ? 'SENDCLOUD' : selected === 'REGIONAL' ? row?.regional_provider_code || '' : '';
+    form.elements.api_base_url.value = specification?.endpoint || row?.api_base_url || (selected === 'EASYPOST' ? 'https://api.easypost.com/v2' : '');
+    form.elements.regional_provider_code.value = ['SENDCLOUD', 'SHIPPO'].includes(selected) ? selected : selected === 'REGIONAL' ? row?.regional_provider_code || '' : specification?.code || '';
     for (const k of ['aggregator', 'api_base_url', 'regional_provider_code', 'upstream_account_id']) $('#carrier-' + k + '-field').hidden = selected !== 'REGIONAL' || k === 'aggregator';
-    form.elements.regional_provider_code.required = selected === 'REGIONAL';
+    form.elements.regional_provider_code.required = false;
     form.elements.api_key.required = !id;
-    $('#carrier-form-title').textContent = 'Set Up ' + (selected === 'EASYPOST' ? 'EasyPost' : selected === 'SENDCLOUD' ? 'Sendcloud' : 'LocalRegional');
+    $('#carrier-form-title').textContent = 'Set Up ' + (specification?.name || (selected === 'REGIONAL' ? 'Custom regional API' : selected));
     if (!id) {
       form.elements.account_name.value = 'EasyInvio ' + selected;
       form.elements.is_active.checked = true;
@@ -3011,16 +3079,42 @@ $('#carrier-admin-dialog').addEventListener('close', () => {
   const form = $('#carrier-admin-form');
   for (const k of ['api_key', 'sendcloud_public_key', 'sendcloud_secret_key']) form.elements[k].value = '';
 });
-$('#carrier-new').addEventListener('click', () => openCarrierForm());
-$('#easypost-setup').addEventListener('click', () => openCarrierForm(null, 'EASYPOST'));
-$('#regional-setup').addEventListener('click', () => openCarrierForm(null, 'REGIONAL'));
-$('#sendcloud-setup').addEventListener('click', () => openCarrierForm(null, 'SENDCLOUD'));
+document.body.insertAdjacentHTML('beforeend', `<dialog id="aggregator-picker-dialog"><button class="close" data-enterprise-close="aggregator-picker-dialog" aria-label="Close provider selection">&times;</button><h2>Add New Aggregator</h2><p class="subtle">Choose a supported adapter. Its API endpoint and internal identifier are automatic; your credentials remain server-encrypted.</p><label>Aggregator<select id="aggregator-provider"><option value="EASYPOST">EasyPost</option><option value="SENDCLOUD">Sendcloud v3</option><option value="SHIPPO">Shippo</option><option value="REGIONAL">Custom regional API (existing /rates contract only)</option></select></label><button class="primary full" id="aggregator-continue">Continue to Set Up</button><p class="footnote">A previously unsupported API needs a reviewed lifecycle adapter before it can buy labels. A key alone cannot define its booking, customs or refund protocol.</p></dialog>`);
+$('#carrier-new').addEventListener('click', () => {
+  enterpriseAdminGuard();
+  if (!state.session) {
+    notify('Sign in as the platform owner first.');
+    $('#account-dialog').showModal();
+    return;
+  }
+  $('#aggregator-picker-dialog').showModal();
+});
+$('#aggregator-continue').addEventListener('click', () => {
+  const provider = $('#aggregator-provider').value;
+  $('#aggregator-picker-dialog').close();
+  openCarrierForm(null, provider);
+});
+$('#carrier-show-removed').addEventListener('change', renderEnterpriseTables);
+$('#carrier-show-legacy').addEventListener('change', renderEnterpriseTables);
+
+function renderProviderCatalogue() {
+  const available = enterprise.providerProfiles.filter(p => p.code !== 'SENDCLOUD_V2');
+  $('#aggregator-provider').innerHTML = available.map(p => '<option value="' + escapeHTML(p.code) + '">' + escapeHTML(p.name) + '</option>').join('') + '<option value="REGIONAL">Custom regional API (rates contract only)</option>';
+  $('#provider-catalogue').innerHTML = available.map(p => `<article class="card"><span class="tag green">${p.label_purchase?'NATIVE LIFECYCLE ADAPTER':'QUOTE ADAPTER'}</span><h2>${escapeHTML(p.name)}</h2><p class="subtle">Configure EasyInvio's shared connection. Endpoint and identifier are automatic; credentials remain private.</p>${p.code==='SENDCLOUD_V3'?'<p class="subtle">Ordinary TEST accounts remain quotes-only because carrier labels can be billed.</p>':''}<button class="primary" id="${p.code==='SENDCLOUD_V3'?'sendcloud':p.code.toLowerCase()}-setup" data-provider-setup="${escapeHTML(p.code)}">Set Up</button></article>`).join('');
+}
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-provider-setup]');
+  if (button) openCarrierForm(null, button.dataset.providerSetup);
+});
+renderProviderCatalogue();
+
+
 $('#carrier-admin-form [name="aggregator"]').addEventListener('change', event => {
   const form = $('#carrier-admin-form'),
     regional = event.target.value === 'REGIONAL';
   form.elements.api_base_url.value = regional ? '' : 'https://api.easypost.com/v2';
   form.elements.api_base_url.placeholder = regional ? 'Server-approved regional HTTPS endpoint' : '';
-  form.elements.regional_provider_code.required = regional;
+  form.elements.regional_provider_code.required = false;
 });
 $('#carrier-admin-form').addEventListener('submit', event => {
   event.preventDefault();
@@ -3085,7 +3179,26 @@ document.addEventListener('click', event => {
   if (m) openMarginForm(m.dataset.marginEdit);
   const c = event.target.closest('[data-carrier-edit]');
   if (c) openCarrierForm(c.dataset.carrierEdit);
-  const retire = event.target.closest('[data-margin-retire],[data-carrier-retire]');
+  const carrierRemoval = event.target.closest('[data-carrier-retire]');
+  if (carrierRemoval) {
+    busy(carrierRemoval, async () => {
+      enterpriseAdminGuard();
+      const id = carrierRemoval.dataset.carrierRetire;
+      const row = enterprise.carriers.find(r => r.id === id);
+      if (state.session) await api('/api/v1/admin/' + (row.platform_owned ? 'platform-carriers' : 'carriers') + '/' + encodeURIComponent(id), {
+        method: 'DELETE',
+        auth: true
+      });
+      else {
+        row.is_active = false;
+        row.retired_at = new Date().toISOString();
+      }
+      await loadEnterpriseView('admin-carriers');
+      notify('Aggregator removed from new bookings. Shipment, return and refund history retained.');
+    });
+    return;
+  }
+  const retire = event.target.closest('[data-margin-retire]');
   if (retire) {
     enterpriseAdminGuard();
     pendingRetirement = retire.dataset.marginRetire ? ['margins', retire.dataset.marginRetire] : ['carriers', retire.dataset.carrierRetire];
@@ -3219,7 +3332,7 @@ clearSession = function() {
   enterprise.stores = [];
   enterpriseClearSessionBase();
   enterpriseViews.forEach(id => $('#' + id).hidden = true);
-  ['tenant-admin-dialog', 'carrier-admin-dialog', 'margin-admin-dialog', 'retire-admin-dialog', 'store-admin-dialog', 'exception-sheet'].forEach(id => $('#' + id).close());
+  ['tenant-admin-dialog', 'carrier-admin-dialog', 'margin-admin-dialog', 'retire-admin-dialog', 'store-admin-dialog', 'exception-sheet', 'aggregator-picker-dialog'].forEach(id => $('#' + id).close());
   $('#carrier-admin-form').reset();
   pendingRetirement = null;
   activeExceptionTicket = null;
@@ -3635,6 +3748,52 @@ $('#workspace-pack-form').addEventListener('submit', event => {
       auth: true
     });
     $('#workspace-pack-result').textContent = result.status + (result.error ? ' · ' + result.error : ' · ' + result.all_rates.length + ' options evaluated. No label purchased.');
+    if (result.status === 'QUOTED' && result.rate?.offer_id) {
+      const offerSelect = document.createElement('select');
+      offerSelect.setAttribute('aria-label', 'Choose prepared carrier offer');
+      for (const offer of result.all_rates || [result.rate]) {
+        const option = document.createElement('option');
+        option.value = offer.offer_id;
+        option.textContent = offer.carrier_code + ' ' + offer.service_code + ' - ' + money(offer.client_price_ex_tax, offer.currency);
+        offerSelect.append(option);
+      }
+      offerSelect.value = result.rate.offer_id;
+      $('#workspace-pack-result').append(offerSelect);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'primary';
+      button.textContent = 'Book prepared offer';
+      button.addEventListener('click', () => busy(button, async () => {
+        if (!portal.profile?.tenant_id) throw Error('An authenticated workspace is required.');
+        if (!confirm('Purchase this prepared shipping offer? Wallet credit will be reserved and captured only after label confirmation.')) return;
+        const booked = await api('/api/v1/shipping/confirm-booking', {
+          method: 'POST',
+          auth: true,
+          body: {
+            offer_id: offerSelect.value,
+            tenant_id: portal.profile.tenant_id
+          }
+        });
+        $('#workspace-pack-result').textContent = 'Label confirmed. Tracking: ' + booked.label.tracking_number;
+        const downloadButton = document.createElement('button');
+        downloadButton.type = 'button';
+        downloadButton.className = 'secondary';
+        downloadButton.textContent = 'Download shipping label PDF';
+        downloadButton.addEventListener('click', () => busy(downloadButton, () => downloadPartnerDocument(booked.label.label_url)));
+        $('#workspace-pack-result').append(downloadButton);
+        for (const form of booked.label.carrier_forms || []) {
+          const documentButton = document.createElement('button');
+          documentButton.type = 'button';
+          documentButton.className = 'secondary';
+          documentButton.textContent = 'Download ' + form.document_type;
+          documentButton.addEventListener('click', () => busy(documentButton, () => downloadPartnerDocument(form.url)));
+          $('#workspace-pack-result').append(documentButton);
+        }
+        await loadDispatchWorkspace();
+      }));
+      $('#workspace-pack-result').append(button);
+    }
+
     await loadDispatchWorkspace();
   });
 });
@@ -3715,6 +3874,24 @@ clearSession = function() {
   $('#workspace-store').replaceChildren();
   workspaceClearBase();
 };
+
+async function downloadPartnerDocument(path) {
+  if (!state.session || !/^\/api\/v1\/shipping\/[0-9a-f-]+\/documents\/(label|[0-9]+)$/.test(path)) throw Error('Invalid workspace document.');
+  const session = state.session;
+  const response = await fetch(API + path, {
+    headers: {
+      Authorization: 'Bearer ' + session.access_token
+    }
+  });
+  if (session !== state.session) throw Error('Session changed.');
+  if (!response.ok) {
+    const result = await response.json();
+    throw Error(result.detail || 'Document download failed.');
+  }
+  const blob = await response.blob();
+  if (session !== state.session) throw Error('Session changed.');
+  download('easyinvio-shipping-document.pdf', blob, 'application/pdf');
+}
 </script>
 <script>
 // Embedded in index.html: owner command center and notification receipt visibility.

@@ -131,6 +131,8 @@ class Settings(BaseSettings):
     database_ca_file: str | None = None
     database_tls_strict: bool = True
     automation_purchase_enabled: bool = False
+    partner_document_allowed_hosts: list[str] = ['easypost-files.s3.amazonaws.com', 'deliver.goshippo.com',
+        'shippo-delivery.s3.amazonaws.com', 'panel.sendcloud.sc']
     freight_kg_per_m3: Decimal = Field(default=Decimal('333'),gt=0,le=10000)
     freight_kg_per_loading_metre: Decimal = Field(default=Decimal('1750'),gt=0,le=30000)
     freight_deck_width_m: Decimal = Field(default=Decimal('2.4'),gt=0,le=5)
@@ -330,6 +332,7 @@ class RatingRequest(StrictModel):
     cargo_type: Literal['LETTER','PARCEL','PALLET','OVERLAND_FREIGHT'] = 'PARCEL'
     stackable: bool = True
     customs_document: dict | None = None
+    is_return: bool = False
 
     @model_validator(mode='before')
     @classmethod
@@ -381,6 +384,7 @@ class WholesaleRate(StrictModel):
     wholesale_cost: Money
     fee_components: ProviderFees | None = None
     delivery_days: int | None = Field(default=None, ge=0, le=365)
+    execution_details: dict = Field(default_factory=dict)
 
     @field_validator("wholesale_cost", mode="before")
     @classmethod
@@ -405,6 +409,7 @@ class WholesaleRate(StrictModel):
 
 
 class ClientRate(StrictModel):
+    execution_details: dict = Field(default_factory=dict)
     offer_id: UUID = Field(default_factory=uuid4)
     on_time_rate: Decimal | None = None
     avg_transit_days: Decimal | None = None
@@ -690,15 +695,20 @@ class SupabaseRepository:
             raise HTTPException(503, "Pricing configuration unavailable")
         return rules
 
-    async def accounts(self, context: TenantContext) -> list[CarrierAccount]:
-        rows = await self.select("carrier_accounts", {
+    async def accounts(self, context: TenantContext, *, historical_account_id: UUID | None = None) -> list[CarrierAccount]:
+        filters = {
             "select": "id,tenant_id,aggregator,api_base_url,upstream_account_id,"
                       "timeout_seconds,credentials_ciphertext,credential_key_id,platform_connection_id",
             "tenant_id": f"eq.{context.tenant_id}",
             "environment": f"eq.{self.settings.provider_environment}",
             "is_active": "eq.true", "order": "priority.asc,id.asc",
             "limit": str(self.settings.max_accounts_per_tenant + 1),
-        }, context, backend=True)
+        }
+        if historical_account_id is not None:
+            filters.pop('is_active',None)
+            filters['id']='eq.'+str(historical_account_id)
+            filters['limit']='1'
+        rows = await self.select("carrier_accounts", filters, context, backend=True)
         if len(rows) > self.settings.max_accounts_per_tenant:
             raise HTTPException(503, "Carrier account capacity exceeded")
         result = []
@@ -717,7 +727,7 @@ class SupabaseRepository:
                         parts.scheme != "https" or parts.username or parts.password
                         or parts.query or parts.fragment
                         or f"{parts.scheme}://{parts.netloc}"
-                        not in self.settings.regional_allowed_origins
+                        not in self.settings.regional_allowed_origins and not identify_aggregator(endpoint)
                     ):
                         raise ValueError("Regional endpoint is not approved")
                 else:
@@ -888,6 +898,11 @@ class EasyPostStrategy(RateStrategy):
             "to_address": self.address(request.destination), "parcel": parcel,
             "options": {"label_format": "PDF"},
         }
+        if request.is_return:
+            # EasyPost itself reverses the original forward addresses.
+            shipment['from_address'] = self.address(request.destination)
+            shipment['to_address'] = self.address(request.origin)
+            shipment['is_return'] = True
         if request.cargo_type=='LETTER':
             # EasyPost creates these embedded addresses with strict AVS enabled.
             shipment['from_address']['verify_strict']=True
@@ -938,6 +953,9 @@ class RegionalStrategy(RateStrategy):
 
     async def rates(self, request: RatingRequest) -> list[WholesaleRate]:
         payload=request.model_dump(mode='json')
+        if request.is_return:
+            raise ProviderFailure('NATIVE_RETURN_CONTRACT_REQUIRED')
+        payload.pop('is_return',None)
         if request.cargo_type=='LETTER':payload['address_validation_required']=True
         body = await self.post("/rates", payload)
         if (not isinstance(body, dict) or not isinstance(body.get("quote_id"), str)
@@ -976,6 +994,7 @@ class SendcloudStrategy(RateStrategy):
             return [WholesaleRate.model_validate(row) for row in rows]
         except (ValueError,KeyError,TypeError):
             raise ProviderFailure('SENDCLOUD_CONFIGURATION_OR_PRICE_UNAVAILABLE') from None
+
 
 
 class RatingService:
@@ -1021,6 +1040,7 @@ class RatingService:
         maximum=30000 if request.cargo_type in {'PALLET','OVERLAND_FREIGHT'} else 1000
         if Decimal(weight['billable_weight_kg'])>maximum:
             raise HTTPException(422,'Billable cargo weight exceeds service limits')
+        physical_request = request
         request = request.model_copy(update={"weights_kg": [Decimal(weight["billable_weight_kg"])]})
         accounts = await self.repository.accounts(context)
         if request.cargo_type in {'PALLET','OVERLAND_FREIGHT'} or (request.customs_document and request.customs_document.get('required') and request.currency!='USD'):
@@ -1028,13 +1048,17 @@ class RatingService:
         if not accounts:
             raise HTTPException(503, "No active carrier accounts configured")
         strategies = []
+        from backend.aggregator_lifecycle import ADAPTERS, NativeRateStrategy
         for account in accounts:
-            if (identify_aggregator(getattr(account,'base_url',None)) and identify_aggregator(account.base_url).code.startswith('SENDCLOUD')):
+            if getattr(account,'base_url',None) in ADAPTERS:
+                strategies.append(NativeRateStrategy(self.client, account, WholesaleRate, getattr(self.settings,'provider_environment','TEST')))
+            elif (identify_aggregator(getattr(account,'base_url',None)) and identify_aggregator(account.base_url).code.startswith('SENDCLOUD')):
                 strategies.append(SendcloudStrategy(self.client,account,getattr(self.settings,'sendcloud_methods',{}).get(account.id,getattr(self.settings,'sendcloud_methods',{}).get(account.platform_connection_id,[]))))
             else:
                 strategies.append((EasyPostStrategy if account.provider == 'EASYPOST' else RegionalStrategy)(self.client,account))
         results = await asyncio.gather(*(
-            self.run_provider(s, request, provider_deadline or self.settings.provider_deadline_seconds)
+            self.run_provider(s, physical_request if identify_aggregator(getattr(s.account,'base_url',None)) else request,
+                              provider_deadline or self.settings.provider_deadline_seconds)
             for s in strategies
         ))
         quoted_at = datetime.now(timezone.utc)
@@ -1042,6 +1066,12 @@ class RatingService:
         rates = []
         for wholesale_rates, _ in results:
             for rate in wholesale_rates:
+                source_account=next(account for account in accounts if account.id==rate.account_id)
+                import hashlib
+                secret=getattr(source_account,'api_key',None)
+                identity={'account_endpoint':getattr(source_account,'base_url',None),
+                    'account_credential_sha256':hashlib.sha256(secret.encode()).hexdigest() if isinstance(secret,str) else None,
+                    'account_upstream_id':getattr(source_account,'upstream_account_id',None)}
                 with calibrated_pricing_scope(
                     self.pool, currency=rate.currency, origin=request.origin.country_code,
                     carrier_account_id=rate.account_id, service_code=rate.service_code,
@@ -1059,6 +1089,7 @@ class RatingService:
                     carrier_code=rate.carrier_code, service_code=rate.service_code,
                     currency=rate.currency, client_price_ex_tax=client_price,
                     delivery_days=rate.delivery_days,
+                    execution_details={**rate.execution_details,**identity},
                     fee_breakdown={
                         **({key: str(money(value)) for key, value in rate.fee_components.model_dump().items()}
                            if rate.fee_components else {key: None for key in ("base_cost", "fuel_surcharge", "residential_fee", "remote_area_fee")}),
@@ -1235,12 +1266,17 @@ class FinanceEngine:
             raise HTTPException(409, "Booking permit mismatch")
         return row
 
-    async def mark_submitted(self, permit: BookingPermit) -> None:
+    def verified_test_booking(self, tenant, enabled):
+        return bool(enabled and tenant['is_sandbox'] and
+                    self.settings.provider_environment == 'TEST' and
+                    self.settings.database_environment == 'SANDBOX')
+
+    async def mark_submitted(self, permit: BookingPermit, *, verified_test_environment: bool = False) -> None:
         """Call immediately before purchasing the provider label."""
         async with self.pool.acquire() as connection:
             async with connection.transaction():
                 tenant = await self.lock_tenant(connection, permit.tenant_id)
-                if tenant["is_sandbox"]:
+                if tenant["is_sandbox"] and not self.verified_test_booking(tenant, verified_test_environment):
                     raise HTTPException(403, "Sandbox tenants cannot submit carrier label purchases")
                 reservation = await self.locked_reservation(connection, permit)
                 if reservation["status"] != "RESERVED":
@@ -1265,6 +1301,7 @@ class FinanceEngine:
         *, tracking_number: str | None = None, label_storage_path: str | None = None,
         carrier_name: str = "UNKNOWN",
         label_documents: dict | None = None,
+        verified_test_environment: bool = False,
     ) -> None:
         """Backend-only settlement after a confirmed provider outcome.
 
@@ -1284,7 +1321,7 @@ class FinanceEngine:
         async with self.pool.acquire() as connection:
             async with connection.transaction():
                 tenant = await self.lock_tenant(connection, permit.tenant_id)
-                if tenant["is_sandbox"] and outcome == "SUCCESS":
+                if tenant["is_sandbox"] and outcome == "SUCCESS" and not self.verified_test_booking(tenant, verified_test_environment):
                     raise HTTPException(403, "Sandbox tenants cannot settle real carrier dispatches")
                 row = await self.locked_reservation(connection, permit)
                 target = "CAPTURED" if outcome == "SUCCESS" else "RELEASED"
@@ -1768,6 +1805,10 @@ async def lifespan(application: FastAPI):
                 application.state.rating = rating
                 application.state.finance = FinanceEngine(pool, settings, stripe_client)
                 application.state.automation_freight=AutomationService(pool,rating,application.state.finance,repository,RatingRequest,http_client,settings)
+                from backend.aggregator_lifecycle import PartnerLifecycleService, FactoryPurchaseBridge
+                application.state.partner_lifecycle = PartnerLifecycleService(application.state.automation_freight, http_client)
+                application.state.automation_freight.register_purchase_adapter('REGIONAL',
+                    FactoryPurchaseBridge(http_client, pool, settings.provider_environment))
                 from backend.order_csv import CSVOrderService
                 application.state.csv_orders=CSVOrderService(pool,application.state.automation_freight)
                 from backend.ecommerce_connectors import StoreConnectorSettings
@@ -1785,6 +1826,7 @@ async def lifespan(application: FastAPI):
                 )
                 configure_ecommerce_service(application.state.ecommerce)
                 ecommerce_task = asyncio.create_task(tracking_worker(application.state.ecommerce))
+                partner_task = asyncio.create_task(application.state.partner_lifecycle.worker())
                 support_task = asyncio.create_task(application.state.tracking_support.worker())
                 notification_task = asyncio.create_task(application.state.support_delivery.worker())
                 from backend.payment_gateway import SnapshotWebhookService
@@ -1803,6 +1845,11 @@ async def lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    partner_task.cancel()
+                    try:
+                        await partner_task
+                    except asyncio.CancelledError:
+                        pass
                     if payment_task is not None:
                         payment_task.cancel()
                         try:
@@ -1862,6 +1909,7 @@ async def branded_carrier_transport(request: Request, call_next):
     branded=(path=='/v1/rates' or path=='/v1/whatsapp/quote-choice' or path.startswith('/api/v1/rates/')
              or path.startswith('/api/v1/routing/') or path.startswith('/api/v1/shipments/')
              or path.startswith('/api/v1/automation/') or path.startswith('/api/v1/dispatch-workspace/')
+             or path.startswith('/api/v1/shipping/')
              or path.startswith('/api/v1/support/tickets') or path=='/api/v1/analytics/carrier-performance')
     if not branded:return response
     from backend.carrier_consolidation import public_payload
@@ -1999,7 +2047,7 @@ async def health(request: Request) -> dict[str, str]:
 
 @app.get("/", include_in_schema=False)
 async def frontend():
-    return FileResponse(Path(__file__).with_name("index.html"), media_type="text/html")
+    return FileResponse(Path(__file__).with_name("index.html"), media_type="text/html", headers={'Cache-Control':'no-store'})
 
 
 @app.get("/api/v1/config")
@@ -2018,6 +2066,13 @@ async def get_rates(body: RatingRequest, request: Request,
         raise HTTPException(403, "Dispatch permission required")
     try:
         result = await request.app.state.rating.quote(context, body)
+        pool=getattr(request.app.state.rating,'pool',None)
+        if pool is not None:
+            async with pool.acquire() as connection:
+                await connection.execute('''INSERT INTO public.partner_unbound_quotes
+                    (tenant_id,request_id,request_payload,quote_payload,expires_at)
+                    VALUES($1,$2,$3::jsonb,$4::jsonb,$5)''',context.tenant_id,result.request_id,
+                    body.model_dump_json(),result.model_dump_json(),result.expires_at)
         if context.role == 'DISPATCHER':
             result = result.model_copy(update={'rates': [rate.model_copy(update={'fee_breakdown': {'source': 'financial_role_required'}}) for rate in result.rates]})
         return result
@@ -2189,6 +2244,8 @@ app.include_router(tracking_router(authenticate))
 app.include_router(support_delivery_router(authenticate))
 app.include_router(dashboard_router(authenticate))
 app.include_router(automation_router(authenticate))
+from backend.aggregator_lifecycle import build_router as partner_lifecycle_router
+app.include_router(partner_lifecycle_router(authenticate))
 app.include_router(dispatch_workspace_router(authenticate))
 
 

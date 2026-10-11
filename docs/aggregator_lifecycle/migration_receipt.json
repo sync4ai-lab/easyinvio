@@ -1,0 +1,8 @@
+{
+  "migration": "023_partner_lifecycle.sql",
+  "environment": "SANDBOX",
+  "applied_at": "2026-10-11T19:05:38.602947+00:00",
+  "idempotent_rerun": true,
+  "private_tables_browser_access_denied": true,
+  "external_api_calls": 0
+}

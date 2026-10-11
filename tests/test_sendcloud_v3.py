@@ -44,10 +44,10 @@ class SendcloudV3Tests(unittest.IsolatedAsyncioTestCase):
   with self.assertRaises(ValueError):await self.rates([])
   self.request.cargo_type='PARCEL';self.account.base_url='https://attacker.example'
   with self.assertRaises(ValueError):await self.rates([])
- def test_capabilities_do_not_claim_unbuilt_orders_returns_or_labels(self):
+ def test_capabilities_report_native_lifecycle_but_not_order_management(self):
   capability=identify_aggregator(V3_ENDPOINT)
-  self.assertTrue(capability.rate_lookup);self.assertFalse(capability.label_purchase);self.assertFalse(capability.order_management);self.assertFalse(capability.returns)
-  self.assertEqual(len(public_capabilities()),3)
+  self.assertTrue(capability.rate_lookup);self.assertTrue(capability.label_purchase);self.assertFalse(capability.order_management);self.assertTrue(capability.returns)
+  self.assertEqual(len(public_capabilities()),4)
 if __name__=='__main__':unittest.main()
 
 class ConnectionVerificationTests(unittest.IsolatedAsyncioTestCase):

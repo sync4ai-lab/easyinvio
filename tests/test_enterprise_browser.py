@@ -62,6 +62,18 @@ async def run():
         assert await form.locator('[name="is_active"]').is_checked()
         assert await form.locator('[name="api_key"]').get_attribute('type')=='password'
         await page.locator('[data-enterprise-close="carrier-admin-dialog"]').click()
+        await page.locator('#carrier-new').click()
+        await expect(page.locator('#aggregator-picker-dialog')).to_be_visible()
+        assert await page.locator('#aggregator-provider option').all_text_contents()==['EasyPost','Sendcloud','Shippo','Custom regional API (rates contract only)']
+        await page.locator('#aggregator-provider').select_option('SHIPPO')
+        await page.locator('#aggregator-continue').click()
+        assert await form.locator('[name="api_base_url"]').input_value()=='https://api.goshippo.com'
+        assert await form.locator('[name="regional_provider_code"]').input_value()=='SHIPPO'
+        assert not await form.locator('[name="regional_provider_code"]').evaluate('(node)=>node.required')
+        assert not await page.locator('#carrier-api_base_url-field').is_visible()
+        assert not await page.locator('#carrier-regional_provider_code-field').is_visible()
+        assert not await page.locator('#regional-setup').count()
+        await page.locator('[data-enterprise-close="carrier-admin-dialog"]').click()
         await page.evaluate('state.session=null;portal.profile=null')
         checks.append('Authenticated-owner form defaults to EasyPost TEST, active ratings and a write-only password field; no key was submitted by this browser probe.')
 
@@ -70,9 +82,15 @@ async def run():
         await page.locator('#carrier-admin-form [name="priority"]').fill('17')
         await page.locator('#carrier-admin-form button').click()
         await expect(page.locator('#carrier-rows')).to_contain_text('Priority 17')
-        assert 'READ-ONLY RATE ADAPTER' in await page.locator('#admin-carriers').inner_text()
-        assert 'Native label purchase is not enabled' in await page.locator('#admin-carriers').inner_text()
-        checks.append('Carrier parameters persist in sample state; Sendcloud read-only rating and disabled native purchasing clearly labelled.')
+        assert 'NATIVE LIFECYCLE ADAPTER' in await page.locator('#admin-carriers').inner_text()
+        assert 'Ordinary TEST accounts remain quotes-only' in await page.locator('#admin-carriers').inner_text()
+        checks.append('Native provider cards and Shippo setup are distinct; endpoint/code are automatic, keys write-only, and Sendcloud billable-mode constraints are explicit.')
+        await page.locator('[data-carrier-retire]').first.click()
+        await page.wait_for_function('enterprise.carriers.some(c=>c.retired_at)')
+        assert not await page.locator('[data-carrier-edit]').count()
+        await page.locator('#carrier-show-removed').check()
+        assert await page.locator('[data-carrier-edit]').count()==1
+        checks.append('Add New Aggregator selects supported adapters; one-click removal hides connections while retaining an editable archive.')
         for width in [375,768,1024,1280,1366,1440]:
             await page.set_viewport_size({'width':width,'height':900})
             for view in ['dashboard','admin-clients','admin-carriers','admin-margins']:

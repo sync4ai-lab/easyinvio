@@ -94,6 +94,34 @@ $('#workspace-pack-form').addEventListener('submit', event => {
     order.postal_form = form.postal_form.value || null;order.hs_codes_reviewed = form.reviewed.checked;
     const result = await api('/api/v1/dispatch-workspace/orders/'+dispatchWorkspace.preparing.id+'/prepare', {method:'POST',body:order,auth:true});
     $('#workspace-pack-result').textContent = result.status + (result.error?' · '+result.error:' · '+result.all_rates.length+' options evaluated. No label purchased.');
+    if (result.status === 'QUOTED' && result.rate?.offer_id) {
+      const offerSelect=document.createElement('select');offerSelect.setAttribute('aria-label','Choose prepared carrier offer');
+      for (const offer of result.all_rates || [result.rate]) {const option=document.createElement('option');option.value=offer.offer_id;option.textContent=offer.carrier_code+' '+offer.service_code+' - '+money(offer.client_price_ex_tax,offer.currency);offerSelect.append(option);}
+      offerSelect.value=result.rate.offer_id;$('#workspace-pack-result').append(offerSelect);
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'primary';
+      button.textContent = 'Book prepared offer';
+      button.addEventListener('click', () => busy(button, async () => {
+        if (!portal.profile?.tenant_id) throw Error('An authenticated workspace is required.');
+        if (!confirm('Purchase this prepared shipping offer? Wallet credit will be reserved and captured only after label confirmation.')) return;
+        const booked = await api('/api/v1/shipping/confirm-booking', {method:'POST', auth:true,
+          body:{offer_id:offerSelect.value,tenant_id:portal.profile.tenant_id}});
+        $('#workspace-pack-result').textContent = 'Label confirmed. Tracking: ' + booked.label.tracking_number;
+        const downloadButton = document.createElement('button');
+        downloadButton.type='button';downloadButton.className='secondary';downloadButton.textContent='Download shipping label PDF';
+        downloadButton.addEventListener('click',()=>busy(downloadButton,()=>downloadPartnerDocument(booked.label.label_url)));
+        $('#workspace-pack-result').append(downloadButton);
+        for (const form of booked.label.carrier_forms || []) {
+          const documentButton=document.createElement('button');documentButton.type='button';documentButton.className='secondary';
+          documentButton.textContent='Download '+form.document_type;
+          documentButton.addEventListener('click',()=>busy(documentButton,()=>downloadPartnerDocument(form.url)));
+          $('#workspace-pack-result').append(documentButton);
+        }
+        await loadDispatchWorkspace();
+      }));
+      $('#workspace-pack-result').append(button);
+    }
+
     await loadDispatchWorkspace();
   });
 });
@@ -131,3 +159,13 @@ async function downloadWorkspacePDF(ids) {
 $('#workspace-pdf').addEventListener('click',()=>busy($('#workspace-pdf'),()=>downloadWorkspacePDF(workspaceSelection())));
 const workspaceClearBase=clearSession;
 clearSession=function(){dispatchWorkspace.orders=[];dispatchWorkspace.selected.clear();dispatchWorkspace.preparing=null;dispatchWorkspace.offset=0;dispatchWorkspace.cursor=null;dispatchWorkspace.cursorStore=null;$('#workspace-pack-dialog').close();$('#workspace-pack-form').reset();$('#workspace-rows').replaceChildren();$('#workspace-results').replaceChildren();$('#workspace-store').replaceChildren();workspaceClearBase();};
+
+async function downloadPartnerDocument(path) {
+  if (!state.session || !/^\/api\/v1\/shipping\/[0-9a-f-]+\/documents\/(label|[0-9]+)$/.test(path)) throw Error('Invalid workspace document.');
+  const session=state.session;
+  const response=await fetch(API+path,{headers:{Authorization:'Bearer '+session.access_token}});
+  if (session!==state.session) throw Error('Session changed.');
+  if (!response.ok) {const result=await response.json();throw Error(result.detail||'Document download failed.');}
+  const blob=await response.blob();if (session!==state.session) throw Error('Session changed.');
+  download('easyinvio-shipping-document.pdf',blob,'application/pdf');
+}
