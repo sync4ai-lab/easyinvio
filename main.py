@@ -1032,7 +1032,7 @@ class RatingService:
                                  code=code, retryable=retryable)
 
     async def quote(self, context: TenantContext, request: RatingRequest,
-                    provider_deadline: int | None = None) -> RatingResponse:
+                    provider_deadline: int | None = None, *, return_of_shipment_id: UUID | None = None) -> RatingResponse:
         dimensions=request.dimensions[0] if request.dimensions else None
         cargo=Cargo(cargo_type=request.cargo_type,actual_weight_kg=request.weights_kg[0],stackable=request.stackable,
             length_cm=dimensions.length_cm if dimensions else None,width_cm=dimensions.width_cm if dimensions else None,height_cm=dimensions.height_cm if dimensions else None)
@@ -1044,7 +1044,15 @@ class RatingService:
             raise HTTPException(422,'Billable cargo weight exceeds service limits')
         physical_request = request
         request = request.model_copy(update={"weights_kg": [Decimal(weight["billable_weight_kg"])]})
-        accounts = await self.repository.accounts(context)
+        if return_of_shipment_id is not None:
+            if not request.is_return or context.role not in {'OWNER','ADMIN','DISPATCHER'} or self.pool is None:
+                raise HTTPException(403,'Authenticated return preparation required')
+            from backend.carrier_access import verified_return_parent
+            async with self.pool.acquire() as connection:
+                return_account_id=await verified_return_parent(connection,context.tenant_id,return_of_shipment_id,physical_request.origin.model_dump(mode='json'),physical_request.destination.model_dump(mode='json'))
+            accounts=await self.repository.accounts(context,historical_account_id=return_account_id)
+        else:
+            accounts = await self.repository.accounts(context)
         if request.cargo_type in {'PALLET','OVERLAND_FREIGHT'} or (request.customs_document and request.customs_document.get('required') and request.currency!='USD'):
             accounts=[account for account in accounts if account.provider=='REGIONAL']
         if not accounts:

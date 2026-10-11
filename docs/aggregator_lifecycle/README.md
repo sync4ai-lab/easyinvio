@@ -5,13 +5,13 @@ EasyInvio now exposes EasyPost, Sendcloud v3 and Shippo in the administrator pro
 ## Administrator workflow
 
 1. Sign in as the verified platform owner and open Carrier Connectors.
-2. Choose **Add New Aggregator**, select a supported provider and continue to **Set Up**. The individual provider cards have the same Set Up action.
+2. Choose **Add New Aggregator** to open the full setup form directly. Official endpoints are detected automatically; API formats can be selected inside the form. Individual provider cards retain Set Up actions.
 3. Supply an account name and credentials matching the server's TEST or LIVE environment. Official endpoints and internal identifiers are automatic. Shippo uses a `shippo_test_` or `shippo_live_` token; Sendcloud uses its public and secret keys.
 4. Use **Verify Connection** for a read-only credential check. This does not purchase a label.
 5. Use **Edit Settings** to change an existing connection. Keys remain write-only and encrypted on the server. Changing credentials invalidates outstanding quotes; obtain new quotes before booking. Replacement keys must belong to the same upstream account if historic labels still require access.
-6. **Remove** immediately retires the connection from new bookings. It retains credentials, shipment references and audit history for existing label downloads and cancellations. **Show removed connections** exposes the archive for review or reactivation. Client-specific legacy overrides are hidden unless explicitly selected.
+6. **Disable** excludes the connection from new outbound quotes. It retains credentials, shipment references and audit history for in-flight reconciliation, return bookings, refunds and label downloads. Disabled rows remain visible; Edit Settings can re-enable them. Client-specific legacy overrides are hidden unless explicitly selected.
 
-Changing the provider, environment or upstream account on a connection with shipment history is rejected: create a new connection and retire the old one instead.
+Changing the provider, environment or upstream account on a connection with shipment history is rejected: create a new connection and disable the old one instead.
 
 Connections are owned by EasyInvio and distributed to eligible tenants through the existing platform-carrier mechanism. Client responses retain carrier/service names and opaque offers; credentials, provider routing and native document URLs stay private.
 

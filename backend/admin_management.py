@@ -201,7 +201,8 @@ async def change_carrier(account_id: UUID, body: CarrierUpdate, request: Request
         return {'id':str(account_id),**body.model_dump()}
     except asyncpg.PostgresError as e: raise database_error(e) from None
 
-@router.delete('/carriers/{account_id}')
+@router.post('/carriers/{account_id}/disable')
+@router.delete('/carriers/{account_id}',deprecated=True)
 async def remove_carrier(account_id: UUID, request: Request, owner=owner_dependency):
     # Preserve foreign keys and historic quote/label records by retiring the connection.
     try:

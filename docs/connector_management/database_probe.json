@@ -1,0 +1,15 @@
+{
+  "executed_at": "2026-10-11T20:32:46.487975+00:00",
+  "database": "actual Supabase SANDBOX",
+  "provider_responses": "controlled MockTransport",
+  "external_api_calls": 0,
+  "database_writes_rolled_back": true,
+  "status": "PASS",
+  "checks": [
+    "PASS: Disable preserves encrypted credentials and atomically excludes every mirrored tenant account from outbound selection",
+    "PASS: fresh outbound quotes and unsubmitted stale offers cannot use the disabled provider",
+    "PASS: already submitted purchase reconciles and settles once after disable, without another buy request",
+    "PASS: authenticated original shipment obtains a fresh return quote and books a return through the disabled connection",
+    "PASS: confirmed refund after disable credits the original captured amount exactly once"
+  ]
+}

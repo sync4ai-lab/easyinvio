@@ -1427,7 +1427,17 @@ class PartnerLifecycleService:
                     if not metadata.get('automation_label'):
                         raise HTTPException(409, 'Original label requires reconciliation')
                     return self.public_result(row['id'], metadata['automation_label'], metadata.get('automation_customs'), True)
+                historical_access = row['status']=='BOOKING'
+                return_order=metadata.get('automation_order') or {}
+                if return_order.get('is_return'):
+                    from backend.carrier_access import verified_return_parent
+                    parent_account=await verified_return_parent(lock,context.tenant_id,UUID(return_order['return_of_shipment_id']),return_order['origin'],return_order['destination'])
+                    if parent_account!=rate.account_id:
+                        raise HTTPException(403,'Return offer must use the original shipment connection')
+                    historical_access=True
                 accounts = await self.automation.repository.accounts(context)
+                if historical_access and not any(a.id==rate.account_id for a in accounts):
+                    accounts=await self.automation.repository.accounts(context,historical_account_id=rate.account_id)
                 account = next((a for a in accounts if a.id == rate.account_id), None)
                 if account is None:
                     raise HTTPException(409, 'The carrier connection is no longer available')

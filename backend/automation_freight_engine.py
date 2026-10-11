@@ -348,10 +348,10 @@ class AutomationService:
                     tenant=await lock.fetchrow('SELECT * FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
                     if tenant is None or tenant['workspace_status']!='ACTIVE' or tenant['billing_status']!='ACTIVE':
                         raise HTTPException(403,'ACCOUNT_INACTIVE')
-                    if order.is_return and not await lock.fetchval('''SELECT EXISTS(SELECT 1 FROM public.shipments
-                        WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','IN_TRANSIT','EXCEPTION','DELIVERED'))''',
-                        context.tenant_id,order.return_of_shipment_id):
-                        raise HTTPException(404,'ORIGINAL_RETURN_SHIPMENT_NOT_FOUND')
+                    return_account_id=None
+                    if order.is_return:
+                        from backend.carrier_access import verified_return_parent
+                        return_account_id=await verified_return_parent(lock,context.tenant_id,order.return_of_shipment_id,order.origin,order.destination)
                     if mode=='FULFILL':
                         if tenant['is_sandbox'] or self.settings.provider_environment!='LIVE' or getattr(self.settings,'database_environment','LIVE')!='LIVE' or not getattr(self.settings,'automation_purchase_enabled',False):
                             raise HTTPException(403,'PURCHASE_DISABLED_FOR_THIS_ENVIRONMENT')
@@ -359,7 +359,7 @@ class AutomationService:
                             wallet=await lock.fetchrow('SELECT currency,balance,reserved_balance FROM public.wallets WHERE tenant_id=$1',context.tenant_id)
                             from backend.sandbox_hooks import require_prepaid_funds
                             require_prepaid_funds(wallet,Decimal('.01'),order.currency)
-                    accounts=await self.repository.accounts(context)
+                    accounts=await self.repository.accounts(context,historical_account_id=return_account_id) if return_account_id else await self.repository.accounts(context)
                     if not accounts: raise HTTPException(503,'NO_CARRIER_ACCOUNTS')
                     user_id=await lock.fetchval('SELECT id FROM public.users WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active',context.tenant_id,context.user_id)
                     if user_id is None: raise HTTPException(403,'ACTIVE_MEMBER_REQUIRED')
@@ -408,7 +408,7 @@ class AutomationService:
                         WHERE public.shipments.status='PENDING_IMPORT'""",shipment_id,context.tenant_id,user_id,accounts[0].id,order.idempotency_key,reference,
                         request.origin.country_code,request.destination.country_code,request.origin.model_dump_json(),request.destination.model_dump_json(),order.cargo.actual_weight_kg,
                         dims.length_cm if dims else None,dims.width_cm if dims else None,dims.height_cm if dims else None,order.currency,json.dumps(metadata),declaration['required'],json.dumps(declaration.get('items',[])),order.store_id,order.store_order_id,order.cargo.cargo_type,order.incoterm)
-                    quote_result=private_quote if private_quote is not None else await self.rating.quote(context,request)
+                    quote_result=private_quote if private_quote is not None else (await self.rating.quote(context,request,return_of_shipment_id=order.return_of_shipment_id) if order.is_return else await self.rating.quote(context,request))
                     if mode=='FULFILL' and getattr(quote_result,'partial',False):
                         raise HTTPException(503,'PARTIAL_RATE_RESULTS_REQUIRE_RETRY')
                     rate=min(quote_result.rates,key=lambda r:(r.client_price_ex_tax,r.provider,str(r.account_id),r.upstream_rate_id))

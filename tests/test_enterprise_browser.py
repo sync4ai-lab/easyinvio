@@ -3,7 +3,7 @@ import asyncio,json,os
 from pathlib import Path
 from playwright.async_api import async_playwright,expect
 os.environ['PLAYWRIGHT_BROWSERS_PATH']=str(Path('.playwright').resolve())
-OUT=Path('docs/enterprise_remediation');OUT.mkdir(exist_ok=True)
+OUT=Path('docs/connector_management');OUT.mkdir(exist_ok=True)
 async def run():
     checks=[];errors=[]
     async with async_playwright() as pw:
@@ -63,16 +63,20 @@ async def run():
         assert await form.locator('[name="api_key"]').get_attribute('type')=='password'
         await page.locator('[data-enterprise-close="carrier-admin-dialog"]').click()
         await page.locator('#carrier-new').click()
-        await expect(page.locator('#aggregator-picker-dialog')).to_be_visible()
-        assert await page.locator('#aggregator-provider option').all_text_contents()==['EasyPost','Sendcloud','Shippo','Custom regional API (rates contract only)']
-        await page.locator('#aggregator-provider').select_option('SHIPPO')
-        await page.locator('#aggregator-continue').click()
+        await expect(page.locator('#carrier-admin-dialog')).to_be_visible()
+        assert not await page.locator('#aggregator-picker-dialog').count()
+        assert await page.locator('#carrier-api_base_url-field').is_visible()
+        await form.locator('[name="account_name"]').fill('My Shippo connection')
+        await form.locator('[name="api_base_url"]').fill('https://api.goshippo.com')
+        await form.locator('[name="api_base_url"]').blur()
+        assert await form.locator('[name="account_name"]').input_value()=='My Shippo connection'
         assert await form.locator('[name="api_base_url"]').input_value()=='https://api.goshippo.com'
         assert await form.locator('[name="regional_provider_code"]').input_value()=='SHIPPO'
         assert not await form.locator('[name="regional_provider_code"]').evaluate('(node)=>node.required')
-        assert not await page.locator('#carrier-api_base_url-field').is_visible()
+        assert await page.locator('#carrier-api_base_url-field').is_visible()
         assert not await page.locator('#carrier-regional_provider_code-field').is_visible()
         assert not await page.locator('#regional-setup').count()
+        await page.screenshot(path=str(OUT/'new-aggregator.png'),full_page=True)
         await page.locator('[data-enterprise-close="carrier-admin-dialog"]').click()
         await page.evaluate('state.session=null;portal.profile=null')
         checks.append('Authenticated-owner form defaults to EasyPost TEST, active ratings and a write-only password field; no key was submitted by this browser probe.')
@@ -80,17 +84,18 @@ async def run():
         await page.locator('[data-carrier-edit]').first.click()
         await page.locator('#carrier-advanced summary').click()
         await page.locator('#carrier-admin-form [name="priority"]').fill('17')
+        await page.locator('#carrier-admin-form [name="is_active"]').check()
         await page.locator('#carrier-admin-form button').click()
         await expect(page.locator('#carrier-rows')).to_contain_text('Priority 17')
         assert 'NATIVE LIFECYCLE ADAPTER' in await page.locator('#admin-carriers').inner_text()
         assert 'Ordinary TEST accounts remain quotes-only' in await page.locator('#admin-carriers').inner_text()
         checks.append('Native provider cards and Shippo setup are distinct; endpoint/code are automatic, keys write-only, and Sendcloud billable-mode constraints are explicit.')
-        await page.locator('[data-carrier-retire]').first.click()
-        await page.wait_for_function('enterprise.carriers.some(c=>c.retired_at)')
-        assert not await page.locator('[data-carrier-edit]').count()
-        await page.locator('#carrier-show-removed').check()
+        await page.locator('[data-carrier-disable]').first.click()
+        await page.wait_for_function('enterprise.carriers.some(c=>!c.is_active)')
         assert await page.locator('[data-carrier-edit]').count()==1
-        checks.append('Add New Aggregator selects supported adapters; one-click removal hides connections while retaining an editable archive.')
+        await expect(page.locator('#carrier-rows')).to_contain_text('DISABLED')
+        await expect(page.locator('[data-carrier-disable]').first).to_be_disabled()
+        checks.append('Add New Aggregator opens the complete setup form, detects Shippo endpoint, preserves the account name; Disable keeps editable rows and shipment history.')
         for width in [375,768,1024,1280,1366,1440]:
             await page.set_viewport_size({'width':width,'height':900})
             for view in ['dashboard','admin-clients','admin-carriers','admin-margins']:

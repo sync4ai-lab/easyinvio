@@ -118,11 +118,12 @@ async def update(connection_id: UUID, body: PlatformConnection, request: Request
     return await save(body,request,actor,connection_id)
 
 
-@router.delete('/{connection_id}')
+@router.post('/{connection_id}/disable')
+@router.delete('/{connection_id}',deprecated=True)
 async def retire(connection_id: UUID, request: Request, actor=owner):
     async with request.app.state.finance.pool.acquire() as c:
         async with c.transaction():
-            row=await c.fetchrow('UPDATE public.platform_carrier_connections SET is_active=false,retired_at=now() WHERE id=$1 RETURNING id',connection_id)
+            row=await c.fetchrow('UPDATE public.platform_carrier_connections SET is_active=false,retired_at=NULL WHERE id=$1 RETURNING id',connection_id)
             if not row: raise HTTPException(404,'Platform connection not found')
             await c.execute("INSERT INTO public.platform_carrier_events(actor_auth_user_id,connection_id,action,snapshot) VALUES($1,$2,'RETIRE','{}')",actor.user_id,connection_id)
     return {'id':str(connection_id),'is_active':False}
