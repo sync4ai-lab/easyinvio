@@ -20,8 +20,26 @@ from backend.payment_gateway import build_router, checkout_redirect
 from tests.test_sandbox_hooks import Connection, Acquire, settings
 
 
+class ReentrantTransaction:
+    def __init__(self,c):self.c=c;self.acquired=False
+    async def __aenter__(self):
+        if getattr(self.c,'owner',None) is not asyncio.current_task():
+            await self.c.lock.acquire();self.c.owner=asyncio.current_task();self.acquired=True
+        self.snapshot=copy.deepcopy(self.c.state);self.c.depth+=1
+        return self.c
+    async def __aexit__(self,exc_type,*args):
+        if exc_type:self.c.state=self.snapshot
+        self.c.depth-=1
+        if self.acquired:self.c.owner=None;self.c.lock.release()
+
+
 class CheckoutConnection(Connection):
+    def transaction(self,**kwargs):return ReentrantTransaction(self)
     async def fetchrow(self, sql, *args):
+        if 'FROM public.stripe_webhook_events' in sql:
+            return self.state.get('events',{}).get(args[0])
+        if 'FROM public.stripe_charge_refunds' in sql:
+            return self.state.get('refunds',{}).get(args[0])
         if 'SELECT company_name,billing_email' in sql:
             return {'company_name':'Test Company','billing_email':'test@example.invalid'}
         if 'SELECT id,status,amount,currency,credited_at' in sql:
@@ -29,11 +47,39 @@ class CheckoutConnection(Connection):
             return row if row and row['tenant_id']==args[0] else None
         return await super().fetchrow(sql,*args)
 
+    async def fetch(self,sql,*args):
+        if 'SELECT tenant_id,id FROM public.wallet_topups' in sql:
+            return [{'tenant_id':r['tenant_id'],'id':r['id']} for r in self.state['topups'].values()
+                if r['stripe_customer_id']==args[0] and (r.get('stripe_payment_intent_id')==args[1] or r['id']==args[2])]
+        return await super().fetch(sql,*args)
     async def execute(self, sql, *args):
+        if 'INSERT INTO public.stripe_webhook_events' in sql:
+            self.state.setdefault('events',{})[args[0]]={'event_id':args[0],'event_type':args[1],'api_version':args[2],
+                'livemode':args[3],'payload':json.loads(args[4]),'payload_sha256':args[5],'status':'PENDING','attempts':0}
+            return 'INSERT 1'
+        if 'UPDATE public.stripe_webhook_events SET status=$2' in sql:
+            self.state['events'][args[0]].update(status=args[1],result=json.loads(args[2]));return 'UPDATE 1'
+        if 'UPDATE public.stripe_webhook_events SET attempts' in sql:
+            self.state['events'][args[0]]['attempts']+=1;return 'UPDATE 1'
+        if 'INSERT INTO public.stripe_charge_refunds' in sql:
+            self.state.setdefault('refunds',{}).setdefault(args[0],{'charge_id':args[0],'tenant_id':args[1],'topup_id':args[2],
+                'payment_intent_id':args[3],'applied_refund_minor':0});return 'INSERT 1'
+        if 'UPDATE public.stripe_charge_refunds' in sql:
+            self.state['refunds'][args[0]]['applied_refund_minor']=args[1];return 'UPDATE 1'
+        if 'UPDATE public.wallet_topups SET stripe_payment_intent_id' in sql:
+            r=self.state['topups'][args[1]];r['stripe_payment_intent_id']=args[2]
+            if "transaction_state='SUCCESS'" in sql:r['transaction_state']='SUCCESS'
+            return 'UPDATE 1'
+        if "UPDATE public.wallet_topups SET status='FAILED'" in sql:
+            self.state['topups'][args[1]].update(status='FAILED',transaction_state='FAILED');return 'UPDATE 1'
+        if 'UPDATE public.wallets SET balance=balance-' in sql:
+            self.state['wallet']['balance']-=args[1];return 'UPDATE 1'
+        if "UPDATE public.tenants SET workspace_status='SUSPENDED'" in sql:
+            self.state['tenant'].update(workspace_status='SUSPENDED',billing_status='PAST_DUE');return 'UPDATE 1'
         if 'INSERT INTO public.wallet_topups' in sql:
             self.state['topups'][args[0]]={'id':args[0],'tenant_id':args[1],'requested_by_auth_user_id':args[2],
                 'stripe_customer_id':args[3],'amount':args[4],'currency':args[5],'is_sandbox':False,'status':'PENDING',
-                'stripe_session_id':None,'checkout_url':None,'credited_at':None,'created_at':datetime.now(timezone.utc)}
+                'stripe_session_id':None,'stripe_payment_intent_id':None,'checkout_url':None,'credited_at':None,'created_at':datetime.now(timezone.utc)}
             return 'INSERT 1'
         if 'UPDATE public.wallet_topups SET stripe_session_id' in sql:
             self.state['topups'][args[1]].update(stripe_session_id=args[2],checkout_url=args[3]);return 'UPDATE 1'
@@ -72,7 +118,7 @@ class PaymentTests(unittest.IsolatedAsyncioTestCase):
     async def create(self,amount='100.00'):
         body=main.TopupRequest(request_id=uuid4(),amount=amount)
         result=await self.finance.create_checkout(self.context,body)
-        session={'id':result.checkout_session_id,'customer':'cus_test','mode':'payment','payment_status':'paid','livemode':False,
+        session={'object':'checkout.session','payment_intent':'pi_'+str(body.request_id),'id':result.checkout_session_id,'customer':'cus_test','mode':'payment','payment_status':'paid','livemode':False,
             'currency':'gbp','amount_total':main.to_minor_units(body.amount,'GBP'),'client_reference_id':str(body.request_id),
             'metadata':{'purpose':'wallet_topup','tenant_id':str(self.tenant),'topup_id':str(body.request_id)}}
         return body,session

@@ -1061,6 +1061,15 @@ class RatingService:
         )
 
 
+@asynccontextmanager
+async def borrow_finance_connection(pool, connection=None):
+    if connection is not None:
+        yield connection
+    else:
+        async with pool.acquire() as acquired:
+            yield acquired
+
+
 class FinanceEngine:
     def __init__(self, pool: asyncpg.Pool, settings: Settings, client: stripe.StripeClient):
         self.pool, self.settings, self.stripe = pool, settings, client
@@ -1390,6 +1399,7 @@ class FinanceEngine:
                 "success_url": return_urls[0] if return_urls else self.settings.checkout_success_url,
                 "cancel_url": return_urls[1] if return_urls else self.settings.checkout_cancel_url,
                 "client_reference_id": str(body.request_id),
+                "payment_intent_data": {"metadata": {"purpose":"wallet_topup","tenant_id":str(context.tenant_id),"topup_id":str(body.request_id)}},
                 "metadata": {"purpose": "wallet_topup", "tenant_id": str(context.tenant_id),
                              "topup_id": str(body.request_id)},
                 "line_items": [{"quantity": 1, "price_data": {
@@ -1418,7 +1428,7 @@ class FinanceEngine:
         return TopupResponse(topup_id=body.request_id, checkout_session_id=session.id,
                              checkout_url=session.url)
 
-    async def credit_session(self, event_id: str, session: dict[str, Any]) -> bool:
+    async def credit_session(self, event_id: str, session: dict[str, Any], *, connection=None, snapshot_reconciliation: bool = False) -> bool:
         metadata = session.get("metadata") or {}
         if not isinstance(metadata, dict):
             raise ValueError("Invalid metadata")
@@ -1436,7 +1446,7 @@ class FinanceEngine:
             or session.get("client_reference_id") != str(topup_id)
         ):
             raise ValueError("Invalid checkout identifiers")
-        async with self.pool.acquire() as connection:
+        async with borrow_finance_connection(self.pool, connection) as connection:
             async with connection.transaction():
                 tenant = await self.lock_tenant(connection, tenant_id)
                 self.check_payment_environment(tenant)
@@ -1452,6 +1462,12 @@ class FinanceEngine:
                     raise ValueError("Checkout does not match registered top-up")
                 if topup["is_sandbox"]:
                     raise ValueError("Sandbox PaymentIntent top-ups cannot be credited through Checkout webhooks")
+                if snapshot_reconciliation:
+                    intent = session.get('payment_intent')
+                    intent = intent.get('id') if isinstance(intent,dict) else intent
+                    if not isinstance(intent,str) or not intent.startswith('pi_') or topup.get('stripe_payment_intent_id') not in {None,intent}:
+                        raise ValueError('Checkout intent mapping mismatch')
+                    await connection.execute("UPDATE public.wallet_topups SET stripe_payment_intent_id=$3,transaction_state='SUCCESS' WHERE tenant_id=$1 AND id=$2",tenant_id,topup_id,intent)
                 if topup["status"] == "CREDITED":
                     return False
                 if tenant["stripe_customer_id"] != customer:
@@ -1724,6 +1740,9 @@ async def lifespan(application: FastAPI):
                 ecommerce_task = asyncio.create_task(tracking_worker(application.state.ecommerce))
                 support_task = asyncio.create_task(application.state.tracking_support.worker())
                 notification_task = asyncio.create_task(application.state.support_delivery.worker())
+                from backend.payment_gateway import SnapshotWebhookService
+                application.state.payment_snapshots = SnapshotWebhookService(application.state.finance)
+                payment_task = asyncio.create_task(application.state.payment_snapshots.worker()) if settings.stripe_enabled else None
                 crm_task = None
                 application.state.hubspot = None
                 try:
@@ -1737,6 +1756,12 @@ async def lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    if payment_task is not None:
+                        payment_task.cancel()
+                        try:
+                            await payment_task
+                        except asyncio.CancelledError:
+                            pass
                     notification_task.cancel()
                     try:
                         await notification_task

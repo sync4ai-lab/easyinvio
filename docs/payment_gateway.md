@@ -143,3 +143,14 @@ Run:
 
 References: [Checkout Session creation](https://docs.stripe.com/api/checkout/sessions/create),
 [Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment).
+
+
+## Snapshot controller update
+
+The primary `/api/v1/billing/webhooks/stripe` route now uses the durable,
+three-event snapshot controller. Apply migration 019 and follow
+[stripe_snapshot_controller.md](stripe_snapshot_controller.md) for the
+Checkout completion, charge refund and failed charge scope, acknowledgement
+policy and updated local listener command. This supersedes the earlier alias
+and two-event instructions for that primary endpoint; the legacy webhook path
+retains its old compatibility behavior.
