@@ -15,7 +15,7 @@ import asyncpg
 import httpx
 
 import main
-from backend.aggregator_lifecycle import PartnerLifecycleService, BookingRequest, VoidRequest
+from backend.automation_three_partners import PartnerLifecycleService, BookingRequest, VoidRequest
 from backend.automation_freight_engine import AutomationService
 
 
@@ -97,7 +97,7 @@ async def run():
                 # the genuine provider result above; no mock is a live pass.
                 from unittest.mock import patch, AsyncMock
                 confirmation = SimpleNamespace(void_confirmed=AsyncMock(return_value=True))
-                with patch('backend.aggregator_lifecycle.create_adapter', return_value=confirmation):
+                with patch('backend.automation_three_partners.create_adapter', return_value=confirmation):
                     settled = await service.void(context, VoidRequest(tenant_id=tenant, shipment_id=shipment_id))
                     assert settled['status'] == 'CANCELLED'
                     assert await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1', tenant) == 1000

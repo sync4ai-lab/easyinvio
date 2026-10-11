@@ -268,8 +268,8 @@ class AutomationService:
         self.adapters={'EASYPOST':EasyPostPurchase(http_client)}
         self.order_limiter=asyncio.Semaphore(min(4,max(1,settings.db_pool_max_size//2-1)))
     def register_purchase_adapter(self,provider,adapter):
-        if provider!='REGIONAL' or not callable(getattr(adapter,'buy',None)) or not callable(getattr(adapter,'reconcile',None)):
-            raise ValueError('Regional adapter must implement async buy and reconcile')
+        if provider not in {'REGIONAL','EASYPOST'} or not callable(getattr(adapter,'buy',None)) or not callable(getattr(adapter,'reconcile',None)):
+            raise ValueError('Provider adapter must implement async buy and reconcile')
         self.adapters[provider]=adapter
 
     async def reconcile(self,context,shipment_id):
@@ -443,6 +443,8 @@ class AutomationService:
                     if adapter is None: raise HTTPException(503,'CHEAPEST_PROVIDER_HAS_NO_PURCHASE_ADAPTER')
                     account=next((a for a in accounts if a.id==rate.account_id),None)
                     if account is None: raise HTTPException(503,'CARRIER_ACCOUNT_CHANGED')
+                    if getattr(self,"native_orders",None) is not None:
+                        await self.native_orders.ensure_order(context.tenant_id,shipment_id,rate.account_id)
                     permit=await self.finance.reserve(context,shipment_id)
                     await self.finance.mark_submitted(permit);submitted=True
                     try: label=await adapter.buy(account,rate)

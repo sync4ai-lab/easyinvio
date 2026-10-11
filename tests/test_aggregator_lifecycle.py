@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 import main
-from backend.aggregator_lifecycle import (
+from backend.automation_three_partners import (
     ADAPTERS, BookingRequest, EasyPostAdapter, SendcloudAdapter, ShippoAdapter,
     PartnerLifecycleService, create_adapter, declaration,
     return_snapshot, secure_link, authorize, verify_quote_connection,

@@ -131,7 +131,7 @@ class Settings(BaseSettings):
     database_ca_file: str | None = None
     database_tls_strict: bool = True
     automation_purchase_enabled: bool = False
-    partner_document_allowed_hosts: list[str] = ['easypost-files.s3.amazonaws.com', 'deliver.goshippo.com',
+    partner_document_allowed_hosts: list[str] = ['easypost-files.s3.amazonaws.com', 'easypost-files.s3.us-west-2.amazonaws.com', 'deliver.goshippo.com',
         'shippo-delivery.s3.amazonaws.com', 'panel.sendcloud.sc']
     freight_kg_per_m3: Decimal = Field(default=Decimal('333'),gt=0,le=10000)
     freight_kg_per_loading_metre: Decimal = Field(default=Decimal('1750'),gt=0,le=30000)
@@ -911,6 +911,8 @@ class EasyPostStrategy(RateStrategy):
             doc=request.customs_document
             if doc.get('currency')!='USD' or not doc.get('ready_for_provider'):
                 raise ProviderFailure('CUSTOMS_DATA_NOT_PROVIDER_READY')
+            from backend.automation_three_partners import easypost_tax_identifiers
+            shipment['tax_identifiers']=easypost_tax_identifiers(doc)
             shipment['customs_info']={'customs_certify':True,'customs_signer':doc['signer'],'contents_type':'merchandise',
                 'non_delivery_option':'return','restriction_type':'none','customs_items':[
                     {'description':item['description'],'quantity':item['quantity'],'value':item['line_value'],
@@ -1048,7 +1050,7 @@ class RatingService:
         if not accounts:
             raise HTTPException(503, "No active carrier accounts configured")
         strategies = []
-        from backend.aggregator_lifecycle import ADAPTERS, NativeRateStrategy
+        from backend.automation_three_partners import ADAPTERS, NativeRateStrategy
         for account in accounts:
             if getattr(account,'base_url',None) in ADAPTERS:
                 strategies.append(NativeRateStrategy(self.client, account, WholesaleRate, getattr(self.settings,'provider_environment','TEST')))
@@ -1805,8 +1807,10 @@ async def lifespan(application: FastAPI):
                 application.state.rating = rating
                 application.state.finance = FinanceEngine(pool, settings, stripe_client)
                 application.state.automation_freight=AutomationService(pool,rating,application.state.finance,repository,RatingRequest,http_client,settings)
-                from backend.aggregator_lifecycle import PartnerLifecycleService, FactoryPurchaseBridge
+                from backend.automation_three_partners import PartnerLifecycleService, FactoryPurchaseBridge
                 application.state.partner_lifecycle = PartnerLifecycleService(application.state.automation_freight, http_client)
+                application.state.automation_freight.register_purchase_adapter('EASYPOST',
+                    FactoryPurchaseBridge(http_client, pool, settings.provider_environment))
                 application.state.automation_freight.register_purchase_adapter('REGIONAL',
                     FactoryPurchaseBridge(http_client, pool, settings.provider_environment))
                 from backend.order_csv import CSVOrderService
@@ -1826,6 +1830,10 @@ async def lifespan(application: FastAPI):
                 )
                 configure_ecommerce_service(application.state.ecommerce)
                 ecommerce_task = asyncio.create_task(tracking_worker(application.state.ecommerce))
+                from backend.automation_three_partners import NativePartnerService
+                application.state.native_partners = NativePartnerService(application.state.automation_freight,http_client,application.state.tracking_support)
+                application.state.automation_freight.native_orders = application.state.native_partners
+                native_order_task = asyncio.create_task(application.state.native_partners.worker())
                 partner_task = asyncio.create_task(application.state.partner_lifecycle.worker())
                 support_task = asyncio.create_task(application.state.tracking_support.worker())
                 notification_task = asyncio.create_task(application.state.support_delivery.worker())
@@ -1845,6 +1853,11 @@ async def lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    native_order_task.cancel()
+                    try:
+                        await native_order_task
+                    except asyncio.CancelledError:
+                        pass
                     partner_task.cancel()
                     try:
                         await partner_task
@@ -2244,8 +2257,10 @@ app.include_router(tracking_router(authenticate))
 app.include_router(support_delivery_router(authenticate))
 app.include_router(dashboard_router(authenticate))
 app.include_router(automation_router(authenticate))
-from backend.aggregator_lifecycle import build_router as partner_lifecycle_router
+from backend.automation_three_partners import build_router as partner_lifecycle_router
 app.include_router(partner_lifecycle_router(authenticate))
+from backend.automation_three_partners import build_native_router
+app.include_router(build_native_router(authenticate))
 app.include_router(dispatch_workspace_router(authenticate))
 
 
@@ -2315,4 +2330,4 @@ if __name__ == "__main__":
         import uvicorn
         # Loopback is appropriate for local VS Code development. Deploy
         # behind an HTTPS reverse proxy with explicit hosting configuration.
-        uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8000")))
+        uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8000")), access_log=False)

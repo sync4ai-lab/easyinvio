@@ -49,8 +49,8 @@ Migration 023 was applied twice to the configured SANDBOX database; the second r
 | Confirmed-cancellation database reversal | Passed once-only credit against actual SQL using a controlled provider-confirmation simulation. This is explicitly not a genuine carrier cancellation confirmation. |
 | Shippo | Native contract tests passed; a genuine saved-token purchase/return/refund test was not executed in this run. |
 | Sendcloud | Native contracts implemented and tested with controlled responses. No ordinary Sendcloud label was purchased: normal carrier labels can be billed, so TEST purchase remains guarded. No LIVE label or return was created. |
-| Native tracking webhooks | Existing EasyPost/canonical tracking ingestion is retained. Native Shippo and Sendcloud webhook registration and delivery are not established by this change; these remain separate integration work. |
-| Native order-management APIs | Not implemented by this lifecycle change. Existing marketplace ingestion and tracking pushback remain separate from aggregator order-management APIs. |
+| Native tracking webhooks | Native receivers for all three partners are implemented in automation_three_partners.py. Actual console registration/delivery still requires configuration; see ../three_partners/REPORT.md. |
+| Native order synchronization | Implemented with an opted-in durable queue and provider-specific semantics. See ../three_partners/REPORT.md for the implementation and validation evidence. |
 
 See [sandbox test evidence](sandbox_probe.json). No Stripe payment, WhatsApp message or HubSpot synchronization was sent by that probe. Real provider TEST labels remain in the provider account even though database fixtures were rolled back.
 

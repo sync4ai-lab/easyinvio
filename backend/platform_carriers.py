@@ -157,7 +157,7 @@ async def verify_connection(connection_id: UUID, request: Request, actor=owner):
         if spec.code=='SHIPPO':
             if not secret.startswith('shippo_test_' if row['environment']=='TEST' else 'shippo_live_'):
                 raise ValueError('Connection token environment mismatch')
-            from backend.aggregator_lifecycle import ShippoAdapter
+            from backend.automation_three_partners import ShippoAdapter
             headers=ShippoAdapter(None,secret,environment=row['environment']).authentication()['headers'];auth=None
     except (ValueError,KeyError,TypeError,InvalidToken):
         raise HTTPException(503,'Private carrier credential configuration is unavailable') from None

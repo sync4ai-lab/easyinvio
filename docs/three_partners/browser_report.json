@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "checks": [
+    "PASS: owner native settings save explicit order opt-in, integration ID, status map and write-only secret through a controlled API.",
+    "PASS: close/save/logout clear native signing secrets; mobile dialog has no horizontal overflow."
+  ],
+  "javascript_errors": [],
+  "real_provider_calls": 0
+}
