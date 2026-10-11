@@ -22,6 +22,6 @@ The role fixture creates three transient auth users, public member rows and app 
 
 Supplementary browser scripts executed separately (outside the 200 count): `test_identity_browser.py`, `test_password_recovery_browser.py`, and `test_enterprise_browser.py`. All passed; no JavaScript errors were observed in the enterprise probe. These scripts use controlled API/sample responses where documented. They cover responsive login, recovery URL handling, session clearing, role navigation, input contrast, HS injection and exception/POD actions.
 
-No application fix or SQL migration was made during this audit. TC-032 intentionally remains failing under the requested HTTP rejection expectation, with **zero foreign manifest rows returned**. Missing provider prerequisites and incomplete live evidence are listed in the report rather than marked passed.
+The remediation adds explicit tenant-query rejection. TC-032 now passes with HTTP 403; no SQL migration is needed. Missing provider prerequisites and incomplete live evidence remain partial/blocked rather than marked passed.
 
-Additional regression run: `python -m unittest discover -s tests -p "test_*.py"` executed 209 test executions successfully. This is supplementary controlled regression evidence, outside the 200 UAT count; overlapping assertions are not presented as 209 additional unique business journeys.
+Additional regression run: `python -m unittest discover -s tests -p "test_*.py"` executed 215 test executions successfully. This is supplementary controlled regression evidence, outside the 200 UAT count; overlapping assertions are not presented as 209 additional unique business journeys.

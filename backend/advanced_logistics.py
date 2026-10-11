@@ -357,6 +357,8 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
 
     @router.get('/shipments/manifest')
     async def manifest(request: Request,context: Any=Depends(authenticate)):
+        from main import validate_tenant_query
+        validate_tenant_query(request, context.tenant_id)
         return await read_manifest(request,context.tenant_id,financial_details=context.role!='DISPATCHER')
 
     from backend.admin_portal import authenticate_platform_owner

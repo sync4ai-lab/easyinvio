@@ -1,8 +1,8 @@
 # EasyInvio 200-case UAT execution audit
 
-Run UTC: 2026-10-11T14:59:43.971105+00:00
+Run UTC: 2026-10-11T15:13:25.624893+00:00
 
-Executed: 200 / 200. Results: {'PASS': 71, 'FAIL': 1, 'PARTIAL': 88, 'BLOCKED': 40}.
+Executed: 200 / 200. Results: {'PASS': 72, 'PARTIAL': 88, 'BLOCKED': 40}.
 
 **Acceptance rule:** PASS means only the stated scope passed. PARTIAL means controlled contract checks passed but the requested genuine end-to-end workflow is unproven. BLOCKED means a prerequisite or human/provider action prevented execution. No blocked or mocked case is represented as a live integration pass.
 
@@ -28,10 +28,12 @@ Sandbox writes: disposable Supabase Auth users/member/session rows were created 
   "twilio_enabled": true,
   "twilio_account_http": 200,
   "hubspot_enabled": false,
-  "hubspot_environment": "PRODUCTION",
+  "hubspot_environment": "SANDBOX",
   "hubspot_provisioning_enabled": false,
   "hubspot_companies_http": 403,
-  "disposable_identities_cleaned": true
+  "disposable_identities_cleaned": true,
+  "hubspot_actual_account_type": "STANDARD",
+  "hubspot_account_http": 200
 }
 ```
 
@@ -43,17 +45,17 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## Required next actions
 
-- TC-032 is an HTTP rejection contract failure, not an observed tenant leak: foreign tenant query parameters are ignored and own rows returned. Decide whether to explicitly reject tenant override parameters; do not change assertions just to get a green result.
+- TC-032 status: PASS. The tenant-query guard rejects foreign/invalid/duplicate context parameters before tenant repository access. Previously this parameter was ignored; no foreign rows were exposed.
 - Configure an active platform-owned EasyPost TEST connection. Native sandbox label purchase is currently fenced in the application, so credentials alone will not unlock the requested real label scenarios.
 - Complete a sandbox Stripe Checkout card/payment/callback lifecycle and refund/decline exercises. Account authentication and rolled-back ledger probes are not equivalent to this evidence.
-- Provide a genuine HubSpot test account with Companies/Contacts read/write scopes. Current account configuration is PRODUCTION, synchronization/provisioning are disabled, and Companies read access returns 403. Validate the low-credit property requirement separately; current contract coverage does not prove it exists.
+- Provide a genuine HubSpot test account with Companies/Contacts read/write scopes. The configured profile is SANDBOX, but the current token belongs to a STANDARD account; synchronization/provisioning remain disabled and Companies read access returns 403. Validate the low-credit property requirement separately; current contract coverage does not prove it exists.
 - Use the joined WhatsApp sandbox phone for inbound commands and confirm outbound delivery receipts after carriers are enabled. A valid Twilio account response is not a delivered message.
 - Complete the 150-order customs review/signature and configure a genuine test storefront before asserting combined native labels and marketplace fulfillment pushback.
 - Supplemental browser checks cover login/recovery, navigation, dark-control contrast and exception actions using controlled data; they do not certify every live provider journey. See docs/uat_200/README.md.
 
 ## TC-001 · A · missing authorization on /api/v1/shipments/manifest
 
-**Status:** PASS · **Scope:** http · **Time:** 3.91 ms
+**Status:** PASS · **Scope:** http · **Time:** 3.87 ms
 
 **Execution steps:**
 
@@ -65,7 +67,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-002 · A · malformed authorization on /api/v1/shipments/manifest
 
-**Status:** PASS · **Scope:** http · **Time:** 1.99 ms
+**Status:** PASS · **Scope:** http · **Time:** 2.59 ms
 
 **Execution steps:**
 
@@ -77,7 +79,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-003 · A · missing authorization on /api/v1/wallet
 
-**Status:** PASS · **Scope:** http · **Time:** 1.89 ms
+**Status:** PASS · **Scope:** http · **Time:** 2.08 ms
 
 **Execution steps:**
 
@@ -89,7 +91,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-004 · A · malformed authorization on /api/v1/wallet
 
-**Status:** PASS · **Scope:** http · **Time:** 1.96 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.91 ms
 
 **Execution steps:**
 
@@ -101,7 +103,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-005 · A · missing authorization on /api/v1/profile
 
-**Status:** PASS · **Scope:** http · **Time:** 2.89 ms
+**Status:** PASS · **Scope:** http · **Time:** 16.88 ms
 
 **Execution steps:**
 
@@ -113,7 +115,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-006 · A · malformed authorization on /api/v1/profile
 
-**Status:** PASS · **Scope:** http · **Time:** 5.21 ms
+**Status:** PASS · **Scope:** http · **Time:** 5.55 ms
 
 **Execution steps:**
 
@@ -125,7 +127,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-007 · A · missing authorization on /api/v1/admin/tenants
 
-**Status:** PASS · **Scope:** http · **Time:** 2.3 ms
+**Status:** PASS · **Scope:** http · **Time:** 3.1 ms
 
 **Execution steps:**
 
@@ -137,7 +139,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-008 · A · malformed authorization on /api/v1/admin/tenants
 
-**Status:** PASS · **Scope:** http · **Time:** 1.76 ms
+**Status:** PASS · **Scope:** http · **Time:** 2.17 ms
 
 **Execution steps:**
 
@@ -149,7 +151,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-009 · A · missing authorization on /api/v1/admin/margins
 
-**Status:** PASS · **Scope:** http · **Time:** 1.72 ms
+**Status:** PASS · **Scope:** http · **Time:** 2.29 ms
 
 **Execution steps:**
 
@@ -161,7 +163,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-010 · A · malformed authorization on /api/v1/admin/margins
 
-**Status:** PASS · **Scope:** http · **Time:** 1.71 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.87 ms
 
 **Execution steps:**
 
@@ -173,7 +175,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-011 · A · missing authorization on /api/v1/admin/carriers
 
-**Status:** PASS · **Scope:** http · **Time:** 1.48 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.82 ms
 
 **Execution steps:**
 
@@ -185,7 +187,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-012 · A · malformed authorization on /api/v1/admin/carriers
 
-**Status:** PASS · **Scope:** http · **Time:** 1.49 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.78 ms
 
 **Execution steps:**
 
@@ -197,7 +199,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-013 · A · missing authorization on /api/v1/admin/platform-carriers
 
-**Status:** PASS · **Scope:** http · **Time:** 1.51 ms
+**Status:** PASS · **Scope:** http · **Time:** 2.34 ms
 
 **Execution steps:**
 
@@ -209,7 +211,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-014 · A · malformed authorization on /api/v1/admin/platform-carriers
 
-**Status:** PASS · **Scope:** http · **Time:** 2.76 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.73 ms
 
 **Execution steps:**
 
@@ -221,7 +223,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-015 · A · missing authorization on /api/v1/admin/transactions
 
-**Status:** PASS · **Scope:** http · **Time:** 3.54 ms
+**Status:** PASS · **Scope:** http · **Time:** 2.14 ms
 
 **Execution steps:**
 
@@ -233,7 +235,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-016 · A · malformed authorization on /api/v1/admin/transactions
 
-**Status:** PASS · **Scope:** http · **Time:** 6.83 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.81 ms
 
 **Execution steps:**
 
@@ -245,7 +247,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-017 · A · missing authorization on /api/v1/support/tickets
 
-**Status:** PASS · **Scope:** http · **Time:** 2.91 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.78 ms
 
 **Execution steps:**
 
@@ -257,7 +259,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-018 · A · malformed authorization on /api/v1/support/tickets
 
-**Status:** PASS · **Scope:** http · **Time:** 2.96 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.91 ms
 
 **Execution steps:**
 
@@ -269,7 +271,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-019 · A · missing authorization on /api/v1/dispatch-workspace/orders
 
-**Status:** PASS · **Scope:** http · **Time:** 3.19 ms
+**Status:** PASS · **Scope:** http · **Time:** 8.79 ms
 
 **Execution steps:**
 
@@ -281,7 +283,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-020 · A · malformed authorization on /api/v1/dispatch-workspace/orders
 
-**Status:** PASS · **Scope:** http · **Time:** 3.2 ms
+**Status:** PASS · **Scope:** http · **Time:** 1.78 ms
 
 **Execution steps:**
 
@@ -293,7 +295,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-021 · A · DISPATCHER boundary /api/v1/profile
 
-**Status:** PASS · **Scope:** http · **Time:** 723.76 ms
+**Status:** PASS · **Scope:** http · **Time:** 758.05 ms
 
 **Execution steps:**
 
@@ -307,7 +309,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-022 · A · OWNER boundary /api/v1/profile
 
-**Status:** PASS · **Scope:** http · **Time:** 315.49 ms
+**Status:** PASS · **Scope:** http · **Time:** 242.19 ms
 
 **Execution steps:**
 
@@ -321,7 +323,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-023 · A · ACCOUNTANT boundary /api/v1/profile
 
-**Status:** PASS · **Scope:** http · **Time:** 367.57 ms
+**Status:** PASS · **Scope:** http · **Time:** 194.88 ms
 
 **Execution steps:**
 
@@ -335,7 +337,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-024 · A · DISPATCHER boundary /api/v1/shipments/manifest
 
-**Status:** PASS · **Scope:** http · **Time:** 297.27 ms
+**Status:** PASS · **Scope:** http · **Time:** 272.22 ms
 
 **Execution steps:**
 
@@ -349,7 +351,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-025 · A · OWNER boundary /api/v1/shipments/manifest
 
-**Status:** PASS · **Scope:** http · **Time:** 274.29 ms
+**Status:** PASS · **Scope:** http · **Time:** 172.9 ms
 
 **Execution steps:**
 
@@ -363,7 +365,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-026 · A · DISPATCHER boundary /api/v1/wallet
 
-**Status:** PASS · **Scope:** http · **Time:** 235.86 ms
+**Status:** PASS · **Scope:** http · **Time:** 124.2 ms
 
 **Execution steps:**
 
@@ -377,7 +379,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-027 · A · ACCOUNTANT boundary /api/v1/wallet
 
-**Status:** PASS · **Scope:** http · **Time:** 189.03 ms
+**Status:** PASS · **Scope:** http · **Time:** 229.23 ms
 
 **Execution steps:**
 
@@ -391,7 +393,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-028 · A · DISPATCHER boundary /api/v1/admin/tenants
 
-**Status:** PASS · **Scope:** http · **Time:** 73.26 ms
+**Status:** PASS · **Scope:** http · **Time:** 54.58 ms
 
 **Execution steps:**
 
@@ -405,7 +407,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-029 · A · OWNER boundary /api/v1/admin/tenants
 
-**Status:** PASS · **Scope:** http · **Time:** 94.25 ms
+**Status:** PASS · **Scope:** http · **Time:** 53.88 ms
 
 **Execution steps:**
 
@@ -419,7 +421,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-030 · A · ACCOUNTANT boundary /api/v1/admin/transactions
 
-**Status:** PASS · **Scope:** http · **Time:** 79.23 ms
+**Status:** PASS · **Scope:** http · **Time:** 59.7 ms
 
 **Execution steps:**
 
@@ -433,7 +435,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-031 · A · DISPATCHER boundary /api/v1/admin/platform-carriers
 
-**Status:** PASS · **Scope:** http · **Time:** 68.02 ms
+**Status:** PASS · **Scope:** http · **Time:** 52.85 ms
 
 **Execution steps:**
 
@@ -447,7 +449,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-032 · A · DISPATCHER boundary /api/v1/shipments/manifest?tenant_id=00000000-0000-4000-8000-000000000001
 
-**Status:** FAIL · **Scope:** http · **Time:** 252.51 ms
+**Status:** PASS · **Scope:** http · **Time:** 54.89 ms
 
 **Execution steps:**
 
@@ -457,11 +459,11 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 **Assertions:** HTTP [400, 403, 422]; manifest rows, when returned, must all belong to the authenticated tenant.
 
-**Evidence:** Expected [400, 403, 422], observed HTTP 200; foreign manifest rows=0. Foreign tenant query parameter tested against a real other sandbox tenant.
+**Evidence:** Live local API HTTP 403; real Supabase-backed authentication where role specified.
 
 ## TC-033 · A · OWNER boundary /api/v1/automation/customs/00000000-0000-4000-8000-000000000001
 
-**Status:** PASS · **Scope:** http · **Time:** 200.97 ms
+**Status:** PASS · **Scope:** http · **Time:** 211.63 ms
 
 **Execution steps:**
 
@@ -475,7 +477,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-034 · A · DISPATCHER boundary /api/v1/analytics/reports?start_date=2026-09-01&end_date=2026-10-31
 
-**Status:** PASS · **Scope:** http · **Time:** 95.0 ms
+**Status:** PASS · **Scope:** http · **Time:** 103.76 ms
 
 **Execution steps:**
 
@@ -489,7 +491,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-035 · A · OWNER boundary /api/v1/admin/analytics/dashboard?start_date=2026-09-01&end_date=2026-10-31
 
-**Status:** PASS · **Scope:** http · **Time:** 50.39 ms
+**Status:** PASS · **Scope:** http · **Time:** 53.18 ms
 
 **Execution steps:**
 
@@ -503,7 +505,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-036 · B · volumetric and actual
 
-**Status:** PASS · **Scope:** contract · **Time:** 29.39 ms
+**Status:** PASS · **Scope:** contract · **Time:** 31.85 ms
 
 **Execution steps:**
 
@@ -515,7 +517,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-037 · B · round up without float
 
-**Status:** PASS · **Scope:** contract · **Time:** 0.14 ms
+**Status:** PASS · **Scope:** contract · **Time:** 0.13 ms
 
 **Execution steps:**
 
@@ -527,7 +529,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-038 · B · letter and freight matrix
 
-**Status:** PASS · **Scope:** contract · **Time:** 25.84 ms
+**Status:** PASS · **Scope:** contract · **Time:** 26.47 ms
 
 **Execution steps:**
 
@@ -539,7 +541,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-039 · B · PARCEL 2.5kg 60x50x40 stackable=True
 
-**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.07 ms
+**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.08 ms
 
 **Execution steps:**
 
@@ -551,7 +553,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-040 · B · PARCEL 30kg 60x50x40 stackable=True
 
-**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.07 ms
+**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.06 ms
 
 **Execution steps:**
 
@@ -563,7 +565,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-041 · B · PARCEL 0.1kg 10.01x10x10 stackable=True
 
-**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.1 ms
+**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.06 ms
 
 **Execution steps:**
 
@@ -587,7 +589,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-043 · B · LETTER 0.100kg NonexNonexNone stackable=True
 
-**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.06 ms
+**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.04 ms
 
 **Execution steps:**
 
@@ -599,7 +601,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-044 · B · PALLET 100kg 120x80x100 stackable=False
 
-**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.08 ms
+**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.07 ms
 
 **Execution steps:**
 
@@ -611,7 +613,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-045 · B · PALLET 100kg 120x80x100 stackable=True
 
-**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.1 ms
+**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.06 ms
 
 **Execution steps:**
 
@@ -623,7 +625,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-046 · B · OVERLAND_FREIGHT 900kg 200x120x100 stackable=False
 
-**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.07 ms
+**Status:** PASS · **Scope:** cargo-positive · **Time:** 0.06 ms
 
 **Execution steps:**
 
@@ -635,7 +637,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-047 · B · PARCEL rejects length_cm='0'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.06 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.62 ms
 
 **Execution steps:**
 
@@ -659,7 +661,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-049 · B · PARCEL rejects length_cm='alphabetical'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.04 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.79 ms
 
 **Execution steps:**
 
@@ -695,7 +697,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-052 · B · PARCEL rejects length_cm=True
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.04 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
 
 **Execution steps:**
 
@@ -707,7 +709,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-053 · B · PARCEL rejects width_cm='0'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.04 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
 
 **Execution steps:**
 
@@ -731,7 +733,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-055 · B · PARCEL rejects width_cm='alphabetical'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.04 ms
 
 **Execution steps:**
 
@@ -743,7 +745,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-056 · B · PARCEL rejects width_cm='NaN'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.05 ms
 
 **Execution steps:**
 
@@ -755,7 +757,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-057 · B · PARCEL rejects width_cm='Infinity'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.22 ms
 
 **Execution steps:**
 
@@ -767,7 +769,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-058 · B · PARCEL rejects width_cm=True
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.08 ms
 
 **Execution steps:**
 
@@ -779,7 +781,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-059 · B · PARCEL rejects height_cm='0'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.05 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.06 ms
 
 **Execution steps:**
 
@@ -791,7 +793,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-060 · B · PARCEL rejects height_cm='-1'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.05 ms
 
 **Execution steps:**
 
@@ -803,7 +805,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-061 · B · PARCEL rejects height_cm='alphabetical'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.68 ms
 
 **Execution steps:**
 
@@ -815,7 +817,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-062 · B · PARCEL rejects height_cm='NaN'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.08 ms
 
 **Execution steps:**
 
@@ -827,7 +829,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-063 · B · PARCEL rejects height_cm='Infinity'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.07 ms
 
 **Execution steps:**
 
@@ -839,7 +841,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-064 · B · PARCEL rejects height_cm=True
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.06 ms
 
 **Execution steps:**
 
@@ -851,7 +853,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-065 · B · PARCEL rejects actual_weight_kg='0'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.04 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.06 ms
 
 **Execution steps:**
 
@@ -863,7 +865,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-066 · B · PARCEL rejects actual_weight_kg='-1'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.09 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.05 ms
 
 **Execution steps:**
 
@@ -875,7 +877,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-067 · B · PARCEL rejects actual_weight_kg='alphabetical'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.05 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.03 ms
 
 **Execution steps:**
 
@@ -887,7 +889,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-068 · B · PARCEL rejects actual_weight_kg='NaN'
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.07 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.06 ms
 
 **Execution steps:**
 
@@ -911,7 +913,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-070 · B · PARCEL rejects actual_weight_kg=True
 
-**Status:** PASS · **Scope:** cargo · **Time:** 0.05 ms
+**Status:** PASS · **Scope:** cargo · **Time:** 0.04 ms
 
 **Execution steps:**
 
@@ -923,7 +925,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-071 · C · new route metadata redirects and status
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 55.73 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 38.97 ms
 
 **Execution steps:**
 
@@ -935,7 +937,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-072 · C · signed event credits once and rejects tampering
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 30.3 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 27.56 ms
 
 **Execution steps:**
 
@@ -947,7 +949,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-073 · C · concurrent events sum and replay only once
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 20.49 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 20.13 ms
 
 **Execution steps:**
 
@@ -959,7 +961,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-074 · C · ledger failure rolls back balance and status
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 9.28 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 9.7 ms
 
 **Execution steps:**
 
@@ -971,7 +973,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-075 · C · wrong amount customer currency and unpaid
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.38 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 10.44 ms
 
 **Execution steps:**
 
@@ -983,7 +985,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-076 · C · role tenant mode and decimal boundaries
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 22.1 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 32.25 ms
 
 **Execution steps:**
 
@@ -995,7 +997,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-077 · C · missing customer is provisioned without row locks
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 15.79 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 16.98 ms
 
 **Execution steps:**
 
@@ -1007,7 +1009,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-078 · C · credit success state intent and stored url
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 11.26 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 12.77 ms
 
 **Execution steps:**
 
@@ -1019,7 +1021,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-079 · C · cumulative partial refunds replays and out of order
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 11.83 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 12.29 ms
 
 **Execution steps:**
 
@@ -1031,7 +1033,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-080 · C · concurrent refund events do not double debit
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 16.44 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 18.96 ms
 
 **Execution steps:**
 
@@ -1043,7 +1045,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-081 · C · refund respects reserved money and holds workspace
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 9.92 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 11.65 ms
 
 **Execution steps:**
 
@@ -1055,7 +1057,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-082 · C · failed charge maps pending intent but never downgrades paid
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.29 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 11.75 ms
 
 **Execution steps:**
 
@@ -1067,7 +1069,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-083 · C · cross tenant or wrong amount refunds never debit
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 14.08 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 12.84 ms
 
 **Execution steps:**
 
@@ -1079,7 +1081,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-084 · C · process failure is durable and returns 200
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 16.71 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 17.94 ms
 
 **Execution steps:**
 
@@ -1091,7 +1093,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-085 · C · receipt storage outage returns retryable 503
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 14.77 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 17.81 ms
 
 **Execution steps:**
 
@@ -1103,7 +1105,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-086 · C · signature exact scope snapshot and collision
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 18.74 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 18.33 ms
 
 **Execution steps:**
 
@@ -1115,7 +1117,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-087 · C · 100 credit and idempotent retry
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 31.23 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 10.81 ms
 
 **Execution steps:**
 
@@ -1127,7 +1129,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-088 · C · concurrent retries credit only once
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 23.83 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 10.88 ms
 
 **Execution steps:**
 
@@ -1139,7 +1141,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-089 · C · live keys and unmarked tenants rejected before stripe
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 7.84 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 8.03 ms
 
 **Execution steps:**
 
@@ -1151,7 +1153,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-090 · C · decline and wrong stripe response never credit
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.7 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 11.16 ms
 
 **Execution steps:**
 
@@ -1163,7 +1165,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-091 · C · zero balance blocks actual label and booking guards
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.39 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 7.99 ms
 
 **Execution steps:**
 
@@ -1175,7 +1177,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-092 · C · funded label is sample without charge
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 9.17 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 9.09 ms
 
 **Execution steps:**
 
@@ -1187,7 +1189,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-093 · C · sandbox cannot submit carrier purchase
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 7.97 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 7.83 ms
 
 **Execution steps:**
 
@@ -1199,7 +1201,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-094 · C · failed ledger rolls back and retry reconciles same payment
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.76 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 10.57 ms
 
 **Execution steps:**
 
@@ -1211,7 +1213,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-095 · C · missing customer is created in test mode
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 9.1 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 8.75 ms
 
 **Execution steps:**
 
@@ -1223,7 +1225,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-096 · C · Real sandbox database dispatcher_wallet_lock_probe.py
 
-**Status:** PASS · **Scope:** probe · **Time:** 1770.75 ms
+**Status:** PASS · **Scope:** probe · **Time:** 1773.13 ms
 
 **Execution steps:**
 
@@ -1235,7 +1237,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-097 · C · Real sandbox database stripe_snapshot_database_probe.py
 
-**Status:** PASS · **Scope:** probe · **Time:** 6204.87 ms
+**Status:** PASS · **Scope:** probe · **Time:** 5984.61 ms
 
 **Execution steps:**
 
@@ -1247,7 +1249,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-098 · C · Funded 1000 GBP wallet purchases 15 GBP native label
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.02 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
 
 **Execution steps:**
 
@@ -1283,7 +1285,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-101 · C · Real Stripe Checkout card authorization and completion callback
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
 
 **Execution steps:**
 
@@ -1307,7 +1309,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-103 · C · Real declined card changes pending topup to FAILED
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
 
 **Execution steps:**
 
@@ -1343,7 +1345,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-106 · D · companies contacts onboard without deal configuration
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 18.09 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 18.81 ms
 
 **Execution steps:**
 
@@ -1355,7 +1357,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-107 · D · account mismatch and standard account block before writes
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 15.32 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 11.06 ms
 
 **Execution steps:**
 
@@ -1367,7 +1369,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-108 · D · property type and ambiguous create fail securely
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 15.57 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 10.68 ms
 
 **Execution steps:**
 
@@ -1379,7 +1381,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-109 · D · environment placeholder and secret validation
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 12.59 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 12.84 ms
 
 **Execution steps:**
 
@@ -1391,7 +1393,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-110 · D · onboarding replay and same company names distinct tenants
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 14.95 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 13.66 ms
 
 **Execution steps:**
 
@@ -1403,7 +1405,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-111 · D · milestone exact decimal threshold and single upsell
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 14.27 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 14.09 ms
 
 **Execution steps:**
 
@@ -1415,7 +1417,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-112 · D · rate limit backoff and retry after
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 9.96 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 11.6 ms
 
 **Execution steps:**
 
@@ -1427,7 +1429,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-113 · D · long rate limit deferred and no secret errors
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 8.94 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 9.82 ms
 
 **Execution steps:**
 
@@ -1439,7 +1441,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-114 · D · authentication failure is not retried
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.95 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 8.73 ms
 
 **Execution steps:**
 
@@ -1451,7 +1453,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-115 · D · unique properties required before creating records
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 9.07 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 9.84 ms
 
 **Execution steps:**
 
@@ -1463,7 +1465,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-116 · D · decimal validation and retry headers
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 7.41 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 8.12 ms
 
 **Execution steps:**
 
@@ -1475,7 +1477,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-117 · D · queued endpoint tenant role and disabled checks
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 18.47 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 20.1 ms
 
 **Execution steps:**
 
@@ -1487,7 +1489,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-118 · D · service uses tenant totals and blocks mixed currency
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.0 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 7.66 ms
 
 **Execution steps:**
 
@@ -1499,7 +1501,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-119 · D · worker persists delivery and preserves new revision
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 8.37 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 9.16 ms
 
 **Execution steps:**
 
@@ -1511,7 +1513,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-120 · D · worker blocks permanent failure and unlocks
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 8.95 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 8.05 ms
 
 **Execution steps:**
 
@@ -1523,7 +1525,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-121 · D · metrics exact and legacy compatible
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 14.72 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 14.16 ms
 
 **Execution steps:**
 
@@ -1535,7 +1537,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-122 · D · inbound company is reused on sync
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 11.73 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 11.79 ms
 
 **Execution steps:**
 
@@ -1547,7 +1549,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-123 · D · signature raw body timestamp and url integrity
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 6.64 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 7.87 ms
 
 **Execution steps:**
 
@@ -1559,7 +1561,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-124 · D · association ambiguity and paging rejected
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 8.71 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 7.35 ms
 
 **Execution steps:**
 
@@ -1571,7 +1573,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-125 · D · provisioning configuration requires separate app credentials
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 9.22 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 10.23 ms
 
 **Execution steps:**
 
@@ -1583,7 +1585,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-126 · D · signed webhook queues only correct account and stage
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 16.69 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 22.38 ms
 
 **Execution steps:**
 
@@ -1619,7 +1621,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-129 · D · Contact to Company association
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.05 ms
 
 **Execution steps:**
 
@@ -1655,7 +1657,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-132 · D · Lifetime spend PATCH
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
 
 **Execution steps:**
 
@@ -1727,7 +1729,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-138 · D · HubSpot 429 eventual delivery
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
 
 **Execution steps:**
 
@@ -1763,7 +1765,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-141 · E · signed query exact decimal pricing and duplicate receipt
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 12.69 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 23.63 ms
 
 **Execution steps:**
 
@@ -1775,7 +1777,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-142 · E · funded and postpaid accounts do not get zero wallet warning
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 7.62 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 7.87 ms
 
 **Execution steps:**
 
@@ -1787,7 +1789,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-143 · E · reserved credit cannot be promised for booking
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 4.28 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 4.37 ms
 
 **Execution steps:**
 
@@ -1799,7 +1801,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-144 · E · unconfigured booking page has no placeholder link
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 3.74 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 4.39 ms
 
 **Execution steps:**
 
@@ -1811,7 +1813,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-145 · E · wrong canonical url and disabled integration
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 5.51 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 5.06 ms
 
 **Execution steps:**
 
@@ -1823,7 +1825,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-146 · E · long replies are split without breaking booking links
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 0.22 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 0.21 ms
 
 **Execution steps:**
 
@@ -1835,7 +1837,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-147 · E · xml escaping three offers decimal format
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 0.22 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 0.34 ms
 
 **Execution steps:**
 
@@ -1847,7 +1849,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-148 · E · unconfigured initialization warns without secret
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 1.49 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 1.47 ms
 
 **Execution steps:**
 
@@ -1859,7 +1861,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-149 · E · signed query exact decimal pricing and duplicate receipt
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 6.96 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 7.62 ms
 
 **Execution steps:**
 
@@ -1871,7 +1873,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-150 · E · invalid signature never reads tenant data
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 4.0 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 3.58 ms
 
 **Execution steps:**
 
@@ -1883,7 +1885,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-151 · E · signed structural failures
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 14.85 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 17.14 ms
 
 **Execution steps:**
 
@@ -1895,7 +1897,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-152 · E · wrong account receiver and unbound phone
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 7.82 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 8.0 ms
 
 **Execution steps:**
 
@@ -1907,7 +1909,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-153 · E · media returns text instruction and bad iso returns help
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 6.55 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 7.01 ms
 
 **Execution steps:**
 
@@ -1919,7 +1921,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-154 · E · non sandbox binding cannot be quoted
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 3.27 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 3.2 ms
 
 **Execution steps:**
 
@@ -1931,7 +1933,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-155 · E · only two callbacks are routed
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 204.88 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 224.73 ms
 
 **Execution steps:**
 
@@ -1943,7 +1945,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-156 · E · forwarding preserves raw body and signature only
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 195.47 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 196.92 ms
 
 **Execution steps:**
 
@@ -1955,7 +1957,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-157 · E · status callback uuid route
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 219.09 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 209.69 ms
 
 **Execution steps:**
 
@@ -1967,7 +1969,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-158 · E · unsigned oversized and query payloads never forward
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 205.78 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 220.72 ms
 
 **Execution steps:**
 
@@ -1979,7 +1981,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-159 · E · Real personal-phone quote 5kg GB to US
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.03 ms
 
 **Execution steps:**
 
@@ -2027,7 +2029,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-163 · E · Zero-wallet warning delivered to phone
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
 
 **Execution steps:**
 
@@ -2039,7 +2041,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-164 · E · Reserved-wallet warning delivered to phone
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
 
 **Execution steps:**
 
@@ -2063,7 +2065,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-166 · E · Invalid XYZ country instruction delivered
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
 
 **Execution steps:**
 
@@ -2123,7 +2125,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-171 · E · Real Twilio webhook retry returns same quote
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
 
 **Execution steps:**
 
@@ -2135,7 +2137,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-172 · E · Carrier timeout message delivered
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
 
 **Execution steps:**
 
@@ -2159,7 +2161,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-174 · E · WhatsApp delivery callback commits receipt
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.0 ms
 
 **Execution steps:**
 
@@ -2183,7 +2185,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-176 · F · exact requested header and all cargo types
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 3.2 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 6.45 ms
 
 **Execution steps:**
 
@@ -2195,7 +2197,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-177 · F · recipient contact company phone and decimal mapping
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 0.39 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 0.4 ms
 
 **Execution steps:**
 
@@ -2207,7 +2209,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-178 · F · invalid rows do not discard valid peers
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 1.77 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 2.66 ms
 
 **Execution steps:**
 
@@ -2219,7 +2221,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-179 · F · extended international customs and store identity
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 1.02 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 1.15 ms
 
 **Execution steps:**
 
@@ -2231,7 +2233,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-180 · F · validation boundaries and unknown tenant column
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 13.79 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 13.39 ms
 
 **Execution steps:**
 
@@ -2243,7 +2245,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-181 · F · legacy layout and bom are supported
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 0.32 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 0.48 ms
 
 **Execution steps:**
 
@@ -2255,7 +2257,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-182 · F · review requires explicit codes and boolean confirmation
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 0.31 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 0.25 ms
 
 **Execution steps:**
 
@@ -2267,7 +2269,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-183 · F · downloaded template round trips and stages international
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 20.55 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 20.99 ms
 
 **Execution steps:**
 
@@ -2279,7 +2281,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-184 · F · batch roles and row dispatch are isolated
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 20.29 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 16.28 ms
 
 **Execution steps:**
 
@@ -2291,7 +2293,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-185 · F · review preview never accepts unreviewed customs
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 17.6 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 22.78 ms
 
 **Execution steps:**
 
@@ -2303,7 +2305,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-186 · F · exact import replay and changed payload
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.49 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 12.19 ms
 
 **Execution steps:**
 
@@ -2315,7 +2317,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-187 · F · tenant and permission isolation
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.69 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 8.18 ms
 
 **Execution steps:**
 
@@ -2327,7 +2329,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-188 · F · outbox simulation retry idempotency and tenant isolation
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.17 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 9.86 ms
 
 **Execution steps:**
 
@@ -2339,7 +2341,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-189 · F · validation limits
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 8.54 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 10.52 ms
 
 **Execution steps:**
 
@@ -2351,7 +2353,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-190 · F · http import and invalid body
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 17.02 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 37.49 ms
 
 **Execution steps:**
 
@@ -2363,7 +2365,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-191 · F · combined pdf preserves label and adds invoice
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 234.27 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 386.52 ms
 
 **Execution steps:**
 
@@ -2375,7 +2377,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-192 · F · pdf boundaries no fake or missing postal forms
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 216.42 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 203.85 ms
 
 **Execution steps:**
 
@@ -2387,7 +2389,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-193 · F · shopify pagination isolated import failure and replay
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 10.06 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 9.66 ms
 
 **Execution steps:**
 
@@ -2399,7 +2401,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-194 · F · hundred orders shared limiter and per order review
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 275.46 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 277.64 ms
 
 **Execution steps:**
 
@@ -2411,7 +2413,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-195 · F · optional customs fields preserve historical import hash shape
 
-**Status:** PARTIAL · **Scope:** contract · **Time:** 12.41 ms
+**Status:** PARTIAL · **Scope:** contract · **Time:** 8.33 ms
 
 **Execution steps:**
 
@@ -2423,7 +2425,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-196 · F · 150-row CSV valid150 parsing and isolation
 
-**Status:** PARTIAL · **Scope:** csv · **Time:** 31.21 ms
+**Status:** PARTIAL · **Scope:** csv · **Time:** 23.14 ms
 
 **Execution steps:**
 
@@ -2436,7 +2438,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-197 · F · 150-row CSV missing_zip parsing and isolation
 
-**Status:** PARTIAL · **Scope:** csv · **Time:** 26.08 ms
+**Status:** PARTIAL · **Scope:** csv · **Time:** 23.69 ms
 
 **Execution steps:**
 
@@ -2449,7 +2451,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-198 · F · 150-row CSV bad_weight parsing and isolation
 
-**Status:** PARTIAL · **Scope:** csv · **Time:** 24.08 ms
+**Status:** PARTIAL · **Scope:** csv · **Time:** 23.87 ms
 
 **Execution steps:**
 
@@ -2462,7 +2464,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-199 · F · 150-row CSV duplicate_reference parsing and isolation
 
-**Status:** PARTIAL · **Scope:** csv · **Time:** 26.17 ms
+**Status:** PARTIAL · **Scope:** csv · **Time:** 54.3 ms
 
 **Execution steps:**
 
@@ -2475,7 +2477,7 @@ Not accepted for production: partial/blocked live workflows and any failures req
 
 ## TC-200 · F · 150 real international labels, customs bundle and live marketplace pushback
 
-**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.01 ms
+**Status:** BLOCKED · **Scope:** blocked · **Time:** 0.02 ms
 
 **Execution steps:**
 
@@ -2484,7 +2486,3 @@ Not accepted for production: partial/blocked live workflows and any failures req
 **Assertions:** All 150 native labels and genuine store fulfillment updates required; preview documents do not count.
 
 **Evidence:** Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.
-
-## Supplementary regression evidence
-
-209 unittest test executions passed; the three supplemental browser scripts passed. These are outside the 200-case count and include overlapping controlled contracts, not additional genuine end-to-end provider transactions.

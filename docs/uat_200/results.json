@@ -1,5 +1,5 @@
 {
-  "executed_at_utc": "2026-10-11T14:59:43.971105+00:00",
+  "executed_at_utc": "2026-10-11T15:13:25.624893+00:00",
   "readiness": {
     "backend_http": 200,
     "sandbox_tenants": 28,
@@ -15,14 +15,15 @@
     "twilio_enabled": true,
     "twilio_account_http": 200,
     "hubspot_enabled": false,
-    "hubspot_environment": "PRODUCTION",
+    "hubspot_environment": "SANDBOX",
     "hubspot_provisioning_enabled": false,
     "hubspot_companies_http": 403,
-    "disposable_identities_cleaned": true
+    "disposable_identities_cleaned": true,
+    "hubspot_actual_account_type": "STANDARD",
+    "hubspot_account_http": 200
   },
   "counts": {
-    "PASS": 71,
-    "FAIL": 1,
+    "PASS": 72,
     "PARTIAL": 88,
     "BLOCKED": 40
   },
@@ -39,7 +40,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 3.91
+      "elapsed_ms": 3.87
     },
     {
       "id": "TC-002",
@@ -52,7 +53,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.99
+      "elapsed_ms": 2.59
     },
     {
       "id": "TC-003",
@@ -65,7 +66,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.89
+      "elapsed_ms": 2.08
     },
     {
       "id": "TC-004",
@@ -78,7 +79,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.96
+      "elapsed_ms": 1.91
     },
     {
       "id": "TC-005",
@@ -91,7 +92,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 2.89
+      "elapsed_ms": 16.88
     },
     {
       "id": "TC-006",
@@ -104,7 +105,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 5.21
+      "elapsed_ms": 5.55
     },
     {
       "id": "TC-007",
@@ -117,7 +118,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 2.3
+      "elapsed_ms": 3.1
     },
     {
       "id": "TC-008",
@@ -130,7 +131,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.76
+      "elapsed_ms": 2.17
     },
     {
       "id": "TC-009",
@@ -143,7 +144,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.72
+      "elapsed_ms": 2.29
     },
     {
       "id": "TC-010",
@@ -156,7 +157,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.71
+      "elapsed_ms": 1.87
     },
     {
       "id": "TC-011",
@@ -169,7 +170,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.48
+      "elapsed_ms": 1.82
     },
     {
       "id": "TC-012",
@@ -182,7 +183,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.49
+      "elapsed_ms": 1.78
     },
     {
       "id": "TC-013",
@@ -195,7 +196,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 1.51
+      "elapsed_ms": 2.34
     },
     {
       "id": "TC-014",
@@ -208,7 +209,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 2.76
+      "elapsed_ms": 1.73
     },
     {
       "id": "TC-015",
@@ -221,7 +222,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 3.54
+      "elapsed_ms": 2.14
     },
     {
       "id": "TC-016",
@@ -234,7 +235,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 6.83
+      "elapsed_ms": 1.81
     },
     {
       "id": "TC-017",
@@ -247,7 +248,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 2.91
+      "elapsed_ms": 1.78
     },
     {
       "id": "TC-018",
@@ -260,7 +261,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 2.96
+      "elapsed_ms": 1.91
     },
     {
       "id": "TC-019",
@@ -273,7 +274,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 3.19
+      "elapsed_ms": 8.79
     },
     {
       "id": "TC-020",
@@ -286,7 +287,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 3.2
+      "elapsed_ms": 1.78
     },
     {
       "id": "TC-021",
@@ -301,7 +302,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 723.76
+      "elapsed_ms": 758.05
     },
     {
       "id": "TC-022",
@@ -316,7 +317,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 315.49
+      "elapsed_ms": 242.19
     },
     {
       "id": "TC-023",
@@ -331,7 +332,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 367.57
+      "elapsed_ms": 194.88
     },
     {
       "id": "TC-024",
@@ -346,7 +347,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 297.27
+      "elapsed_ms": 272.22
     },
     {
       "id": "TC-025",
@@ -361,7 +362,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 274.29
+      "elapsed_ms": 172.9
     },
     {
       "id": "TC-026",
@@ -376,7 +377,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 235.86
+      "elapsed_ms": 124.2
     },
     {
       "id": "TC-027",
@@ -391,7 +392,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 189.03
+      "elapsed_ms": 229.23
     },
     {
       "id": "TC-028",
@@ -406,7 +407,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 73.26
+      "elapsed_ms": 54.58
     },
     {
       "id": "TC-029",
@@ -421,7 +422,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 94.25
+      "elapsed_ms": 53.88
     },
     {
       "id": "TC-030",
@@ -436,7 +437,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 79.23
+      "elapsed_ms": 59.7
     },
     {
       "id": "TC-031",
@@ -451,7 +452,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 68.02
+      "elapsed_ms": 52.85
     },
     {
       "id": "TC-032",
@@ -464,9 +465,9 @@
       ],
       "assertions": "HTTP [400, 403, 422]; manifest rows, when returned, must all belong to the authenticated tenant.",
       "scope": "http",
-      "status": "FAIL",
-      "evidence": "Expected [400, 403, 422], observed HTTP 200; foreign manifest rows=0. Foreign tenant query parameter tested against a real other sandbox tenant.",
-      "elapsed_ms": 252.51
+      "status": "PASS",
+      "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 54.89
     },
     {
       "id": "TC-033",
@@ -481,7 +482,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 404; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 200.97
+      "elapsed_ms": 211.63
     },
     {
       "id": "TC-034",
@@ -496,7 +497,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 95.0
+      "elapsed_ms": 103.76
     },
     {
       "id": "TC-035",
@@ -511,7 +512,7 @@
       "scope": "http",
       "status": "PASS",
       "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
-      "elapsed_ms": 50.39
+      "elapsed_ms": 53.18
     },
     {
       "id": "TC-036",
@@ -524,7 +525,7 @@
       "scope": "contract",
       "status": "PASS",
       "evidence": "Contract assertions passed: test_logistics.MathTests.test_volumetric_and_actual; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 29.39
+      "elapsed_ms": 31.85
     },
     {
       "id": "TC-037",
@@ -537,7 +538,7 @@
       "scope": "contract",
       "status": "PASS",
       "evidence": "Contract assertions passed: test_logistics.MathTests.test_round_up_without_float; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 0.14
+      "elapsed_ms": 0.13
     },
     {
       "id": "TC-038",
@@ -550,7 +551,7 @@
       "scope": "contract",
       "status": "PASS",
       "evidence": "Contract assertions passed: test_automation_freight.AutomationTests.test_letter_and_freight_matrix; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 25.84
+      "elapsed_ms": 26.47
     },
     {
       "id": "TC-039",
@@ -563,7 +564,7 @@
       "scope": "cargo-positive",
       "status": "PASS",
       "evidence": "Actual Decimal calculation: {'cargo_type': 'PARCEL', 'actual_weight_kg': '2.5', 'volume_m3': '0.12', 'volumetric_weight_kg': '24.00', 'loading_metres': '0', 'floor_weight_kg': '0', 'billable_weight_kg': '24.000', 'basis': 'volumetric', 'tariff_profile': 'EXPRESS_5000', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
-      "elapsed_ms": 0.07
+      "elapsed_ms": 0.08
     },
     {
       "id": "TC-040",
@@ -576,7 +577,7 @@
       "scope": "cargo-positive",
       "status": "PASS",
       "evidence": "Actual Decimal calculation: {'cargo_type': 'PARCEL', 'actual_weight_kg': '30', 'volume_m3': '0.12', 'volumetric_weight_kg': '24.00', 'loading_metres': '0', 'floor_weight_kg': '0', 'billable_weight_kg': '30.000', 'basis': 'actual', 'tariff_profile': 'EXPRESS_5000', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
-      "elapsed_ms": 0.07
+      "elapsed_ms": 0.06
     },
     {
       "id": "TC-041",
@@ -589,7 +590,7 @@
       "scope": "cargo-positive",
       "status": "PASS",
       "evidence": "Actual Decimal calculation: {'cargo_type': 'PARCEL', 'actual_weight_kg': '0.1', 'volume_m3': '0.001001', 'volumetric_weight_kg': '0.200200', 'loading_metres': '0', 'floor_weight_kg': '0', 'billable_weight_kg': '0.201', 'basis': 'volumetric', 'tariff_profile': 'EXPRESS_5000', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
-      "elapsed_ms": 0.1
+      "elapsed_ms": 0.06
     },
     {
       "id": "TC-042",
@@ -615,7 +616,7 @@
       "scope": "cargo-positive",
       "status": "PASS",
       "evidence": "Actual Decimal calculation: {'cargo_type': 'LETTER', 'actual_weight_kg': '0.100', 'billable_weight_kg': '0.100', 'basis': 'actual', 'dimensions_required': False}",
-      "elapsed_ms": 0.06
+      "elapsed_ms": 0.04
     },
     {
       "id": "TC-044",
@@ -628,7 +629,7 @@
       "scope": "cargo-positive",
       "status": "PASS",
       "evidence": "Actual Decimal calculation: {'cargo_type': 'PALLET', 'actual_weight_kg': '100', 'volume_m3': '0.96', 'volumetric_weight_kg': '319.68', 'loading_metres': '0.4', 'floor_weight_kg': '700.0', 'billable_weight_kg': '700.000', 'basis': 'floor', 'tariff_profile': 'CONFIGURED_ROAD_FREIGHT', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
-      "elapsed_ms": 0.08
+      "elapsed_ms": 0.07
     },
     {
       "id": "TC-045",
@@ -641,7 +642,7 @@
       "scope": "cargo-positive",
       "status": "PASS",
       "evidence": "Actual Decimal calculation: {'cargo_type': 'PALLET', 'actual_weight_kg': '100', 'volume_m3': '0.96', 'volumetric_weight_kg': '319.68', 'loading_metres': '0.4', 'floor_weight_kg': '0', 'billable_weight_kg': '319.680', 'basis': 'volumetric', 'tariff_profile': 'CONFIGURED_ROAD_FREIGHT', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
-      "elapsed_ms": 0.1
+      "elapsed_ms": 0.06
     },
     {
       "id": "TC-046",
@@ -654,7 +655,7 @@
       "scope": "cargo-positive",
       "status": "PASS",
       "evidence": "Actual Decimal calculation: {'cargo_type': 'OVERLAND_FREIGHT', 'actual_weight_kg': '900', 'volume_m3': '2.4', 'volumetric_weight_kg': '799.2', 'loading_metres': '1', 'floor_weight_kg': '1750', 'billable_weight_kg': '1750.000', 'basis': 'floor', 'tariff_profile': 'CONFIGURED_ROAD_FREIGHT', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
-      "elapsed_ms": 0.07
+      "elapsed_ms": 0.06
     },
     {
       "id": "TC-047",
@@ -667,7 +668,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.06
+      "elapsed_ms": 0.62
     },
     {
       "id": "TC-048",
@@ -693,7 +694,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.04
+      "elapsed_ms": 0.79
     },
     {
       "id": "TC-050",
@@ -732,7 +733,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.04
+      "elapsed_ms": 0.03
     },
     {
       "id": "TC-053",
@@ -745,7 +746,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.04
+      "elapsed_ms": 0.03
     },
     {
       "id": "TC-054",
@@ -771,7 +772,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.04
     },
     {
       "id": "TC-056",
@@ -784,7 +785,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.05
     },
     {
       "id": "TC-057",
@@ -797,7 +798,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.22
     },
     {
       "id": "TC-058",
@@ -810,7 +811,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.08
     },
     {
       "id": "TC-059",
@@ -823,7 +824,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.05
+      "elapsed_ms": 0.06
     },
     {
       "id": "TC-060",
@@ -836,7 +837,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.05
     },
     {
       "id": "TC-061",
@@ -849,7 +850,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.68
     },
     {
       "id": "TC-062",
@@ -862,7 +863,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.08
     },
     {
       "id": "TC-063",
@@ -875,7 +876,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.07
     },
     {
       "id": "TC-064",
@@ -888,7 +889,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.03
+      "elapsed_ms": 0.06
     },
     {
       "id": "TC-065",
@@ -901,7 +902,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.04
+      "elapsed_ms": 0.06
     },
     {
       "id": "TC-066",
@@ -914,7 +915,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.09
+      "elapsed_ms": 0.05
     },
     {
       "id": "TC-067",
@@ -927,7 +928,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.05
+      "elapsed_ms": 0.03
     },
     {
       "id": "TC-068",
@@ -940,7 +941,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.07
+      "elapsed_ms": 0.06
     },
     {
       "id": "TC-069",
@@ -966,7 +967,7 @@
       "scope": "cargo",
       "status": "PASS",
       "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
-      "elapsed_ms": 0.05
+      "elapsed_ms": 0.04
     },
     {
       "id": "TC-071",
@@ -979,7 +980,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_new_route_metadata_redirects_and_status; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 55.73
+      "elapsed_ms": 38.97
     },
     {
       "id": "TC-072",
@@ -992,7 +993,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_signed_event_credits_once_and_rejects_tampering; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 30.3
+      "elapsed_ms": 27.56
     },
     {
       "id": "TC-073",
@@ -1005,7 +1006,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_concurrent_events_sum_and_replay_only_once; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 20.49
+      "elapsed_ms": 20.13
     },
     {
       "id": "TC-074",
@@ -1018,7 +1019,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_ledger_failure_rolls_back_balance_and_status; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 9.28
+      "elapsed_ms": 9.7
     },
     {
       "id": "TC-075",
@@ -1031,7 +1032,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_wrong_amount_customer_currency_and_unpaid; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.38
+      "elapsed_ms": 10.44
     },
     {
       "id": "TC-076",
@@ -1044,7 +1045,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_role_tenant_mode_and_decimal_boundaries; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 22.1
+      "elapsed_ms": 32.25
     },
     {
       "id": "TC-077",
@@ -1057,7 +1058,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_missing_customer_is_provisioned_without_row_locks; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 15.79
+      "elapsed_ms": 16.98
     },
     {
       "id": "TC-078",
@@ -1070,7 +1071,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_credit_success_state_intent_and_stored_url; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 11.26
+      "elapsed_ms": 12.77
     },
     {
       "id": "TC-079",
@@ -1083,7 +1084,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_cumulative_partial_refunds_replays_and_out_of_order; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 11.83
+      "elapsed_ms": 12.29
     },
     {
       "id": "TC-080",
@@ -1096,7 +1097,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_concurrent_refund_events_do_not_double_debit; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 16.44
+      "elapsed_ms": 18.96
     },
     {
       "id": "TC-081",
@@ -1109,7 +1110,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_refund_respects_reserved_money_and_holds_workspace; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 9.92
+      "elapsed_ms": 11.65
     },
     {
       "id": "TC-082",
@@ -1122,7 +1123,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_failed_charge_maps_pending_intent_but_never_downgrades_paid; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.29
+      "elapsed_ms": 11.75
     },
     {
       "id": "TC-083",
@@ -1135,7 +1136,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_cross_tenant_or_wrong_amount_refunds_never_debit; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 14.08
+      "elapsed_ms": 12.84
     },
     {
       "id": "TC-084",
@@ -1148,7 +1149,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_process_failure_is_durable_and_returns_200; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 16.71
+      "elapsed_ms": 17.94
     },
     {
       "id": "TC-085",
@@ -1161,7 +1162,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_receipt_storage_outage_returns_retryable_503; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 14.77
+      "elapsed_ms": 17.81
     },
     {
       "id": "TC-086",
@@ -1174,7 +1175,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_signature_exact_scope_snapshot_and_collision; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 18.74
+      "elapsed_ms": 18.33
     },
     {
       "id": "TC-087",
@@ -1187,7 +1188,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_100_credit_and_idempotent_retry; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 31.23
+      "elapsed_ms": 10.81
     },
     {
       "id": "TC-088",
@@ -1200,7 +1201,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_concurrent_retries_credit_only_once; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 23.83
+      "elapsed_ms": 10.88
     },
     {
       "id": "TC-089",
@@ -1213,7 +1214,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_live_keys_and_unmarked_tenants_rejected_before_stripe; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 7.84
+      "elapsed_ms": 8.03
     },
     {
       "id": "TC-090",
@@ -1226,7 +1227,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_decline_and_wrong_stripe_response_never_credit; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.7
+      "elapsed_ms": 11.16
     },
     {
       "id": "TC-091",
@@ -1239,7 +1240,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_zero_balance_blocks_actual_label_and_booking_guards; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.39
+      "elapsed_ms": 7.99
     },
     {
       "id": "TC-092",
@@ -1252,7 +1253,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_funded_label_is_sample_without_charge; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 9.17
+      "elapsed_ms": 9.09
     },
     {
       "id": "TC-093",
@@ -1265,7 +1266,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_sandbox_cannot_submit_carrier_purchase; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 7.97
+      "elapsed_ms": 7.83
     },
     {
       "id": "TC-094",
@@ -1278,7 +1279,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_failed_ledger_rolls_back_and_retry_reconciles_same_payment; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.76
+      "elapsed_ms": 10.57
     },
     {
       "id": "TC-095",
@@ -1291,7 +1292,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_missing_customer_is_created_in_test_mode; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 9.1
+      "elapsed_ms": 8.75
     },
     {
       "id": "TC-096",
@@ -1304,7 +1305,7 @@
       "scope": "probe",
       "status": "PASS",
       "evidence": "Real Supabase probe assertions passed; all mutations rolled back: dispatcher_wallet_lock_probe.py",
-      "elapsed_ms": 1770.75
+      "elapsed_ms": 1773.13
     },
     {
       "id": "TC-097",
@@ -1317,7 +1318,7 @@
       "scope": "probe",
       "status": "PASS",
       "evidence": "Real Supabase probe assertions passed; all mutations rolled back: stripe_snapshot_database_probe.py",
-      "elapsed_ms": 6204.87
+      "elapsed_ms": 5984.61
     },
     {
       "id": "TC-098",
@@ -1330,7 +1331,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
-      "elapsed_ms": 0.02
+      "elapsed_ms": 0.01
     },
     {
       "id": "TC-099",
@@ -1369,7 +1370,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
-      "elapsed_ms": 0.01
+      "elapsed_ms": 0.0
     },
     {
       "id": "TC-102",
@@ -1395,7 +1396,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
-      "elapsed_ms": 0.01
+      "elapsed_ms": 0.0
     },
     {
       "id": "TC-104",
@@ -1434,7 +1435,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_companies_contacts_onboard_without_deal_configuration; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 18.09
+      "elapsed_ms": 18.81
     },
     {
       "id": "TC-107",
@@ -1447,7 +1448,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_account_mismatch_and_standard_account_block_before_writes; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 15.32
+      "elapsed_ms": 11.06
     },
     {
       "id": "TC-108",
@@ -1460,7 +1461,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_property_type_and_ambiguous_create_fail_securely; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 15.57
+      "elapsed_ms": 10.68
     },
     {
       "id": "TC-109",
@@ -1473,7 +1474,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_environment_placeholder_and_secret_validation; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 12.59
+      "elapsed_ms": 12.84
     },
     {
       "id": "TC-110",
@@ -1486,7 +1487,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_onboarding_replay_and_same_company_names_distinct_tenants; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 14.95
+      "elapsed_ms": 13.66
     },
     {
       "id": "TC-111",
@@ -1499,7 +1500,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_milestone_exact_decimal_threshold_and_single_upsell; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 14.27
+      "elapsed_ms": 14.09
     },
     {
       "id": "TC-112",
@@ -1512,7 +1513,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_rate_limit_backoff_and_retry_after; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 9.96
+      "elapsed_ms": 11.6
     },
     {
       "id": "TC-113",
@@ -1525,7 +1526,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_long_rate_limit_deferred_and_no_secret_errors; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 8.94
+      "elapsed_ms": 9.82
     },
     {
       "id": "TC-114",
@@ -1538,7 +1539,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_authentication_failure_is_not_retried; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.95
+      "elapsed_ms": 8.73
     },
     {
       "id": "TC-115",
@@ -1551,7 +1552,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_unique_properties_required_before_creating_records; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 9.07
+      "elapsed_ms": 9.84
     },
     {
       "id": "TC-116",
@@ -1564,7 +1565,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_decimal_validation_and_retry_headers; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 7.41
+      "elapsed_ms": 8.12
     },
     {
       "id": "TC-117",
@@ -1577,7 +1578,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_queued_endpoint_tenant_role_and_disabled_checks; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 18.47
+      "elapsed_ms": 20.1
     },
     {
       "id": "TC-118",
@@ -1590,7 +1591,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_service_uses_tenant_totals_and_blocks_mixed_currency; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.0
+      "elapsed_ms": 7.66
     },
     {
       "id": "TC-119",
@@ -1603,7 +1604,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_worker_persists_delivery_and_preserves_new_revision; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 8.37
+      "elapsed_ms": 9.16
     },
     {
       "id": "TC-120",
@@ -1616,7 +1617,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_worker_blocks_permanent_failure_and_unlocks; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 8.95
+      "elapsed_ms": 8.05
     },
     {
       "id": "TC-121",
@@ -1629,7 +1630,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_metrics_exact_and_legacy_compatible; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 14.72
+      "elapsed_ms": 14.16
     },
     {
       "id": "TC-122",
@@ -1642,7 +1643,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_inbound_company_is_reused_on_sync; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 11.73
+      "elapsed_ms": 11.79
     },
     {
       "id": "TC-123",
@@ -1655,7 +1656,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_signature_raw_body_timestamp_and_url_integrity; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 6.64
+      "elapsed_ms": 7.87
     },
     {
       "id": "TC-124",
@@ -1668,7 +1669,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_association_ambiguity_and_paging_rejected; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 8.71
+      "elapsed_ms": 7.35
     },
     {
       "id": "TC-125",
@@ -1681,7 +1682,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_provisioning_configuration_requires_separate_app_credentials; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 9.22
+      "elapsed_ms": 10.23
     },
     {
       "id": "TC-126",
@@ -1694,7 +1695,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_signed_webhook_queues_only_correct_account_and_stage; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 16.69
+      "elapsed_ms": 22.38
     },
     {
       "id": "TC-127",
@@ -1733,7 +1734,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
-      "elapsed_ms": 0.01
+      "elapsed_ms": 0.05
     },
     {
       "id": "TC-130",
@@ -1772,7 +1773,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
-      "elapsed_ms": 0.0
+      "elapsed_ms": 0.01
     },
     {
       "id": "TC-133",
@@ -1850,7 +1851,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
-      "elapsed_ms": 0.0
+      "elapsed_ms": 0.01
     },
     {
       "id": "TC-139",
@@ -1889,7 +1890,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_signed_query_exact_decimal_pricing_and_duplicate_receipt; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 12.69
+      "elapsed_ms": 23.63
     },
     {
       "id": "TC-142",
@@ -1902,7 +1903,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_funded_and_postpaid_accounts_do_not_get_zero_wallet_warning; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 7.62
+      "elapsed_ms": 7.87
     },
     {
       "id": "TC-143",
@@ -1915,7 +1916,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_reserved_credit_cannot_be_promised_for_booking; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 4.28
+      "elapsed_ms": 4.37
     },
     {
       "id": "TC-144",
@@ -1928,7 +1929,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_unconfigured_booking_page_has_no_placeholder_link; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 3.74
+      "elapsed_ms": 4.39
     },
     {
       "id": "TC-145",
@@ -1941,7 +1942,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_wrong_canonical_url_and_disabled_integration; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 5.51
+      "elapsed_ms": 5.06
     },
     {
       "id": "TC-146",
@@ -1954,7 +1955,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_bot.FormatterTests.test_long_replies_are_split_without_breaking_booking_links; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 0.22
+      "elapsed_ms": 0.21
     },
     {
       "id": "TC-147",
@@ -1967,7 +1968,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_bot.FormatterTests.test_xml_escaping_three_offers_decimal_format; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 0.22
+      "elapsed_ms": 0.34
     },
     {
       "id": "TC-148",
@@ -1980,7 +1981,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_bot.FormatterTests.test_unconfigured_initialization_warns_without_secret; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 1.49
+      "elapsed_ms": 1.47
     },
     {
       "id": "TC-149",
@@ -1993,7 +1994,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_signed_query_exact_decimal_pricing_and_duplicate_receipt; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 6.96
+      "elapsed_ms": 7.62
     },
     {
       "id": "TC-150",
@@ -2006,7 +2007,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_invalid_signature_never_reads_tenant_data; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 4.0
+      "elapsed_ms": 3.58
     },
     {
       "id": "TC-151",
@@ -2019,7 +2020,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_signed_structural_failures; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 14.85
+      "elapsed_ms": 17.14
     },
     {
       "id": "TC-152",
@@ -2032,7 +2033,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_wrong_account_receiver_and_unbound_phone; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 7.82
+      "elapsed_ms": 8.0
     },
     {
       "id": "TC-153",
@@ -2045,7 +2046,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_media_returns_text_instruction_and_bad_iso_returns_help; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 6.55
+      "elapsed_ms": 7.01
     },
     {
       "id": "TC-154",
@@ -2058,7 +2059,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_non_sandbox_binding_cannot_be_quoted; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 3.27
+      "elapsed_ms": 3.2
     },
     {
       "id": "TC-155",
@@ -2071,7 +2072,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_ingress.IngressTests.test_only_two_callbacks_are_routed; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 204.88
+      "elapsed_ms": 224.73
     },
     {
       "id": "TC-156",
@@ -2084,7 +2085,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_ingress.IngressTests.test_forwarding_preserves_raw_body_and_signature_only; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 195.47
+      "elapsed_ms": 196.92
     },
     {
       "id": "TC-157",
@@ -2097,7 +2098,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_ingress.IngressTests.test_status_callback_uuid_route; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 219.09
+      "elapsed_ms": 209.69
     },
     {
       "id": "TC-158",
@@ -2110,7 +2111,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_whatsapp_ingress.IngressTests.test_unsigned_oversized_and_query_payloads_never_forward; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 205.78
+      "elapsed_ms": 220.72
     },
     {
       "id": "TC-159",
@@ -2123,7 +2124,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
-      "elapsed_ms": 0.01
+      "elapsed_ms": 0.03
     },
     {
       "id": "TC-160",
@@ -2175,7 +2176,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
-      "elapsed_ms": 0.0
+      "elapsed_ms": 0.01
     },
     {
       "id": "TC-164",
@@ -2188,7 +2189,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
-      "elapsed_ms": 0.0
+      "elapsed_ms": 0.01
     },
     {
       "id": "TC-165",
@@ -2214,7 +2215,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
-      "elapsed_ms": 0.0
+      "elapsed_ms": 0.01
     },
     {
       "id": "TC-167",
@@ -2279,7 +2280,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
-      "elapsed_ms": 0.01
+      "elapsed_ms": 0.0
     },
     {
       "id": "TC-172",
@@ -2292,7 +2293,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
-      "elapsed_ms": 0.01
+      "elapsed_ms": 0.0
     },
     {
       "id": "TC-173",
@@ -2318,7 +2319,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
-      "elapsed_ms": 0.01
+      "elapsed_ms": 0.0
     },
     {
       "id": "TC-175",
@@ -2344,7 +2345,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_exact_requested_header_and_all_cargo_types; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 3.2
+      "elapsed_ms": 6.45
     },
     {
       "id": "TC-177",
@@ -2357,7 +2358,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_recipient_contact_company_phone_and_decimal_mapping; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 0.39
+      "elapsed_ms": 0.4
     },
     {
       "id": "TC-178",
@@ -2370,7 +2371,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_invalid_rows_do_not_discard_valid_peers; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 1.77
+      "elapsed_ms": 2.66
     },
     {
       "id": "TC-179",
@@ -2383,7 +2384,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_extended_international_customs_and_store_identity; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 1.02
+      "elapsed_ms": 1.15
     },
     {
       "id": "TC-180",
@@ -2396,7 +2397,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_validation_boundaries_and_unknown_tenant_column; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 13.79
+      "elapsed_ms": 13.39
     },
     {
       "id": "TC-181",
@@ -2409,7 +2410,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_legacy_layout_and_bom_are_supported; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 0.32
+      "elapsed_ms": 0.48
     },
     {
       "id": "TC-182",
@@ -2422,7 +2423,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_review_requires_explicit_codes_and_boolean_confirmation; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 0.31
+      "elapsed_ms": 0.25
     },
     {
       "id": "TC-183",
@@ -2435,7 +2436,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVRouteTests.test_downloaded_template_round_trips_and_stages_international; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 20.55
+      "elapsed_ms": 20.99
     },
     {
       "id": "TC-184",
@@ -2448,7 +2449,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVRouteTests.test_batch_roles_and_row_dispatch_are_isolated; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 20.29
+      "elapsed_ms": 16.28
     },
     {
       "id": "TC-185",
@@ -2461,7 +2462,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_order_csv.CSVRouteTests.test_review_preview_never_accepts_unreviewed_customs; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 17.6
+      "elapsed_ms": 22.78
     },
     {
       "id": "TC-186",
@@ -2474,7 +2475,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_exact_import_replay_and_changed_payload; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.49
+      "elapsed_ms": 12.19
     },
     {
       "id": "TC-187",
@@ -2487,7 +2488,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_tenant_and_permission_isolation; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.69
+      "elapsed_ms": 8.18
     },
     {
       "id": "TC-188",
@@ -2500,7 +2501,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_outbox_simulation_retry_idempotency_and_tenant_isolation; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.17
+      "elapsed_ms": 9.86
     },
     {
       "id": "TC-189",
@@ -2513,7 +2514,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_validation_limits; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 8.54
+      "elapsed_ms": 10.52
     },
     {
       "id": "TC-190",
@@ -2526,7 +2527,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_http_import_and_invalid_body; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 17.02
+      "elapsed_ms": 37.49
     },
     {
       "id": "TC-191",
@@ -2539,7 +2540,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_combined_pdf_preserves_label_and_adds_invoice; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 234.27
+      "elapsed_ms": 386.52
     },
     {
       "id": "TC-192",
@@ -2552,7 +2553,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_pdf_boundaries_no_fake_or_missing_postal_forms; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 216.42
+      "elapsed_ms": 203.85
     },
     {
       "id": "TC-193",
@@ -2565,7 +2566,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_shopify_pagination_isolated_import_failure_and_replay; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 10.06
+      "elapsed_ms": 9.66
     },
     {
       "id": "TC-194",
@@ -2578,7 +2579,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_hundred_orders_shared_limiter_and_per_order_review; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 275.46
+      "elapsed_ms": 277.64
     },
     {
       "id": "TC-195",
@@ -2591,7 +2592,7 @@
       "scope": "contract",
       "status": "PARTIAL",
       "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_optional_customs_fields_preserve_historical_import_hash_shape; controlled dependencies, no genuine provider transaction.",
-      "elapsed_ms": 12.41
+      "elapsed_ms": 8.33
     },
     {
       "id": "TC-196",
@@ -2605,7 +2606,7 @@
       "scope": "csv",
       "status": "PARTIAL",
       "evidence": "150 rows parsed; 0 isolated errors; model/customs staging only, no actual labels or marketplace transactions.",
-      "elapsed_ms": 31.21
+      "elapsed_ms": 23.14
     },
     {
       "id": "TC-197",
@@ -2619,7 +2620,7 @@
       "scope": "csv",
       "status": "PARTIAL",
       "evidence": "150 rows parsed; 1 isolated errors; model/customs staging only, no actual labels or marketplace transactions.",
-      "elapsed_ms": 26.08
+      "elapsed_ms": 23.69
     },
     {
       "id": "TC-198",
@@ -2633,7 +2634,7 @@
       "scope": "csv",
       "status": "PARTIAL",
       "evidence": "150 rows parsed; 1 isolated errors; model/customs staging only, no actual labels or marketplace transactions.",
-      "elapsed_ms": 24.08
+      "elapsed_ms": 23.87
     },
     {
       "id": "TC-199",
@@ -2647,7 +2648,7 @@
       "scope": "csv",
       "status": "PARTIAL",
       "evidence": "150 rows parsed; 1 isolated errors; model/customs staging only, no actual labels or marketplace transactions.",
-      "elapsed_ms": 26.17
+      "elapsed_ms": 54.3
     },
     {
       "id": "TC-200",
@@ -2660,7 +2661,7 @@
       "scope": "blocked",
       "status": "BLOCKED",
       "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
-      "elapsed_ms": 0.01
+      "elapsed_ms": 0.02
     }
   ]
 }

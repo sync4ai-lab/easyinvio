@@ -1845,6 +1845,24 @@ async def preview_guard(request: Request, call_next):
     return await call_next(request)
 
 
+def validate_tenant_query(request: Request, tenant_id: UUID) -> None:
+    """Reject tenant overrides before any tenant-scoped repository access."""
+    values = request.query_params.getlist("tenant_id")
+    if not values:
+        return
+    try:
+        matches = len(values) == 1 and UUID(values[0]) == tenant_id
+    except (ValueError, TypeError, AttributeError):
+        matches = False
+    if not matches:
+        # Do not echo attacker-controlled text or bearer credentials into logs.
+        logger.warning("Security alert: rejected tenant query parameter tampering")
+        raise HTTPException(
+            403,
+            "Access Denied: Requested tenant context parameters do not match your authenticated user profile token metadata.",
+        )
+
+
 async def authenticate(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
@@ -1887,6 +1905,7 @@ async def authenticate(
         raise
     except (jwt.PyJWTError, ValueError, TypeError, KeyError):
         raise unauthorized from None
+    validate_tenant_query(request, tenant_id)
     context = TenantContext(tenant_id, user_id, "", token)
     repository = request.app.state.repository
     members, tenants = await asyncio.gather(

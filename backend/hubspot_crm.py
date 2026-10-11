@@ -156,6 +156,9 @@ class HubSpotClient:
                     raise CRMError("hubspot_rate_limited" if response.status_code == 429 else "hubspot_server_failure", retry_after=delay)
                 await self.sleep(delay)
                 continue
+            if response.status_code == 403:
+                logger.warning("HubSpot scope access denied; check Companies/Contacts object and schema scopes. Logistics continues; CRM jobs remain durable.")
+                raise CRMError("hubspot_http_403", retryable=False)
             if not 200 <= response.status_code < 300:
                 raise CRMError(f"hubspot_http_{response.status_code}", retryable=response.status_code in {408, 409, 423})
             try:
@@ -463,6 +466,32 @@ def build_router(authenticate):
             raise HTTPException(503, "CRM queue unavailable") from None
         background_tasks.add_task(safe_process, service, body.tenant_id)
         return {"tenant_id": str(body.tenant_id), "status": "QUEUED"}
+
+    from backend.admin_portal import authenticate_platform_owner
+
+    @router.get("/api/v1/admin/integrations/alerts")
+    async def integration_alerts(request: Request, owner: Any = Depends(authenticate_platform_owner)):
+        # CRM incidents are tenant-level; never forge a shipment-linked support ticket.
+        try:
+            async with request.app.state.finance.pool.acquire() as connection:
+                rows = await connection.fetch("""SELECT tenant_id,last_error,attempts,blocked,next_attempt_at
+                    FROM public.hubspot_sync_jobs WHERE last_error IS NOT NULL
+                    ORDER BY next_attempt_at DESC LIMIT 100""")
+        except asyncpg.PostgresError:
+            raise HTTPException(503, "Integration alerts are temporarily unavailable") from None
+        alerts = []
+        for row in rows:
+            code = row["last_error"]
+            remedy = (
+                "Grant Companies and Contacts read/write permissions plus the required CRM schema permissions in the correct HubSpot test account; then requeue tenant synchronization."
+                if code == "hubspot_http_403" else
+                "Verify the configured HubSpot account, environment and schema, resolve the reported integration error, then requeue tenant synchronization."
+            )
+            alerts.append({"tenant_id": str(row["tenant_id"]), "source": "HUBSPOT",
+                "code": code, "status": "BLOCKED" if row["blocked"] else "RETRY_PENDING",
+                "attempts": row["attempts"], "ai_summary": remedy,
+                "ai_method": "DETERMINISTIC_REMEDIATION", "next_attempt_at": row["next_attempt_at"].isoformat()})
+        return {"alerts": alerts, "limit": 100}
 
     return router
 
