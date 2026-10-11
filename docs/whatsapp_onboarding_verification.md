@@ -94,5 +94,4 @@ use, replace the fixture route with real addresses and measured dimensions.
 
 The public ngrok endpoint forwards only the two Twilio callback paths. App/admin
 pages remain local. Booking links additionally require a separately configured,
-authenticated public `BOOKING_PAGE_URL`; its current placeholder is not a deployed
-booking page.
+authenticated public `BOOKING_PAGE_URL`; that URL is now omitted until a real booking page is deployed.

@@ -59,7 +59,8 @@ Twilio's Sandbox setting. Signature verification remains mandatory.
 - Saved routes supply real addresses and dimensions. No addresses are invented
   from country codes. The existing calculator applies volumetric weights,
   concurrent provider queries and tenant-specific Decimal pricing rules.
-- The three cheapest returned customer offers receive signed, expiring links.
+- The three cheapest returned customer offers are saved as expiring choices.
+  A configured public booking UI enables their signed links.
   The authenticated `/v1/whatsapp/quote-choice?token=...` API resolves these choices;
   the links point to the configured workspace. Receiving or opening a quote does
   not purchase a label. International goods still require customs review.

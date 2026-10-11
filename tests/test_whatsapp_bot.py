@@ -49,6 +49,13 @@ class ConversationalWebhookTests(WhatsAppTests):
         self.connection.state['wallet'].update(balance=Decimal('100'), reserved_balance=Decimal('90'))
         self.assertIn('wallet balance is too low', self.post(self.fields()).text)
 
+    def test_unconfigured_booking_page_has_no_placeholder_link(self):
+        self.settings.booking_page_url = ''
+        response = self.post(self.fields())
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Book in your signed-in EasyInvio workspace', response.text)
+        self.assertNotIn('_Book:_ https', response.text)
+
     def test_wrong_canonical_url_and_disabled_integration(self):
         self.settings.twilio_webhook_url = 'https://sandbox.example.com/other'
         self.assertEqual(self.post(self.fields()).status_code, 400)

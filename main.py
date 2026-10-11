@@ -180,7 +180,7 @@ class Settings(BaseSettings):
         if self.twilio_enabled and (not re.fullmatch(r"AC[0-9a-fA-F]{32}", self.twilio_account_sid)
                                    or not re.fullmatch(r"\+[1-9][0-9]{7,14}", self.twilio_whatsapp_number)
                                    or not self.twilio_auth_token.get_secret_value()
-                                   or not self.twilio_webhook_url or not self.booking_page_url
+                                   or not self.twilio_webhook_url
                                    or len(self.quote_link_secret.get_secret_value().encode()) < 32):
             raise ValueError("Enabled Twilio requires valid account, webhook and link credentials")
         if self.sandbox_hooks_enabled or self.twilio_whatsapp_sandbox_enabled:
@@ -1646,10 +1646,10 @@ class WhatsAppService:
                                 choice_id, context.tenant_id, context.user_id,
                                 rating_request.model_dump_json(), rate.model_dump_json(), result.expires_at,
                             )
-                            link = self.settings.booking_page_url + "?" + urlencode({
+                            link = (self.settings.booking_page_url + "?" + urlencode({
                                 "t": str(context.tenant_id),
                                 "quote": self.sign_choice(context, choice_id, result.expires_at),
-                            })
+                            })) if self.settings.booking_page_url else ""
                             offers.append((rate, link))
                             delivery = (f" | estimated {rate.delivery_days} days"
                                         if rate.delivery_days is not None else "")

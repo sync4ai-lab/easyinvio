@@ -71,7 +71,7 @@ def format_quotes(brand: str, weight: Decimal, origin: str, destination: str,
     for position, (rate, link) in enumerate(offers[:3]):
         lines.extend(["", f"{('1️⃣', '2️⃣', '3️⃣')[position]} *{rate.carrier_code} {rate.service_code}*",
                       f"    Price: *{symbols.get(rate.currency, '')}{rate.client_price_ex_tax:.2f} {rate.currency}*",
-                      f"    🔗 _Book:_ {link}"])
+                      f"    🔗 _Book:_ {link}" if link else "    Book in your signed-in EasyInvio workspace."])
     if not offers:
         lines.extend(["", "No carrier offers are available for this saved route."])
     lines.extend(["", "Prices exclude tax. Sign in to confirm the final total before booking."])
