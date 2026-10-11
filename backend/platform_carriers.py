@@ -2,7 +2,7 @@
 import json
 from uuid import UUID
 import asyncpg
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import SecretStr
 from backend.admin_management import CarrierCreate, validate_endpoint, public_record
@@ -34,6 +34,12 @@ async def save(body, request, actor, connection_id=None):
     secret = body.api_key.get_secret_value().strip() if body.api_key else ''
     if body.api_key and (not secret or len(secret) > 4096):
         raise HTTPException(422, 'A nonempty API key of at most 4096 characters is required')
+    if secret and body.api_base_url in {'https://panel.sendcloud.sc/api/v2','https://panel.sendcloud.sc/api/v3'}:
+        from backend.sendcloud_adapter import sendcloud_credentials
+        try:
+            sendcloud_credentials(secret)
+        except (ValueError,TypeError,KeyError):
+            raise HTTPException(422,'Supply both Sendcloud public and secret API keys') from None
     try:
         async with request.app.state.finance.pool.acquire() as c:
             async with c.transaction():
@@ -104,3 +110,41 @@ async def retire(connection_id: UUID, request: Request, actor=owner):
             if not row: raise HTTPException(404,'Platform connection not found')
             await c.execute("INSERT INTO public.platform_carrier_events(actor_auth_user_id,connection_id,action,snapshot) VALUES($1,$2,'RETIRE','{}')",actor.user_id,connection_id)
     return {'id':str(connection_id),'is_active':False}
+
+@router.get('/capabilities')
+async def capabilities(request: Request, actor=owner):
+    from backend.aggregator_registry import public_capabilities
+    return {'providers': public_capabilities(), 'generic_regional_protocol': True,
+            'notice': 'API credentials alone do not implement a new provider wire protocol.'}
+
+
+@router.post('/{connection_id}/verify')
+async def verify_connection(connection_id: UUID, request: Request, actor=owner):
+    """Read-only credential verification; never purchase or dispatch a label."""
+    import httpx
+    from backend.aggregator_registry import identify_aggregator
+    from backend.sendcloud_adapter import sendcloud_credentials
+    settings=request.app.state.settings
+    async with request.app.state.finance.pool.acquire() as connection:
+        row=await connection.fetchrow('SELECT * FROM public.platform_carrier_connections WHERE id=$1',connection_id)
+    if row is None:raise HTTPException(404,'Platform connection not found')
+    spec=identify_aggregator(row['api_base_url'])
+    if spec is None:
+        raise HTTPException(422,'This provider needs its own read-only verification adapter')
+    try:
+        key=settings.credential_keys[row['credential_key_id']]
+        envelope=json.loads(Fernet(key.get_secret_value().encode()).decrypt(bytes(row['credentials_ciphertext'])))
+        if envelope.get('platform_id')!=str(connection_id):raise ValueError('Credential identity mismatch')
+        secret=envelope['api_key']
+        auth=(sendcloud_credentials(secret) if spec.code.startswith('SENDCLOUD') else httpx.BasicAuth(secret,''))
+    except (ValueError,KeyError,TypeError,InvalidToken):
+        raise HTTPException(503,'Private carrier credential configuration is unavailable') from None
+    path='/user/auth/metadata' if spec.code=='SENDCLOUD_V3' else '/shipping_methods' if spec.code=='SENDCLOUD_V2' else '/shipments'
+    try:
+        async with httpx.AsyncClient(trust_env=False,timeout=min(row['timeout_seconds'],20)) as client:
+            response=await client.get(spec.endpoint+path,auth=auth,params={'page_size':1} if spec.code=='EASYPOST' else None,follow_redirects=False)
+        return {'connection_id':str(connection_id),'provider':spec.name,'authenticated':response.status_code==200,
+                'upstream_http_status':response.status_code,'read_only':True,'label_created':False,
+                'label_purchase_supported':spec.label_purchase}
+    except httpx.HTTPError:
+        raise HTTPException(503,'Provider verification is temporarily unavailable') from None

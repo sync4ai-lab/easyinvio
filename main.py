@@ -72,7 +72,8 @@ from backend.admin_portal import (
     AdminService, calibrated_pricing_scope, configure_pricing_pool, borrowed_pricing_connection,
     get_client_calibrated_rate, router as admin_router,
 )
-from backend.sendcloud_adapter import SendcloudMethod, quote_sendcloud
+from backend.sendcloud_adapter import SendcloudMethod, quote_sendcloud, quote_sendcloud_v3
+from backend.aggregator_registry import identify_aggregator
 from backend.sandbox_hooks import (
     SandboxBillingService, authenticated_twilio_form, require_prepaid_funds,
     build_router as sandbox_router,
@@ -958,7 +959,10 @@ class SendcloudStrategy(RateStrategy):
 
     async def rates(self,request):
         try:
-            return [WholesaleRate.model_validate(row) for row in await quote_sendcloud(self.client,self.account,request,self.methods)]
+            rows = (await quote_sendcloud_v3(self.client,self.account,request)
+                    if self.account.base_url == 'https://panel.sendcloud.sc/api/v3'
+                    else await quote_sendcloud(self.client,self.account,request,self.methods))
+            return [WholesaleRate.model_validate(row) for row in rows]
         except (ValueError,KeyError,TypeError):
             raise ProviderFailure('SENDCLOUD_CONFIGURATION_OR_PRICE_UNAVAILABLE') from None
 
@@ -1014,7 +1018,7 @@ class RatingService:
             raise HTTPException(503, "No active carrier accounts configured")
         strategies = []
         for account in accounts:
-            if getattr(account,'base_url',None) == 'https://panel.sendcloud.sc/api/v2':
+            if (identify_aggregator(getattr(account,'base_url',None)) and identify_aggregator(account.base_url).code.startswith('SENDCLOUD')):
                 strategies.append(SendcloudStrategy(self.client,account,getattr(self.settings,'sendcloud_methods',{}).get(account.id,getattr(self.settings,'sendcloud_methods',{}).get(account.platform_connection_id,[]))))
             else:
                 strategies.append((EasyPostStrategy if account.provider == 'EASYPOST' else RegionalStrategy)(self.client,account))
