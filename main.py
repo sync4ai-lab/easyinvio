@@ -148,6 +148,7 @@ class Settings(BaseSettings):
     sandbox_hooks_enabled: bool = False
 
     auth_jwt_secret: SecretStr = SecretStr("")
+    auth_recovery_redirect_url: str = "http://127.0.0.1:8000/"
     stripe_enabled: bool = False
     stripe_secret_key: SecretStr = SecretStr("")
     stripe_webhook_secret: SecretStr = SecretStr("")

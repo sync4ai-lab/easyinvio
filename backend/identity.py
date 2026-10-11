@@ -165,3 +165,87 @@ async def logout(request: Request):
         async with request.app.state.finance.pool.acquire() as c:
             await c.execute('DELETE FROM public.app_auth_sessions WHERE id=$1 AND auth_user_id=$2',UUID(claims['jti']),user_id)
     return {'logged_out':True}
+
+class RecoveryRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', hide_input_in_errors=True)
+    email: str = Field(max_length=254, pattern=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+
+
+class ResetPassword(BaseModel):
+    model_config = ConfigDict(extra='forbid', hide_input_in_errors=True)
+    token_hash: SecretStr = Field(min_length=20, max_length=1024)
+    password: SecretStr = Field(min_length=12, max_length=128)
+
+
+async def recovery_limit(request: Request):
+    """A separate IP bucket protects email delivery and token verification."""
+    ip = request.client.host if request.client else 'unknown'
+    bucket = hashlib.sha256(('recovery:' + ip).encode()).hexdigest()
+    async with request.app.state.finance.pool.acquire() as connection:
+        count = await connection.fetchval('''INSERT INTO public.app_login_limits(bucket,attempts) VALUES($1,1)
+            ON CONFLICT(bucket) DO UPDATE SET
+            attempts=CASE WHEN app_login_limits.window_start<now()-interval '15 minutes' THEN 1 ELSE app_login_limits.attempts+1 END,
+            window_start=CASE WHEN app_login_limits.window_start<now()-interval '15 minutes' THEN now() ELSE app_login_limits.window_start END
+            RETURNING attempts''', bucket)
+    if count > 10:
+        raise HTTPException(429, 'Too many recovery attempts. Try again later.', headers={'Retry-After': '900'})
+
+
+@router.post('/forgot-password')
+async def forgot_password(body: RecoveryRequest, request: Request):
+    from urllib.parse import urlsplit
+    await recovery_limit(request)
+    settings = request.app.state.settings
+    redirect = settings.auth_recovery_redirect_url
+    parsed = urlsplit(redirect)
+    if parsed.username or parsed.password or parsed.fragment or not parsed.netloc or (
+        parsed.scheme != 'https' and not (parsed.scheme == 'http' and parsed.hostname in ('localhost', '127.0.0.1'))
+    ):
+        raise HTTPException(503, 'Password recovery is not configured')
+    try:
+        async with httpx.AsyncClient(trust_env=False, timeout=15) as client:
+            # Supabase deliberately does not reveal whether an account exists.
+            response = await client.post(settings.supabase_url + '/auth/v1/recover',
+                params={'redirect_to': redirect},
+                headers={'apikey': settings.supabase_publishable_key.get_secret_value()},
+                json={'email': body.email.strip().casefold()})
+            if response.status_code == 429:
+                raise HTTPException(429, 'Please wait before requesting another email.', headers={'Retry-After': '60'})
+            if response.status_code >= 500:
+                raise HTTPException(503, 'Email delivery is temporarily unavailable')
+            if response.status_code in (401, 403):
+                raise HTTPException(503, 'Password recovery provider configuration is unavailable')
+    except httpx.HTTPError:
+        raise HTTPException(503, 'Email delivery is temporarily unavailable') from None
+    return {'message': 'If this email is registered, a password reset link will arrive shortly. Check your spam folder.'}
+
+
+@router.post('/reset-password')
+async def reset_password(body: ResetPassword, request: Request):
+    await recovery_limit(request)
+    settings = request.app.state.settings
+    headers = {'apikey': settings.supabase_publishable_key.get_secret_value()}
+    try:
+        async with httpx.AsyncClient(trust_env=False, timeout=15) as client:
+            verified = await client.post(settings.supabase_url + '/auth/v1/verify', headers=headers,
+                json={'token_hash': body.token_hash.get_secret_value(), 'type': 'recovery'})
+            if verified.status_code != 200:
+                raise HTTPException(400, 'This reset link is invalid or expired. Request a new link.')
+            session = verified.json()
+            access = session['access_token']
+            user_id = UUID(session['user']['id'])
+            headers['Authorization'] = 'Bearer ' + access
+            updated = await client.put(settings.supabase_url + '/auth/v1/user', headers=headers,
+                json={'password': body.password.get_secret_value()})
+            if updated.status_code != 200:
+                raise HTTPException(400, 'Password update was rejected. Use a strong, different password and request a new link.')
+            # Recovery never grants an app session; revoke all prior app sessions.
+            async with request.app.state.finance.pool.acquire() as connection:
+                await connection.execute('DELETE FROM public.app_auth_sessions WHERE auth_user_id=$1', user_id)
+            signed_out = await client.post(settings.supabase_url + '/auth/v1/logout',
+                params={'scope': 'global'}, headers=headers)
+            if signed_out.status_code not in (200, 204):
+                raise HTTPException(503, 'Password changed and app sessions revoked. Provider sign-out could not be confirmed; contact support.')
+    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        raise HTTPException(503, 'Recovery is temporarily unavailable. Request a new link if necessary.') from None
+    return {'message': 'Password updated. Sign in with your new password.'}
