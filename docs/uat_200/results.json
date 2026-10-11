@@ -1,0 +1,2666 @@
+{
+  "executed_at_utc": "2026-10-11T14:59:43.971105+00:00",
+  "readiness": {
+    "backend_http": 200,
+    "sandbox_tenants": 28,
+    "active_test_carriers": 0,
+    "active_stores": 72,
+    "real_password_verified_roles": [
+      "OWNER",
+      "DISPATCHER",
+      "ACCOUNTANT"
+    ],
+    "stripe_enabled": true,
+    "stripe_account_http": 200,
+    "twilio_enabled": true,
+    "twilio_account_http": 200,
+    "hubspot_enabled": false,
+    "hubspot_environment": "PRODUCTION",
+    "hubspot_provisioning_enabled": false,
+    "hubspot_companies_http": 403,
+    "disposable_identities_cleaned": true
+  },
+  "counts": {
+    "PASS": 71,
+    "FAIL": 1,
+    "PARTIAL": 88,
+    "BLOCKED": 40
+  },
+  "cleanup_errors": [],
+  "cases": [
+    {
+      "id": "TC-001",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/shipments/manifest",
+      "steps": [
+        "GET /api/v1/shipments/manifest with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 3.91
+    },
+    {
+      "id": "TC-002",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/shipments/manifest",
+      "steps": [
+        "GET /api/v1/shipments/manifest with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.99
+    },
+    {
+      "id": "TC-003",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/wallet",
+      "steps": [
+        "GET /api/v1/wallet with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.89
+    },
+    {
+      "id": "TC-004",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/wallet",
+      "steps": [
+        "GET /api/v1/wallet with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.96
+    },
+    {
+      "id": "TC-005",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/profile",
+      "steps": [
+        "GET /api/v1/profile with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 2.89
+    },
+    {
+      "id": "TC-006",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/profile",
+      "steps": [
+        "GET /api/v1/profile with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 5.21
+    },
+    {
+      "id": "TC-007",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/admin/tenants",
+      "steps": [
+        "GET /api/v1/admin/tenants with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 2.3
+    },
+    {
+      "id": "TC-008",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/admin/tenants",
+      "steps": [
+        "GET /api/v1/admin/tenants with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.76
+    },
+    {
+      "id": "TC-009",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/admin/margins",
+      "steps": [
+        "GET /api/v1/admin/margins with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.72
+    },
+    {
+      "id": "TC-010",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/admin/margins",
+      "steps": [
+        "GET /api/v1/admin/margins with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.71
+    },
+    {
+      "id": "TC-011",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/admin/carriers",
+      "steps": [
+        "GET /api/v1/admin/carriers with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.48
+    },
+    {
+      "id": "TC-012",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/admin/carriers",
+      "steps": [
+        "GET /api/v1/admin/carriers with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.49
+    },
+    {
+      "id": "TC-013",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/admin/platform-carriers",
+      "steps": [
+        "GET /api/v1/admin/platform-carriers with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 1.51
+    },
+    {
+      "id": "TC-014",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/admin/platform-carriers",
+      "steps": [
+        "GET /api/v1/admin/platform-carriers with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 2.76
+    },
+    {
+      "id": "TC-015",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/admin/transactions",
+      "steps": [
+        "GET /api/v1/admin/transactions with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 3.54
+    },
+    {
+      "id": "TC-016",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/admin/transactions",
+      "steps": [
+        "GET /api/v1/admin/transactions with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 6.83
+    },
+    {
+      "id": "TC-017",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/support/tickets",
+      "steps": [
+        "GET /api/v1/support/tickets with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 2.91
+    },
+    {
+      "id": "TC-018",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/support/tickets",
+      "steps": [
+        "GET /api/v1/support/tickets with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 2.96
+    },
+    {
+      "id": "TC-019",
+      "category": "A",
+      "focus": "missing authorization on /api/v1/dispatch-workspace/orders",
+      "steps": [
+        "GET /api/v1/dispatch-workspace/orders with missing bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 3.19
+    },
+    {
+      "id": "TC-020",
+      "category": "A",
+      "focus": "malformed authorization on /api/v1/dispatch-workspace/orders",
+      "steps": [
+        "GET /api/v1/dispatch-workspace/orders with malformed bearer credentials"
+      ],
+      "assertions": "HTTP 401; no tenant records returned.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 401; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 3.2
+    },
+    {
+      "id": "TC-021",
+      "category": "A",
+      "focus": "DISPATCHER boundary /api/v1/profile",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/profile with verified app JWT."
+      ],
+      "assertions": "HTTP [200]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 723.76
+    },
+    {
+      "id": "TC-022",
+      "category": "A",
+      "focus": "OWNER boundary /api/v1/profile",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/profile with verified app JWT."
+      ],
+      "assertions": "HTTP [200]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 315.49
+    },
+    {
+      "id": "TC-023",
+      "category": "A",
+      "focus": "ACCOUNTANT boundary /api/v1/profile",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/profile with verified app JWT."
+      ],
+      "assertions": "HTTP [200]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 367.57
+    },
+    {
+      "id": "TC-024",
+      "category": "A",
+      "focus": "DISPATCHER boundary /api/v1/shipments/manifest",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/shipments/manifest with verified app JWT."
+      ],
+      "assertions": "HTTP [200]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 297.27
+    },
+    {
+      "id": "TC-025",
+      "category": "A",
+      "focus": "OWNER boundary /api/v1/shipments/manifest",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/shipments/manifest with verified app JWT."
+      ],
+      "assertions": "HTTP [200]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 274.29
+    },
+    {
+      "id": "TC-026",
+      "category": "A",
+      "focus": "DISPATCHER boundary /api/v1/wallet",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/wallet with verified app JWT."
+      ],
+      "assertions": "HTTP [403]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 235.86
+    },
+    {
+      "id": "TC-027",
+      "category": "A",
+      "focus": "ACCOUNTANT boundary /api/v1/wallet",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/wallet with verified app JWT."
+      ],
+      "assertions": "HTTP [200]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 200; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 189.03
+    },
+    {
+      "id": "TC-028",
+      "category": "A",
+      "focus": "DISPATCHER boundary /api/v1/admin/tenants",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/admin/tenants with verified app JWT."
+      ],
+      "assertions": "HTTP [403]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 73.26
+    },
+    {
+      "id": "TC-029",
+      "category": "A",
+      "focus": "OWNER boundary /api/v1/admin/tenants",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/admin/tenants with verified app JWT."
+      ],
+      "assertions": "HTTP [403]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 94.25
+    },
+    {
+      "id": "TC-030",
+      "category": "A",
+      "focus": "ACCOUNTANT boundary /api/v1/admin/transactions",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/admin/transactions with verified app JWT."
+      ],
+      "assertions": "HTTP [403]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 79.23
+    },
+    {
+      "id": "TC-031",
+      "category": "A",
+      "focus": "DISPATCHER boundary /api/v1/admin/platform-carriers",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/admin/platform-carriers with verified app JWT."
+      ],
+      "assertions": "HTTP [403]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 68.02
+    },
+    {
+      "id": "TC-032",
+      "category": "A",
+      "focus": "DISPATCHER boundary /api/v1/shipments/manifest?tenant_id=00000000-0000-4000-8000-000000000001",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/shipments/manifest?tenant_id=00000000-0000-4000-8000-000000000001 with verified app JWT."
+      ],
+      "assertions": "HTTP [400, 403, 422]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "FAIL",
+      "evidence": "Expected [400, 403, 422], observed HTTP 200; foreign manifest rows=0. Foreign tenant query parameter tested against a real other sandbox tenant.",
+      "elapsed_ms": 252.51
+    },
+    {
+      "id": "TC-033",
+      "category": "A",
+      "focus": "OWNER boundary /api/v1/automation/customs/00000000-0000-4000-8000-000000000001",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/automation/customs/00000000-0000-4000-8000-000000000001 with verified app JWT."
+      ],
+      "assertions": "HTTP [403, 404]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 404; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 200.97
+    },
+    {
+      "id": "TC-034",
+      "category": "A",
+      "focus": "DISPATCHER boundary /api/v1/analytics/reports?start_date=2026-09-01&end_date=2026-10-31",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/analytics/reports?start_date=2026-09-01&end_date=2026-10-31 with verified app JWT."
+      ],
+      "assertions": "HTTP [403]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 95.0
+    },
+    {
+      "id": "TC-035",
+      "category": "A",
+      "focus": "OWNER boundary /api/v1/admin/analytics/dashboard?start_date=2026-09-01&end_date=2026-10-31",
+      "steps": [
+        "Provision disposable auth principal and member in an existing synthetic sandbox tenant.",
+        "POST /api/v1/auth/token with generated password.",
+        "GET /api/v1/admin/analytics/dashboard?start_date=2026-09-01&end_date=2026-10-31 with verified app JWT."
+      ],
+      "assertions": "HTTP [403]; manifest rows, when returned, must all belong to the authenticated tenant.",
+      "scope": "http",
+      "status": "PASS",
+      "evidence": "Live local API HTTP 403; real Supabase-backed authentication where role specified.",
+      "elapsed_ms": 50.39
+    },
+    {
+      "id": "TC-036",
+      "category": "B",
+      "focus": "volumetric and actual",
+      "steps": [
+        "Run isolated existing test test_logistics.MathTests.test_volumetric_and_actual; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_volumetric_and_actual(self):\n        self.assertEqual(calculate_billable_weight(\"40\", \"30\", \"20\", \"2.5\")[\"billable_weight_kg\"], \"4.800\")\n        self.assertEqual(calculate_billable_weight(\"10\", \"10\", \"10\", \"2.5\")[\"billable_weight_kg\"], \"2.500\")",
+      "scope": "contract",
+      "status": "PASS",
+      "evidence": "Contract assertions passed: test_logistics.MathTests.test_volumetric_and_actual; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 29.39
+    },
+    {
+      "id": "TC-037",
+      "category": "B",
+      "focus": "round up without float",
+      "steps": [
+        "Run isolated existing test test_logistics.MathTests.test_round_up_without_float; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_round_up_without_float(self):\n        self.assertEqual(calculate_billable_weight(\"10.01\", \"10\", \"10\", \"0.1\")[\"billable_weight_kg\"], \"0.201\")\n        for invalid in (True, float(\"nan\"), 2.5, \"Infinity\", \"0\", \"-1\"):\n            with self.assertRaises((ValueError, ArithmeticError)):\n                calculate_billable_weight(\"10\", \"10\", \"10\", invalid)",
+      "scope": "contract",
+      "status": "PASS",
+      "evidence": "Contract assertions passed: test_logistics.MathTests.test_round_up_without_float; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 0.14
+    },
+    {
+      "id": "TC-038",
+      "category": "B",
+      "focus": "letter and freight matrix",
+      "steps": [
+        "Run isolated existing test test_automation_freight.AutomationTests.test_letter_and_freight_matrix; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_letter_and_freight_matrix(self):\n        letter=Cargo(cargo_type='LETTER',actual_weight_kg='0.499',length_cm='40',width_cm='30',height_cm='20')\n        self.assertIsNone(letter.length_cm)\n        self.assertEqual(calculate_cargo_charge(letter)['billable_weight_kg'],'0.499')\n        with self.assertRaises(ValueError):Cargo(cargo_type='LETTER',actual_weight_kg='0.500')\n        with self.assertRaises(ValueError):Cargo(actual_weight_kg='2.5')\n        pallet=Cargo(cargo_type='PALLET',actual_weight_kg='100',length_cm='120',width_cm='80',height_cm='100',stackable=False)\n        result=calculate_cargo_charge(pallet)\n        self.assertEqual(result['loading_metres'],'0.4')\n        self.assertEqual(result['billable_weight_kg'],'700.000')\n        self.assertEqual(result['basis'],'floor')\n        parcel=calculate_cargo_charge(Cargo.model_validate(order()['cargo']))\n        self.assertEqual(parcel['billable_weight_kg'],'4.800')",
+      "scope": "contract",
+      "status": "PASS",
+      "evidence": "Contract assertions passed: test_automation_freight.AutomationTests.test_letter_and_freight_matrix; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 25.84
+    },
+    {
+      "id": "TC-039",
+      "category": "B",
+      "focus": "PARCEL 2.5kg 60x50x40 stackable=True",
+      "steps": [
+        "Validate Cargo and execute strict Decimal cargo charging."
+      ],
+      "assertions": "Billable weight exactly 24.000 kg.",
+      "scope": "cargo-positive",
+      "status": "PASS",
+      "evidence": "Actual Decimal calculation: {'cargo_type': 'PARCEL', 'actual_weight_kg': '2.5', 'volume_m3': '0.12', 'volumetric_weight_kg': '24.00', 'loading_metres': '0', 'floor_weight_kg': '0', 'billable_weight_kg': '24.000', 'basis': 'volumetric', 'tariff_profile': 'EXPRESS_5000', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
+      "elapsed_ms": 0.07
+    },
+    {
+      "id": "TC-040",
+      "category": "B",
+      "focus": "PARCEL 30kg 60x50x40 stackable=True",
+      "steps": [
+        "Validate Cargo and execute strict Decimal cargo charging."
+      ],
+      "assertions": "Billable weight exactly 30.000 kg.",
+      "scope": "cargo-positive",
+      "status": "PASS",
+      "evidence": "Actual Decimal calculation: {'cargo_type': 'PARCEL', 'actual_weight_kg': '30', 'volume_m3': '0.12', 'volumetric_weight_kg': '24.00', 'loading_metres': '0', 'floor_weight_kg': '0', 'billable_weight_kg': '30.000', 'basis': 'actual', 'tariff_profile': 'EXPRESS_5000', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
+      "elapsed_ms": 0.07
+    },
+    {
+      "id": "TC-041",
+      "category": "B",
+      "focus": "PARCEL 0.1kg 10.01x10x10 stackable=True",
+      "steps": [
+        "Validate Cargo and execute strict Decimal cargo charging."
+      ],
+      "assertions": "Billable weight exactly 0.201 kg.",
+      "scope": "cargo-positive",
+      "status": "PASS",
+      "evidence": "Actual Decimal calculation: {'cargo_type': 'PARCEL', 'actual_weight_kg': '0.1', 'volume_m3': '0.001001', 'volumetric_weight_kg': '0.200200', 'loading_metres': '0', 'floor_weight_kg': '0', 'billable_weight_kg': '0.201', 'basis': 'volumetric', 'tariff_profile': 'EXPRESS_5000', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
+      "elapsed_ms": 0.1
+    },
+    {
+      "id": "TC-042",
+      "category": "B",
+      "focus": "LETTER 0.499kg NonexNonexNone stackable=True",
+      "steps": [
+        "Validate Cargo and execute strict Decimal cargo charging."
+      ],
+      "assertions": "Billable weight exactly 0.499 kg.",
+      "scope": "cargo-positive",
+      "status": "PASS",
+      "evidence": "Actual Decimal calculation: {'cargo_type': 'LETTER', 'actual_weight_kg': '0.499', 'billable_weight_kg': '0.499', 'basis': 'actual', 'dimensions_required': False}",
+      "elapsed_ms": 0.06
+    },
+    {
+      "id": "TC-043",
+      "category": "B",
+      "focus": "LETTER 0.100kg NonexNonexNone stackable=True",
+      "steps": [
+        "Validate Cargo and execute strict Decimal cargo charging."
+      ],
+      "assertions": "Billable weight exactly 0.100 kg.",
+      "scope": "cargo-positive",
+      "status": "PASS",
+      "evidence": "Actual Decimal calculation: {'cargo_type': 'LETTER', 'actual_weight_kg': '0.100', 'billable_weight_kg': '0.100', 'basis': 'actual', 'dimensions_required': False}",
+      "elapsed_ms": 0.06
+    },
+    {
+      "id": "TC-044",
+      "category": "B",
+      "focus": "PALLET 100kg 120x80x100 stackable=False",
+      "steps": [
+        "Validate Cargo and execute strict Decimal cargo charging."
+      ],
+      "assertions": "Billable weight exactly 700.000 kg.",
+      "scope": "cargo-positive",
+      "status": "PASS",
+      "evidence": "Actual Decimal calculation: {'cargo_type': 'PALLET', 'actual_weight_kg': '100', 'volume_m3': '0.96', 'volumetric_weight_kg': '319.68', 'loading_metres': '0.4', 'floor_weight_kg': '700.0', 'billable_weight_kg': '700.000', 'basis': 'floor', 'tariff_profile': 'CONFIGURED_ROAD_FREIGHT', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
+      "elapsed_ms": 0.08
+    },
+    {
+      "id": "TC-045",
+      "category": "B",
+      "focus": "PALLET 100kg 120x80x100 stackable=True",
+      "steps": [
+        "Validate Cargo and execute strict Decimal cargo charging."
+      ],
+      "assertions": "Billable weight exactly 319.680 kg.",
+      "scope": "cargo-positive",
+      "status": "PASS",
+      "evidence": "Actual Decimal calculation: {'cargo_type': 'PALLET', 'actual_weight_kg': '100', 'volume_m3': '0.96', 'volumetric_weight_kg': '319.68', 'loading_metres': '0.4', 'floor_weight_kg': '0', 'billable_weight_kg': '319.680', 'basis': 'volumetric', 'tariff_profile': 'CONFIGURED_ROAD_FREIGHT', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
+      "elapsed_ms": 0.1
+    },
+    {
+      "id": "TC-046",
+      "category": "B",
+      "focus": "OVERLAND_FREIGHT 900kg 200x120x100 stackable=False",
+      "steps": [
+        "Validate Cargo and execute strict Decimal cargo charging."
+      ],
+      "assertions": "Billable weight exactly 1750.000 kg.",
+      "scope": "cargo-positive",
+      "status": "PASS",
+      "evidence": "Actual Decimal calculation: {'cargo_type': 'OVERLAND_FREIGHT', 'actual_weight_kg': '900', 'volume_m3': '2.4', 'volumetric_weight_kg': '799.2', 'loading_metres': '1', 'floor_weight_kg': '1750', 'billable_weight_kg': '1750.000', 'basis': 'floor', 'tariff_profile': 'CONFIGURED_ROAD_FREIGHT', 'kg_per_m3': '333', 'kg_per_loading_metre': '1750', 'deck_width_m': '2.4'}",
+      "elapsed_ms": 0.07
+    },
+    {
+      "id": "TC-047",
+      "category": "B",
+      "focus": "PARCEL rejects length_cm='0'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.06
+    },
+    {
+      "id": "TC-048",
+      "category": "B",
+      "focus": "PARCEL rejects length_cm='-1'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.04
+    },
+    {
+      "id": "TC-049",
+      "category": "B",
+      "focus": "PARCEL rejects length_cm='alphabetical'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.04
+    },
+    {
+      "id": "TC-050",
+      "category": "B",
+      "focus": "PARCEL rejects length_cm='NaN'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.04
+    },
+    {
+      "id": "TC-051",
+      "category": "B",
+      "focus": "PARCEL rejects length_cm='Infinity'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.04
+    },
+    {
+      "id": "TC-052",
+      "category": "B",
+      "focus": "PARCEL rejects length_cm=True",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.04
+    },
+    {
+      "id": "TC-053",
+      "category": "B",
+      "focus": "PARCEL rejects width_cm='0'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.04
+    },
+    {
+      "id": "TC-054",
+      "category": "B",
+      "focus": "PARCEL rejects width_cm='-1'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.04
+    },
+    {
+      "id": "TC-055",
+      "category": "B",
+      "focus": "PARCEL rejects width_cm='alphabetical'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-056",
+      "category": "B",
+      "focus": "PARCEL rejects width_cm='NaN'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-057",
+      "category": "B",
+      "focus": "PARCEL rejects width_cm='Infinity'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-058",
+      "category": "B",
+      "focus": "PARCEL rejects width_cm=True",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-059",
+      "category": "B",
+      "focus": "PARCEL rejects height_cm='0'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.05
+    },
+    {
+      "id": "TC-060",
+      "category": "B",
+      "focus": "PARCEL rejects height_cm='-1'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-061",
+      "category": "B",
+      "focus": "PARCEL rejects height_cm='alphabetical'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-062",
+      "category": "B",
+      "focus": "PARCEL rejects height_cm='NaN'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-063",
+      "category": "B",
+      "focus": "PARCEL rejects height_cm='Infinity'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-064",
+      "category": "B",
+      "focus": "PARCEL rejects height_cm=True",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.03
+    },
+    {
+      "id": "TC-065",
+      "category": "B",
+      "focus": "PARCEL rejects actual_weight_kg='0'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.04
+    },
+    {
+      "id": "TC-066",
+      "category": "B",
+      "focus": "PARCEL rejects actual_weight_kg='-1'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.09
+    },
+    {
+      "id": "TC-067",
+      "category": "B",
+      "focus": "PARCEL rejects actual_weight_kg='alphabetical'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.05
+    },
+    {
+      "id": "TC-068",
+      "category": "B",
+      "focus": "PARCEL rejects actual_weight_kg='NaN'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.07
+    },
+    {
+      "id": "TC-069",
+      "category": "B",
+      "focus": "PARCEL rejects actual_weight_kg='Infinity'",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.05
+    },
+    {
+      "id": "TC-070",
+      "category": "B",
+      "focus": "PARCEL rejects actual_weight_kg=True",
+      "steps": [
+        "Validate Cargo input and calculate Decimal charge if validation permits it."
+      ],
+      "assertions": "Invalid dimension/weight rejected; no float or NaN enters pricing.",
+      "scope": "cargo",
+      "status": "PASS",
+      "evidence": "Invalid cargo rejected by actual application model/Decimal calculation.",
+      "elapsed_ms": 0.05
+    },
+    {
+      "id": "TC-071",
+      "category": "C",
+      "focus": "new route metadata redirects and status",
+      "steps": [
+        "Run isolated existing test test_payment_gateway.PaymentTests.test_new_route_metadata_redirects_and_status; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_new_route_metadata_redirects_and_status(self):\n        request_id=str(uuid4());payload={'tenant_id':str(self.tenant),'topup_amount':'100.00','request_id':request_id}\n        with TestClient(self.app) as client:\n            response=client.post('/api/v1/billing/create-checkout',json=payload)\n            self.assertEqual(response.status_code,200,response.text)\n            self.assertTrue(response.json()['url'].startswith('https://checkout.stripe.com/'))\n            again=client.post('/api/v1/billing/create-checkout',json=payload)\n            self.assertEqual(again.json(),response.json())\n            self.assertEqual(len(self.stripe.calls),1)\n            status=client.get('/api/v1/billing/topups/'+request_id).json()\n            self.assertEqual(status['status'],'PENDING')\n        params=self.stripe.calls[0][0]\n        self.assertEqual(params['metadata'],{'tenant_id':str(self.tenant),'purpose':'wallet_topup','topup_id':request_id})\n        self.assertEqual(params['line_items'][0]['price_data']['unit_amount'],10000)\n        self.assertIn('payment=success',params['success_url']);self.assertIn('topup_id='+request_id,params['success_url'])\n        self.assertEqual(self.c.state['wallet']['balance'],Decimal('0'))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_new_route_metadata_redirects_and_status; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 55.73
+    },
+    {
+      "id": "TC-072",
+      "category": "C",
+      "focus": "signed event credits once and rejects tampering",
+      "steps": [
+        "Run isolated existing test test_payment_gateway.PaymentTests.test_signed_event_credits_once_and_rejects_tampering; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_signed_event_credits_once_and_rejects_tampering(self):\n        body,session=await self.create()\n        event={'id':'evt_test','type':'checkout.session.completed','livemode':False,'data':{'object':session}}\n        raw=json.dumps(event).encode();stamp=str(int(time.time()))\n        digest=hmac.new(b'whsec_fixture',stamp.encode()+b'.'+raw,hashlib.sha256).hexdigest()\n        with TestClient(self.app) as client:\n            for _ in range(2):\n                result=client.post('/api/v1/billing/webhooks/stripe',content=raw,headers={'stripe-signature':f't={stamp},v1={digest}'})\n                self.assertEqual(result.status_code,200,result.text)\n            bad=client.post('/api/v1/billing/webhooks/stripe',content=raw+b' ',headers={'stripe-signature':f't={stamp},v1={digest}'})\n            self.assertEqual(bad.status_code,400)\n            self.assertEqual(client.get('/api/v1/billing/topups/'+str(body.request_id)).json()['status'],'CREDITED')\n        self.assertEqual(self.c.state['wallet']['balance'],Decimal('100.00'));self.assertEqual(len(self.c.state['ledger']),1)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_signed_event_credits_once_and_rejects_tampering; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 30.3
+    },
+    {
+      "id": "TC-073",
+      "category": "C",
+      "focus": "concurrent events sum and replay only once",
+      "steps": [
+        "Run isolated existing test test_payment_gateway.PaymentTests.test_concurrent_events_sum_and_replay_only_once; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_concurrent_events_sum_and_replay_only_once(self):\n        _,s1=await self.create('100.00');_,s2=await self.create('250.00')\n        result=await asyncio.gather(*(self.finance.credit_session('evt_one',s1) for _ in range(10)),self.finance.credit_session('evt_two',s2))\n        self.assertEqual(sum(result),2);self.assertEqual(self.c.state['wallet']['balance'],Decimal('350.00'))\n        self.assertEqual(len(self.c.state['ledger']),2)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_concurrent_events_sum_and_replay_only_once; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 20.49
+    },
+    {
+      "id": "TC-074",
+      "category": "C",
+      "focus": "ledger failure rolls back balance and status",
+      "steps": [
+        "Run isolated existing test test_payment_gateway.PaymentTests.test_ledger_failure_rolls_back_balance_and_status; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_ledger_failure_rolls_back_balance_and_status(self):\n        _,session=await self.create();before=copy.deepcopy(self.c.state);self.c.fail_ledger=True\n        with self.assertRaises(RuntimeError):await self.finance.credit_session('evt_failure',session)\n        self.assertEqual(self.c.state,before)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_ledger_failure_rolls_back_balance_and_status; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 9.28
+    },
+    {
+      "id": "TC-075",
+      "category": "C",
+      "focus": "wrong amount customer currency and unpaid",
+      "steps": [
+        "Run isolated existing test test_payment_gateway.PaymentTests.test_wrong_amount_customer_currency_and_unpaid; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_wrong_amount_customer_currency_and_unpaid(self):\n        _,session=await self.create()\n        for changes in [{'amount_total':10001},{'currency':'usd'},{'customer':'cus_wrong'},{'livemode':True}]:\n            with self.assertRaises(ValueError):await self.finance.credit_session('evt_wrong',{**session,**changes})\n        self.assertFalse(await self.finance.credit_session('evt_unpaid',{**session,'payment_status':'unpaid'}))\n        self.assertEqual(self.c.state['wallet']['balance'],Decimal('0'))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_wrong_amount_customer_currency_and_unpaid; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.38
+    },
+    {
+      "id": "TC-076",
+      "category": "C",
+      "focus": "role tenant mode and decimal boundaries",
+      "steps": [
+        "Run isolated existing test test_payment_gateway.PaymentTests.test_role_tenant_mode_and_decimal_boundaries; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_role_tenant_mode_and_decimal_boundaries(self):\n        payload={'tenant_id':str(self.tenant),'topup_amount':'100.00'}\n        with TestClient(self.app) as client:\n            self.assertEqual(client.post('/api/v1/billing/create-checkout',json={**payload,'tenant_id':str(uuid4())}).status_code,403)\n            for value in [True,1.23,'0.99','10000.01','100.001','NaN']:\n                self.assertEqual(client.post('/api/v1/billing/create-checkout',json={**payload,'topup_amount':value}).status_code,422)\n            self.context=main.TenantContext(self.tenant,self.user,'DISPATCHER','test')\n            self.assertEqual(client.post('/api/v1/billing/create-checkout',json=payload).status_code,403)\n            self.context=main.TenantContext(self.tenant,self.user,'OWNER','test');self.config.stripe_enabled=False\n            self.assertEqual(client.post('/api/v1/billing/create-checkout',json=payload).status_code,503)\n        self.assertEqual(self.stripe.calls,[])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_role_tenant_mode_and_decimal_boundaries; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 22.1
+    },
+    {
+      "id": "TC-077",
+      "category": "C",
+      "focus": "missing customer is provisioned without row locks",
+      "steps": [
+        "Run isolated existing test test_payment_gateway.PaymentTests.test_missing_customer_is_provisioned_without_row_locks; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_missing_customer_is_provisioned_without_row_locks(self):\n        self.c.state['tenant']['stripe_customer_id']=None\n        with TestClient(self.app) as client:\n            response=client.post('/api/v1/billing/create-checkout',json={'tenant_id':str(self.tenant),'topup_amount':'100.00'})\n            self.assertEqual(response.status_code,200,response.text)\n        self.assertEqual(self.c.state['tenant']['stripe_customer_id'],'cus_new_test')\n        self.assertEqual(self.stripe.customer_metadata['tenant_id'],str(self.tenant))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_payment_gateway.PaymentTests.test_missing_customer_is_provisioned_without_row_locks; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 15.79
+    },
+    {
+      "id": "TC-078",
+      "category": "C",
+      "focus": "credit success state intent and stored url",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_credit_success_state_intent_and_stored_url; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_credit_success_state_intent_and_stored_url(self):\n        body,session=await self.create()\n        result=await self.dispatch(self.event('checkout.session.completed',session))\n        self.assertTrue(result['credited']);row=self.c.state['topups'][body.request_id]\n        self.assertEqual(row['status'],'CREDITED');self.assertEqual(row['transaction_state'],'SUCCESS')\n        self.assertEqual(row['stripe_payment_intent_id'],session['payment_intent']);self.assertTrue(row['checkout_url'].startswith('https://checkout.stripe.com'))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_credit_success_state_intent_and_stored_url; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 11.26
+    },
+    {
+      "id": "TC-079",
+      "category": "C",
+      "focus": "cumulative partial refunds replays and out of order",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_cumulative_partial_refunds_replays_and_out_of_order; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_cumulative_partial_refunds_replays_and_out_of_order(self):\n        _,session=await self.create();await self.dispatch(self.event('checkout.session.completed',session))\n        first=self.event('charge.refunded',self.charge(session,amount_refunded=2000))\n        self.assertEqual((await self.dispatch(first))['refund_debited'],'20.00')\n        self.assertTrue((await self.dispatch(first))['replayed'])\n        second=self.event('charge.refunded',self.charge(session,amount_refunded=6000))\n        self.assertEqual((await self.dispatch(second))['refund_debited'],'40.00')\n        self.assertEqual((await self.dispatch(self.event('charge.refunded',self.charge(session,amount_refunded=2000))))['refund_debited'],'0.00')\n        self.assertEqual(self.c.state['wallet']['balance'],Decimal('40.00'))\n        self.assertEqual([row[2] for row in self.c.state['ledger']],['TOPUP','REFUND_DEBIT','REFUND_DEBIT'])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_cumulative_partial_refunds_replays_and_out_of_order; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 11.83
+    },
+    {
+      "id": "TC-080",
+      "category": "C",
+      "focus": "concurrent refund events do not double debit",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_concurrent_refund_events_do_not_double_debit; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_concurrent_refund_events_do_not_double_debit(self):\n        _,session=await self.create();await self.dispatch(self.event('checkout.session.completed',session))\n        await asyncio.gather(*(self.dispatch(self.event('charge.refunded',self.charge(session,amount_refunded=5000))) for _ in range(5)))\n        self.assertEqual(self.c.state['wallet']['balance'],Decimal('50.00'));self.assertEqual(len(self.c.state['ledger']),2)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_concurrent_refund_events_do_not_double_debit; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 16.44
+    },
+    {
+      "id": "TC-081",
+      "category": "C",
+      "focus": "refund respects reserved money and holds workspace",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_refund_respects_reserved_money_and_holds_workspace; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_refund_respects_reserved_money_and_holds_workspace(self):\n        _,session=await self.create();await self.dispatch(self.event('checkout.session.completed',session))\n        self.c.state['wallet']['reserved_balance']=Decimal('90.00')\n        result=await self.dispatch(self.event('charge.refunded',self.charge(session,amount_refunded=2000)))\n        self.assertTrue(result['manual_action_required']);self.assertEqual(self.c.state['wallet']['balance'],Decimal('100.00'))\n        self.assertEqual(self.c.state['tenant']['workspace_status'],'SUSPENDED')\n        self.assertTrue(any(r['status']=='RECONCILIATION_REQUIRED' for r in self.c.state['events'].values()))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_refund_respects_reserved_money_and_holds_workspace; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 9.92
+    },
+    {
+      "id": "TC-082",
+      "category": "C",
+      "focus": "failed charge maps pending intent but never downgrades paid",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_failed_charge_maps_pending_intent_but_never_downgrades_paid; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_failed_charge_maps_pending_intent_but_never_downgrades_paid(self):\n        body,session=await self.create();charge=self.charge(session,status='failed',paid=False)\n        self.assertTrue((await self.dispatch(self.event('charge.failed',charge)))['failed'])\n        self.assertEqual(self.c.state['topups'][body.request_id]['status'],'FAILED')\n        await self.dispatch(self.event('checkout.session.completed',session))\n        self.assertTrue((await self.dispatch(self.event('charge.failed',charge)))['ignored'])\n        self.assertEqual(self.c.state['topups'][body.request_id]['status'],'CREDITED')",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_failed_charge_maps_pending_intent_but_never_downgrades_paid; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.29
+    },
+    {
+      "id": "TC-083",
+      "category": "C",
+      "focus": "cross tenant or wrong amount refunds never debit",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_cross_tenant_or_wrong_amount_refunds_never_debit; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_cross_tenant_or_wrong_amount_refunds_never_debit(self):\n        _,session=await self.create();await self.dispatch(self.event('checkout.session.completed',session))\n        for changes in [{'metadata':{**session['metadata'],'tenant_id':str(uuid4())}}, {'amount':10001},{'amount_refunded':10001}]:\n            values={'amount_refunded':2000,**changes}\n            result=await self.dispatch(self.event('charge.refunded',self.charge(session,**values)))\n            self.assertTrue(result['deferred'])\n        self.assertEqual(self.c.state['wallet']['balance'],Decimal('100.00'))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_cross_tenant_or_wrong_amount_refunds_never_debit; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 14.08
+    },
+    {
+      "id": "TC-084",
+      "category": "C",
+      "focus": "process failure is durable and returns 200",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_process_failure_is_durable_and_returns_200; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_process_failure_is_durable_and_returns_200(self):\n        _,session=await self.create();event=self.event('checkout.session.completed',session)\n        self.c.fail_ledger=True\n        with TestClient(self.app) as client:\n            response=self.post(client,event);self.assertEqual(response.status_code,200,response.text)\n            self.assertTrue(response.json()['deferred'])\n        self.assertEqual(self.c.state['wallet']['balance'],Decimal('0.00'))\n        self.assertEqual(self.c.state['events'][event['id']]['status'],'PENDING')\n        self.c.fail_ledger=False\n        self.assertTrue((await SnapshotWebhookService(self.finance).process(event['id']))['credited'])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_process_failure_is_durable_and_returns_200; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 16.71
+    },
+    {
+      "id": "TC-085",
+      "category": "C",
+      "focus": "receipt storage outage returns retryable 503",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_receipt_storage_outage_returns_retryable_503; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_receipt_storage_outage_returns_retryable_503(self):\n        _,session=await self.create();original=self.c.execute\n        async def broken(sql,*args):\n            if 'INSERT INTO public.stripe_webhook_events' in sql:raise RuntimeError('Private exception text must not be exposed')\n            return await original(sql,*args)\n        self.c.execute=broken\n        with TestClient(self.app) as client:\n            response=self.post(client,self.event('checkout.session.completed',session));self.assertEqual(response.status_code,503)\n            self.assertNotIn('Private',response.text)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_receipt_storage_outage_returns_retryable_503; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 14.77
+    },
+    {
+      "id": "TC-086",
+      "category": "C",
+      "focus": "signature exact scope snapshot and collision",
+      "steps": [
+        "Run isolated existing test test_stripe_snapshots.SnapshotTests.test_signature_exact_scope_snapshot_and_collision; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_signature_exact_scope_snapshot_and_collision(self):\n        _,session=await self.create();event=self.event('checkout.session.completed',session)\n        with TestClient(self.app) as client:\n            self.assertEqual(self.post(client,event,True).status_code,400)\n            unsupported=self.event('payment_intent.succeeded',session)\n            self.assertTrue(self.post(client,unsupported).json()['ignored'])\n            self.assertEqual(self.post(client,{**event,'account':'acct_other'}).status_code,400)\n            self.assertEqual(self.post(client,event).status_code,200)\n            collision={**event,'data':{'object':{**session,'amount_total':10001}}}\n            self.assertEqual(self.post(client,collision).status_code,400)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_stripe_snapshots.SnapshotTests.test_signature_exact_scope_snapshot_and_collision; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 18.74
+    },
+    {
+      "id": "TC-087",
+      "category": "C",
+      "focus": "100 credit and idempotent retry",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_100_credit_and_idempotent_retry; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_100_credit_and_idempotent_retry(self):\n        body = TestTopupInput(request_id=uuid4())\n        first = await self.service.test_topup(self.context, body)\n        self.assertEqual(first[\"balance\"], \"100.00\")\n        self.assertTrue(first[\"zero_balance_label_check\"][\"blocked\"])\n        self.assertFalse(first[\"zero_balance_label_check\"][\"wallet_mutated\"])\n        calls = len(self.stripe.calls)\n        second = await self.service.test_topup(self.context, body)\n        self.assertFalse(second[\"credited\"])\n        self.assertEqual(len(self.stripe.calls), calls)\n        self.assertEqual(len(self.connection.state[\"ledger\"]), 1)\n        intent_params = next(call[1] for call in self.stripe.calls if call[0] == \"intent\")\n        self.assertEqual(intent_params[\"amount\"], 10000)\n        self.assertEqual(intent_params[\"currency\"], \"gbp\")\n        self.assertEqual(self.connection.state[\"ledger\"][0][3], Decimal(\"100.00\"))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_100_credit_and_idempotent_retry; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 31.23
+    },
+    {
+      "id": "TC-088",
+      "category": "C",
+      "focus": "concurrent retries credit only once",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_concurrent_retries_credit_only_once; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_concurrent_retries_credit_only_once(self):\n        body = TestTopupInput(request_id=uuid4())\n        results = await asyncio.gather(self.service.test_topup(self.context, body), self.service.test_topup(self.context, body))\n        self.assertEqual(sum(result[\"credited\"] for result in results), 1)\n        self.assertEqual(self.connection.state[\"wallet\"][\"balance\"], Decimal(\"100.00\"))\n        self.assertEqual(len(self.connection.state[\"ledger\"]), 1)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_concurrent_retries_credit_only_once; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 23.83
+    },
+    {
+      "id": "TC-089",
+      "category": "C",
+      "focus": "live keys and unmarked tenants rejected before stripe",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_live_keys_and_unmarked_tenants_rejected_before_stripe; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_live_keys_and_unmarked_tenants_rejected_before_stripe(self):\n        self.settings.stripe_secret_key = SecretStr(\"sk_live_fixture\")\n        with self.assertRaises(main.HTTPException) as error:\n            await self.service.test_topup(self.context, TestTopupInput(request_id=uuid4()))\n        self.assertEqual(error.exception.status_code, 403)\n        self.settings.stripe_secret_key = SecretStr(\"sk_test_fixture\")\n        self.connection.state[\"tenant\"][\"is_sandbox\"] = False\n        with self.assertRaises(main.HTTPException):\n            await self.service.test_topup(self.context, TestTopupInput(request_id=uuid4()))\n        self.assertEqual(self.stripe.calls, [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_live_keys_and_unmarked_tenants_rejected_before_stripe; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 7.84
+    },
+    {
+      "id": "TC-090",
+      "category": "C",
+      "focus": "decline and wrong stripe response never credit",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_decline_and_wrong_stripe_response_never_credit; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_decline_and_wrong_stripe_response_never_credit(self):\n        with self.assertRaises(main.HTTPException) as error:\n            await self.service.test_topup(self.context, TestTopupInput(request_id=uuid4(), test_token=\"tok_chargeDeclined\"))\n        self.assertEqual(error.exception.status_code, 402)\n        for changes in ({\"amount_received\": 9999}, {\"livemode\": True}, {\"currency\": \"usd\"}, {\"customer\": \"cus_wrong\"}, {\"metadata\": {}}, {\"status\": \"processing\"}):\n            self.stripe.intent_changes = changes\n            with self.assertRaises(main.HTTPException) as error:\n                await self.service.test_topup(self.context, TestTopupInput(request_id=uuid4()))\n            self.assertEqual(error.exception.status_code, 502)\n        self.assertEqual(self.connection.state[\"wallet\"][\"balance\"], Decimal(\"0.00\"))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_decline_and_wrong_stripe_response_never_credit; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.7
+    },
+    {
+      "id": "TC-091",
+      "category": "C",
+      "focus": "zero balance blocks actual label and booking guards",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_zero_balance_blocks_actual_label_and_booking_guards; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_zero_balance_blocks_actual_label_and_booking_guards(self):\n        with self.assertRaises(main.HTTPException) as error:\n            await self.finance.authorize_label_preview(self.context, self.connection.shipment_id)\n        self.assertEqual(error.exception.status_code, 402)\n        self.connection.state[\"shipment\"][\"status\"] = \"QUOTED\"\n        with self.assertRaises(main.HTTPException) as error:\n            await self.finance.reserve(self.context, self.connection.shipment_id)\n        self.assertEqual(error.exception.status_code, 402)\n        self.assertTrue(any(\"FOR UPDATE\" in sql and \"public.wallets\" in sql for sql, _ in self.connection.calls))\n        self.assertEqual(self.connection.state[\"ledger\"], [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_zero_balance_blocks_actual_label_and_booking_guards; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.39
+    },
+    {
+      "id": "TC-092",
+      "category": "C",
+      "focus": "funded label is sample without charge",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_funded_label_is_sample_without_charge; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_funded_label_is_sample_without_charge(self):\n        await self.service.test_topup(self.context, TestTopupInput(request_id=uuid4()))\n        result = await self.finance.authorize_label_preview(self.context, self.connection.shipment_id)\n        self.assertIn(\"SAMPLE ONLY\", result[\"zpl\"])\n        self.assertNotIn(\"TEST^XZ\", result[\"zpl\"])\n        self.assertFalse(result[\"charged\"])\n        self.assertEqual(self.connection.state[\"wallet\"][\"balance\"], Decimal(\"100.00\"))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_funded_label_is_sample_without_charge; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 9.17
+    },
+    {
+      "id": "TC-093",
+      "category": "C",
+      "focus": "sandbox cannot submit carrier purchase",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_sandbox_cannot_submit_carrier_purchase; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_sandbox_cannot_submit_carrier_purchase(self):\n        permit = main.BookingPermit(self.context.tenant_id, self.connection.shipment_id, uuid4(), Decimal(\"10.00\"), \"GBP\", \"PREPAID_WALLET\")\n        with self.assertRaises(main.HTTPException) as error:\n            await self.finance.mark_submitted(permit)\n        self.assertEqual(error.exception.status_code, 403)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_sandbox_cannot_submit_carrier_purchase; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 7.97
+    },
+    {
+      "id": "TC-094",
+      "category": "C",
+      "focus": "failed ledger rolls back and retry reconciles same payment",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_failed_ledger_rolls_back_and_retry_reconciles_same_payment; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_failed_ledger_rolls_back_and_retry_reconciles_same_payment(self):\n        self.connection.fail_ledger = True\n        body = TestTopupInput(request_id=uuid4())\n        with self.assertRaises(RuntimeError):\n            await self.service.test_topup(self.context, body)\n        self.assertEqual(self.connection.state[\"wallet\"][\"balance\"], Decimal(\"0.00\"))\n        self.connection.fail_ledger = False\n        result = await self.service.test_topup(self.context, body)\n        self.assertTrue(result[\"credited\"])\n        self.assertEqual(len(self.stripe.intents), 1)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_failed_ledger_rolls_back_and_retry_reconciles_same_payment; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.76
+    },
+    {
+      "id": "TC-095",
+      "category": "C",
+      "focus": "missing customer is created in test mode",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.BillingTests.test_missing_customer_is_created_in_test_mode; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_missing_customer_is_created_in_test_mode(self):\n        self.connection.state[\"tenant\"][\"stripe_customer_id\"] = None\n        result = await self.service.test_topup(self.context, TestTopupInput(request_id=uuid4()))\n        self.assertTrue(result[\"credited\"])\n        self.assertEqual(self.connection.state[\"tenant\"][\"stripe_customer_id\"], \"cus_created\")",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.BillingTests.test_missing_customer_is_created_in_test_mode; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 9.1
+    },
+    {
+      "id": "TC-096",
+      "category": "C",
+      "focus": "Real sandbox database dispatcher_wallet_lock_probe.py",
+      "steps": [
+        "Run tests/dispatcher_wallet_lock_probe.py against configured Supabase with transactions rolled back."
+      ],
+      "assertions": "Process exits 0; real lock/financial assertions pass; no fixture balance persists.",
+      "scope": "probe",
+      "status": "PASS",
+      "evidence": "Real Supabase probe assertions passed; all mutations rolled back: dispatcher_wallet_lock_probe.py",
+      "elapsed_ms": 1770.75
+    },
+    {
+      "id": "TC-097",
+      "category": "C",
+      "focus": "Real sandbox database stripe_snapshot_database_probe.py",
+      "steps": [
+        "Run tests/stripe_snapshot_database_probe.py against configured Supabase with transactions rolled back."
+      ],
+      "assertions": "Process exits 0; real lock/financial assertions pass; no fixture balance persists.",
+      "scope": "probe",
+      "status": "PASS",
+      "evidence": "Real Supabase probe assertions passed; all mutations rolled back: stripe_snapshot_database_probe.py",
+      "elapsed_ms": 6204.87
+    },
+    {
+      "id": "TC-098",
+      "category": "C",
+      "focus": "Funded 1000 GBP wallet purchases 15 GBP native label",
+      "steps": [
+        "Check sandbox readiness for genuine carrier purchase and real card callback."
+      ],
+      "assertions": "Requires genuine native label purchase or customer/card action; contract tests do not prove this workflow.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.02
+    },
+    {
+      "id": "TC-099",
+      "category": "C",
+      "focus": "10 GBP wallet blocks 12 GBP native purchase before carrier",
+      "steps": [
+        "Check sandbox readiness for genuine carrier purchase and real card callback."
+      ],
+      "assertions": "Requires genuine native label purchase or customer/card action; contract tests do not prove this workflow.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-100",
+      "category": "C",
+      "focus": "Ten identical concurrent native purchases produce one label",
+      "steps": [
+        "Check sandbox readiness for genuine carrier purchase and real card callback."
+      ],
+      "assertions": "Requires genuine native label purchase or customer/card action; contract tests do not prove this workflow.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-101",
+      "category": "C",
+      "focus": "Real Stripe Checkout card authorization and completion callback",
+      "steps": [
+        "Check sandbox readiness for genuine carrier purchase and real card callback."
+      ],
+      "assertions": "Requires genuine native label purchase or customer/card action; contract tests do not prove this workflow.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-102",
+      "category": "C",
+      "focus": "Real charge refund reconciles wallet debit",
+      "steps": [
+        "Check sandbox readiness for genuine carrier purchase and real card callback."
+      ],
+      "assertions": "Requires genuine native label purchase or customer/card action; contract tests do not prove this workflow.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-103",
+      "category": "C",
+      "focus": "Real declined card changes pending topup to FAILED",
+      "steps": [
+        "Check sandbox readiness for genuine carrier purchase and real card callback."
+      ],
+      "assertions": "Requires genuine native label purchase or customer/card action; contract tests do not prove this workflow.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-104",
+      "category": "C",
+      "focus": "Webhook replay over public Stripe delivery produces one credit",
+      "steps": [
+        "Check sandbox readiness for genuine carrier purchase and real card callback."
+      ],
+      "assertions": "Requires genuine native label purchase or customer/card action; contract tests do not prove this workflow.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-105",
+      "category": "C",
+      "focus": "Real delayed callback eventually reconciles paid wallet",
+      "steps": [
+        "Check sandbox readiness for genuine carrier purchase and real card callback."
+      ],
+      "assertions": "Requires genuine native label purchase or customer/card action; contract tests do not prove this workflow.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-106",
+      "category": "D",
+      "focus": "companies contacts onboard without deal configuration",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_companies_contacts_onboard_without_deal_configuration; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_companies_contacts_onboard_without_deal_configuration(self):\n        merchant=Merchant();config=settings().model_copy(update={'hubspot_upsell_enabled':False,'hubspot_upsell_pipeline_id':'','hubspot_upsell_stage_id':''})\n        async with httpx.AsyncClient(transport=httpx.MockTransport(merchant)) as http:\n            client=HubSpotClient(http,config);tenant=uuid4()\n            company=await client.onboard(tenant,'Sandbox Company','test@example.invalid','GB123',address={'line1':'1 Test Street','city':'London','postal_code':'SW1A 1AA','country_code':'GB'})\n            self.assertIsNone(await client.milestone(tenant,company,'Sandbox Company',100,Decimal('123.45'),'GBP'))\n        self.assertFalse(any('/deals' in str(r.url) for r in merchant.calls))\n        properties=merchant.records['companies'][0]['properties']\n        self.assertEqual(properties['street'],'1 Test Street');self.assertEqual(properties['veloce_total_spend'],'123.45')\n        self.assertEqual(merchant.records['contacts'][0]['properties'],{'email':'test@example.invalid'})",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_companies_contacts_onboard_without_deal_configuration; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 18.09
+    },
+    {
+      "id": "TC-107",
+      "category": "D",
+      "focus": "account mismatch and standard account block before writes",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_account_mismatch_and_standard_account_block_before_writes; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_account_mismatch_and_standard_account_block_before_writes(self):\n        for response,code in [({'portalId':99999,'accountType':'DEVELOPER_TEST'},'hubspot_account_mismatch'),({'portalId':12345,'accountType':'STANDARD'},'hubspot_test_account_required')]:\n            calls=[]\n            def transport(request):calls.append(request);return httpx.Response(200,json=response)\n            async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:\n                with self.assertRaises(CRMError) as error:await HubSpotClient(http,settings()).onboard(uuid4(),'Sandbox','test@example.invalid','')\n                self.assertEqual(error.exception.code,code)\n            self.assertEqual([r.method for r in calls],['GET'])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_account_mismatch_and_standard_account_block_before_writes; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 15.32
+    },
+    {
+      "id": "TC-108",
+      "category": "D",
+      "focus": "property type and ambiguous create fail securely",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_property_type_and_ambiguous_create_fail_securely; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_property_type_and_ambiguous_create_fail_securely(self):\n        merchant=Merchant()\n        def wrong_type(request):\n            if request.url.path.endswith('/veloce_package_count'):return httpx.Response(200,json={'type':'string','fieldType':'text'})\n            return merchant(request)\n        async with httpx.AsyncClient(transport=httpx.MockTransport(wrong_type)) as http:\n            with self.assertRaises(CRMError) as error:await HubSpotClient(http,settings()).onboard(uuid4(),'Sandbox','test@example.invalid','')\n            self.assertEqual(error.exception.code,'hubspot_property_type_mismatch')\n        calls=[]\n        def uncertain(request):calls.append(request);return httpx.Response(503,text='sensitive response not retained')\n        async with httpx.AsyncClient(transport=httpx.MockTransport(uncertain)) as http:\n            with self.assertRaises(CRMError) as error:await HubSpotClient(http,settings()).request('POST','/crm/v3/objects/companies',{'properties':{'name':'Sandbox'}})\n            self.assertEqual(error.exception.code,'hubspot_create_outcome_uncertain')\n        self.assertEqual(len(calls),1)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_property_type_and_ambiguous_create_fail_securely; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 15.57
+    },
+    {
+      "id": "TC-109",
+      "category": "D",
+      "focus": "environment placeholder and secret validation",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_environment_placeholder_and_secret_validation; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_environment_placeholder_and_secret_validation(self):\n        from pydantic import ValidationError\n        config=HubSpotSettings(_env_file=None,hubspot_expected_portal_id='',hubspot_access_token='  pat-local-test  ')\n        self.assertIsNone(config.hubspot_expected_portal_id)\n        self.assertEqual(config.hubspot_access_token.get_secret_value(),'pat-local-test')\n        with self.assertRaises(ValidationError) as error:HubSpotSettings(_env_file=None,hubspot_access_token='Bearer pat-sensitive-value')\n        self.assertNotIn('pat-sensitive-value',str(error.exception))\n        with self.assertRaises(ValidationError):HubSpotSettings(_env_file=None,hubspot_enabled=True)\n        with self.assertRaises(ValidationError):HubSpotSettings(_env_file=None,hubspot_upsell_pipeline_id='../contacts')",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_environment_placeholder_and_secret_validation; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 12.59
+    },
+    {
+      "id": "TC-110",
+      "category": "D",
+      "focus": "onboarding replay and same company names distinct tenants",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_onboarding_replay_and_same_company_names_distinct_tenants; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_onboarding_replay_and_same_company_names_distinct_tenants(self):\n        merchant = Merchant()\n        async with httpx.AsyncClient(transport=httpx.MockTransport(merchant)) as http:\n            client = HubSpotClient(http, settings())\n            tenant = uuid4()\n            company = await client.onboard(tenant, \"Acme\", \"alex@example.com\", \"GB123\")\n            self.assertEqual(await client.onboard(tenant, \"Acme\", \"alex@example.com\", \"GB123\"), company)\n            other = await client.onboard(uuid4(), \"Acme\", \"bob@example.com\", \"GB999\")\n            self.assertNotEqual(company, other)\n        self.assertEqual(len(merchant.records[\"companies\"]), 2)\n        self.assertEqual(len(merchant.records[\"contacts\"]), 2)\n        associations = [r for r in merchant.calls if \"/associations/contacts/companies/\" in r.url.path]\n        self.assertEqual(json.loads(associations[0].content)[\"inputs\"][0][\"type\"], \"contact_to_company\")",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_onboarding_replay_and_same_company_names_distinct_tenants; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 14.95
+    },
+    {
+      "id": "TC-111",
+      "category": "D",
+      "focus": "milestone exact decimal threshold and single upsell",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_milestone_exact_decimal_threshold_and_single_upsell; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_milestone_exact_decimal_threshold_and_single_upsell(self):\n        merchant = Merchant()\n        async with httpx.AsyncClient(transport=httpx.MockTransport(merchant)) as http:\n            client = HubSpotClient(http, settings())\n            tenant = uuid4()\n            company = await client.onboard(tenant, \"Acme\", \"alex@example.com\", \"GB123\")\n            self.assertIsNone(await client.milestone(tenant, company, \"Acme\", 50, Decimal(\"1234.50\"), \"GBP\"))\n            deal = await client.milestone(tenant, company, \"Acme\", 51, Decimal(\"1300.75\"), \"GBP\")\n            self.assertEqual(await client.milestone(tenant, company, \"Acme\", 75, Decimal(\"1500.90\"), \"GBP\"), deal)\n        self.assertEqual(len(merchant.records[\"deals\"]), 1)\n        self.assertEqual(merchant.records[\"companies\"][0][\"properties\"][\"veloce_total_spend\"], \"1500.90\")\n        self.assertEqual(merchant.records[\"deals\"][0][\"properties\"][\"dealstage\"], \"stage1\")",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_milestone_exact_decimal_threshold_and_single_upsell; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 14.27
+    },
+    {
+      "id": "TC-112",
+      "category": "D",
+      "focus": "rate limit backoff and retry after",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_rate_limit_backoff_and_retry_after; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_rate_limit_backoff_and_retry_after(self):\n        calls, sleeps = [], []\n        def handler(request):\n            calls.append(request)\n            return httpx.Response(429, headers={\"Retry-After\": \"3\"}) if len(calls) < 3 else httpx.Response(200, json={\"ok\": True})\n        async def sleep(seconds):\n            sleeps.append(seconds)\n        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:\n            result = await HubSpotClient(http, settings(), sleep=sleep).request(\"GET\", \"/crm/v3/properties/companies\")\n        self.assertTrue(result[\"ok\"])\n        self.assertEqual(len(calls), 3)\n        self.assertTrue(all(s >= 3 for s in sleeps))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_rate_limit_backoff_and_retry_after; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 9.96
+    },
+    {
+      "id": "TC-113",
+      "category": "D",
+      "focus": "long rate limit deferred and no secret errors",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_long_rate_limit_deferred_and_no_secret_errors; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_long_rate_limit_deferred_and_no_secret_errors(self):\n        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(429, headers={\"Retry-After\": \"120\"}, text=\"secret remote body\"))) as http:\n            with self.assertRaises(CRMError) as raised:\n                await HubSpotClient(http, settings()).request(\"POST\", \"/crm/v3/objects/companies\", {})\n        self.assertEqual(raised.exception.retry_after, 120)\n        self.assertNotIn(\"secret\", str(raised.exception))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_long_rate_limit_deferred_and_no_secret_errors; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 8.94
+    },
+    {
+      "id": "TC-114",
+      "category": "D",
+      "focus": "authentication failure is not retried",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_authentication_failure_is_not_retried; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_authentication_failure_is_not_retried(self):\n        calls = []\n        def handler(request):\n            calls.append(request)\n            return httpx.Response(401, text=\"do not log this token\")\n        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:\n            with self.assertRaises(CRMError) as raised:\n                await HubSpotClient(http, settings()).request(\"GET\", \"/crm/v3/objects/companies\")\n        self.assertFalse(raised.exception.retryable)\n        self.assertEqual(len(calls), 1)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_authentication_failure_is_not_retried; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.95
+    },
+    {
+      "id": "TC-115",
+      "category": "D",
+      "focus": "unique properties required before creating records",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_unique_properties_required_before_creating_records; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_unique_properties_required_before_creating_records(self):\n        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, json={'portalId':12345,'accountType':'DEVELOPER_TEST'} if r.url.path=='/account-info/v3/details' else {\"hasUniqueValue\": False}))) as http:\n            with self.assertRaises(CRMError) as raised:\n                await HubSpotClient(http, settings()).onboard(uuid4(), \"Acme\", \"alex@example.com\", \"\")\n        self.assertEqual(raised.exception.code, \"hubspot_unique_property_required\")",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_unique_properties_required_before_creating_records; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 9.07
+    },
+    {
+      "id": "TC-116",
+      "category": "D",
+      "focus": "decimal validation and retry headers",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_decimal_validation_and_retry_headers; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_decimal_validation_and_retry_headers(self):\n        for value in [1.1, Decimal(\"NaN\"), Decimal(\"Infinity\"), Decimal(\"-1\"), Decimal(\"1.001\")]:\n            with self.assertRaises(ValueError):\n                spend_string(value)\n        self.assertEqual(spend_string(Decimal(\"1\")), \"1.00\")\n        self.assertEqual(retry_seconds(\"garbage\"), 0)\n        self.assertEqual(retry_seconds(\"NaN\"), 0)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_decimal_validation_and_retry_headers; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 7.41
+    },
+    {
+      "id": "TC-117",
+      "category": "D",
+      "focus": "queued endpoint tenant role and disabled checks",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_queued_endpoint_tenant_role_and_disabled_checks; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_queued_endpoint_tenant_role_and_disabled_checks(self):\n        tenant = uuid4()\n        context = SimpleNamespace(tenant_id=tenant, role=\"OWNER\")\n        queued = []\n        async def enqueue(value):\n            queued.append(value)\n        async def authenticate():\n            return context\n        app = FastAPI()\n        app.state.hubspot = SimpleNamespace(enqueue=enqueue)\n        app.include_router(build_router(authenticate))\n        with TestClient(app) as client:\n            self.assertEqual(client.post(\"/api/v1/crm/sync-tenant\", json={\"tenant_id\": str(tenant)}).status_code, 202)\n            self.assertEqual(client.post(\"/api/v1/crm/sync-tenant\", json={\"tenant_id\": str(uuid4())}).status_code, 403)\n            context.role = \"DISPATCHER\"\n            self.assertEqual(client.post(\"/api/v1/crm/sync-tenant\", json={\"tenant_id\": str(tenant)}).status_code, 403)\n            context.role = \"ADMIN\"\n            app.state.hubspot = None\n            self.assertEqual(client.post(\"/api/v1/crm/sync-tenant\", json={\"tenant_id\": str(tenant)}).status_code, 503)\n        self.assertEqual(queued, [tenant])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_queued_endpoint_tenant_role_and_disabled_checks; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 18.47
+    },
+    {
+      "id": "TC-118",
+      "category": "D",
+      "focus": "service uses tenant totals and blocks mixed currency",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_service_uses_tenant_totals_and_blocks_mixed_currency; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_service_uses_tenant_totals_and_blocks_mixed_currency(self):\n        tenant = uuid4()\n        class DB:\n            @asynccontextmanager\n            async def acquire(self):\n                yield self\n            async def fetchrow(self, sql, *args):\n                self.sql, self.args = sql, args\n                return {\"package_count\": 51, \"total_spend\": Decimal(\"123.45\"), \"mixed_currency\": 1}\n        db = DB()\n        with self.assertRaises(CRMError):\n            await HubSpotService(db, None).totals(db, tenant)\n        self.assertIn(\"s.tenant_id=$1\", db.sql)\n        self.assertEqual(db.args, (tenant,))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_service_uses_tenant_totals_and_blocks_mixed_currency; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.0
+    },
+    {
+      "id": "TC-119",
+      "category": "D",
+      "focus": "worker persists delivery and preserves new revision",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_worker_persists_delivery_and_preserves_new_revision; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_worker_persists_delivery_and_preserves_new_revision(self):\n        tenant_id = uuid4()\n        class DB:\n            def __init__(self):\n                self.revision, self.deleted, self.linked, self.unlocked = 1, False, False, False\n            @asynccontextmanager\n            async def acquire(self):\n                yield self\n            async def fetchval(self, sql, *args):\n                return True\n            async def fetchrow(self, sql, *args):\n                if \"revision,attempts\" in sql:\n                    return {\"revision\": self.revision, \"attempts\": 0}\n                if \"company_profile\" in sql:\n                    return {\"company_name\": \"Acme\", \"company_profile\": {\"billing_email\": \"alex@example.com\"}, \"default_currency\": \"GBP\"}\n                return {\"package_count\": 51, \"total_spend\": Decimal(\"123.45\"), \"mixed_currency\": 0}\n            async def execute(self, sql, *args):\n                if \"INSERT INTO public.hubspot_tenant_links\" in sql:\n                    self.linked = True\n                if \"DELETE FROM\" in sql:\n                    self.deleted = args[1] == self.revision\n                if \"pg_advisory_unlock\" in sql:\n                    self.unlocked = True\n        db = DB()\n        class Client:\n            async def onboard(self, *args):\n                db.revision += 1  # A shipment commits while CRM HTTP is in flight.\n                return \"10\"\n            async def milestone(self, *args):\n                return \"20\"\n        await HubSpotService(db, Client()).process(tenant_id)\n        self.assertTrue(db.linked)\n        self.assertTrue(db.unlocked)\n        self.assertFalse(db.deleted)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_worker_persists_delivery_and_preserves_new_revision; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 8.37
+    },
+    {
+      "id": "TC-120",
+      "category": "D",
+      "focus": "worker blocks permanent failure and unlocks",
+      "steps": [
+        "Run isolated existing test test_hubspot_crm.HubSpotTests.test_worker_blocks_permanent_failure_and_unlocks; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_worker_blocks_permanent_failure_and_unlocks(self):\n        class DB:\n            @asynccontextmanager\n            async def acquire(self):\n                yield self\n            async def fetchval(self, sql, *args):\n                return True\n            async def fetchrow(self, sql, *args):\n                if \"revision,attempts\" in sql:\n                    return {\"revision\": 1, \"attempts\": 0}\n                return {\"company_name\": \"Acme\", \"company_profile\": {\"billing_email\": \"alex@example.com\"}, \"default_currency\": \"GBP\"}\n            async def execute(self, sql, *args):\n                if \"UPDATE public.hubspot_sync_jobs\" in sql:\n                    self.failure = args\n                if \"pg_advisory_unlock\" in sql:\n                    self.unlocked = True\n        class Client:\n            async def onboard(self, *args):\n                raise CRMError(\"hubspot_http_401\", retryable=False)\n        db = DB()\n        await HubSpotService(db, Client()).process(uuid4())\n        self.assertEqual(db.failure[3], \"hubspot_http_401\")\n        self.assertTrue(db.failure[4])\n        self.assertTrue(db.unlocked)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_crm.HubSpotTests.test_worker_blocks_permanent_failure_and_unlocks; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 8.95
+    },
+    {
+      "id": "TC-121",
+      "category": "D",
+      "focus": "metrics exact and legacy compatible",
+      "steps": [
+        "Run isolated existing test test_hubspot_activation.ActivationTests.test_metrics_exact_and_legacy_compatible; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_metrics_exact_and_legacy_compatible(self):\n        merchant = Merchant()\n        async with httpx.AsyncClient(transport=httpx.MockTransport(merchant)) as http:\n            client = HubSpotClient(http,settings())\n            tenant = uuid4()\n            company = await client.onboard(tenant,'Company','merchant@example.invalid','')\n            self.assertTrue(client.contact_ids[str(tenant)].isdigit())\n            await client.milestone(tenant,company,'Company',40,Decimal('123.45'),'GBP',wallet_balance=Decimal('342.10'))\n        p = merchant.records['companies'][0]['properties']\n        self.assertEqual(p['veloce_total_shipments'],'40')\n        self.assertEqual(p['veloce_package_count'],'40')\n        self.assertEqual(p['veloce_wallet_balance'],'342.10')\n        self.assertEqual(p['veloce_total_spend'],'123.45')",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_metrics_exact_and_legacy_compatible; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 14.72
+    },
+    {
+      "id": "TC-122",
+      "category": "D",
+      "focus": "inbound company is reused on sync",
+      "steps": [
+        "Run isolated existing test test_hubspot_activation.ActivationTests.test_inbound_company_is_reused_on_sync; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_inbound_company_is_reused_on_sync(self):\n        merchant = Merchant()\n        merchant.records['companies'].append({'id':'7','properties':{'name':'Existing'}})\n        async with httpx.AsyncClient(transport=httpx.MockTransport(merchant)) as http:\n            company = await HubSpotClient(http,settings()).onboard(uuid4(),'Existing','test@example.invalid','',existing_company_id='7')\n        self.assertEqual(company,'7')\n        self.assertEqual(len(merchant.records['companies']),1)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_inbound_company_is_reused_on_sync; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 11.73
+    },
+    {
+      "id": "TC-123",
+      "category": "D",
+      "focus": "signature raw body timestamp and url integrity",
+      "steps": [
+        "Run isolated existing test test_hubspot_activation.ActivationTests.test_signature_raw_body_timestamp_and_url_integrity; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_signature_raw_body_timestamp_and_url_integrity(self):\n        body=b'[{\"example\": \"raw whitespace\"}]'\n        url='https://example.test/api/v1/integrations/hubspot-webhook'\n        stamp=str(int(time.time()*1000))\n        signature=base64.b64encode(hmac.digest(b'test-secret',b'POST'+url.encode()+body+stamp.encode(),'sha256')).decode()\n        verify_signature('test-secret',url,body,stamp,signature)\n        for u,b,t,s in [(url,body+b' ',stamp,signature),(url+'x',body,stamp,signature),\n                        (url,body,str(int(stamp)-300001),signature),(url,body,str(int(stamp)+300001),signature),\n                        (url,body,stamp,'bad'),(url,body,'',signature)]:\n            with self.assertRaises(HTTPException): verify_signature('test-secret',u,b,t,s)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_signature_raw_body_timestamp_and_url_integrity; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 6.64
+    },
+    {
+      "id": "TC-124",
+      "category": "D",
+      "focus": "association ambiguity and paging rejected",
+      "steps": [
+        "Run isolated existing test test_hubspot_activation.ActivationTests.test_association_ambiguity_and_paging_rejected; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_association_ambiguity_and_paging_rejected(self):\n        from backend.hubspot_crm import CRMError\n        self.assertEqual(association_id({'associations':{'companies':{'results':[{'id':'1'},{'id':'1'}]}}},'companies'),'1')\n        for block in [{'results':[]},{'results':[{'id':'1'},{'id':'2'}]}, {'results':[{'id':'1'}],'paging':{'next':{}}}]:\n            with self.assertRaises(CRMError): association_id({'associations':{'companies':block}},'companies')",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_association_ambiguity_and_paging_rejected; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 8.71
+    },
+    {
+      "id": "TC-125",
+      "category": "D",
+      "focus": "provisioning configuration requires separate app credentials",
+      "steps": [
+        "Run isolated existing test test_hubspot_activation.ActivationTests.test_provisioning_configuration_requires_separate_app_credentials; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_provisioning_configuration_requires_separate_app_credentials(self):\n        from pydantic import ValidationError\n        with self.assertRaises(ValidationError): HubSpotSettings(_env_file=None,hubspot_provisioning_enabled=True)\n        config=HubSpotSettings(_env_file=None,hubspot_webhook_app_id='',hubspot_webhook_client_secret='')\n        self.assertIsNone(config.hubspot_webhook_app_id)\n        self.assertIsNone(config.hubspot_webhook_client_secret)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_provisioning_configuration_requires_separate_app_credentials; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 9.22
+    },
+    {
+      "id": "TC-126",
+      "category": "D",
+      "focus": "signed webhook queues only correct account and stage",
+      "steps": [
+        "Run isolated existing test test_hubspot_activation.ActivationTests.test_signed_webhook_queues_only_correct_account_and_stage; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_signed_webhook_queues_only_correct_account_and_stage(self):\n        class DB:\n            calls=[]\n            @asynccontextmanager\n            async def acquire(self): yield self\n            @asynccontextmanager\n            async def transaction(self): yield self\n            async def execute(self,sql,*args): self.calls.append((sql,args))\n        db=DB()\n        app=FastAPI();app.include_router(build_router(lambda: None))\n        url='https://example.test/api/v1/integrations/hubspot-webhook'\n        config=SimpleNamespace(hubspot_provisioning_enabled=True,hubspot_webhook_url=url,\n            hubspot_webhook_client_secret=SimpleNamespace(get_secret_value=lambda:'test-secret'),\n            hubspot_expected_portal_id=12345,hubspot_webhook_app_id=99,hubspot_closed_won_stage_ids=['closedwon'])\n        app.state.hubspot=SimpleNamespace(pool=db,client=SimpleNamespace(settings=config))\n        event={'portalId':12345,'appId':99,'eventId':1,'objectId':10,'occurredAt':int(time.time()*1000),\n               'subscriptionType':'deal.propertyChange','propertyName':'dealstage','propertyValue':'closedwon'}\n        def send(client,events,sign=True):\n            body=json.dumps(events).encode();stamp=str(int(time.time()*1000))\n            signature=base64.b64encode(hmac.digest(b'test-secret',b'POST'+url.encode()+body+stamp.encode(),'sha256')).decode()\n            return client.post('/api/v1/integrations/hubspot-webhook',content=body,\n                headers={'x-hubspot-signature-v3':signature if sign else 'invalid','x-hubspot-request-timestamp':stamp})\n        with patch('backend.hubspot_provisioning.safe_pending',new=AsyncMock()), TestClient(app) as client:\n            self.assertEqual(send(client,[event]).status_code,202)\n            self.assertEqual(db.calls[0][1],(12345,'10'))\n            self.assertIn('DO NOTHING',db.calls[0][0])\n            self.assertEqual(send(client,[event],False).status_code,401)\n            self.assertEqual(send(client,[{**event,'portalId':2}]).status_code,403)\n            response=send(client,[{**event,'propertyValue':'closedlost'}])\n            self.assertEqual(response.json()['accepted_events'],0)\n            self.assertEqual(len(db.calls),1)\n            self.assertEqual(send(client,[]).status_code,422)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_hubspot_activation.ActivationTests.test_signed_webhook_queues_only_correct_account_and_stage; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 16.69
+    },
+    {
+      "id": "TC-127",
+      "category": "D",
+      "focus": "New tenant Company creation",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-128",
+      "category": "D",
+      "focus": "Primary Contact creation",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-129",
+      "category": "D",
+      "focus": "Contact to Company association",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-130",
+      "category": "D",
+      "focus": "Company reference persisted to Supabase",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-131",
+      "category": "D",
+      "focus": "Lifetime parcel count PATCH",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-132",
+      "category": "D",
+      "focus": "Lifetime spend PATCH",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-133",
+      "category": "D",
+      "focus": "Wallet balance PATCH",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-134",
+      "category": "D",
+      "focus": "Low-credit company lifecycle property",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-135",
+      "category": "D",
+      "focus": "Closed-won webhook authentication",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-136",
+      "category": "D",
+      "focus": "Closed-won workspace provisioning",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-137",
+      "category": "D",
+      "focus": "Closed-won empty wallet creation",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-138",
+      "category": "D",
+      "focus": "HubSpot 429 eventual delivery",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-139",
+      "category": "D",
+      "focus": "CRM event replay deduplication",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-140",
+      "category": "D",
+      "focus": "Non-blocking sync while labels finalize",
+      "steps": [
+        "Read live HubSpot settings and companies API scope readiness."
+      ],
+      "assertions": "Real CRM object mutation and matching local state required.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "HubSpot enabled=False; companies endpoint HTTP=403; genuine CRM lifecycle writes not executed.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-141",
+      "category": "E",
+      "focus": "signed query exact decimal pricing and duplicate receipt",
+      "steps": [
+        "Run isolated existing test test_whatsapp_bot.ConversationalWebhookTests.test_signed_query_exact_decimal_pricing_and_duplicate_receipt; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_signed_query_exact_decimal_pricing_and_duplicate_receipt(self):\n        response = self.post(self.fields(Body=\"Quote 4.5kg from GB to US\"))\n        self.assertEqual(response.status_code, 200, response.text)\n        self.assertTrue(response.headers['content-type'].startswith('application/xml'))\n        text = ElementTree.fromstring(response.text).find('Message').text\n        self.assertIn('\u00a323.45 GBP', text)\n        self.assertIn('(4.50kg)', text)\n        self.assertIn('GB \u2794 US', text)\n        self.assertIn('wallet balance is too low', text)\n        self.assertIn('https://sandbox.example.com/book?', text)\n        self.assertEqual(self.post(self.fields(Body=\"Quote 4.5kg from GB to US\")).text, response.text)\n        self.assertEqual(len(self.observed), 1)\n        self.assertEqual(self.observed[0][0].tenant_id, self.tenant)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_signed_query_exact_decimal_pricing_and_duplicate_receipt; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 12.69
+    },
+    {
+      "id": "TC-142",
+      "category": "E",
+      "focus": "funded and postpaid accounts do not get zero wallet warning",
+      "steps": [
+        "Run isolated existing test test_whatsapp_bot.ConversationalWebhookTests.test_funded_and_postpaid_accounts_do_not_get_zero_wallet_warning; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_funded_and_postpaid_accounts_do_not_get_zero_wallet_warning(self):\n        self.connection.state['wallet']['balance'] = Decimal('100')\n        self.assertNotIn('wallet balance is too low', self.post(self.fields()).text)\n        self.connection.state['tenant']['billing_plan'] = 'POSTPAID_30_DAY'\n        self.connection.state['wallet']['balance'] = Decimal('0')\n        self.assertNotIn('wallet balance is too low', self.post(self.fields(MessageSid='SM'+'c'*32)).text)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_funded_and_postpaid_accounts_do_not_get_zero_wallet_warning; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 7.62
+    },
+    {
+      "id": "TC-143",
+      "category": "E",
+      "focus": "reserved credit cannot be promised for booking",
+      "steps": [
+        "Run isolated existing test test_whatsapp_bot.ConversationalWebhookTests.test_reserved_credit_cannot_be_promised_for_booking; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_reserved_credit_cannot_be_promised_for_booking(self):\n        self.connection.state['wallet'].update(balance=Decimal('100'), reserved_balance=Decimal('90'))\n        self.assertIn('wallet balance is too low', self.post(self.fields()).text)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_reserved_credit_cannot_be_promised_for_booking; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 4.28
+    },
+    {
+      "id": "TC-144",
+      "category": "E",
+      "focus": "unconfigured booking page has no placeholder link",
+      "steps": [
+        "Run isolated existing test test_whatsapp_bot.ConversationalWebhookTests.test_unconfigured_booking_page_has_no_placeholder_link; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_unconfigured_booking_page_has_no_placeholder_link(self):\n        self.settings.booking_page_url = ''\n        response = self.post(self.fields())\n        self.assertEqual(response.status_code, 200)\n        self.assertIn('Book in your signed-in EasyInvio workspace', response.text)\n        self.assertNotIn('_Book:_ https', response.text)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_unconfigured_booking_page_has_no_placeholder_link; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 3.74
+    },
+    {
+      "id": "TC-145",
+      "category": "E",
+      "focus": "wrong canonical url and disabled integration",
+      "steps": [
+        "Run isolated existing test test_whatsapp_bot.ConversationalWebhookTests.test_wrong_canonical_url_and_disabled_integration; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_wrong_canonical_url_and_disabled_integration(self):\n        self.settings.twilio_webhook_url = 'https://sandbox.example.com/other'\n        self.assertEqual(self.post(self.fields()).status_code, 400)\n        self.settings.twilio_enabled = False\n        self.assertEqual(self.post(self.fields()).status_code, 503)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_bot.ConversationalWebhookTests.test_wrong_canonical_url_and_disabled_integration; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 5.51
+    },
+    {
+      "id": "TC-146",
+      "category": "E",
+      "focus": "long replies are split without breaking booking links",
+      "steps": [
+        "Run isolated existing test test_whatsapp_bot.FormatterTests.test_long_replies_are_split_without_breaking_booking_links; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_long_replies_are_split_without_breaking_booking_links(self):\n        link = 'https://example.com/?quote=' + 'a'*700\n        root = ElementTree.fromstring(xml_message('\\n'.join([link]*3)))\n        messages = [message.text for message in root.findall('Message')]\n        self.assertTrue(all(len(message) < 1600 for message in messages))\n        self.assertEqual('\\n'.join(messages), '\\n'.join([link]*3))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_bot.FormatterTests.test_long_replies_are_split_without_breaking_booking_links; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 0.22
+    },
+    {
+      "id": "TC-147",
+      "category": "E",
+      "focus": "xml escaping three offers decimal format",
+      "steps": [
+        "Run isolated existing test test_whatsapp_bot.FormatterTests.test_xml_escaping_three_offers_decimal_format; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_xml_escaping_three_offers_decimal_format(self):\n        rate = SimpleNamespace(carrier_code='DHL & UPS', service_code='<Express>',\n                               currency='GBP', client_price_ex_tax=Decimal('46.00'))\n        xml = format_quotes('EasyInvio.com', Decimal('4.5'), 'GB', 'US',\n            [(rate, 'https://example.com/?a=1&b=2')]*4, sandbox=False, partial=True, wallet_blocked=False)\n        text = ElementTree.fromstring(xml).find('Message').text\n        self.assertEqual(text.count('Price:'), 3)\n        self.assertIn('DHL & UPS <Express>', text)\n        self.assertIn('\u00a346.00 GBP', text)\n        self.assertIn('Some providers', text)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_bot.FormatterTests.test_xml_escaping_three_offers_decimal_format; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 0.22
+    },
+    {
+      "id": "TC-148",
+      "category": "E",
+      "focus": "unconfigured initialization warns without secret",
+      "steps": [
+        "Run isolated existing test test_whatsapp_bot.FormatterTests.test_unconfigured_initialization_warns_without_secret; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_unconfigured_initialization_warns_without_secret(self):\n        from pydantic import SecretStr\n        config=SimpleNamespace(twilio_account_sid='',twilio_auth_token=SecretStr(''),twilio_whatsapp_number='')\n        with self.assertLogs('easyinvio.whatsapp',level='WARNING') as captured:\n            self.assertFalse(initialize_whatsapp(config))\n        self.assertIn('environment configuration keys are unmapped',captured.output[0])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_bot.FormatterTests.test_unconfigured_initialization_warns_without_secret; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 1.49
+    },
+    {
+      "id": "TC-149",
+      "category": "E",
+      "focus": "signed query exact decimal pricing and duplicate receipt",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.WhatsAppTests.test_signed_query_exact_decimal_pricing_and_duplicate_receipt; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_signed_query_exact_decimal_pricing_and_duplicate_receipt(self):\n        response = self.post(self.fields(FutureTwilioParameter=\"must be included in signature\"))\n        self.assertEqual(response.status_code, 200, response.text)\n        text = ElementTree.fromstring(response.text).find(\"Message\").text\n        self.assertIn(\"GBP 23.45\", text)\n        self.assertIn(\"sandbox quotes\", text)\n        self.assertIn(\"4.5kg\", text)\n        context, request = self.observed[0]\n        self.assertEqual(context.tenant_id, self.tenant)\n        self.assertEqual(request.weights_kg, [Decimal(\"4.5\")])\n        self.assertEqual(request.destination.country_code, \"US\")\n        self.assertEqual(self.post(self.fields(FutureTwilioParameter=\"must be included in signature\")).text, response.text)\n        self.assertEqual(len(self.observed), 1)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_signed_query_exact_decimal_pricing_and_duplicate_receipt; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 6.96
+    },
+    {
+      "id": "TC-150",
+      "category": "E",
+      "focus": "invalid signature never reads tenant data",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.WhatsAppTests.test_invalid_signature_never_reads_tenant_data; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_invalid_signature_never_reads_tenant_data(self):\n        self.assertEqual(self.post(self.fields(), signature=\"invalid\").status_code, 403)\n        self.assertEqual(self.connection.calls, [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_invalid_signature_never_reads_tenant_data; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 4.0
+    },
+    {
+      "id": "TC-151",
+      "category": "E",
+      "focus": "signed structural failures",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.WhatsAppTests.test_signed_structural_failures; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_signed_structural_failures(self):\n        for fields in (self.fields(NumMedia=\"-1\"), self.fields(MessageSid=\"bad\"), self.fields(From=\"+447700900123\"), self.fields(SmsSid=\"SM\" + \"c\" * 32)):\n            self.assertEqual(self.post(fields).status_code, 400)\n        self.assertEqual(self.post([*self.fields().items(), (\"Body\", \"second body\")]).status_code, 400)\n        self.assertEqual(self.post({key: value for key, value in self.fields().items() if key != \"NumMedia\"}).status_code, 400)\n        self.assertEqual(self.connection.calls, [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_signed_structural_failures; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 14.85
+    },
+    {
+      "id": "TC-152",
+      "category": "E",
+      "focus": "wrong account receiver and unbound phone",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.WhatsAppTests.test_wrong_account_receiver_and_unbound_phone; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_wrong_account_receiver_and_unbound_phone(self):\n        self.assertEqual(self.post(self.fields(AccountSid=\"AC\" + \"c\" * 32)).status_code, 403)\n        self.assertEqual(self.post(self.fields(To=\"whatsapp:+14155550000\")).status_code, 403)\n        response = self.post(self.fields(From=\"whatsapp:+447700900999\"))\n        self.assertIn(\"not registered\", response.text)\n        self.assertEqual(self.observed, [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_wrong_account_receiver_and_unbound_phone; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 7.82
+    },
+    {
+      "id": "TC-153",
+      "category": "E",
+      "focus": "media returns text instruction and bad iso returns help",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.WhatsAppTests.test_media_returns_text_instruction_and_bad_iso_returns_help; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_media_returns_text_instruction_and_bad_iso_returns_help(self):\n        self.assertIn(\"Please send text\", self.post(self.fields(NumMedia=\"1\")).text)\n        self.assertIn(\"Send:\", self.post(self.fields(Body=\"Quote 4.5kg from XYZ to USA\")).text)\n        self.assertEqual(self.observed, [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_media_returns_text_instruction_and_bad_iso_returns_help; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 6.55
+    },
+    {
+      "id": "TC-154",
+      "category": "E",
+      "focus": "non sandbox binding cannot be quoted",
+      "steps": [
+        "Run isolated existing test test_sandbox_hooks.WhatsAppTests.test_non_sandbox_binding_cannot_be_quoted; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_non_sandbox_binding_cannot_be_quoted(self):\n        self.connection.state[\"tenant\"][\"is_sandbox\"] = False\n        self.assertIn(\"not registered\", self.post(self.fields()).text)\n        self.assertEqual(self.observed, [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_sandbox_hooks.WhatsAppTests.test_non_sandbox_binding_cannot_be_quoted; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 3.27
+    },
+    {
+      "id": "TC-155",
+      "category": "E",
+      "focus": "only two callbacks are routed",
+      "steps": [
+        "Run isolated existing test test_whatsapp_ingress.IngressTests.test_only_two_callbacks_are_routed; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_only_two_callbacks_are_routed(self):\n        for path in ['/', '/docs', '/openapi.json', '/health', '/api/v1/admin/tenants',\n                     '/api/v1/billing/create-checkout', '/webhooks/stripe',\n                     '/api/v1/support/whatsapp/status/not-a-uuid']:\n            response = self.client.post(path, content='x=1')\n            self.assertIn(response.status_code, (404, 422))\n        self.assertEqual(self.calls, [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_ingress.IngressTests.test_only_two_callbacks_are_routed; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 204.88
+    },
+    {
+      "id": "TC-156",
+      "category": "E",
+      "focus": "forwarding preserves raw body and signature only",
+      "steps": [
+        "Run isolated existing test test_whatsapp_ingress.IngressTests.test_forwarding_preserves_raw_body_and_signature_only; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_forwarding_preserves_raw_body_and_signature_only(self):\n        path = '/api/v1/integrations/whatsapp/webhook'\n        response = self.client.post(path, content='Body=Quote+4.5kg&From=whatsapp%3A%2B1',\n            headers={'content-type':'application/x-www-form-urlencoded', 'X-Twilio-Signature':'signed',\n                     'Authorization':'Bearer must-not-forward', 'X-Forwarded-Host':'attacker.example'})\n        self.assertEqual(response.status_code, 403)\n        url, options = self.calls[0]\n        self.assertEqual(url, 'http://127.0.0.1:8000'+path)\n        self.assertEqual(options['content'], b'Body=Quote+4.5kg&From=whatsapp%3A%2B1')\n        self.assertEqual(set(options['headers']), {'Content-Type', 'X-Twilio-Signature'})",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_ingress.IngressTests.test_forwarding_preserves_raw_body_and_signature_only; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 195.47
+    },
+    {
+      "id": "TC-157",
+      "category": "E",
+      "focus": "status callback uuid route",
+      "steps": [
+        "Run isolated existing test test_whatsapp_ingress.IngressTests.test_status_callback_uuid_route; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_status_callback_uuid_route(self):\n        path = '/api/v1/support/whatsapp/status/' + str(uuid4())\n        self.assertEqual(self.client.post(path, content='MessageStatus=delivered',\n            headers={'content-type':'application/x-www-form-urlencoded', 'X-Twilio-Signature':'signed'}).status_code, 403)\n        self.assertEqual(self.calls[0][0], 'http://127.0.0.1:8000'+path)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_ingress.IngressTests.test_status_callback_uuid_route; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 219.09
+    },
+    {
+      "id": "TC-158",
+      "category": "E",
+      "focus": "unsigned oversized and query payloads never forward",
+      "steps": [
+        "Run isolated existing test test_whatsapp_ingress.IngressTests.test_unsigned_oversized_and_query_payloads_never_forward; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_unsigned_oversized_and_query_payloads_never_forward(self):\n        path = '/api/v1/integrations/whatsapp/webhook'\n        headers = {'content-type':'application/x-www-form-urlencoded', 'X-Twilio-Signature':'signed'}\n        self.assertEqual(self.client.post(path, content='x=1', headers={'content-type':headers['content-type']}).status_code,403)\n        self.assertEqual(self.client.post(path+'?target=http://other', content='x=1',headers=headers).status_code,400)\n        self.assertEqual(self.client.post(path, content='x'*32769, headers=headers).status_code,413)\n        self.assertEqual(self.calls, [])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_whatsapp_ingress.IngressTests.test_unsigned_oversized_and_query_payloads_never_forward; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 205.78
+    },
+    {
+      "id": "TC-159",
+      "category": "E",
+      "focus": "Real personal-phone quote 5kg GB to US",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-160",
+      "category": "E",
+      "focus": "Real personal-phone three calibrated offers",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-161",
+      "category": "E",
+      "focus": "Live carrier cheapest-offer ordering",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-162",
+      "category": "E",
+      "focus": "Real click-to-book links",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-163",
+      "category": "E",
+      "focus": "Zero-wallet warning delivered to phone",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-164",
+      "category": "E",
+      "focus": "Reserved-wallet warning delivered to phone",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-165",
+      "category": "E",
+      "focus": "Malformed weight instruction delivered",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-166",
+      "category": "E",
+      "focus": "Invalid XYZ country instruction delivered",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-167",
+      "category": "E",
+      "focus": "Missing destination instruction delivered",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-168",
+      "category": "E",
+      "focus": "Unbound phone registration reply delivered",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-169",
+      "category": "E",
+      "focus": "Disabled binding registration reply delivered",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-170",
+      "category": "E",
+      "focus": "Wrong sandbox receiver rejected",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-171",
+      "category": "E",
+      "focus": "Real Twilio webhook retry returns same quote",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-172",
+      "category": "E",
+      "focus": "Carrier timeout message delivered",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-173",
+      "category": "E",
+      "focus": "WhatsApp exception remedy sent",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-174",
+      "category": "E",
+      "focus": "WhatsApp delivery callback commits receipt",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.01
+    },
+    {
+      "id": "TC-175",
+      "category": "E",
+      "focus": "Long multi-message quote delivered",
+      "steps": [
+        "Read real Twilio account and active carrier readiness; verify required phone action/delivery evidence."
+      ],
+      "assertions": "Must include an actual Twilio delivery or inbound phone event; locally signed HTTP alone is insufficient.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Twilio account HTTP=200; actual phone roundtrip/delivery not automated; active TEST carriers=0.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "id": "TC-176",
+      "category": "F",
+      "focus": "exact requested header and all cargo types",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVParsingTests.test_exact_requested_header_and_all_cargo_types; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_exact_requested_header_and_all_cargo_types(self):\n        self.assertEqual(','.join(CSV_FIELDS),'order_reference,cargo_type,origin_name,origin_line1,origin_city,origin_postal_code,origin_country_code,recipient_name,recipient_phone,destination_name,destination_line1,destination_city,destination_postal_code,destination_country_code,length_cm,width_cm,height_cm,weight_kg,currency,item_description,item_declared_value')\n        rows=[example(i) for i in range(4)]\n        road=example(2);road.update(order_reference='CSV-ROAD',cargo_type='OVERLAND_FREIGHT',length_cm='200',width_cm='120',weight_kg='900.000');rows.append(road)\n        parsed=parse_batch_csv(encode(rows),RatingRequest)\n        self.assertFalse(any(row.get('error') for row in parsed))\n        self.assertEqual(parsed[1]['request'].dimensions,[])\n        self.assertEqual(parsed[2]['weight']['billable_weight_kg'],'700.000')\n        self.assertEqual(parsed[4]['weight']['billable_weight_kg'],'1750.000')\n        self.assertIn('item_origin_country',parsed[3]['missing_fields'])\n        self.assertIn('destination_state',parsed[3]['missing_fields'])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_exact_requested_header_and_all_cargo_types; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 3.2
+    },
+    {
+      "id": "TC-177",
+      "category": "F",
+      "focus": "recipient contact company phone and decimal mapping",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVParsingTests.test_recipient_contact_company_phone_and_decimal_mapping; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_recipient_contact_company_phone_and_decimal_mapping(self):\n        row=example();row['recipient_phone']=\"'+447700900001\"\n        data=parse_batch_csv(encode([row]),RatingRequest)[0]\n        self.assertEqual(data['request'].destination.name,'Alex Example')\n        self.assertEqual(data['request'].destination.company,'Example Customer')\n        self.assertEqual(data['request'].destination.phone,'+447700900001')\n        self.assertEqual(data['declared_value'],'25.00')\n        self.assertEqual(data['hs_suggestion']['hs_code'],'610910')",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_recipient_contact_company_phone_and_decimal_mapping; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 0.39
+    },
+    {
+      "id": "TC-178",
+      "category": "F",
+      "focus": "invalid rows do not discard valid peers",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVParsingTests.test_invalid_rows_do_not_discard_valid_peers; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_invalid_rows_do_not_discard_valid_peers(self):\n        good=example();bad=example(1);bad['weight_kg']='0.500'\n        malformed=example(2);malformed['recipient_phone']='0044broken'\n        data=parse_batch_csv(encode([good,bad,malformed]),RatingRequest)\n        self.assertNotIn('error',data[0]);self.assertIn('error',data[1]);self.assertIn('error',data[2])\n        duplicate=parse_batch_csv(encode([good,good]),RatingRequest)\n        self.assertIn('duplicate',duplicate[1]['error'])\n        class UnavailablePool:\n            def acquire(self):raise OSError('Controlled unavailable database')\n        service=CSVOrderService(UnavailablePool(),None)\n        failure=asyncio.run(service.process(SimpleNamespace(tenant_id=uuid4()),data[0]))\n        self.assertEqual(failure['status'],'failed')\n        self.assertNotIn('Controlled unavailable database',failure['error'])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_invalid_rows_do_not_discard_valid_peers; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 1.77
+    },
+    {
+      "id": "TC-179",
+      "category": "F",
+      "focus": "extended international customs and store identity",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVParsingTests.test_extended_international_customs_and_store_identity; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_extended_international_customs_and_store_identity(self):\n        row=example(3,True);row.update(hs_codes_reviewed='true',customs_signer='Test Signer',\n            store_id=str(uuid4()),store_order_id='1024',platform='SHOPIFY')\n        data=parse_batch_csv(encode([row],CSV_FIELDS+OPTIONAL_CSV_FIELDS),RatingRequest)[0]\n        self.assertEqual(data['missing_fields'],[])\n        order=data['order'];self.assertEqual(order.items[0].unit_value,Decimal('25'))\n        self.assertEqual(order.items[0].origin_country,'GB');self.assertEqual(order.destination['state'],'NY')\n        self.assertEqual(order.store_order_id,'1024');self.assertTrue(order.hs_codes_reviewed)\n        row.update(item_quantity='3',item_net_weight_kg='0.500')\n        multiple=parse_batch_csv(encode([row],CSV_FIELDS+OPTIONAL_CSV_FIELDS),RatingRequest)[0]['order']\n        self.assertEqual(multiple.items[0].unit_value*multiple.items[0].quantity,Decimal('75.00'))\n        row['item_net_weight_kg']='3.000'\n        self.assertIn('error',parse_batch_csv(encode([row],CSV_FIELDS+OPTIONAL_CSV_FIELDS),RatingRequest)[0])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_extended_international_customs_and_store_identity; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 1.02
+    },
+    {
+      "id": "TC-180",
+      "category": "F",
+      "focus": "validation boundaries and unknown tenant column",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVParsingTests.test_validation_boundaries_and_unknown_tenant_column; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_validation_boundaries_and_unknown_tenant_column(self):\n        for field,value in [('item_declared_value','NaN'),('item_declared_value','-1'),('item_declared_value','1.001'),('cargo_type','UNKNOWN')]:\n            row=example();row[field]=value\n            self.assertIn('error',parse_batch_csv(encode([row]),RatingRequest)[0])\n        with self.assertRaises(ValueError):parse_batch_csv(encode([example()|{'tenant_id':str(uuid4())}],CSV_FIELDS+('tenant_id',)),RatingRequest)\n        with self.assertRaises(ValueError):parse_batch_csv(encode([example()]*1001),RatingRequest)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_validation_boundaries_and_unknown_tenant_column; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 13.79
+    },
+    {
+      "id": "TC-181",
+      "category": "F",
+      "focus": "legacy layout and bom are supported",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVParsingTests.test_legacy_layout_and_bom_are_supported; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_legacy_layout_and_bom_are_supported(self):\n        source=example();row={field:source[field] for field in LEGACY_CSV_FIELDS}\n        parsed=parse_batch_csv(b'\\xef\\xbb\\xbf'+encode([row],LEGACY_CSV_FIELDS),RatingRequest)[0]\n        self.assertNotIn('error',parsed);self.assertEqual(parsed['order'].cargo.cargo_type,'PARCEL')",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_legacy_layout_and_bom_are_supported; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 0.32
+    },
+    {
+      "id": "TC-182",
+      "category": "F",
+      "focus": "review requires explicit codes and boolean confirmation",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVParsingTests.test_review_requires_explicit_codes_and_boolean_confirmation; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_review_requires_explicit_codes_and_boolean_confirmation(self):\n        body={'items':[{'description':'Cotton T-shirt','quantity':1,'unit_value':'25.00','unit_weight_kg':'2.000','origin_country':'GB','hs_code':'610910'}],\n            'customs_signer':'Test Signer','recipient_phone':'+12025550123','hs_codes_reviewed':True}\n        self.assertTrue(CSVCustomsReview.model_validate(body).hs_codes_reviewed)\n        for bad in [False,1,'true']:\n            with self.assertRaises(ValueError):CSVCustomsReview.model_validate(body|{'hs_codes_reviewed':bad})\n        body['items'][0]['hs_code']=None\n        with self.assertRaises(ValueError):CSVCustomsReview.model_validate(body)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVParsingTests.test_review_requires_explicit_codes_and_boolean_confirmation; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 0.31
+    },
+    {
+      "id": "TC-183",
+      "category": "F",
+      "focus": "downloaded template round trips and stages international",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVRouteTests.test_downloaded_template_round_trips_and_stages_international; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_downloaded_template_round_trips_and_stages_international(self):\n        downloaded=self.client.get('/api/v1/shipments/batch-template').json()\n        rows=[dict(zip(downloaded['columns'],values)) for values in downloaded['examples']]\n        response=self.client.post('/api/v1/shipments/batch-preview',content=encode(rows),headers={'Content-Type':'text/csv'})\n        self.assertEqual(response.status_code,200)\n        result=response.json();self.assertEqual(result['quoted'],3);self.assertEqual(result['review_required'],1)\n        self.assertEqual(result['saved'],0);self.assertEqual(result['bookings_created'],0)\n        self.assertEqual(result['results'][3]['customs']['items'][0]['origin_country'],None)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVRouteTests.test_downloaded_template_round_trips_and_stages_international; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 20.55
+    },
+    {
+      "id": "TC-184",
+      "category": "F",
+      "focus": "batch roles and row dispatch are isolated",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVRouteTests.test_batch_roles_and_row_dispatch_are_isolated; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_batch_roles_and_row_dispatch_are_isolated(self):\n        calls=[]\n        async def process(context,row):\n            calls.append((context,row));return {'row':row['row'],'order_reference':row['order_reference'],'status':'quoted','saved':True}\n        self.app.state.csv_orders=SimpleNamespace(automation=SimpleNamespace(order_limiter=asyncio.Semaphore(2)),process=process)\n        response=self.client.post('/api/v1/shipments/batch',content=encode([example()]),headers={'Content-Type':'text/csv'})\n        self.assertEqual(response.json()['saved'],1);self.assertEqual(calls[0][0].tenant_id,self.context.tenant_id)\n        self.context.role='ACCOUNTANT'\n        self.assertEqual(self.client.post('/api/v1/shipments/batch',content=encode([example()]),headers={'Content-Type':'text/csv'}).status_code,403)\n        self.assertEqual(len(calls),1)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVRouteTests.test_batch_roles_and_row_dispatch_are_isolated; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 20.29
+    },
+    {
+      "id": "TC-185",
+      "category": "F",
+      "focus": "review preview never accepts unreviewed customs",
+      "steps": [
+        "Run isolated existing test test_order_csv.CSVRouteTests.test_review_preview_never_accepts_unreviewed_customs; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "def test_review_preview_never_accepts_unreviewed_customs(self):\n        row=example(3,True);parsed=parse_batch_csv(encode([row],CSV_FIELDS+OPTIONAL_CSV_FIELDS),RatingRequest)[0]\n        order=parsed['order'].model_dump(mode='json')\n        self.assertEqual(self.client.post('/api/v1/shipments/batch-review-preview',json=order).status_code,422)\n        order.update(hs_codes_reviewed=True,customs_signer='Test Signer')\n        response=self.client.post('/api/v1/shipments/batch-review-preview',json=order)\n        self.assertEqual(response.status_code,200);self.assertEqual(response.json()['status'],'quoted')\n        self.assertTrue(response.json()['customs']['ready_for_provider']);self.assertFalse(response.json()['saved'])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_order_csv.CSVRouteTests.test_review_preview_never_accepts_unreviewed_customs; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 17.6
+    },
+    {
+      "id": "TC-186",
+      "category": "F",
+      "focus": "exact import replay and changed payload",
+      "steps": [
+        "Run isolated existing test test_ecommerce_sync.EcommerceTests.test_exact_import_replay_and_changed_payload; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_exact_import_replay_and_changed_payload(self):\n        data = ImportPayload.model_validate(payload(self.store))\n        first = await self.service.import_order(self.context, data)\n        self.assertEqual(first[\"total_weight_kg\"], \"0.45075\")\n        self.assertEqual(first[\"shipping_address\"][\"country_code\"], \"GB\")\n        second = await self.service.import_order(self.context, data)\n        self.assertTrue(second[\"replayed\"])\n        self.assertEqual(first[\"shipment_id\"], second[\"shipment_id\"])\n        data.order.shipping_address.city = \"York\"\n        with self.assertRaises(HTTPException) as raised:\n            await self.service.import_order(self.context, data)\n        self.assertEqual(raised.exception.status_code, 409)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_exact_import_replay_and_changed_payload; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.49
+    },
+    {
+      "id": "TC-187",
+      "category": "F",
+      "focus": "tenant and permission isolation",
+      "steps": [
+        "Run isolated existing test test_ecommerce_sync.EcommerceTests.test_tenant_and_permission_isolation; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_tenant_and_permission_isolation(self):\n        data = ImportPayload.model_validate(payload(self.store))\n        for context, status in [(SimpleNamespace(tenant_id=uuid4(), role=\"ADMIN\"), 404),\n                                (SimpleNamespace(tenant_id=self.tenant, role=\"ACCOUNTANT\"), 403)]:\n            with self.assertRaises(HTTPException) as raised:\n                await self.service.import_order(context, data)\n            self.assertEqual(raised.exception.status_code, status)\n        self.assertFalse(self.database.shipments)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_tenant_and_permission_isolation; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.69
+    },
+    {
+      "id": "TC-188",
+      "category": "F",
+      "focus": "outbox simulation retry idempotency and tenant isolation",
+      "steps": [
+        "Run isolated existing test test_ecommerce_sync.EcommerceTests.test_outbox_simulation_retry_idempotency_and_tenant_isolation; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_outbox_simulation_retry_idempotency_and_tenant_isolation(self):\n        imported = await self.service.import_order(self.context, ImportPayload.model_validate(payload(self.store)))\n        from uuid import UUID\n        await self.service.queue_confirmed_tracking(self.database, self.tenant, UUID(imported[\"shipment_id\"]), \"1Z123\", \"UPS\")\n        with self.assertRaises(HTTPException):\n            await self.service.push(uuid4(), \"123\", \"1Z123\", \"UPS\")\n        await self.service.retry_pending()\n        await self.service.push(self.tenant, \"123\", \"1Z123\", \"UPS\")\n        event = next(iter(self.database.events.values()))\n        self.assertEqual(event[\"attempts\"], 1)\n        self.assertTrue(event[\"response\"][\"simulated\"])\n        self.assertEqual(json.loads(event[\"payload\"])[\"fulfillment_state\"], \"SHIPPED\")",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_outbox_simulation_retry_idempotency_and_tenant_isolation; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.17
+    },
+    {
+      "id": "TC-189",
+      "category": "F",
+      "focus": "validation limits",
+      "steps": [
+        "Run isolated existing test test_ecommerce_sync.EcommerceTests.test_validation_limits; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_validation_limits(self):\n        for changed in [0, \"NaN\", -1]:\n            data = payload(self.store)\n            data[\"order\"][\"line_items\"][0][\"grams\"] = changed\n            with self.assertRaises(ValueError):\n                parsed_order(ImportPayload.model_validate(data).order)\n        data = payload(self.store)\n        data[\"order\"][\"line_items\"][0][\"quantity\"] = True\n        with self.assertRaises(ValueError):\n            ImportPayload.model_validate(data)\n        self.assertIsNone(tracking_link(\"unknown\", \"123\"))\n        self.assertIn(\"A%26B\", tracking_link(\"UPS\", \"A&B\"))",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_validation_limits; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 8.54
+    },
+    {
+      "id": "TC-190",
+      "category": "F",
+      "focus": "http import and invalid body",
+      "steps": [
+        "Run isolated existing test test_ecommerce_sync.EcommerceTests.test_http_import_and_invalid_body; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_http_import_and_invalid_body(self):\n        app = FastAPI()\n        app.state.ecommerce = self.service\n        async def authenticate():\n            return self.context\n        app.include_router(build_router(authenticate))\n        with TestClient(app) as client:\n            response = client.post(\"/api/v1/integration/pull-orders\", json=payload(self.store))\n            self.assertEqual(response.status_code, 201)\n            self.assertEqual(response.json()[\"status\"], \"PENDING_IMPORT\")\n            self.assertEqual(client.post(\"/api/v1/integration/pull-orders\", json={\"tenant_id\": str(uuid4())}).status_code, 422)\n            self.assertEqual(client.post(\"/api/v1/integration/pull-orders\", content=\"{}\").status_code, 415)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_ecommerce_sync.EcommerceTests.test_http_import_and_invalid_body; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 17.02
+    },
+    {
+      "id": "TC-191",
+      "category": "F",
+      "focus": "combined pdf preserves label and adds invoice",
+      "steps": [
+        "Run isolated existing test test_dispatch_workspace.WorkspaceTests.test_combined_pdf_preserves_label_and_adds_invoice; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_combined_pdf_preserves_label_and_adds_invoice(self):\n        from reportlab.pdfgen import canvas\n        label=BytesIO();c=canvas.Canvas(label,pagesize=(288,432));c.drawString(20,400,'CONTROLLED LABEL');c.save()\n        doc=self.declaration()\n        row={'id':uuid4(),'status':'BOOKED','booked_at':'2026-10-10','tracking_number':'TEST123','label_storage_path':'https://labels.example.com/test.pdf',\n             'customs_required':True,'customer_reference':'#1024','logistics_metadata':{'automation_customs':doc}}\n        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request:httpx.Response(200,content=label.getvalue(),headers={'content-type':'application/pdf'}))) as client:\n            pdf=await bundle_shipments([row],client=client,hosts=['labels.example.com'])\n            doc['postal_form']='CN23'\n            with self.assertRaises(HTTPException) as error:await bundle_shipments([row],client=client,hosts=['labels.example.com'])\n            self.assertEqual(error.exception.status_code,409)\n            doc['postal_form']=None\n        reader=PdfReader(BytesIO(pdf));self.assertEqual(len(reader.pages),2)\n        self.assertEqual(int(reader.pages[0].mediabox.width),288)\n        self.assertIn('CONTROLLED LABEL',reader.pages[0].extract_text())\n        self.assertIn('24.70',reader.pages[1].extract_text())\n        self.assertIn('Cotton T-shirt <not markup>',reader.pages[1].extract_text())\n        from pathlib import Path\n        Path('output/pdf').mkdir(parents=True,exist_ok=True)\n        Path('output/pdf/dispatcher-journey-test.pdf').write_bytes(pdf)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_combined_pdf_preserves_label_and_adds_invoice; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 234.27
+    },
+    {
+      "id": "TC-192",
+      "category": "F",
+      "focus": "pdf boundaries no fake or missing postal forms",
+      "steps": [
+        "Run isolated existing test test_dispatch_workspace.WorkspaceTests.test_pdf_boundaries_no_fake_or_missing_postal_forms; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_pdf_boundaries_no_fake_or_missing_postal_forms(self):\n        doc=self.declaration();doc['postal_form']='CN23'\n        row={'id':uuid4(),'status':'QUOTED','booked_at':None,'tracking_number':None,'label_storage_path':None,'customs_required':True,'logistics_metadata':{}}\n        with self.assertRaises(HTTPException) as e:await bundle_shipments([row],hosts=[])\n        self.assertEqual(e.exception.status_code,409)\n        client=AsyncMock()\n        for url in ['http://labels.example.com/a.pdf','https://127.0.0.1/a.pdf','https://labels.example.com@evil.com/a.pdf','https://labels.example.com:8080/a.pdf','https://labels.example.com:bad/a.pdf']:\n            with self.assertRaises(HTTPException):await fetch_pdf(client,url,['labels.example.com'])\n        client.stream.assert_not_called()\n        with self.assertRaises(ValueError):PrintSettings(carrier_pdf_hosts=['127.0.0.1'])\n        doc['ready_for_provider']=False\n        with self.assertRaises(HTTPException):invoice_pdf('test',doc)\n        with self.assertRaises(HTTPException):merge_pdfs([b'not a PDF'])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_pdf_boundaries_no_fake_or_missing_postal_forms; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 216.42
+    },
+    {
+      "id": "TC-193",
+      "category": "F",
+      "focus": "shopify pagination isolated import failure and replay",
+      "steps": [
+        "Run isolated existing test test_dispatch_workspace.WorkspaceTests.test_shopify_pagination_isolated_import_failure_and_replay; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_shopify_pagination_isolated_import_failure_and_replay(self):\n        config=StoreConnector(tenant_id=uuid4(),auth_user_id=uuid4(),platform='SHOPIFY',webhook_secret='x'*32,\n            shop_domain='warehouse-test.myshopify.com',access_token='test-token',live_import=True,sku_unit_grams={'TEE':'200'})\n        store_id=uuid4();calls=[];imports=[]\n        def transport(request):\n            payload=json.loads(request.content);calls.append(payload['variables']['after'])\n            index=len(calls)\n            good={'id':f'gid://shopify/Order/{index}','name':f'#{index}','currencyCode':'USD','cancelledAt':None,'displayFulfillmentStatus':'UNFULFILLED',\n                'shippingAddress':{'name':'Client','address1':'1 Test St','city':'New York','zip':'10001','countryCodeV2':'US','provinceCode':'NY','phone':'+12025550123'},\n                'lineItems':{'pageInfo':{'hasNextPage':False},'nodes':[{'title':'Cotton T-shirt','sku':'TEE','quantity':1,'unfulfilledQuantity':1,'requiresShipping':True,'originalUnitPriceSet':{'shopMoney':{'amount':'12.35','currencyCode':'USD'}}}]}}\n            bad={**good,'id':'gid://shopify/Order/invalid','lineItems':{'pageInfo':{'hasNextPage':True},'nodes':[]}}\n            return httpx.Response(200,json={'data':{'orders':{'nodes':[good,bad], 'pageInfo':{'hasNextPage':index==1,'endCursor':'cursor1' if index==1 else None}}}})\n        async def imported(context,payload):\n            imports.append(payload);return {'status':'PENDING_IMPORT','shipment_id':str(uuid4()),'replayed':False}\n        async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:\n            service=SimpleNamespace(client=client,import_order=imported)\n            result=await poll_shopify(service,SimpleNamespace(),store_id,config)\n        self.assertEqual(calls,[None,'cursor1']);self.assertEqual(len(imports),2)\n        self.assertEqual([r['status'] for r in result['results']],['PENDING_IMPORT','REVIEW_REQUIRED']*2)\n        self.assertEqual(str(imports[0].order.line_items[0].unit_value),'12.35')\n        self.assertEqual(imports[0].order.shipping_address.phone,'+12025550123')",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_shopify_pagination_isolated_import_failure_and_replay; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 10.06
+    },
+    {
+      "id": "TC-194",
+      "category": "F",
+      "focus": "hundred orders shared limiter and per order review",
+      "steps": [
+        "Run isolated existing test test_dispatch_workspace.WorkspaceTests.test_hundred_orders_shared_limiter_and_per_order_review; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_hundred_orders_shared_limiter_and_per_order_review(self):\n        from unittest.mock import patch\n        context=SimpleNamespace(role='DISPATCHER',tenant_id=uuid4())\n        ids=[uuid4() for _ in range(100)]\n        rows=[{'id':id_,'logistics_metadata':{'automation_order':{'index':i}} if i else {}} for i,id_ in enumerate(ids)]\n        active=peak=0\n        async def process(ctx,raw,mode):\n            nonlocal active,peak\n            active+=1;peak=max(peak,active);await asyncio.sleep(.001);active-=1\n            return {'status':'QUOTED','order_reference':str(raw['index'])}\n        app=FastAPI();app.state.ecommerce=SimpleNamespace();app.state.automation_freight=SimpleNamespace(order_limiter=asyncio.Semaphore(4),process=process)\n        app.include_router(build_router(lambda:context))\n        async with httpx.AsyncClient(transport=httpx.ASGITransport(app),base_url='http://test') as client:\n            with patch('backend.dispatch_workspace.selected_rows',AsyncMock(return_value=rows)):\n                result=await client.post('/api/v1/dispatch-workspace/process',json={'shipment_ids':[str(i) for i in ids]})\n                self.assertEqual(result.status_code,200);self.assertEqual(len(result.json()['results']),100)\n                self.assertEqual(result.json()['results'][0]['status'],'REVIEW_REQUIRED')\n                self.assertEqual(sum(r['status']=='QUOTED' for r in result.json()['results']),99)\n                self.assertEqual(peak,4)\n            context.role='ACCOUNTANT'\n            denied=await client.post('/api/v1/dispatch-workspace/process',json={'shipment_ids':[str(ids[0])]})\n            self.assertEqual(denied.status_code,403)",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_hundred_orders_shared_limiter_and_per_order_review; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 275.46
+    },
+    {
+      "id": "TC-195",
+      "category": "F",
+      "focus": "optional customs fields preserve historical import hash shape",
+      "steps": [
+        "Run isolated existing test test_dispatch_workspace.WorkspaceTests.test_optional_customs_fields_preserve_historical_import_hash_shape; its provider/database dependencies are controlled fixtures."
+      ],
+      "assertions": "async def test_optional_customs_fields_preserve_historical_import_hash_shape(self):\n        parsed=parsed_order(StoreOrder.model_validate({'id':'1','name':'#1','currency':'GBP','shipping_address':{\n            'name':'Test','address1':'1 Test Street','city':'London','zip':'SW1A 1AA','country_code':'GB'},\n            'line_items':[{'title':'Cotton T-shirt','quantity':1,'grams':'200'}]}))\n        self.assertNotIn('phone',parsed['shipping_address']);self.assertNotIn('unit_value',parsed['line_items'][0])",
+      "scope": "contract",
+      "status": "PARTIAL",
+      "evidence": "Contract assertions passed: test_dispatch_workspace.WorkspaceTests.test_optional_customs_fields_preserve_historical_import_hash_shape; controlled dependencies, no genuine provider transaction.",
+      "elapsed_ms": 12.41
+    },
+    {
+      "id": "TC-196",
+      "category": "F",
+      "focus": "150-row CSV valid150 parsing and isolation",
+      "steps": [
+        "Read generated veloce_bulk_test_150.csv.",
+        "Apply valid150 variation; parse every row through real CSV/model controller."
+      ],
+      "assertions": "150 result rows; expected invalid rows isolated; international data retained and customs staging applied.",
+      "scope": "csv",
+      "status": "PARTIAL",
+      "evidence": "150 rows parsed; 0 isolated errors; model/customs staging only, no actual labels or marketplace transactions.",
+      "elapsed_ms": 31.21
+    },
+    {
+      "id": "TC-197",
+      "category": "F",
+      "focus": "150-row CSV missing_zip parsing and isolation",
+      "steps": [
+        "Read generated veloce_bulk_test_150.csv.",
+        "Apply missing_zip variation; parse every row through real CSV/model controller."
+      ],
+      "assertions": "150 result rows; expected invalid rows isolated; international data retained and customs staging applied.",
+      "scope": "csv",
+      "status": "PARTIAL",
+      "evidence": "150 rows parsed; 1 isolated errors; model/customs staging only, no actual labels or marketplace transactions.",
+      "elapsed_ms": 26.08
+    },
+    {
+      "id": "TC-198",
+      "category": "F",
+      "focus": "150-row CSV bad_weight parsing and isolation",
+      "steps": [
+        "Read generated veloce_bulk_test_150.csv.",
+        "Apply bad_weight variation; parse every row through real CSV/model controller."
+      ],
+      "assertions": "150 result rows; expected invalid rows isolated; international data retained and customs staging applied.",
+      "scope": "csv",
+      "status": "PARTIAL",
+      "evidence": "150 rows parsed; 1 isolated errors; model/customs staging only, no actual labels or marketplace transactions.",
+      "elapsed_ms": 24.08
+    },
+    {
+      "id": "TC-199",
+      "category": "F",
+      "focus": "150-row CSV duplicate_reference parsing and isolation",
+      "steps": [
+        "Read generated veloce_bulk_test_150.csv.",
+        "Apply duplicate_reference variation; parse every row through real CSV/model controller."
+      ],
+      "assertions": "150 result rows; expected invalid rows isolated; international data retained and customs staging applied.",
+      "scope": "csv",
+      "status": "PARTIAL",
+      "evidence": "150 rows parsed; 1 isolated errors; model/customs staging only, no actual labels or marketplace transactions.",
+      "elapsed_ms": 26.17
+    },
+    {
+      "id": "TC-200",
+      "category": "F",
+      "focus": "150 real international labels, customs bundle and live marketplace pushback",
+      "steps": [
+        "Verify live carrier and connected store prerequisites."
+      ],
+      "assertions": "All 150 native labels and genuine store fulfillment updates required; preview documents do not count.",
+      "scope": "blocked",
+      "status": "BLOCKED",
+      "evidence": "Active TEST carriers=0; native sandbox purchases are fenced; genuine card completion/store dispatch not executed.",
+      "elapsed_ms": 0.01
+    }
+  ]
+}
