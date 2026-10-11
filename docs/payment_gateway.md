@@ -70,10 +70,32 @@ parameters. Production hosting would use HTTPS on the deployed EasyInvio.com
 app origin. Changing branding does not configure DNS or hosting. Loopback HTTP
 is accepted for local testing; live mode requires HTTPS.
 
+### Windows PowerShell setup
+
+Install the official CLI once (Node/npm required):
+
+```powershell
+npm.cmd install -g @stripe/cli
+stripe.cmd --version
+```
+
+If `stripe` is not recognized, close/reopen PowerShell. The npm wrapper can also
+be called directly, avoiding PATH and PowerShell script-policy issues:
+
+```powershell
+& "$env:APPDATA\npm\stripe.cmd" --version
+& "$env:APPDATA\npm\stripe.cmd" login
+```
+
+Approve the browser pairing for the intended Stripe account/sandbox. Starting
+PowerShell in `C:\WINDOWS\system32` is fine; `cd C:\Projects\veloce-ai` selects
+this project but does not install the CLI. Copy commands without the PS prompt,
+trailing backslashes or Markdown link formatting.
+
 Forward events using the Stripe CLI:
 
 ```powershell
-stripe listen --events checkout.session.completed,checkout.session.async_payment_succeeded --forward-to http://127.0.0.1:8000/api/v1/billing/webhooks/stripe
+& "$env:APPDATA\npm\stripe.cmd" listen --events checkout.session.completed,checkout.session.async_payment_succeeded --forward-to http://127.0.0.1:8000/api/v1/billing/webhooks/stripe
 ```
 
 Use the `whsec_...` printed by that listener for local forwarding. It is not
