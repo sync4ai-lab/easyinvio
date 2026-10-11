@@ -12,7 +12,7 @@ mainContent.insertAdjacentHTML('beforeend', `
 <section id="admin-carriers" hidden>
   <div class="pagehead"><div><div class="eyebrow">Platform / Carrier connectors</div><h1>Carrier Provider Settings</h1><p>Manage tenant-assigned accounts across the platform. Credentials remain on the server.</p></div><button class="primary" id="carrier-new"><i data-lucide="plug"></i>Add New Connection</button></div>
   <div class="enterprise-banner" data-admin-source></div>
-  <div class="provider-grid"><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>EasyPost</h2><p class="subtle">Official v2 endpoint. Tenant-bound encrypted credentials.</p></article><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>LocalRegional</h2><p class="subtle">Compatible regional API protocol; server-approved HTTPS origins.</p></article><article class="card"><span class="tag green">READ-ONLY RATE ADAPTER</span><h2>Sendcloud</h2><p class="subtle">Use LocalRegional with the official Sendcloud endpoint and verified SENDCLOUD_METHODS limits. Native label purchase is not enabled.</p></article></div>
+  <div class="provider-grid"><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>EasyPost</h2><p class="subtle">Official v2 endpoint. Tenant-bound encrypted credentials.</p><button class="primary" id="easypost-setup">Set up EasyPost Test API key</button><p class="subtle">Select a real client, paste your Test key and enable ratings. Platform-owner sign-in is required.</p></article><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>LocalRegional</h2><p class="subtle">Compatible regional API protocol; server-approved HTTPS origins.</p></article><article class="card"><span class="tag green">READ-ONLY RATE ADAPTER</span><h2>Sendcloud</h2><p class="subtle">Use LocalRegional with the official Sendcloud endpoint and verified SENDCLOUD_METHODS limits. Native label purchase is not enabled.</p></article></div>
   <article class="card"><div class="cardhead"><h2>Network connections</h2><button class="secondary" data-admin-refresh="admin-carriers">Refresh</button></div><div class="scrolltable"><table><thead><tr><th>Account / company</th><th>Provider</th><th>Environment</th><th>Status / priority</th><th>Actions</th></tr></thead><tbody id="carrier-rows"></tbody></table></div></article>
 </section>
 <section id="admin-margins" hidden>
@@ -97,6 +97,7 @@ function refreshEnterpriseNavigation() {
     $('.sidebar-caption').textContent = admin ? 'Platform control plane' : warehouse ? 'Warehouse operations' : 'Client workspace';
     $('#dashboard .quick-grid').hidden = admin || warehouse;
     $('#dashboard .support-card').hidden = warehouse;
+    $('#health-label').textContent = state.session ? 'SIGNED IN' : state.mode === 'local-preview' ? 'PREVIEW' : 'BACKEND ONLINE';
     $('#tenant-new').innerHTML = '<i data-lucide="building-2"></i>' + (state.session ? 'Onboard New Tenant' : 'Sign in to onboard a tenant');
     $$('[data-admin-source]').forEach(node => node.textContent = state.session
         ? 'OWNER-AUTHORIZED DATABASE CONTROLS · All mutations are validated server-side.'
@@ -251,7 +252,9 @@ $('#margin-admin-form').addEventListener('submit', event => {
     });
 });
 function openCarrierForm(id = null) {
-    enterpriseAdminGuard(); const form = $('#carrier-admin-form'); form.reset(); enterprise.editCarrier = id;
+    enterpriseAdminGuard();
+    if (!id && !state.session) { notify('Sign in as the platform owner to save an encrypted carrier API key.'); $('#account-dialog').showModal(); return; }
+    const form = $('#carrier-admin-form'); form.reset(); enterprise.editCarrier = id;
     form.dataset.requestId=crypto.randomUUID();
     form.elements.tenant_id.innerHTML = tenantOptions(); $('#carrier-create-fields').hidden = !!id;
     $('#carrier-create-fields').querySelectorAll('input,select').forEach(input => input.disabled = !!id);
@@ -266,6 +269,16 @@ function openCarrierForm(id = null) {
     $('#carrier-admin-dialog').showModal();
 }
 $('#carrier-new').addEventListener('click', () => openCarrierForm());
+$('#easypost-setup').addEventListener('click', () => {
+    openCarrierForm();
+    if (!state.session) return;
+    const form = $('#carrier-admin-form');
+    form.elements.aggregator.value = 'EASYPOST';
+    form.elements.environment.value = 'TEST';
+    form.elements.account_name.value = 'EasyPost sandbox';
+    form.elements.is_active.checked = true;
+    form.elements.api_key.focus();
+});
 $('#carrier-admin-form [name="aggregator"]').addEventListener('change',event=>{
     const form=$('#carrier-admin-form'),regional=event.target.value==='REGIONAL';
     form.elements.api_base_url.value=regional?'':'https://api.easypost.com/v2';
@@ -275,6 +288,7 @@ $('#carrier-admin-form [name="aggregator"]').addEventListener('change',event=>{
 $('#carrier-admin-form').addEventListener('submit', event => {
     event.preventDefault(); busy(event.target.querySelector('button'), async () => {
         enterpriseAdminGuard(); const f = new FormData(event.target), id = enterprise.editCarrier;
+        if (!id && !state.session) throw Error('Sign in first. No carrier connection or API key has been saved.');
         const body = { priority: Number(f.get('priority')), timeout_seconds: Number(f.get('timeout_seconds')), is_active: f.has('is_active') };
         if (!id) body.request_id=event.target.dataset.requestId;
         if (!id) for (const k of ['tenant_id','account_name','aggregator','api_base_url','api_key','environment','regional_provider_code','upstream_account_id']) if (f.get(k)) body[k] = String(f.get(k)).trim();

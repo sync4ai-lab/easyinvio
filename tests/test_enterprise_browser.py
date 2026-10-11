@@ -42,6 +42,23 @@ async def run():
         await expect(page.locator('#margin-rows')).to_contain_text('RETIRED')
         checks.append('Margin edit and retirement review are functional; priority policy is visible.')
         await page.locator('.sidebar [data-enterprise-view="admin-carriers"]').click()
+        await page.locator('#easypost-setup').click()
+        await expect(page.locator('#account-dialog')).to_be_visible()
+        assert not await page.locator('#carrier-admin-dialog').is_visible()
+        await page.locator('[data-close="account-dialog"]').click()
+        checks.append('EasyPost key setup is visible and requires login; no API key is collected in sample mode.')
+        await page.evaluate("state.session={access_token:'controlled-browser-fixture'};portal.profile={portal_role:'SUPER_ADMIN',workspace_role:'OWNER'}")
+        await page.locator('#easypost-setup').click()
+        form=page.locator('#carrier-admin-form')
+        await expect(page.locator('#carrier-admin-dialog')).to_be_visible()
+        assert await form.locator('[name="aggregator"]').input_value()=='EASYPOST'
+        assert await form.locator('[name="environment"]').input_value()=='TEST'
+        assert await form.locator('[name="is_active"]').is_checked()
+        assert await form.locator('[name="api_key"]').get_attribute('type')=='password'
+        await page.locator('[data-enterprise-close="carrier-admin-dialog"]').click()
+        await page.evaluate('state.session=null;portal.profile=null')
+        checks.append('Authenticated-owner form defaults to EasyPost TEST, active ratings and a write-only password field; no key was submitted by this browser probe.')
+
         await page.locator('[data-carrier-edit]').first.click()
         await page.locator('#carrier-admin-form [name="priority"]').fill('17')
         await page.locator('#carrier-admin-form button').click()
