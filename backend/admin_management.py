@@ -121,6 +121,7 @@ async def carriers(request: Request, owner=owner_dependency):
         rows=await c.fetch('''SELECT a.id,a.tenant_id,t.company_name,a.account_name,a.aggregator,
             a.regional_provider_code,a.api_base_url,a.environment,a.is_active,a.priority,a.timeout_seconds
             FROM public.carrier_accounts a JOIN public.tenants t USING(tenant_id)
+            WHERE a.platform_connection_id IS NULL
             ORDER BY a.is_active DESC,t.company_name,a.priority LIMIT 500''')
     return {'connections':[public_record(r) for r in rows], 'supported':['EASYPOST','REGIONAL'],
             'notice':'Connections are tenant-assigned. Sendcloud read-only rating uses REGIONAL, its official endpoint and SENDCLOUD_METHODS limits. Purchase requires a separate adapter.', 'limit':500}
@@ -142,6 +143,7 @@ async def add_carrier(body: CarrierCreate, request: Request, owner=owner_depende
     try:
         async with request.app.state.finance.pool.acquire() as c:
             async with c.transaction():
+                await c.execute("SELECT pg_advisory_xact_lock(hashtextextended('platform-carriers',0))")
                 await c.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',str(account_id))
                 previous=await c.fetchrow('SELECT * FROM public.carrier_accounts WHERE id=$1',account_id)
                 if previous:
@@ -171,6 +173,7 @@ async def change_carrier(account_id: UUID, body: CarrierUpdate, request: Request
     try:
         async with request.app.state.finance.pool.acquire() as c:
             async with c.transaction():
+                await c.execute("SELECT pg_advisory_xact_lock(hashtextextended('platform-carriers',0))")
                 row=await c.fetchrow('SELECT * FROM public.carrier_accounts WHERE id=$1 FOR UPDATE',account_id)
                 if not row: raise HTTPException(404,'Carrier connection not found')
                 if body.is_active:

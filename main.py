@@ -521,6 +521,7 @@ class CarrierAccount:
     upstream_account_id: str | None
     timeout_seconds: int
     api_key: str
+    platform_connection_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -678,7 +679,7 @@ class SupabaseRepository:
     async def accounts(self, context: TenantContext) -> list[CarrierAccount]:
         rows = await self.select("carrier_accounts", {
             "select": "id,tenant_id,aggregator,api_base_url,upstream_account_id,"
-                      "timeout_seconds,credentials_ciphertext,credential_key_id",
+                      "timeout_seconds,credentials_ciphertext,credential_key_id,platform_connection_id",
             "tenant_id": f"eq.{context.tenant_id}",
             "environment": f"eq.{self.settings.provider_environment}",
             "is_active": "eq.true", "order": "priority.asc,id.asc",
@@ -715,8 +716,8 @@ class SupabaseRepository:
                     bytes.fromhex(encrypted[2:])
                 ))
                 if (
-                    envelope["tenant_id"] != str(tenant_id)
-                    or envelope["account_id"] != str(account_id)
+                    (envelope.get("platform_id") != str(row["platform_connection_id"]) if row.get("platform_connection_id")
+                     else envelope.get("tenant_id") != str(tenant_id) or envelope.get("account_id") != str(account_id))
                     or not isinstance(envelope["api_key"], str)
                     or not envelope["api_key"].strip()
                 ):
@@ -727,6 +728,7 @@ class SupabaseRepository:
                 result.append(CarrierAccount(
                     account_id, tenant_id, provider, endpoint,
                     row["upstream_account_id"], timeout, envelope["api_key"],
+                    UUID(row["platform_connection_id"]) if row.get("platform_connection_id") else None,
                 ))
         except (ValueError, KeyError, TypeError, InvalidToken):
             raise HTTPException(503, "Carrier configuration unavailable") from None
@@ -1011,7 +1013,7 @@ class RatingService:
         strategies = []
         for account in accounts:
             if getattr(account,'base_url',None) == 'https://panel.sendcloud.sc/api/v2':
-                strategies.append(SendcloudStrategy(self.client,account,getattr(self.settings,'sendcloud_methods',{}).get(account.id,[])))
+                strategies.append(SendcloudStrategy(self.client,account,getattr(self.settings,'sendcloud_methods',{}).get(account.id,getattr(self.settings,'sendcloud_methods',{}).get(account.platform_connection_id,[]))))
             else:
                 strategies.append((EasyPostStrategy if account.provider == 'EASYPOST' else RegionalStrategy)(self.client,account))
         results = await asyncio.gather(*(
@@ -2086,6 +2088,8 @@ app.include_router(logistics_router(authenticate, RatingRequest))
 app.include_router(admin_router)
 from backend.admin_management import router as admin_management_router
 app.include_router(admin_management_router)
+from backend.platform_carriers import router as platform_carriers_router
+app.include_router(platform_carriers_router)
 app.include_router(sandbox_router(authenticate, RatingRequest))
 app.include_router(ecommerce_router(authenticate))
 app.include_router(hubspot_router(authenticate))

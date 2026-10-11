@@ -58,22 +58,19 @@ existing Supabase CA compatibility setting. It does not turn encryption off.
 ### 1. Carrier rates: obtain an EasyPost Test API key
 
 Create/access your EasyPost account and obtain its **Test** API key. Sign into
-EasyInvio as the platform owner, open **Carrier Provider Settings**, and create an
-active TEST EasyPost connection assigned to **SEED24 - Harbor Commerce 01**:
-
-`11de776d-4faf-f071-eb53-76d35aa619db`
+EasyInvio as the platform owner, open **Carrier Provider Settings ? EasyPost ?
+Set Up**, and configure EasyInvio's shared TEST connection once. It serves all
+sandbox clients; no client selection or disclosure of the key is required.
+Client-specific legacy connections remain supported separately. The platform
+connection API stores encrypted credentials and maintains tenant-specific booking
+references. See `docs/platform_carriers.md` for the architecture and controls.
 
 Harbor currently uses GBP. Its carrier must return GBP prices. The adapter does
 not invent currency conversions: for USD-only EasyPost prices/customs, use a
 USD test workspace/route or implement and validate an explicit FX workflow.
 GBP international customs currently require a compatible regional provider.
-
-Credentials are encrypted in `carrier_accounts` through the authenticated admin
-controller. There is intentionally no global `EASYPOST_API_KEY` setting: account
-credentials belong to specific tenants. Never activate the dummy seeded accounts.
-For a genuine parallel-provider comparison, add another actual supported provider
-account with its sandbox credentials and verified tariff/method limits. Sendcloud
-requires its account API credentials and `SENDCLOUD_METHODS` configuration.
+A second aggregator requires its genuine credentials and supported service limits.
+Sendcloud method limits may be keyed by the shared platform connection UUID.
 
 [EasyPost authentication and Test keys](https://docs.easypost.com/docs/authentication).
 

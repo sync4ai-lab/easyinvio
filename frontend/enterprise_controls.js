@@ -10,9 +10,9 @@ mainContent.insertAdjacentHTML('beforeend', `
   <article class="card" style="margin-top:20px"><div class="cardhead"><div><h2>Aggregate wallet transaction log</h2><p class="subtle">Newest 200 ledger entries. Currency values are kept separate.</p></div><button class="secondary" data-admin-refresh="transactions">Refresh log</button></div><div class="scrolltable"><table><thead><tr><th>Company</th><th>Entry</th><th>Balance movement</th><th>Reserved movement</th><th>Time</th></tr></thead><tbody id="transaction-rows"></tbody></table></div></article>
 </section>
 <section id="admin-carriers" hidden>
-  <div class="pagehead"><div><div class="eyebrow">Platform / Carrier connectors</div><h1>Carrier Provider Settings</h1><p>Manage tenant-assigned accounts across the platform. Credentials remain on the server.</p></div><button class="primary" id="carrier-new"><i data-lucide="plug"></i>Add New Connection</button></div>
+  <div class="pagehead"><div><div class="eyebrow">Platform / Carrier connectors</div><h1>Carrier Provider Settings</h1><p>EasyInvio-owned provider connections serve all eligible clients. Credentials remain private on the server.</p></div><button class="primary" id="carrier-new"><i data-lucide="plug"></i>Add New Connection</button></div>
   <div class="enterprise-banner" data-admin-source></div>
-  <div class="provider-grid"><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>EasyPost</h2><p class="subtle">Official v2 endpoint. Tenant-bound encrypted credentials.</p><button class="primary" id="easypost-setup">Set up EasyPost Test API key</button><p class="subtle">Select a real client, paste your Test key and enable ratings. Platform-owner sign-in is required.</p></article><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>LocalRegional</h2><p class="subtle">Compatible regional API protocol; server-approved HTTPS origins.</p></article><article class="card"><span class="tag green">READ-ONLY RATE ADAPTER</span><h2>Sendcloud</h2><p class="subtle">Use LocalRegional with the official Sendcloud endpoint and verified SENDCLOUD_METHODS limits. Native label purchase is not enabled.</p></article></div>
+  <div class="provider-grid"><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>EasyPost</h2><p class="subtle">Official v2 endpoint. Tenant-bound encrypted credentials.</p><button class="primary" id="easypost-setup">Set Up</button><p class="subtle">Configure EasyInvio’s shared account once. No client assignment or key disclosure.</p></article><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>LocalRegional</h2><p class="subtle">Compatible regional API protocol; server-approved HTTPS origins.</p><button class="primary" id="regional-setup">Set Up</button></article><article class="card"><span class="tag green">READ-ONLY RATE ADAPTER</span><h2>Sendcloud</h2><p class="subtle">Use LocalRegional with the official Sendcloud endpoint and verified SENDCLOUD_METHODS limits. Native label purchase is not enabled.</p><button class="primary" id="sendcloud-setup">Set Up</button></article></div>
   <article class="card"><div class="cardhead"><h2>Network connections</h2><button class="secondary" data-admin-refresh="admin-carriers">Refresh</button></div><div class="scrolltable"><table><thead><tr><th>Account / company</th><th>Provider</th><th>Environment</th><th>Status / priority</th><th>Actions</th></tr></thead><tbody id="carrier-rows"></tbody></table></div></article>
 </section>
 <section id="admin-margins" hidden>
@@ -36,8 +36,8 @@ document.body.insertAdjacentHTML('beforeend', `
  <label>Client account<select name="tenant_id" required></select></label><div class="fields"><div><label>Origin country (optional)<input name="origin_country" maxlength="3" placeholder="Any origin"></label></div><div><label>Destination country (optional)<input name="destination_country" maxlength="3" placeholder="Any destination"></label></div><div><label>Carrier code (optional)<input name="carrier_code" maxlength="100" placeholder="Any carrier"></label></div><div><label>Service code (optional)<input name="service_code" maxlength="100" placeholder="Any service"></label></div><div><label>Formula<select name="markup_type"><option value="PERCENTAGE">Percentage</option><option value="FLAT_RATE">Flat rate</option></select></label></div><div><label>Markup value<input name="markup_value" value="20" inputmode="decimal" required></label></div><div><label>Currency<select name="currency"><option>GBP</option><option>EUR</option><option>USD</option></select></label></div><div><label>Priority (lower wins)<input name="priority" type="number" min="0" max="1000000" step="1" value="100" required></label></div><div><label>Minimum markup<input name="minimum_markup" value="0.00" inputmode="decimal" required></label></div><div><label>Maximum markup (optional)<input name="maximum_markup" inputmode="decimal"></label></div><div><label>Billing tier (optional)<select name="billing_plan"><option value="">Any billing tier</option><option>PREPAID_WALLET</option><option>POSTPAID_30_DAY</option></select></label></div><div><label>Cargo type (optional)<select name="cargo_type"><option value="">Any cargo</option><option>LETTER</option><option>PARCEL</option><option>PALLET</option><option>OVERLAND_FREIGHT</option></select></label></div><div><label>Min volume m? (optional)<input name="min_volume_m3" inputmode="decimal"></label></div><div><label>Max volume m? (exclusive)<input name="max_volume_m3" inputmode="decimal"></label></div><div><label>Min weight kg (optional)<input name="min_weight_kg" inputmode="decimal"></label></div><div><label>Max weight kg (exclusive)<input name="max_weight_kg" inputmode="decimal"></label></div><div><label>Min wholesale cost (optional)<input name="min_wholesale_cost" inputmode="decimal"></label></div><div><label>Max wholesale cost (exclusive)<input name="max_wholesale_cost" inputmode="decimal"></label></div><div><label>Valid from (optional ISO timestamp)<input name="valid_from" placeholder="2026-10-10T00:00:00Z"></label></div><div><label>Valid until (optional ISO timestamp)<input name="valid_until" placeholder="No end date"></label></div></div><label>Carrier account ID (optional)<input name="carrier_account_id" placeholder="Tenant-assigned account UUID"></label><label class="check"><input name="is_active" type="checkbox" checked>Active in pricing selection</label><button class="primary full">Save pricing rule</button>
 </form></dialog>
 <dialog id="carrier-admin-dialog"><button class="close" data-enterprise-close="carrier-admin-dialog" aria-label="Close carrier form">×</button><h2 id="carrier-form-title">Add carrier connection</h2><form id="carrier-admin-form">
- <div id="carrier-create-fields"><label>Assigned client<select name="tenant_id" required></select></label><label>Account name<input name="account_name" maxlength="200" required></label><div class="fields"><div><label>Provider<select name="aggregator"><option>EASYPOST</option><option>REGIONAL</option></select></label></div><div><label>Environment<select name="environment"><option>TEST</option><option>LIVE</option></select></label></div></div><label>API endpoint<input name="api_base_url" value="https://api.easypost.com/v2" type="url" required></label><label>Regional provider code<input name="regional_provider_code" placeholder="Required for REGIONAL"></label><label>API key (write-only)<input name="api_key" type="password" autocomplete="new-password" required maxlength="4096"></label><label>Upstream account ID (optional)<input name="upstream_account_id"></label></div>
- <div class="fields"><div><label>Priority<input name="priority" value="100" type="number" min="0" max="1000000" step="1" required></label></div><div><label>Timeout seconds<input name="timeout_seconds" value="30" type="number" min="1" max="120" step="1" required></label></div></div><label class="check"><input name="is_active" type="checkbox">Enable provider for ratings</label><button class="primary full">Save connection</button><p class="footnote">Existing secrets are never returned. No carrier API calls are made by this form.</p>
+ <div id="carrier-create-fields"><label id="carrier-tenant-field">Assigned client<select name="tenant_id" required></select></label><p id="carrier-platform-note" class="notice" hidden>Owned by EasyInvio. Shared with all clients in the selected environment. Clients never receive this key.</p><label>Account name<input name="account_name" maxlength="200" required></label><div class="fields"><div><label id="carrier-aggregator-field">Provider<select name="aggregator"><option>EASYPOST</option><option>REGIONAL</option></select></label></div><div><label>Environment<select name="environment"><option>TEST</option><option>LIVE</option></select></label></div></div><label id="carrier-api_base_url-field">API endpoint<input name="api_base_url" value="https://api.easypost.com/v2" type="url" required></label><label id="carrier-regional_provider_code-field">Regional provider code<input name="regional_provider_code" placeholder="Required for REGIONAL"></label><label id="carrier-key-field">API key (write-only)<input name="api_key" type="password" autocomplete="new-password" required maxlength="4096"></label><div id="sendcloud-key-fields" hidden><label>Sendcloud public API key<input name="sendcloud_public_key" type="password" autocomplete="new-password"></label><label>Sendcloud secret API key<input name="sendcloud_secret_key" type="password" autocomplete="new-password"></label></div><label id="carrier-upstream_account_id-field">Upstream account ID (optional)<input name="upstream_account_id"></label></div>
+ <details id="carrier-advanced"><summary>Advanced connection options</summary><div class="fields"><div><label>Provider selection priority<input name="priority" value="100" type="number" min="0" max="1000000" step="1" required></label></div><div><label>Timeout seconds<input name="timeout_seconds" value="30" type="number" min="1" max="120" step="1" required></label></div></div><p class="subtle">Priority orders provider selection when capacity is limited; prices are still compared in parallel. Timeout is the maximum wait for a provider response.</p></details><label class="check"><input name="is_active" type="checkbox">Enable provider for ratings</label><button class="primary full">Save connection</button><p class="footnote">Existing secrets are never returned. No carrier API calls are made by this form.</p>
 </form></dialog>
 <dialog id="store-admin-dialog"><button class="close" data-enterprise-close="store-admin-dialog" aria-label="Close store form">×</button><h2>Register a workspace store</h2><form id="store-admin-form"><label>Display name<input name="display_name" required maxlength="200"></label><label>Platform<select name="platform"><option>SHOPIFY</option><option>WOOCOMMERCE</option><option>AMAZON</option></select></label><button class="primary full">Register store</button></form></dialog>
 <dialog id="retire-admin-dialog"><button class="close" data-enterprise-close="retire-admin-dialog" aria-label="Close retirement review">×</button><h2>Review configuration removal</h2><p id="retire-context" class="subtle"></p><p class="notice">This removes the configuration from active selection and preserves historical shipment references.</p><button id="retire-confirm" class="primary full">Retire configuration</button></dialog>
@@ -172,6 +172,7 @@ async function loadEnterpriseView(view) {
         const result = await api('/api/v1/admin' + paths[view], { auth: true });
         if (generation !== enterprise.generation) return;
         enterprise[({ 'admin-clients': 'tenants', 'admin-carriers': 'carriers', 'admin-margins': 'margins', transactions: 'transactions' })[view]] = result.tenants || result.connections || result.rules || result.transactions;
+        if (view === 'admin-carriers') { const shared = await api('/api/v1/admin/platform-carriers', { auth: true }); if (generation !== enterprise.generation) return; enterprise.carriers = [...shared.connections, ...enterprise.carriers]; }
         if (view !== 'admin-clients' && view !== 'transactions') {
             const tenants = await api('/api/v1/admin/tenants', { auth: true });
             if (generation !== enterprise.generation) return;
@@ -251,13 +252,19 @@ $('#margin-admin-form').addEventListener('submit', event => {
         $('#margin-admin-dialog').close(); await loadEnterpriseView('admin-margins'); notify(state.session ? 'Pricing rule saved.' : 'Sample rule saved in browser memory only.');
     });
 });
-function openCarrierForm(id = null) {
+function openCarrierForm(id = null, provider = null) {
     enterpriseAdminGuard();
     if (!id && !state.session) { notify('Sign in as the platform owner to save an encrypted carrier API key.'); $('#account-dialog').showModal(); return; }
     const form = $('#carrier-admin-form'); form.reset(); enterprise.editCarrier = id;
     form.dataset.requestId=crypto.randomUUID();
-    form.elements.tenant_id.innerHTML = tenantOptions(); $('#carrier-create-fields').hidden = !!id;
-    $('#carrier-create-fields').querySelectorAll('input,select').forEach(input => input.disabled = !!id);
+    const row = id ? enterprise.carriers.find(c => c.id === id) : null;
+    const shared = !id || !!row?.platform_owned;
+    form.dataset.scope = shared ? 'PLATFORM' : 'TENANT';
+    $('#carrier-platform-note').hidden = !shared; $('#carrier-tenant-field').hidden = shared;
+    form.elements.tenant_id.disabled = shared; form.elements.tenant_id.required = !shared;
+    form.elements.tenant_id.innerHTML = tenantOptions(); $('#carrier-create-fields').hidden = !!id && !shared;
+    $('#carrier-create-fields').querySelectorAll('input,select').forEach(input => input.disabled = !!id && !shared);
+    form.elements.tenant_id.disabled = shared || !!id;
     $('#carrier-form-title').textContent = id ? 'Provider parameters' : 'Add carrier connection';
     if (id) {
         const row = enterprise.carriers.find(c => c.id === id);
@@ -266,19 +273,30 @@ function openCarrierForm(id = null) {
     }
     if (!state.session) { form.elements.api_key.required = false; form.elements.api_key.placeholder = 'Not stored in sample mode'; }
     else { form.elements.api_key.required = !id; form.elements.api_key.placeholder = 'Encrypted on the server'; }
+    if (shared) {
+        if (row) for (const k of ['account_name','aggregator','api_base_url','environment','regional_provider_code','upstream_account_id']) form.elements[k].value = row[k] || '';
+        const selected = provider || (row?.api_base_url === 'https://panel.sendcloud.sc/api/v2' ? 'SENDCLOUD' : row?.aggregator || 'EASYPOST');
+        form.dataset.provider = selected;
+        const sendcloud = selected === 'SENDCLOUD';
+        $('#sendcloud-key-fields').hidden = !sendcloud; $('#carrier-key-field').hidden = sendcloud;
+        for (const k of ['sendcloud_public_key','sendcloud_secret_key']) { form.elements[k].disabled = !sendcloud; form.elements[k].required = sendcloud && !id; }
+        form.elements.api_key.disabled = sendcloud;
+        form.elements.aggregator.value = selected === 'EASYPOST' ? 'EASYPOST' : 'REGIONAL';
+        form.elements.api_base_url.value = selected === 'EASYPOST' ? 'https://api.easypost.com/v2' : selected === 'SENDCLOUD' ? 'https://panel.sendcloud.sc/api/v2' : row?.api_base_url || '';
+        form.elements.regional_provider_code.value = selected === 'SENDCLOUD' ? 'SENDCLOUD' : selected === 'REGIONAL' ? row?.regional_provider_code || '' : '';
+        for (const k of ['aggregator','api_base_url','regional_provider_code','upstream_account_id']) $('#carrier-'+k+'-field').hidden = selected !== 'REGIONAL' || k === 'aggregator';
+        form.elements.regional_provider_code.required = selected === 'REGIONAL';
+        form.elements.api_key.required = !id;
+        $('#carrier-form-title').textContent = 'Set Up ' + (selected === 'EASYPOST' ? 'EasyPost' : selected === 'SENDCLOUD' ? 'Sendcloud' : 'LocalRegional');
+        if (!id) { form.elements.account_name.value = 'EasyInvio ' + selected; form.elements.is_active.checked = true; }
+    } else for (const k of ['aggregator','api_base_url','regional_provider_code','upstream_account_id']) $('#carrier-'+k+'-field').hidden = false;
     $('#carrier-admin-dialog').showModal();
 }
+$('#carrier-admin-dialog').addEventListener('close', () => { const form = $('#carrier-admin-form'); for (const k of ['api_key','sendcloud_public_key','sendcloud_secret_key']) form.elements[k].value = ''; });
 $('#carrier-new').addEventListener('click', () => openCarrierForm());
-$('#easypost-setup').addEventListener('click', () => {
-    openCarrierForm();
-    if (!state.session) return;
-    const form = $('#carrier-admin-form');
-    form.elements.aggregator.value = 'EASYPOST';
-    form.elements.environment.value = 'TEST';
-    form.elements.account_name.value = 'EasyPost sandbox';
-    form.elements.is_active.checked = true;
-    form.elements.api_key.focus();
-});
+$('#easypost-setup').addEventListener('click', () => openCarrierForm(null, 'EASYPOST'));
+$('#regional-setup').addEventListener('click', () => openCarrierForm(null, 'REGIONAL'));
+$('#sendcloud-setup').addEventListener('click', () => openCarrierForm(null, 'SENDCLOUD'));
 $('#carrier-admin-form [name="aggregator"]').addEventListener('change',event=>{
     const form=$('#carrier-admin-form'),regional=event.target.value==='REGIONAL';
     form.elements.api_base_url.value=regional?'':'https://api.easypost.com/v2';
@@ -290,17 +308,19 @@ $('#carrier-admin-form').addEventListener('submit', event => {
         enterpriseAdminGuard(); const f = new FormData(event.target), id = enterprise.editCarrier;
         if (!id && !state.session) throw Error('Sign in first. No carrier connection or API key has been saved.');
         const body = { priority: Number(f.get('priority')), timeout_seconds: Number(f.get('timeout_seconds')), is_active: f.has('is_active') };
-        if (!id) body.request_id=event.target.dataset.requestId;
-        if (!id) for (const k of ['tenant_id','account_name','aggregator','api_base_url','api_key','environment','regional_provider_code','upstream_account_id']) if (f.get(k)) body[k] = String(f.get(k)).trim();
+        const shared = event.target.dataset.scope === 'PLATFORM';
+        if (!id || shared) body.request_id=event.target.dataset.requestId;
+        if (!id || shared) for (const k of ['tenant_id','account_name','aggregator','api_base_url','api_key','environment','regional_provider_code','upstream_account_id']) if (f.get(k)) body[k] = String(f.get(k)).trim();
+        if (shared) { delete body.tenant_id; if (event.target.dataset.provider === 'SENDCLOUD' && (f.get('sendcloud_public_key') || f.get('sendcloud_secret_key'))) { if (!f.get('sendcloud_public_key') || !f.get('sendcloud_secret_key')) throw Error('Supply both Sendcloud keys.'); body.api_key = JSON.stringify({public_key:String(f.get('sendcloud_public_key')).trim(),secret_key:String(f.get('sendcloud_secret_key')).trim()}); } }
         try {
-            if (state.session) await api('/api/v1/admin/carriers' + (id ? '/' + encodeURIComponent(id) : ''), { method: id ? 'PATCH' : 'POST', body, auth: true });
+            if (state.session) await api((shared ? '/api/v1/admin/platform-carriers' : '/api/v1/admin/carriers') + (id ? '/' + encodeURIComponent(id) : ''), { method: id ? (shared ? 'PUT' : 'PATCH') : 'POST', body, auth: true });
             else {
                 delete body.api_key;
                 const row = { ...body, id: id || crypto.randomUUID(), company_name: enterprise.tenants.find(t => t.tenant_id === body.tenant_id)?.company_name };
                 if (id) enterprise.carriers = enterprise.carriers.map(c => c.id === id ? { ...c, ...row, company_name: c.company_name } : c); else enterprise.carriers.unshift(row);
             }
             $('#carrier-admin-dialog').close(); await loadEnterpriseView('admin-carriers'); notify(state.session ? 'Connection configuration saved.' : 'Sample connection updated. No provider API call occurred.');
-        } finally { event.target.elements.api_key.value = ''; }
+        } finally { event.target.elements.api_key.value = ''; event.target.elements.sendcloud_public_key.value = ''; event.target.elements.sendcloud_secret_key.value = ''; }
     });
 });
 let pendingRetirement = null;
@@ -316,8 +336,8 @@ document.addEventListener('click', event => {
     if (client) { setView('admin-margins'); $('#margin-tenant-filter').value = client.dataset.clientMargins; renderEnterpriseTables(); }
 });
 $('#retire-confirm').addEventListener('click', () => busy($('#retire-confirm'), async () => {
-    enterpriseAdminGuard(); const [kind, id] = pendingRetirement;
-    if (state.session) await api('/api/v1/admin/' + kind + '/' + encodeURIComponent(id), { method: 'DELETE', auth: true });
+    enterpriseAdminGuard(); const [kind, id] = pendingRetirement; const row = enterprise[kind].find(r => r.id === id);
+    if (state.session) await api('/api/v1/admin/' + (kind === 'carriers' && row.platform_owned ? 'platform-carriers' : kind) + '/' + encodeURIComponent(id), { method: 'DELETE', auth: true });
     else enterprise[kind] = enterprise[kind].map(r => r.id === id ? { ...r, is_active: false } : r);
     $('#retire-admin-dialog').close(); pendingRetirement = null; await loadEnterpriseView('admin-' + kind); notify('Configuration retired. Shipment history retained.');
 }));

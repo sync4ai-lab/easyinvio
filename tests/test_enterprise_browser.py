@@ -53,6 +53,10 @@ async def run():
         await expect(page.locator('#carrier-admin-dialog')).to_be_visible()
         assert await form.locator('[name="aggregator"]').input_value()=='EASYPOST'
         assert await form.locator('[name="environment"]').input_value()=='TEST'
+        assert not await page.locator('#carrier-tenant-field').is_visible()
+        assert not await page.locator('#carrier-aggregator-field').is_visible()
+        assert not await page.locator('#carrier-regional_provider_code-field').is_visible()
+        await expect(page.locator('#carrier-platform-note')).to_contain_text('Owned by EasyInvio')
         assert await form.locator('[name="is_active"]').is_checked()
         assert await form.locator('[name="api_key"]').get_attribute('type')=='password'
         await page.locator('[data-enterprise-close="carrier-admin-dialog"]').click()
@@ -60,6 +64,7 @@ async def run():
         checks.append('Authenticated-owner form defaults to EasyPost TEST, active ratings and a write-only password field; no key was submitted by this browser probe.')
 
         await page.locator('[data-carrier-edit]').first.click()
+        await page.locator('#carrier-advanced summary').click()
         await page.locator('#carrier-admin-form [name="priority"]').fill('17')
         await page.locator('#carrier-admin-form button').click()
         await expect(page.locator('#carrier-rows')).to_contain_text('Priority 17')
