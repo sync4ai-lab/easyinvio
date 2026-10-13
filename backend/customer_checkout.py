@@ -151,7 +151,7 @@ def build_router(authenticate):
                 str(match['client_price_ex_tax']),match['currency'])
         return public_payload({'shipment_id':result['shipment_id'],'invoice_reference':reference,
             'offer':match,'price_changed':Decimal(match['client_price_ex_tax'])!=selected.client_price_ex_tax,
-            'customs_required':required},financial=False)
+            'customs_required':required},financial=user.role!='DISPATCHER')
 
     @router.get('/{shipment_id}/commercial-invoice.pdf')
     async def invoice(shipment_id:UUID,request:Request,user=Depends(authenticate)):

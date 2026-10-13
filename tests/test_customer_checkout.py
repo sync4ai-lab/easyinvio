@@ -96,6 +96,16 @@ class CheckoutTests(unittest.IsolatedAsyncioTestCase):
 
 
 class InvoiceAccessTests(unittest.TestCase):
+    def test_customer_quote_payload_does_not_disclose_wholesale_or_margin(self):
+        from backend.carrier_consolidation import public_payload
+        quote={'client_price_ex_tax':'62.70','fee_breakdown':{'base_cost':'50.00','wholesale_total':'55.49',
+            'platform_markup':'7.21','fuel_surcharge':'5.49'}}
+        result=public_payload(quote)
+        self.assertEqual(result['fee_breakdown']['label_cost'],'57.21')
+        self.assertEqual(result['fee_breakdown']['fuel_surcharge'],'5.49')
+        self.assertNotIn('wholesale_total',json.dumps(result));self.assertNotIn('platform_markup',json.dumps(result))
+        self.assertEqual(quote['fee_breakdown']['wholesale_total'],'55.49')
+
     def test_invalid_optional_legacy_webhook_config_fails_closed(self):
         import os
         from unittest.mock import patch

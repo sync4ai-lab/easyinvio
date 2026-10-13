@@ -124,7 +124,9 @@ class PreviewHTTPTests(unittest.TestCase):
         self.assertTrue(data["simulated"])
         for rate in data["rates"]:
             fees = rate["fee_breakdown"]
-            self.assertEqual(Decimal(fees["wholesale_total"]) + Decimal(fees["platform_markup"]), Decimal(rate["client_price_ex_tax"]))
+            self.assertEqual(Decimal(fees["label_cost"]) + Decimal(fees["fuel_surcharge"] or '0'), Decimal(rate["client_price_ex_tax"]))
+            self.assertNotIn('wholesale_total',fees)
+            self.assertNotIn('platform_markup',fees)
         self.assertEqual(self.client.post("/api/v1/logistics/weight", json={"length_cm": "40", "width_cm": "30", "height_cm": "20", "actual_weight_kg": 2.5}).status_code, 422)
 
     def test_batch_upload(self):

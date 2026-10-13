@@ -102,7 +102,21 @@ def public_payload(value,financial=True,key=None):
         result={field:public_payload(item,financial,field) for field,item in value.items() if field not in PRIVATE_KEYS}
         if 'client_price_ex_tax' in result:
             result.setdefault('offer_id',str(uuid4()))
-            if not financial:result['fee_breakdown']={'source':'financial_role_required'}
+            if not financial or (value.get('fee_breakdown') or {}).get('source')=='financial_role_required':
+                result['fee_breakdown']={'source':'financial_role_required'}
+            else:
+                # Internal wholesale/markup snapshots remain server-owned.
+                # Customer totals include markup; disclose only a known fuel split.
+                fees=value.get('fee_breakdown') or {}
+                total=Decimal(str(value['client_price_ex_tax']))
+                try:
+                    fuel=Decimal(str(fees['fuel_surcharge']))
+                    if not fuel.is_finite() or not Decimal(0)<=fuel<=total:raise ValueError()
+                except (KeyError,ValueError,ArithmeticError):
+                    fuel=None
+                result['fee_breakdown']={'label_cost':format(total-(fuel or Decimal(0)),'.2f'),
+                    'fuel_surcharge':format(fuel,'.2f') if fuel is not None else None,
+                    'shipment_protection':None,'source':'customer_price'}
         return result
     if isinstance(value,str) and key in {'carrier_code','service_code','code','detail','notice','error','ai_summary','message','service_name','carrier_name','source','provider_name'} and not value.startswith(('https://','http://')):
         return BRANDS.sub('EasyInvio',value)

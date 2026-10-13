@@ -2,7 +2,7 @@
   "status": "PASS_FOR_EXECUTED_CHECKS",
   "scope": "Customer-facing Speed Quote review, linked customs checkout, booking completion and confirmed invoice PDF",
   "changes": [
-    "Label cost includes the EasyInvio margin and carrier charges; no wholesale or markup disclosure",
+    "Label cost includes EasyInvio margin and carrier charges; wholesale and markup are excluded from both customer UI and public quote payloads",
     "Fuel is split only when reported; otherwise included in label cost. Protection is Not added, without unsupported tax-exempt claims",
     "Removed quote-review customs preview and JSON download actions",
     "Book action opens a responsive customs choice and adjacent editable goods form, then explicit final-price confirmation",
@@ -17,7 +17,7 @@
     "Invalid optional legacy webhook map fails closed rather than taking down the app; .env secrets were not changed"
   ],
   "verification": {
-    "python_suite": "284 passed",
+    "python_suite": "285 passed",
     "browser": "Customer checkout and existing admin/client responsive navigation passed; controlled API responses",
     "database": "Actual Supabase sandbox rollback-only checkout probe passed; controlled carrier HTTP, zero real carrier purchases",
     "official_tariff": "Genuine public API search for electric smoothing irons returned HS 851640 among candidates",
