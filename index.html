@@ -461,6 +461,8 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div>
 <h2>Your shipping options</h2>
 <p class="subtle" id="rates-summary">Connected strategies, sorted by final price.</p>
+<p class="subtle" id="quote-route-summary" aria-live="polite">
+</p>
 </div>
 <span class="tag orange" id="rates-badge">AWAITING REQUEST</span>
 </div>
@@ -1999,6 +2001,10 @@ $('#quote-form').addEventListener('submit', event => {
   busy($('#quote-btn'), async () => {
     const generation = ++state.generation,
       body = quotePayload();
+    const countries = new Intl.DisplayNames(['en'], {
+      type: 'region'
+    });
+    $('#quote-route-summary').textContent = `${body.origin.city}, ${countries.of(body.origin.country_code)} (${body.origin.country_code}) → ${body.destination.city}, ${countries.of(body.destination.country_code)} (${body.destination.country_code})`;
     state.quotes = [];
     state.lastRateResult = null;
     state.quoteRequest = null;

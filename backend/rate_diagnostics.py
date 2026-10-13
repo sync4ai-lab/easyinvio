@@ -26,7 +26,15 @@ def no_rates_message(request, issues):
     if codes & {'UPSTREAM_AUTHENTICATION_REJECTED'}:
         return 'A connected provider rejected its credentials. Platform support must verify the API key and account permissions; no eligible quotes were returned by the other connections.'
     if codes & {'SENDCLOUD_METHODS_NOT_CONFIGURED', 'SENDCLOUD_CONFIGURATION_OR_PRICE_UNAVAILABLE'}:
-        return 'A rate connection needs platform configuration. No eligible quotes were returned by the other connections. Platform support should check the legacy Sendcloud connection and enabled carrier contracts.'
+        return 'A rate connection needs platform configuration. No eligible quotes were returned by the other connections. Platform support should check the configured rate adapter and enabled carrier contracts.'
     if codes & {'UPSTREAM_TIMEOUT', 'UPSTREAM_UNAVAILABLE'}:
         return 'A provider could not be reached or timed out. Retry the quote; platform support can verify the affected connection if this continues.'
-    return 'The connected accounts returned no eligible services for this package and route. Check the packed weight, dimensions and destination address. Platform support can check enabled carrier contracts.'
+    size = ''
+    if request.dimensions:
+        dimensions = request.dimensions[0]
+        sides = sorted([dimensions.length_cm, dimensions.width_cm, dimensions.height_cm], reverse=True)
+        combined = sides[0] + 2 * (sides[1] + sides[2])
+        size = (f' Package dimensions: {dimensions.length_cm} × {dimensions.width_cm} × {dimensions.height_cm} cm; '
+                f'combined length and girth: {combined} cm. Carrier-specific size limits may apply.')
+    return ('The connected accounts returned no eligible priced services for this package and route.' + size +
+            ' Check the packed weight and destination country/address. Platform support can check enabled carrier contracts.')

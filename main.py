@@ -1048,7 +1048,7 @@ class RatingService:
                 async with self.semaphore:
                     rates = await strategy.rates(request)
             if not rates:
-                raise ProviderFailure("NO_RATES_IN_REQUESTED_CURRENCY")
+                raise ProviderFailure("NO_ELIGIBLE_PRICED_SERVICES")
             return rates, None
         except ProviderFailure as exc:
             code, retryable = exc.code, exc.retryable

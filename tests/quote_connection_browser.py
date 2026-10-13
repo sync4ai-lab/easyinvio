@@ -13,12 +13,13 @@ async def run():
    document.body.classList.remove('auth-locked');document.querySelector('#loginContainer').hidden=true;
    portal.role='CLIENT';portal.profile={portal_role:'CLIENT',workspace_role:'OWNER'};renderPortal();setView('dispatch');
    state.session={access_token:'controlled-no-network-token'};state.quotes=[{carrier_code:'STALE'}];state.lastRateResult={rates:state.quotes};
-   quotePayload=()=>({});api=async()=>{const error=Error('Carrier quotes were returned in GBP, but none matched EUR.');error.status=503;throw error;};
+   quotePayload=()=>({origin:{city:'Leeds',country_code:'GB'},destination:{city:'Paris',country_code:'IT'}});api=async()=>{const error=Error('Carrier quotes were returned in GBP, but none matched EUR.');error.status=503;throw error;};
    document.querySelector('#quote-form').dispatchEvent(new Event('submit',{cancelable:true}));
   }""")
   await page.wait_for_function("document.querySelector('#rates-badge').textContent==='NO QUOTE AVAILABLE'")
   assert await page.evaluate('state.quotes.length===0 && state.lastRateResult===null && state.quoteRequest===null')
   assert 'returned in GBP' in await page.locator('#rates').inner_text()
+  assert 'Paris, Italy (IT)' in await page.locator('#quote-route-summary').inner_text()
   await page.evaluate("""() => {
    enterpriseAdminGuard=()=>{};enterprise.tenants=[];enterprise.providerProfiles=[];enterprise.carriers=[{id:'fixture',account_name:'Sendcloud',company_name:'EasyInvio',platform_owned:true,environment:'TEST',is_active:true,priority:1,api_base_url:'https://panel.sendcloud.sc/api/v2'}];
    renderEnterpriseTables();window.upgradeCalls=[];api=async(path,options)=>{upgradeCalls.push({path,options});return {upgraded:true};};loadEnterpriseView=async()=>{};

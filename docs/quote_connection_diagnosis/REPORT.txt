@@ -4,8 +4,8 @@ All three configured TEST accounts returned HTTP 200 to genuine read-only authen
 The saved Sendcloud connection is still API v2. Its credentials also authenticate against v3.
 A replacement upgrade is available to the platform owner under Carrier Connectors. It verifies
 v3 credentials, disables the legacy connection, creates a newly bound encrypted v3 connection,
-and preserves the original connection and shipment references. No label is purchased. Applying
-the saved configuration change is awaiting the user's approval; it has not been committed to the database.
+and preserves the original connection and shipment references. No label is purchased. The user approved the upgrade on 13 October 2026. The TEST replacement is committed to the database,
+propagated to 26 active workspaces; the legacy connection is disabled for future quotes.
 Sendcloud recommends API v3: https://www.sendcloud.com/api/
 
 Genuine external quote checks used the previously authorized saved GB-to-France parcel details.
@@ -28,5 +28,27 @@ Controlled browser verified failed-quote clearing, currency message/badge and up
 Actual sandbox upgrade probe verified propagation to 26 active workspaces, unchanged active counts,
 new credential binding and repeatable requests. All probe configuration writes were rolled back.
 There were zero historical shipments linked to this particular legacy Sendcloud connection at the probe.
-No label purchases, customer messages, payment operations or permanent database changes were performed.
+The initial probes performed no label purchases, customer messages, payment operations or permanent database changes.
 Application restarted on http://127.0.0.1:8000/ and health returned configured/ok.
+
+Follow-up: exact failed Leeds parcel and approved upgrade
+The failed request stored Leeds -> Paris but destination_country IT (Italy), not FR (France).
+The actual parcel was 80 x 60 x 90 cm, packed weight 10 kg, GBP. Goods net weight was 4.2 kg.
+After the saved v3 upgrade, genuine quotes were requested for the submitted IT country and an FR
+country variant with the same other fields. Neither returned eligible paid carrier services.
+Sendcloud returned HTTP 200 and only a zero-price sendcloud:letter option for the large FR parcel.
+That option is not a paid parcel label and was excluded correctly.
+Keeping the same addresses and actual weight, but using 40 x 30 x 20 cm and FR returned six paid
+services through the complete pricing pipeline, including DPD and FedEx. This isolates package
+size as a restriction for the tested accounts; it does not certify a universal carrier rejection.
+The large parcel's longest side plus twice the other sides is 90 + 2*(80+60) = 370 cm.
+DPD publishes a 300 cm combined length/girth parcel limit:
+https://www.dpd.com/sk/en/faq/aku-maximalnu-hmotnost-a-rozmery-moze-mat-balik/
+
+Follow-up changes: empty service lists have NO_ELIGIBLE_PRICED_SERVICES, not a currency-mismatch
+code. Quote failures show actual package dimensions and combined length/girth. The comparison
+panel displays submitted city, country name and ISO code so country-selection errors are visible.
+The customer configuration message no longer refers to a branded 'legacy' connection.
+Full unit suite: 350 passed. Controlled browser also checks that Paris, Italy (IT) is shown for an
+IT request. No purchases or messages were sent; only the explicitly approved shared TEST
+connection change was committed to the database.

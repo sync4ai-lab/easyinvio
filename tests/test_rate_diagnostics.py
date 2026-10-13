@@ -18,6 +18,16 @@ from tests.test_logistics import payload
 
 
 class RateDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_empty_services_are_not_reported_as_currency_mismatch(self):
+        service = main.RatingService(None, None, SimpleNamespace(max_parallel_provider_requests=3))
+        strategy = SimpleNamespace(account=SimpleNamespace(id=uuid4(), provider='REGIONAL', base_url='https://panel.sendcloud.sc/api/v3'),
+                                   rates=AsyncMock(return_value=[]))
+        request = main.RatingRequest.model_validate({**payload(), 'weights_kg': ['10'],
+            'dimensions': [{'length_cm': '80', 'width_cm': '60', 'height_cm': '90'}]})
+        _, issue = await service.run_provider(strategy, request, 5)
+        self.assertEqual(issue.code, 'NO_ELIGIBLE_PRICED_SERVICES')
+        self.assertIn('370 cm', no_rates_message(request, [issue]))
+
     async def test_unsuccessful_quote_is_saved_for_support_without_an_offer(self):
         connection = SimpleNamespace(execute=AsyncMock())
         class Pool:
