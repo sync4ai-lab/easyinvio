@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "boundary": "controlled API; no real purchases or messages",
+  "checks": [
+    "Manifest counts and Carrier PDF wording",
+    "Two service choices with exact selected total",
+    "Unprepared customs excluded from checkout",
+    "Wallet failure keeps review available",
+    "Successful exact-offer booking and label bundle action",
+    "375/768/1366px layouts",
+    "Packaging sizes never reuse packed weight",
+    "Logout clears bulk selection and results"
+  ],
+  "javascript_errors": []
+}

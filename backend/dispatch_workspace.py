@@ -210,6 +210,7 @@ def build_router(authenticate):
     @router.post('/process')
     async def process(selection: Selection, request: Request, context: Any = Depends(authenticate)):
         permitted(context)
+        if selection.mode=='FULFILL':raise HTTPException(409,'Review available services and confirm selected offers through bulk checkout before purchasing labels')
         rows = await selected_rows(request.app.state.ecommerce, context, selection.shipment_ids)
         service = request.app.state.automation_freight
         async def run(row):
@@ -226,7 +227,11 @@ def build_router(authenticate):
         permitted(context)
         from backend.dispatch_pdf import bundle_shipments
         rows = await selected_rows(request.app.state.ecommerce, context, selection.shipment_ids)
-        data = await bundle_shipments(rows)
+        from backend.automation_three_partners import carrier_document
+        async def fetch_document(row,document):
+            response=await carrier_document(row['id'],document,request.app.state.partner_lifecycle,context)
+            return response.body
+        data = await bundle_shipments(rows,client=request.app.state.partner_lifecycle.client,fetch_document=fetch_document)
         return Response(data, media_type='application/pdf', headers={
             'Content-Disposition': 'attachment; filename="easyinvio-dispatch-bundle.pdf"', 'Cache-Control': 'no-store'})
 

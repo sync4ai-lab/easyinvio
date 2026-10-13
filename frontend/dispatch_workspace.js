@@ -6,7 +6,7 @@ document.querySelector('main').insertAdjacentHTML('beforeend', `
  <article class="card"><div class="toolbar"><select id="workspace-store" aria-label="Marketplace store"></select><button id="workspace-sync" class="primary">Sync Marketplace Orders</button><button id="workspace-refresh" class="secondary">Refresh inbox</button></div>
  <p id="workspace-notice" class="notice">Signed store webhooks feed this inbox. Live polling requires an enabled server connector. No sample orders are presented as live shipments.</p>
  <div class="toolbar"><button id="workspace-quote" class="secondary">Quote selected orders</button><button id="workspace-buy" class="primary">Buy selected labels</button><button id="workspace-pdf" class="secondary">Download unified print PDF</button></div>
- <p class="subtle">Up to 100 selected orders per dispatch run. Review packing and customs for each order first. Carrier purchases remain disabled in the sandbox. The PDF can be opened and printed locally; downloading does not prove physical printing.</p>
+ <p class="subtle">Up to 100 selected orders per dispatch run. Review packing and customs for each order first. Supported provider TEST labels can be booked; LIVE purchases and unsupported test facilities remain guarded. The PDF can be opened and printed locally; downloading does not prove physical printing.</p>
  <div class="scrolltable"><table><thead><tr><th>Select</th><th>Order / store</th><th>Stage</th><th>Tracking push-back</th><th>Preparation</th></tr></thead><tbody id="workspace-rows"></tbody></table></div>
  <div class="toolbar"><button id="workspace-prev" class="secondary">Previous 100</button><button id="workspace-next" class="secondary">Next 100</button><span id="workspace-page" class="subtle"></span></div><div id="workspace-results"></div>
  </article>
@@ -21,7 +21,7 @@ document.body.insertAdjacentHTML('beforeend', `<dialog id="workspace-pack-dialog
  <label>Customs signer<input name="customs_signer" maxlength="200"></label><label>Postal form<select name="postal_form"><option value="">Commercial invoice</option><option>CN22</option><option>CN23</option></select></label>
  </div><label>Sender address (JSON)<textarea name="origin" rows="5" required></textarea></label><label>Recipient address including phone/state (JSON)<textarea name="destination" rows="5" required></textarea></label>
  <label>Goods (JSON array: description, quantity, unit_value, unit_weight_kg, origin_country, hs_code)<textarea name="items" rows="10" required></textarea></label>
- <p class="notice">HS codes are pattern-based suggestions. Check each code and provide actual manufacturing origin, unit declared value and net weight. Warehouse dimensions must be measured, not inferred from the storefront. CN22/CN23 printing requires the corresponding carrier-issued form.</p>
+ <p class="notice">HS codes require explicit review. Check each code and provide actual manufacturing origin, unit declared value and net weight. Warehouse dimensions must be measured, not inferred from the storefront. CN22/CN23 printing requires the corresponding carrier-issued form.</p>
  <label class="check"><input name="reviewed" type="checkbox">I have checked the international customs facts and HS codes</label>
  <button class="primary" id="workspace-pack-save">Save preparation & fetch parallel quotes</button>
 </form><div id="workspace-pack-result"></div></dialog>`);

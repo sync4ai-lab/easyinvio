@@ -58,7 +58,7 @@ async def run():
                     'order_status':'SHIPPED','transactions':['tx_synthetic']})
             return httpx.Response(200,json={'data':{'id':77,'order_id':orders['77']['order_id']}})
         async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
-            pool=Pool();tracking=TrackingSupportService(pool,TrackingSettings())
+            pool=Pool();tracking=TrackingSupportService(pool,TrackingSettings(_env_file=None,tracking_webhook_keys={}))
             automation=AutomationService(pool,None,None,None,main.RatingRequest,client,settings)
             service=NativePartnerService(automation,client,tracking)
             for provider,endpoint,credential in [('EASYPOST','https://api.easypost.com/v2','synthetic'),
@@ -132,19 +132,23 @@ async def run():
                         query_params=QueryParams('source='+str(pid))
                         async def stream(self):yield raw
                     return await service.receive_tracking(Request())
+                assert (await deliver(body_for('IN_TRANSIT',0)))['applied']
+                assert await connection.fetchval('SELECT status FROM public.shipments WHERE tenant_id=$1 AND id=$2',tenant,sid)=='IN_TRANSIT'
                 event=body_for('EXCEPTION',1)
                 assert (await deliver(event))['support_queued']
+                assert await connection.fetchval('SELECT status FROM public.shipments WHERE tenant_id=$1 AND id=$2',tenant,sid)=='EXCEPTION'
                 assert (await deliver(event))['replayed']
                 await tracking.stage_tickets()
                 assert await connection.fetchval('SELECT count(*) FROM public.support_tickets WHERE tenant_id=$1 AND shipment_id=$2',tenant,sid)==1
                 assert (await deliver(body_for('DELIVERED',2)))['applied']
                 row=await connection.fetchrow('SELECT status,proof_of_delivery_url FROM public.shipments WHERE tenant_id=$1 AND id=$2',tenant,sid)
                 assert row['status']=='DELIVERED' and row['proof_of_delivery_url'].endswith('.jpg')
-                assert not (await deliver(body_for('IN_TRANSIT',0)))['applied']
+                assert not (await deliver(body_for('IN_TRANSIT',-1)))['applied']
                 try:await deliver(event,bad_signature=True)
                 except HTTPException as exc:assert exc.status_code==401
                 else:raise AssertionError('Forged native signature accepted')
-                report['checks'].append('PASS: '+provider+' signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL')
+                assert await connection.fetchval("SELECT count(*) FROM public.tracking_events WHERE tenant_id=$1 AND shipment_id=$2 AND response->>'applied'='true'",tenant,sid)==3
+                report['checks'].append('PASS: '+provider+' BOOKED -> IN_TRANSIT -> EXCEPTION -> DELIVERED; three applied tracking receipts; signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL')
             report['status']='PASS'
     finally:
         await transaction.rollback();await connection.close();report['database_writes_rolled_back']=True

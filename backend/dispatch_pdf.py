@@ -149,7 +149,7 @@ def merge_pdfs(documents):
         raise HTTPException(502, 'Carrier PDF could not be safely merged') from None
 
 
-async def bundle_shipments(rows, *, client=None, hosts=None):
+async def bundle_shipments(rows, *, client=None, hosts=None, fetch_document=None):
     from backend.dispatch_workspace import decoded
     if not rows:
         raise HTTPException(422, 'Select confirmed bookings')
@@ -158,10 +158,10 @@ async def bundle_shipments(rows, *, client=None, hosts=None):
         documents = []
         total = 0
         for row in rows:
-            if (row['status'] not in {'BOOKED', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'}
+            if (row['status'] not in {'BOOKED', 'DISPATCHED', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'}
                 or not row['booked_at'] or not row['tracking_number'] or not row['label_storage_path']):
                 raise HTTPException(409, 'Every selected shipment requires a confirmed carrier label')
-            documents.append(await fetch_pdf(http, row['label_storage_path'], hosts))
+            documents.append(await fetch_document(row,'label') if fetch_document else await fetch_pdf(http, row['label_storage_path'], hosts))
             metadata = decoded(row['logistics_metadata'])
             declaration = metadata.get('automation_customs')
             forms = metadata.get('automation_label', {}).get('carrier_forms', [])
@@ -171,8 +171,8 @@ async def bundle_shipments(rows, *, client=None, hosts=None):
                 if declaration.get('postal_form') and not any(f.get('document_type', '').upper() == declaration['postal_form'] for f in forms):
                     raise HTTPException(409, 'Carrier-issued postal declaration is missing; reconcile carrier forms before printing')
                 documents.append(await asyncio.to_thread(invoice_pdf, row['customer_reference'] or str(row['id']), declaration))
-            for form in forms:
-                documents.append(await fetch_pdf(http, form['url'], hosts))
+            for index,form in enumerate(forms):
+                documents.append(await fetch_document(row,str(index)) if fetch_document else await fetch_pdf(http, form['url'], hosts))
             total = sum(len(data) for data in documents)
             if total > 50_000_000:
                 raise HTTPException(413, 'Print bundle exceeds 50 MB; select fewer orders')

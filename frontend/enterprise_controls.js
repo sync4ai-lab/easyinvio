@@ -52,7 +52,7 @@ const enterpriseNavItems = {
     'admin-clients': ['Client Accounts Node', 'building-2'],
     'admin-carriers': ['Carrier Connectors', 'plug'],
     'admin-margins': ['Margin Rule Matrix', 'sliders-horizontal'],
-    dispatch: ['Speed Quote Matrix', 'send'], boxes: ['Box Profiles', 'boxes'],
+    dispatch: ['Speed Quote Matrix', 'send'], boxes: ['Packaging sizes', 'boxes'],
     manifest: ['Manifest & Labels', 'package-check'], wallet: ['Wallet & Billing', 'wallet'],
     customs: ['Customs Harmonizer', 'shield-check'], profile: ['User Profile', 'user-round'], stores: ['Store Integrations', 'store'], workspace: ['Marketplace Workspace', 'warehouse']
 };
@@ -460,7 +460,7 @@ const nativeClearSessionBase=clearSession;clearSession=function(){const form=$('
 document.body.insertAdjacentHTML('beforeend','<dialog id="quote-diagnostics-dialog"><button class="close" data-enterprise-close="quote-diagnostics-dialog">Close</button><h2>Connection capabilities and recent quote coverage</h2><div id="quote-diagnostics-body"></div></dialog>');
 document.addEventListener('click',event=>{const b=event.target.closest('[data-quote-diagnostics]');if(!b)return;busy(b,async()=>{
  enterpriseAdminGuard();const session=state.session;if(!session)throw Error('Sign in as the platform owner.');const r=await api('/api/v1/admin/platform-carriers/'+b.dataset.quoteDiagnostics+'/quote-diagnostics',{auth:true});if(state.session!==session)throw Error('Session changed. Sign in again.');
- $('#quote-diagnostics-body').innerHTML=`<h3>${escapeHTML(r.account_name)}</h3><p>${escapeHTML(r.environment)} - ${r.is_active?'Enabled for future quotes':'Disabled for future quotes'}</p><p><b>Parcels:</b> ${escapeHTML(r.parcel)}</p><p><b>Letters:</b> ${escapeHTML(r.letter)}</p><p><b>Freight:</b> ${escapeHTML(r.freight)}</p><p>Saved offers: ${r.recent_saved_offer_count}; carriers: ${escapeHTML(r.carriers.join(', ')||'none recorded')}</p><p>Recorded failure codes: ${escapeHTML(r.failure_codes.join(', ')||'none in saved quotes')}</p><p class="notice">${escapeHTML(r.scope)}</p>`;$('#quote-diagnostics-dialog').showModal();
+ $('#quote-diagnostics-body').innerHTML=`<h3>${escapeHTML(r.account_name)}</h3><p>${escapeHTML(r.environment)} - ${r.is_active?'Enabled for future quotes':'Disabled for future quotes'}</p><p><b>Tracking receiver:</b> ${r.tracking?.receiver_enabled?'Enabled':'Disabled'}; signing secret ${r.tracking?.signing_secret_saved?'saved':'not configured'}; ${Number(r.tracking?.received_events||0)} received events. A public HTTPS receiver and matching provider subscription are required.</p><p><b>Parcels:</b> ${escapeHTML(r.parcel)}</p><p><b>Letters:</b> ${escapeHTML(r.letter)}</p><p><b>Freight:</b> ${escapeHTML(r.freight)}</p><p>Saved offers: ${r.recent_saved_offer_count}; carriers: ${escapeHTML(r.carriers.join(', ')||'none recorded')}</p><p>Recorded failure codes: ${escapeHTML(r.failure_codes.join(', ')||'none in saved quotes')}</p><p class="notice">${escapeHTML(r.scope)}</p>`;$('#quote-diagnostics-dialog').showModal();
 });});
 
 const diagnosticsClearSessionBase=clearSession;clearSession=function(){$('#quote-diagnostics-dialog').close();$('#quote-diagnostics-body').replaceChildren();return diagnosticsClearSessionBase.apply(this,arguments);};

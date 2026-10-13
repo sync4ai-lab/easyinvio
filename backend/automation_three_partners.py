@@ -343,7 +343,7 @@ class NativePartnerService:
                 JOIN public.shipments s ON s.tenant_id=j.tenant_id AND s.id=j.shipment_id AND s.carrier_account_id=j.carrier_account_id
                 JOIN public.carrier_accounts a ON a.tenant_id=j.tenant_id AND a.id=j.carrier_account_id
                 WHERE j.state='SYNCED' AND j.fulfillment_state<>'CONFIRMED' AND j.fulfillment_attempts<30
-                AND s.status IN ('BOOKED','IN_TRANSIT','EXCEPTION','DELIVERED')
+                AND s.status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
                 AND (j.fulfillment_attempts=0 OR j.updated_at<now()-interval '30 seconds') LIMIT 20''')
         for row in rows:
             key='native-fulfillment:'+str(row['tenant_id'])+':'+str(row['shipment_id'])
@@ -1536,8 +1536,8 @@ class PartnerLifecycleService:
                     if row['status'] != 'QUOTED':
                         raise HTTPException(409, 'Offer is no longer bookable')
                     from datetime import datetime, timezone
-                    if offer['expires_at'] <= datetime.now(timezone.utc):
-                        raise HTTPException(409, 'Offer expired; request a new quote')
+                    if offer['expires_at'] <= datetime.now(timezone.utc) or offer['expires_at'] != row['quote_expires_at']:
+                        raise HTTPException(409, 'Offer expired or superseded; request a new quote')
                     wholesale = Decimal(rate.fee_breakdown['wholesale_total'])
                     markup = rate.client_price_ex_tax - wholesale
                     selected = {'markup_type': 'MANUAL', 'markup_value': str(markup), 'currency': rate.currency,
@@ -1749,6 +1749,48 @@ class PartnerLifecycleService:
             await asyncio.sleep(20)
 
 
+async def carrier_document(shipment_id: UUID, document: str, service, context):
+    from fastapi.responses import Response
+    authorize(context, context.tenant_id)
+    async with service.pool.acquire() as connection:
+        row = await connection.fetchrow('''SELECT carrier_account_id,logistics_metadata FROM public.shipments
+            WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''', context.tenant_id, shipment_id)
+    if row is None:
+        raise HTTPException(404, 'Document not found')
+    metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
+    label = metadata.get('automation_label') or {}
+    try:
+        link = label['label_url'] if document == 'label' else label['carrier_forms'][int(document)]['url']
+        if document != 'label' and (not document.isdigit() or int(document) < 0):
+            raise ValueError()
+        parsed = urlsplit(secure_link(link))
+    except (ValueError, KeyError, IndexError, PurchaseUncertain):
+        raise HTTPException(404, 'Document not found') from None
+    approved = set(service.automation.settings.partner_document_allowed_hosts)
+    if parsed.hostname not in approved:
+        raise HTTPException(503, 'Document host requires platform-owner approval')
+    accounts = await service.automation.repository.accounts(context, historical_account_id=row['carrier_account_id'])
+    account = next((a for a in accounts if a.id == row['carrier_account_id']), None)
+    authentication = {}
+    if account and parsed.hostname == urlsplit(account.base_url).hostname:
+        adapter = create_adapter(service.client, account, environment=service.automation.settings.provider_environment)
+        authentication = adapter.authentication()
+    try:
+        async with service.client.stream('GET', link, follow_redirects=False, timeout=30, **authentication) as response:
+            if response.status_code != 200:
+                raise HTTPException(502, 'Shipping document unavailable')
+            raw = bytearray()
+            async for chunk in response.aiter_bytes():
+                raw.extend(chunk)
+                if len(raw) > 15_000_000:
+                    raise HTTPException(502, 'Shipping document exceeds download limit')
+        if not raw.startswith(b'%PDF-'):
+            raise HTTPException(502, 'Provider did not return the requested PDF document')
+        return Response(bytes(raw), media_type='application/pdf', headers={'Cache-Control': 'no-store',
+            'Content-Disposition': 'attachment; filename="easyinvio-' + str(shipment_id) + '.pdf"'})
+    except httpx.HTTPError:
+        raise HTTPException(502, 'Shipping document temporarily unavailable') from None
+
 def build_router(authenticate):
     router = APIRouter(prefix='/api/v1/shipping', tags=['Private partner lifecycle'])
 
@@ -1770,7 +1812,7 @@ def build_router(authenticate):
         service = request.app.state.partner_lifecycle
         async with service.pool.acquire() as connection:
             row = await connection.fetchrow('''SELECT logistics_metadata,tracking_number,booked_at,carrier_code FROM public.shipments
-                WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','IN_TRANSIT','EXCEPTION','DELIVERED')''',
+                WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''',
                 context.tenant_id, body.shipment_id)
         if row is None:
             raise HTTPException(404, 'Original shipment not found in this workspace')
@@ -1799,46 +1841,6 @@ def build_router(authenticate):
 
     @router.get('/{shipment_id}/documents/{document}')
     async def document(shipment_id: UUID, document: str, request: Request, context=Depends(authenticate)):
-        from fastapi.responses import Response
-        service = request.app.state.partner_lifecycle
-        authorize(context, context.tenant_id)
-        async with service.pool.acquire() as connection:
-            row = await connection.fetchrow('''SELECT carrier_account_id,logistics_metadata FROM public.shipments
-                WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','IN_TRANSIT','EXCEPTION','DELIVERED')''', context.tenant_id, shipment_id)
-        if row is None:
-            raise HTTPException(404, 'Document not found')
-        metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
-        label = metadata.get('automation_label') or {}
-        try:
-            link = label['label_url'] if document == 'label' else label['carrier_forms'][int(document)]['url']
-            if document != 'label' and (not document.isdigit() or int(document) < 0):
-                raise ValueError()
-            parsed = urlsplit(secure_link(link))
-        except (ValueError, KeyError, IndexError, PurchaseUncertain):
-            raise HTTPException(404, 'Document not found') from None
-        approved = set(service.automation.settings.partner_document_allowed_hosts)
-        if parsed.hostname not in approved:
-            raise HTTPException(503, 'Document host requires platform-owner approval')
-        accounts = await service.automation.repository.accounts(context, historical_account_id=row['carrier_account_id'])
-        account = next((a for a in accounts if a.id == row['carrier_account_id']), None)
-        authentication = {}
-        if account and parsed.hostname == urlsplit(account.base_url).hostname:
-            adapter = create_adapter(service.client, account, environment=service.automation.settings.provider_environment)
-            authentication = adapter.authentication()
-        try:
-            async with service.client.stream('GET', link, follow_redirects=False, timeout=30, **authentication) as response:
-                if response.status_code != 200:
-                    raise HTTPException(502, 'Shipping document unavailable')
-                raw = bytearray()
-                async for chunk in response.aiter_bytes():
-                    raw.extend(chunk)
-                    if len(raw) > 15_000_000:
-                        raise HTTPException(502, 'Shipping document exceeds download limit')
-            if not raw.startswith(b'%PDF-'):
-                raise HTTPException(502, 'Provider did not return the requested PDF document')
-            return Response(bytes(raw), media_type='application/pdf', headers={'Cache-Control': 'no-store',
-                'Content-Disposition': 'attachment; filename="easyinvio-' + str(shipment_id) + '.pdf"'})
-        except httpx.HTTPError:
-            raise HTTPException(502, 'Shipping document temporarily unavailable') from None
+        return await carrier_document(shipment_id,document,request.app.state.partner_lifecycle,context)
 
     return router

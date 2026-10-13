@@ -211,7 +211,7 @@ def build_router(authenticate):
                 WHERE s.tenant_id=$1 AND s.id=$2''',user.tenant_id,shipment_id)
         if row is None:
             raise HTTPException(404,'Shipment not found in this workspace')
-        if (row['status'] not in {'BOOKED','IN_TRANSIT','DELIVERED','EXCEPTION'} or not row['booked_at']
+        if (row['status'] not in {'BOOKED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'} or not row['booked_at']
             or not row['tracking_number'] or row['reservation_status']!='CAPTURED'):
             raise HTTPException(409,'The invoice download becomes available after the label and booking payment are confirmed')
         declaration=decode_json(row['logistics_metadata']).get('automation_customs')

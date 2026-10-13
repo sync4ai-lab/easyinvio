@@ -1,0 +1,29 @@
+{
+  "scope": "read-only configured receiver readiness; no subscription registration or customer messages",
+  "connections": [
+    {
+      "api_base_url": "https://api.easypost.com/v2",
+      "environment": "TEST",
+      "is_active": true,
+      "receiver_enabled": false,
+      "signing_secret_saved": false,
+      "events": 0
+    },
+    {
+      "api_base_url": "https://panel.sendcloud.sc/api/v2",
+      "environment": "TEST",
+      "is_active": true,
+      "receiver_enabled": false,
+      "signing_secret_saved": false,
+      "events": 0
+    },
+    {
+      "api_base_url": "https://api.goshippo.com",
+      "environment": "TEST",
+      "is_active": true,
+      "receiver_enabled": false,
+      "signing_secret_saved": false,
+      "events": 0
+    }
+  ]
+}

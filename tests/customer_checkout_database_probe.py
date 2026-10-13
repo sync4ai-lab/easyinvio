@@ -57,11 +57,12 @@ async def run():
                 sid='shp_'+uuid4().hex;rid='rate_'+uuid4().hex
                 body={'id':sid,'mode':'test','rates':[{'id':rid,'carrier':'DHL','service':'Express','currency':'GBP',
                     'rate':'12.00' if customs else '10.00','delivery_days':2}]}
+                body['rates'].append({'id':'rate_'+uuid4().hex,'carrier':'UPS','service':'Express Saver','currency':'GBP','rate':'13.00' if customs else '11.00','delivery_days':3})
                 remote[sid]=body;return httpx.Response(201,json=body)
             sid=request.url.path.split('/')[3];body=remote[sid]
             if request.method=='POST':
                 assert request.url.path.endswith('/buy')
-                body.update(selected_rate={'id':body['rates'][0]['id']},tracking_code='TEST-CHECKOUT',
+                body.update(selected_rate={'id':json.loads(request.content)['rate']['id']},tracking_code='TEST-'+sid[-12:],
                     postage_label={'label_pdf_url':'https://easypost-files.s3.amazonaws.com/synthetic-checkout.pdf'})
             return httpx.Response(200,json=body)
         pool=Pool();finance=main.FinanceEngine(pool,settings,None)
@@ -127,6 +128,27 @@ async def run():
             except HTTPException as exc:assert exc.status_code==404
             else:raise AssertionError('Foreign invoice accessible')
             report['checks'].append('PASS: foreign tenant invoice access rejected')
+            from backend.bulk_checkout import review_orders,checkout_orders,CheckoutSelection
+            from backend.dispatch_pdf import bundle_shipments
+            from reportlab.pdfgen import canvas
+            order={'idempotency_key':str(uuid4()),'order_reference':'ROLLBACK-BULK-REVIEW','origin':origin,'destination':origin,'currency':'GBP',
+                'cargo':{'cargo_type':'PARCEL','actual_weight_kg':'2','length_cm':'20','width_cm':'20','height_cm':'20'},'items':[]}
+            quoted_bulk=await automation.process(context,order,'QUOTE_ONLY');assert quoted_bulk['status']=='QUOTED'
+            bulk_sid=UUID(quoted_bulk['shipment_id']);review=await review_orders(service,context,[bulk_sid]);assert len(review['orders'][0]['rates'])==2
+            chosen=max(review['orders'][0]['rates'],key=lambda r:Decimal(r['client_price_ex_tax']))
+            before=await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)
+            selection=CheckoutSelection(offers=[{'shipment_id':bulk_sid,'offer_id':chosen['offer_id'],'expected_price':chosen['client_price_ex_tax'],'currency':chosen['currency']}])
+            result=await checkout_orders(service,context,selection);assert result['results'][0]['status']=='BOOKED'
+            assert await connection.fetchval('SELECT carrier_code FROM public.shipments WHERE tenant_id=$1 AND id=$2',tenant,bulk_sid)=='UPS'
+            assert await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)==before-Decimal(chosen['client_price_ex_tax'])
+            purchases=sum(path.endswith('/buy') for _,path in calls);assert (await checkout_orders(service,context,selection))['results'][0]['replayed']
+            assert sum(path.endswith('/buy') for _,path in calls)==purchases
+            label=BytesIO();page=canvas.Canvas(label,pagesize=(288,432));page.drawString(20,390,'SYNTHETIC TEST CARRIER LABEL');page.save()
+            shipment=await connection.fetchrow('SELECT * FROM public.shipments WHERE tenant_id=$1 AND id=$2',tenant,bulk_sid)
+            async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request:httpx.Response(200,content=label.getvalue(),headers={'content-type':'application/pdf'}))) as pdf_client:
+                bundle=await bundle_shipments([shipment],client=pdf_client,hosts=set(settings.partner_document_allowed_hosts));assert len(PdfReader(BytesIO(bundle)).pages)==1
+            report['checks'].append('PASS: bulk review exposes two distinct services; explicit higher-priced UPS choice is purchased; selected price captured once; checkout replay buys nothing; confirmed label PDF bundle generated without external calls')
+
         report['status']='PASS'
     finally:
         await outer.rollback();await connection.close();report['database_writes_rolled_back']=True

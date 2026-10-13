@@ -129,7 +129,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </use>
 </svg>
 </span>
-<span>Box profiles</span>
+<span>Packaging sizes</span>
 </button>
 <button id="tab-wallet" role="tab" data-view="wallet" aria-selected="false">
 <span class="nav-symbol">
@@ -243,7 +243,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </use>
 </svg>
 <div>
-<strong>Box Profiles</strong>
+<strong>Packaging sizes</strong>
 <span>Reusable packing dimensions and weights</span>
 </div>
 </button>
@@ -543,7 +543,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div>
 <div class="eyebrow">Operations / Manifest</div>
 <h1>Every shipment, one workspace.</h1>
-<p>Search dispatches and prepare a thermal-label preview.</p>
+<p>Review orders, complete bookings and download confirmed carrier labels.</p>
 </div>
 <button class="secondary" id="manifest-refresh">Refresh manifest</button>
 </div>
@@ -551,16 +551,16 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <div class="stats">
 <div class="stat">
-<span class="subtle">Visible shipments</span>
+<span class="subtle">Records matching filters</span>
 <strong id="manifest-count">0</strong>
 </div>
 <div class="stat">
-<span class="subtle">Ready / booked</span>
+<span class="subtle">Confirmed bookings in workspace</span>
 <strong id="manifest-ready">0</strong>
 </div>
 <div class="stat">
-<span class="subtle">Printing mode</span>
-<strong style="font-size:18px">Simulation</strong>
+<span class="subtle">Label documents</span>
+<strong id="manifest-print-mode" style="font-size:18px">Sample preview</strong>
 </div>
 </div>
 <div class="card">
@@ -568,6 +568,11 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <input id="manifest-search" aria-label="Search manifest" placeholder="Search reference, carrier or destination">
 <select id="manifest-filter" aria-label="Filter shipments" style="max-width:160px">
 <option value="all">All statuses</option>
+<option value="PENDING_IMPORT">Imported - needs review</option>
+<option value="DRAFT">Draft</option>
+<option value="QUOTED">Quoted - ready to book</option>
+<option value="SYNC_PENDING">Label being prepared</option>
+<option value="LABEL_CREATED">Label created</option>
 <option value="BOOKED">Booked</option>
 <option value="IN_TRANSIT">In transit</option>
 <option value="OUT_FOR_DELIVERY">Out for delivery</option>
@@ -584,7 +589,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <th>Reference / tracking</th>
 <th>Carrier / route</th>
 <th>Status</th>
-<th>Charge excl. tax</th>
+<th>Quote / booked charge excl. tax</th>
 <th>Actions</th>
 </tr>
 </thead>
@@ -592,7 +597,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </tbody>
 </table>
 </div>
-<p class="footnote">Print actions generate sample ZPL and a simulated AirPrint notification. No printer broadcast or carrier label purchase occurs.</p>
+<p class="footnote">Confirmed bookings provide carrier PDF labels for local printing. Imported and quoted orders are not booked yet. No automatic printer connection is configured.</p>
 </div>
 </section>
 <div id="box-backdrop" hidden>
@@ -604,44 +609,42 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div class="pagehead">
 <div>
 <div class="eyebrow">Packing library</div>
-<h1>Box Profiles</h1>
-<p>Save the right dimensions. Quote with confidence.</p>
+<h1>Saved packaging sizes</h1>
+<p>Optional shortcuts for cartons you use often. Weigh each packed shipment separately.</p>
 </div>
 <button class="secondary" data-portal-view="dispatch">Open Speed Quote Matrix</button>
 </div>
 <div id="box-profile-list" class="profile-list">
 </div>
-<article class="card" style="margin-top:22px">
-<h2>Create a reusable box</h2>
-<p class="subtle">Profiles are saved in this browser for the current workspace. They do not purchase labels.</p>
+<details class="card" style="margin-top:22px">
+<summary>Save a packaging size (optional)</summary>
+
+<p class="subtle">Save carton dimensions to avoid entering them repeatedly. Saved sizes apply to this browser and workspace; they do not set packed weight or buy a label.</p>
 <form id="box-profile-form" style="margin-top:20px">
 <div class="fields box-fields">
 <div>
 <label for="box-name">Profile name</label>
 <input id="box-name" maxlength="60" required placeholder="Warehouse carton">
 </div>
-<div>
-<label for="box-weight">Default actual weight · kg</label>
-<input id="box-weight" type="number" min="0.001" max="1000" step="0.001" required value="1.000">
-</div>
+
 </div>
 <div class="fields three">
 <div>
 <label for="box-length">Length · cm</label>
-<input id="box-length" type="number" min="0.01" max="1000" step="0.01" required value="30">
+<input id="box-length" type="number" min="0.01" max="1000" step="0.01" required placeholder="e.g. 30">
 </div>
 <div>
 <label for="box-width">Width · cm</label>
-<input id="box-width" type="number" min="0.01" max="1000" step="0.01" required value="20">
+<input id="box-width" type="number" min="0.01" max="1000" step="0.01" required placeholder="e.g. 20">
 </div>
 <div>
 <label for="box-height">Height · cm</label>
-<input id="box-height" type="number" min="0.01" max="1000" step="0.01" required value="15">
+<input id="box-height" type="number" min="0.01" max="1000" step="0.01" required placeholder="e.g. 15">
 </div>
 </div>
 <button class="primary" style="margin-top:16px">Save box profile</button>
 </form>
-</article>
+</details>
 </section>
 <section id="wallet" role="tabpanel" aria-labelledby="tab-wallet" hidden>
 <div class="pagehead">
@@ -878,10 +881,10 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </i>
 <span>Manifest</span>
 </button>
-<button data-portal-view="boxes" aria-label="Box profiles">
+<button data-portal-view="boxes" aria-label="Packaging sizes">
 <i data-lucide="boxes">
 </i>
-<span>Box profiles</span>
+<span>Packaging sizes</span>
 </button>
 <button data-portal-view="wallet" aria-label="Wallet & audit">
 <i data-lucide="wallet">
@@ -2842,14 +2845,14 @@ function loadBoxes() {
   try {
     if (typeof localStorage !== 'undefined') {
       const rows = JSON.parse(localStorage.getItem(boxStorageKey()) || 'null');
-      if (Array.isArray(rows) && rows.length <= 50 && rows.every(r => typeof r.name === 'string' && r.name.length <= 60 && ['l', 'w', 'h', 'weight'].every(k => Number(r[k]) > 0 && Number(r[k]) <= 1000))) portal.boxes = rows
+      if (Array.isArray(rows) && rows.length <= 50 && rows.every(r => typeof r.name === 'string' && r.name.length <= 60 && ['l', 'w', 'h'].every(k => Number(r[k]) > 0 && Number(r[k]) <= 1000))) portal.boxes = rows
     }
   } catch {}
   renderBoxes()
 }
 
 function renderBoxes() {
-  $('#box-profile-list').innerHTML = portal.boxes.map((b, i) => `<article class="box-profile"><span class="box-shape">${svgIcon('box')}</span><h3>${escapeHTML(b.name)}</h3><div class="box-dims">${escapeHTML(b.l)} × ${escapeHTML(b.w)} × ${escapeHTML(b.h)} cm</div><p class="subtle">Actual weight ${escapeHTML(b.weight)} kg</p><button class="secondary full" data-box-use="${i}" style="margin-top:12px">Use in Speed Quote Matrix →</button></article>`).join('');
+  $('#box-profile-list').innerHTML = portal.boxes.map((b, i) => `<article class="box-profile"><span class="box-shape">${svgIcon('box')}</span><h3>${escapeHTML(b.name)}</h3><div class="box-dims">${escapeHTML(b.l)} × ${escapeHTML(b.w)} × ${escapeHTML(b.h)} cm</div><p class="subtle">Dimensions only - enter measured packed weight for each shipment.</p><button class="secondary full" data-box-use="${i}" style="margin-top:12px">Use in Speed Quote Matrix →</button></article>`).join('');
   $('#box-profile-list').querySelectorAll?.('[data-box-use]').forEach(button => button.addEventListener('click', () => applyBox(Number(button.dataset.boxUse))))
 }
 
@@ -2859,12 +2862,12 @@ function applyBox(index) {
   for (const [field, key] of Object.entries({
       length_cm: 'l',
       width_cm: 'w',
-      height_cm: 'h',
-      weight_kg: 'weight'
+      height_cm: 'h'
     })) $('#' + field).value = box[key];
+  $('#weight_kg').value = '';
   setView('dispatch');
   updateWeight();
-  notify('Box profile applied. Billable weight recalculated.')
+  notify('Packaging dimensions applied. Enter the actual packed weight before quoting.')
 }
 $('#box-profile-form').addEventListener('submit', event => {
   event.preventDefault();
@@ -2872,10 +2875,9 @@ $('#box-profile-form').addEventListener('submit', event => {
     name: $('#box-name').value.trim(),
     l: $('#box-length').value,
     w: $('#box-width').value,
-    h: $('#box-height').value,
-    weight: $('#box-weight').value
+    h: $('#box-height').value
   };
-  if (!box.name || portal.boxes.length >= 50 || !['l', 'w', 'h', 'weight'].every(k => Number(box[k]) > 0 && Number(box[k]) <= 1000)) {
+  if (!box.name || portal.boxes.length >= 50 || !['l', 'w', 'h'].every(k => Number(box[k]) > 0 && Number(box[k]) <= 1000)) {
     notify('Enter a valid name and measurements. Maximum 50 profiles.', true);
     return
   }
@@ -2886,8 +2888,8 @@ $('#box-profile-form').addEventListener('submit', event => {
     notify('Profile saved for this session; browser storage is unavailable.')
   }
   renderBoxes();
-  $('#box-name').value = '';
-  notify('Box profile saved.')
+  $('#box-profile-form').reset();
+  notify('Packaging size saved.')
 });
 $('#box-backdrop').addEventListener('click', () => setView('dispatch'));
 $('#box-sheet-close').addEventListener('click', () => setView('dispatch'));
@@ -3237,7 +3239,7 @@ renderManifest = function() {
     const status = displayedStatus(row),
       carrier = row.metadata?.carrier || row.carrier_code || 'Not recorded',
       type = row.cargo_type || row.metadata?.cargo_type || 'PARCEL';
-    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
+    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(({PENDING_IMPORT:'Imported - needs review',DRAFT:'Draft - needs quote',QUOTED:'Quoted - not booked',BOOKING:'Booking in progress',LABEL_CREATED:'Label created'})[status]||status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
   }).join('') : '<tr><td colspan="5"><div class="empty"><h3>No Active Shipments</h3><p>No shipments match this view. Create a quote or change the filter.</p><button class="secondary" data-manifest-create="true">Open Speed Quote Matrix</button></div></td></tr>';
   refreshIcons()
 };
@@ -3544,7 +3546,7 @@ const enterpriseNavItems = {
   'admin-carriers': ['Carrier Connectors', 'plug'],
   'admin-margins': ['Margin Rule Matrix', 'sliders-horizontal'],
   dispatch: ['Speed Quote Matrix', 'send'],
-  boxes: ['Box Profiles', 'boxes'],
+  boxes: ['Packaging sizes', 'boxes'],
   manifest: ['Manifest & Labels', 'package-check'],
   wallet: ['Wallet & Billing', 'wallet'],
   customs: ['Customs Harmonizer', 'shield-check'],
@@ -4368,7 +4370,7 @@ document.addEventListener('click', event => {
       auth: true
     });
     if (state.session !== session) throw Error('Session changed. Sign in again.');
-    $('#quote-diagnostics-body').innerHTML = `<h3>${escapeHTML(r.account_name)}</h3><p>${escapeHTML(r.environment)} - ${r.is_active?'Enabled for future quotes':'Disabled for future quotes'}</p><p><b>Parcels:</b> ${escapeHTML(r.parcel)}</p><p><b>Letters:</b> ${escapeHTML(r.letter)}</p><p><b>Freight:</b> ${escapeHTML(r.freight)}</p><p>Saved offers: ${r.recent_saved_offer_count}; carriers: ${escapeHTML(r.carriers.join(', ')||'none recorded')}</p><p>Recorded failure codes: ${escapeHTML(r.failure_codes.join(', ')||'none in saved quotes')}</p><p class="notice">${escapeHTML(r.scope)}</p>`;
+    $('#quote-diagnostics-body').innerHTML = `<h3>${escapeHTML(r.account_name)}</h3><p>${escapeHTML(r.environment)} - ${r.is_active?'Enabled for future quotes':'Disabled for future quotes'}</p><p><b>Tracking receiver:</b> ${r.tracking?.receiver_enabled?'Enabled':'Disabled'}; signing secret ${r.tracking?.signing_secret_saved?'saved':'not configured'}; ${Number(r.tracking?.received_events||0)} received events. A public HTTPS receiver and matching provider subscription are required.</p><p><b>Parcels:</b> ${escapeHTML(r.parcel)}</p><p><b>Letters:</b> ${escapeHTML(r.letter)}</p><p><b>Freight:</b> ${escapeHTML(r.freight)}</p><p>Saved offers: ${r.recent_saved_offer_count}; carriers: ${escapeHTML(r.carriers.join(', ')||'none recorded')}</p><p>Recorded failure codes: ${escapeHTML(r.failure_codes.join(', ')||'none in saved quotes')}</p><p class="notice">${escapeHTML(r.scope)}</p>`;
     $('#quote-diagnostics-dialog').showModal();
   });
 });
@@ -4402,12 +4404,12 @@ function renderCSVResults() {
   const rows = batch.results;
   batch.quoted = rows.filter(row => row.status === 'quoted').length;
   batch.review_required = rows.filter(row => row.status === 'customs_review_required').length;
-  $('#batch-result').innerHTML = `<p style="margin:15px 0"><b>${batch.quoted}/${batch.total} orders quoted</b> · ${batch.simulated ? 'SIMULATION — no database writes' : `${rows.filter(r => r.saved).length} orders saved`} · ${batch.review_required} need customs review · 0 bookings</p>
+  $('#batch-result').innerHTML = `<p style="margin:15px 0"><b>${batch.quoted}/${batch.total} orders quoted</b> · ${batch.simulated ? 'SIMULATION — no database writes' : `${rows.filter(r => r.saved).length} orders saved`} · ${batch.review_required} need customs review · ${rows.filter(r=>r.status==='booked').length} bookings</p>
     <div class="scrolltable"><table><thead><tr><th>Order / cargo</th><th>Status</th><th>Best rate / next step</th><th>Actions</th></tr></thead><tbody>${rows.map(row => `<tr>
     <td><b>${escapeHTML(row.order_reference || 'Row ' + row.row)}</b><br><span class="tag">${escapeHTML(row.cargo_type || 'Invalid row')}</span></td>
     <td>${escapeHTML(row.status.replaceAll('_', ' '))}${row.replayed ? '<br><small>Existing order reused</small>' : ''}</td>
     <td>${row.quote?.rates?.length ? money(row.quote.rates[0].client_price_ex_tax, row.quote.currency) : escapeHTML(row.error || (row.missing_fields || []).join(', ') || 'Order saved')}</td>
-    <td><div class="actions">${row.status === 'customs_review_required' ? `<button class="secondary" data-csv-review-row="${row.row}">Review customs & quote</button>` : ''}${row.saved && row.shipment_id ? `<button class="secondary" data-csv-manifest="${escapeHTML(row.shipment_id)}">Open in manifest</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div>`;
+    <td><div class="actions">${row.status === 'customs_review_required' ? `<button class="secondary" data-csv-review-row="${row.row}">Review customs & quote</button>` : ''}${row.saved && row.shipment_id ? `<button class="secondary" data-csv-manifest="${escapeHTML(row.shipment_id)}">Open in manifest</button>` : ''}${row.saved && row.shipment_id && row.status==='quoted' ? `<button class="secondary" data-bulk-order="${escapeHTML(row.shipment_id)}">Compare services &amp; book</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div>`;
 }
 
 $('#batch-btn').addEventListener('click', () => busy($('#batch-btn'), async () => {
@@ -4455,20 +4457,20 @@ $('#batch-export').addEventListener('click', () => {
 document.body.insertAdjacentHTML('beforeend', `<dialog id="csv-review-dialog">
   <button class="close" id="csv-review-close" aria-label="Close customs review">×</button>
   <h2>Uploaded order — customs review</h2><p id="csv-review-reference" class="subtle"></p>
-  <div class="notice">Confirm the actual goods origin and net weight. Warehouse country and packed weight do not establish these facts. HS suggestions are simulated. Saving this review fetches rates; it does not buy a label.</div>
+  <div class="notice">Confirm the actual goods origin and net weight. Warehouse country and packed weight do not establish these facts. Select and review HS codes using the official tariff lookup. Saving this review fetches fresh rates; it does not buy a label.</div>
   <form id="csv-review-form"><div class="fields">
   <label>Item description<input name="description" minlength="3" maxlength="500" required></label>
   <label>Quantity<input name="quantity" type="number" min="1" max="10000" step="1" value="1" required></label>
   <label>Unit declared value<input name="unit_value" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" required></label>
   <label>Goods origin country<input name="origin_country" minlength="2" maxlength="3" placeholder="Actual manufacturing origin" required></label>
   <label>Unit goods net weight (kg)<input name="unit_weight_kg" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,3})?" placeholder="Excluding packaging" required></label>
-  <label>Reviewed HS code<input name="hs_code" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></label>
+  <button type="button" class="secondary" id="csv-hs-find">Find HS code in official tariff</button><div id="csv-hs-options"></div><label>Reviewed HS code<input name="hs_code" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></label>
   <label>Recipient phone (E.164)<input name="recipient_phone" type="tel" pattern="\\+[1-9][0-9]{7,14}" placeholder="+12025550123" required></label>
   <label>Origin state/province<input name="origin_state" maxlength="100"></label>
   <label>Destination state/province<input name="destination_state" maxlength="100"></label>
   <label>Customs signer<input name="customs_signer" maxlength="200" required></label>
   <label>Postal form<select name="postal_form"><option value="">Commercial invoice only</option><option>CN22</option><option>CN23</option></select></label>
-  <label>Incoterm<select name="incoterm"><option>DAP</option><option>DDP</option><option>FCA</option><option>EXW</option></select></label>
+  <label>Incoterm<select name="incoterm"><option>DAP</option></select></label>
   <label>Sender EORI (optional)<input name="sender_eori" maxlength="40"></label>
   <label>Recipient EORI (optional)<input name="recipient_eori" maxlength="40"></label>
   <label>Sender VAT (optional)<input name="sender_vat" maxlength="40"></label>
@@ -4493,7 +4495,7 @@ function openCSVReview(row) {
     unit_value: item.unit_value || row.review?.declared_value || source.item_declared_value || '',
     origin_country: item.origin_country || source.item_origin_country || '',
     unit_weight_kg: item.unit_weight_kg || source.item_net_weight_kg || '',
-    hs_code: item.hs_code || source.hs_code || row.review?.hs_suggestion?.hs_code || '',
+    hs_code: item.hs_code || source.hs_code || '',
     recipient_phone: row.order?.destination?.phone || source.recipient_phone || '',
     origin_state: row.order?.origin?.state || source.origin_state || '',
     destination_state: row.order?.destination?.state || source.destination_state || '',
@@ -4508,6 +4510,7 @@ function openCSVReview(row) {
   for (const [name, value] of Object.entries(values)) form.elements[name].value = value;
   for (const prefix of ['origin', 'destination']) form.elements[prefix + '_state'].required = ['US', 'CA', 'AU'].includes(row.order?.[prefix]?.country_code);
   $('#csv-review-reference').textContent = `${row.order_reference} · ${row.order?.cargo?.cargo_type || row.cargo_type} · ${row.order?.currency || ''} · Gross ${row.order?.cargo?.actual_weight_kg || ''} kg`;
+  $('#csv-hs-options').replaceChildren();
   $('#csv-review-output').hidden = true;
   $('#csv-review-dialog').showModal();
 }
@@ -4629,6 +4632,31 @@ renderPortal = function() {
     $('#csv-review-dialog').close();
   }
 };
+
+$('#csv-hs-find').addEventListener('click', () => busy($('#csv-hs-find'), async () => {
+  if (!state.session) throw Error('Sign in to use the official tariff.');
+  const form = $('#csv-review-form');
+  const result = await api('/api/v1/checkout/hs-search', {
+    method: 'POST',
+    auth: true,
+    body: {
+      description: form.elements.description.value
+    }
+  });
+  $('#csv-hs-options').innerHTML = result.candidates.map(c => `<button type="button" class="secondary" data-csv-hs-code="${escapeHTML(c.hs_code)}">${escapeHTML(c.hs_code)} - ${escapeHTML(c.title)}</button>`).join('') || escapeHTML(result.question || 'Describe the material and intended use in more detail.');
+}));
+$('#csv-hs-options').addEventListener('click', e => {
+  const b = e.target.closest('[data-csv-hs-code]');
+  if (b) {
+    $('#csv-review-form').elements.hs_code.value = b.dataset.csvHsCode;
+    $('#csv-review-form').elements.hs_codes_reviewed.checked = false;
+  }
+});
+$('#csv-review-form').elements.description.addEventListener('input', () => {
+  $('#csv-hs-options').replaceChildren();
+  $('#csv-review-form').elements.hs_code.value = '';
+  $('#csv-review-form').elements.hs_codes_reviewed.checked = false;
+});
 </script>
 <script>
 // Embedded in index.html: tenant-scoped marketplace preparation and dispatch.
@@ -4646,7 +4674,7 @@ document.querySelector('main').insertAdjacentHTML('beforeend', `
  <article class="card"><div class="toolbar"><select id="workspace-store" aria-label="Marketplace store"></select><button id="workspace-sync" class="primary">Sync Marketplace Orders</button><button id="workspace-refresh" class="secondary">Refresh inbox</button></div>
  <p id="workspace-notice" class="notice">Signed store webhooks feed this inbox. Live polling requires an enabled server connector. No sample orders are presented as live shipments.</p>
  <div class="toolbar"><button id="workspace-quote" class="secondary">Quote selected orders</button><button id="workspace-buy" class="primary">Buy selected labels</button><button id="workspace-pdf" class="secondary">Download unified print PDF</button></div>
- <p class="subtle">Up to 100 selected orders per dispatch run. Review packing and customs for each order first. Carrier purchases remain disabled in the sandbox. The PDF can be opened and printed locally; downloading does not prove physical printing.</p>
+ <p class="subtle">Up to 100 selected orders per dispatch run. Review packing and customs for each order first. Supported provider TEST labels can be booked; LIVE purchases and unsupported test facilities remain guarded. The PDF can be opened and printed locally; downloading does not prove physical printing.</p>
  <div class="scrolltable"><table><thead><tr><th>Select</th><th>Order / store</th><th>Stage</th><th>Tracking push-back</th><th>Preparation</th></tr></thead><tbody id="workspace-rows"></tbody></table></div>
  <div class="toolbar"><button id="workspace-prev" class="secondary">Previous 100</button><button id="workspace-next" class="secondary">Next 100</button><span id="workspace-page" class="subtle"></span></div><div id="workspace-results"></div>
  </article>
@@ -4661,7 +4689,7 @@ document.body.insertAdjacentHTML('beforeend', `<dialog id="workspace-pack-dialog
  <label>Customs signer<input name="customs_signer" maxlength="200"></label><label>Postal form<select name="postal_form"><option value="">Commercial invoice</option><option>CN22</option><option>CN23</option></select></label>
  </div><label>Sender address (JSON)<textarea name="origin" rows="5" required></textarea></label><label>Recipient address including phone/state (JSON)<textarea name="destination" rows="5" required></textarea></label>
  <label>Goods (JSON array: description, quantity, unit_value, unit_weight_kg, origin_country, hs_code)<textarea name="items" rows="10" required></textarea></label>
- <p class="notice">HS codes are pattern-based suggestions. Check each code and provide actual manufacturing origin, unit declared value and net weight. Warehouse dimensions must be measured, not inferred from the storefront. CN22/CN23 printing requires the corresponding carrier-issued form.</p>
+ <p class="notice">HS codes require explicit review. Check each code and provide actual manufacturing origin, unit declared value and net weight. Warehouse dimensions must be measured, not inferred from the storefront. CN22/CN23 printing requires the corresponding carrier-issued form.</p>
  <label class="check"><input name="reviewed" type="checkbox">I have checked the international customs facts and HS codes</label>
  <button class="primary" id="workspace-pack-save">Save preparation & fetch parallel quotes</button>
 </form><div id="workspace-pack-result"></div></dialog>`);
@@ -5936,6 +5964,260 @@ clearSession = function() {
   $('#member-invite-status').textContent = '';
   return settingsClearBase.apply(this, arguments);
 };
+</script>
+<script>
+// Embedded bulk checkout: review services before any carrier purchase.
+const bulkDispatch = {
+  ids: [],
+  orders: [],
+  selected: new Set(),
+  generation: 0
+};
+document.body.insertAdjacentHTML('beforeend', `<dialog id="bulk-checkout-dialog" style="width:min(1100px,calc(100vw - 28px))"><button class="close" id="bulk-checkout-close">Close</button><h2>Review shipping services &amp; checkout</h2><p class="notice">Uploading and quoting do not buy labels. Lowest customer price is suggested for each order; you can change the service or exclude an order. Confirm the selected total to book.</p><div id="bulk-checkout-body"></div><div id="bulk-checkout-error" class="errorbox" hidden role="alert"></div></dialog>`);
+$('#bulk-checkout-close').addEventListener('click', () => $('#bulk-checkout-dialog').close());
+
+function bulkOffers() {
+  return bulkDispatch.orders.filter(r => bulkDispatch.selected.has(r.shipment_id)).map(row => ({
+    row,
+    rate: row.rates.find(r => r.offer_id === $('#bulk-service-' + row.shipment_id)?.value)
+  })).filter(x => x.rate);
+}
+
+function bulkTotals() {
+  const totals = {};
+  for (const {
+      rate
+    }
+    of bulkOffers()) totals[rate.currency] = (totals[rate.currency] || 0n) + cents(rate.client_price_ex_tax);
+  $('#bulk-checkout-total').textContent = Object.entries(totals).map(([currency, value]) => money(decimalCents(value), currency)).join(' + ') || 'No orders selected';
+  $('#bulk-checkout-buy').disabled = !bulkOffers().length;
+  $('#bulk-selected-count').textContent = bulkOffers().length + ' orders selected';
+}
+
+function renderBulkCheckout() {
+  const rows = bulkDispatch.orders;
+  $('#bulk-checkout-body').innerHTML = `<div class="actions"><button id="bulk-fetch-rates" class="secondary">Fetch fresh rates for unbooked orders</button><span id="bulk-selected-count" class="subtle"></span></div><div class="scrolltable"><table><thead><tr><th>Include</th><th>Order / stage</th><th>Shipping service &amp; price</th></tr></thead><tbody>${rows.map(row=>`<tr><td><input type="checkbox" aria-label="Include ${escapeHTML(row.reference)}" data-bulk-include="${row.shipment_id}" ${row.rates.length&&row.customs_ready?'checked':'disabled'}></td><td><b>${escapeHTML(row.reference)}</b><br><span class="tag">${escapeHTML(row.status)}</span></td><td>${row.rates.length&&row.customs_ready?`<label class="subtle" for="bulk-service-${row.shipment_id}">Compare ${row.rates.length} available services</label><select id="bulk-service-${row.shipment_id}" data-bulk-service>${row.rates.map(rate=>`<option value="${escapeHTML(rate.offer_id)}">${escapeHTML(carrierDisplay(rate.carrier_code))} - ${escapeHTML(carrierDisplay(rate.service_code))} - ${escapeHTML(money(rate.client_price_ex_tax,rate.currency))} - ${rate.delivery_days==null?'No delivery estimate':Number(rate.delivery_days)+' estimated days'}</option>`).join('')}</select>`:`<p>${escapeHTML(row.notice)}</p>${row.batch_import&&['PENDING_IMPORT','DRAFT','QUOTED'].includes(row.status)?`<button class="secondary" data-bulk-customs="${row.shipment_id}">Review uploaded order</button>`:''}`}</td></tr>`).join('')}</tbody></table></div><div class="card" style="margin-top:16px"><h3>Selected shipping total: <span id="bulk-checkout-total"></span></h3><p class="subtle">Prices include EasyInvio's service charge and exclude tax. Each confirmed order has its own wallet transaction and label. Successful bookings remain booked if another order fails.</p><button id="bulk-checkout-buy" class="primary full">Confirm total &amp; create selected labels</button></div>`;
+  bulkDispatch.selected = new Set(rows.filter(r => r.rates.length && r.customs_ready).map(r => r.shipment_id));
+  $('#bulk-checkout-body').querySelectorAll('[data-bulk-include]').forEach(input => input.addEventListener('change', () => {
+    input.checked ? bulkDispatch.selected.add(input.dataset.bulkInclude) : bulkDispatch.selected.delete(input.dataset.bulkInclude);
+    bulkTotals();
+  }));
+  $('#bulk-checkout-body').querySelectorAll('[data-bulk-service]').forEach(input => input.addEventListener('change', bulkTotals));
+  $('#bulk-checkout-body').querySelectorAll('[data-bulk-customs]').forEach(button => button.addEventListener('click', () => busy(button, async () => {
+    const result = await api('/api/v1/shipments/batch/' + button.dataset.bulkCustoms, {
+      auth: true
+    });
+    $('#bulk-checkout-dialog').close();
+    openCSVReview(result);
+  })));
+  $('#bulk-fetch-rates').addEventListener('click', () => busy($('#bulk-fetch-rates'), async () => {
+    const ids = rows.filter(r => ['PENDING_IMPORT', 'DRAFT', 'QUOTED'].includes(r.status)).map(r => r.shipment_id);
+    if (!ids.length) throw Error('No unbooked orders to quote.');
+    const outcome = await api('/api/v1/shipments/bulk/quote', {
+      method: 'POST',
+      auth: true,
+      body: {
+        shipment_ids: ids
+      }
+    });
+    await openBulkCheckout(bulkDispatch.ids);
+    const failed = outcome.results.filter(r => !['QUOTED', 'BOOKED'].includes(r.status));
+    if (failed.length) {
+      $('#bulk-checkout-error').hidden = false;
+      $('#bulk-checkout-error').textContent = failed.map(r => (r.order_reference || r.shipment_id) + ': ' + (r.error || 'Preparation needs review')).join('; ');
+    }
+  }));
+  $('#bulk-checkout-buy').addEventListener('click', () => busy($('#bulk-checkout-buy'), async () => {
+    const offers = bulkOffers().map(({
+      row,
+      rate
+    }) => ({
+      shipment_id: row.shipment_id,
+      offer_id: rate.offer_id,
+      expected_price: rate.client_price_ex_tax,
+      currency: rate.currency
+    }));
+    if (!offers.length) throw Error('Select an available service first.');
+    const epoch = state.generation;
+    try {
+      const result = await api('/api/v1/shipments/bulk/checkout', {
+        method: 'POST',
+        auth: true,
+        body: {
+          offers
+        }
+      });
+      if (epoch !== state.generation) return;
+      renderBulkOutcome(result);
+      await refreshManifestRecords();
+      if (allowedEnterpriseViews().includes('workspace')) await loadDispatchWorkspace();
+    } catch (error) {
+      $('#bulk-checkout-error').hidden = false;
+      $('#bulk-checkout-error').textContent = error.message;
+      throw error;
+    }
+  }));
+  bulkTotals();
+}
+async function openBulkCheckout(ids) {
+  if (!state.session || !['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role)) throw Error('Workspace dispatch permission required.');
+  if (!ids.length || ids.length > 100) throw Error('Select between 1 and 100 orders.');
+  const epoch = state.generation,
+    generation = ++bulkDispatch.generation;
+  const result = await api('/api/v1/shipments/bulk/review', {
+    method: 'POST',
+    auth: true,
+    body: {
+      shipment_ids: [...new Set(ids)]
+    }
+  });
+  if (epoch !== state.generation || generation !== bulkDispatch.generation) return;
+  bulkDispatch.ids = ids;
+  bulkDispatch.orders = result.orders;
+  $('#bulk-checkout-error').hidden = true;
+  renderBulkCheckout();
+  $('#bulk-checkout-dialog').showModal();
+}
+
+function renderBulkOutcome(result) {
+  const booked = result.results.filter(r => r.status === 'BOOKED');
+  for (const resultRow of result.results) {
+    const csvRow = state.batch?.results.find(r => r.shipment_id === resultRow.shipment_id);
+    if (resultRow.status === 'BOOKED') {
+      manifestBulkSelected.delete(resultRow.shipment_id);
+      if (csvRow) csvRow.status = 'booked';
+    } else if (resultRow.status === 'SYNC_PENDING' && csvRow) csvRow.status = 'label_pending';
+  }
+  if (state.batch) renderCSVResults();
+  $('#bulk-checkout-body').innerHTML = `<h3>Booking results</h3>${result.results.map(r=>`<article class="card"><b>${escapeHTML(r.reference)}</b> <span class="tag">${escapeHTML(r.status)}</span><p>${escapeHTML(r.label?.tracking_number||r.error||r.message||'Refresh the manifest for the latest status.')}</p><div class="actions" data-bulk-docs="${r.shipment_id}"></div></article>`).join('')}<p class="notice">${escapeHTML(result.notice)}</p>${booked.length?'<button class="primary" id="bulk-download-labels">Download confirmed labels PDF</button>':''}<button class="secondary" id="bulk-open-manifest">Open Manifest &amp; Labels</button>`;
+  for (const row of booked) {
+    const target = $(`[data-bulk-docs="${row.shipment_id}"]`);
+    const docs = [{
+      label: 'Carrier label PDF',
+      url: '/api/v1/shipping/' + row.shipment_id + '/documents/label'
+    }];
+    if (portal.profile?.workspace_role !== 'DISPATCHER') docs.push({
+      label: 'Booking receipt PDF',
+      url: '/api/v1/checkout/' + row.shipment_id + '/receipt.pdf'
+    });
+    for (const doc of docs) {
+      const b = document.createElement('button');
+      b.className = 'secondary';
+      b.textContent = doc.label;
+      b.addEventListener('click', () => busy(b, () => downloadPartnerDocument(doc.url)));
+      target.append(b);
+    }
+  }
+  $('#bulk-download-labels')?.addEventListener('click', () => busy($('#bulk-download-labels'), () => downloadBulkLabels(booked.map(r => r.shipment_id))));
+  $('#bulk-open-manifest').addEventListener('click', () => {
+    $('#bulk-checkout-dialog').close();
+    setView('manifest');
+  });
+}
+async function downloadBulkLabels(ids) {
+  const session = state.session;
+  if (!session) throw Error('Sign in first.');
+  const response = await fetch(API + '/api/v1/shipments/bulk/print-bundle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + session.access_token
+    },
+    body: JSON.stringify({
+      shipment_ids: ids
+    })
+  });
+  if (session !== state.session) throw Error('Session changed.');
+  if (!response.ok) {
+    const data = await response.json();
+    throw Error(data.detail || 'Label PDF not ready.');
+  }
+  const blob = await response.blob();
+  if (session !== state.session) throw Error('Session changed.');
+  download('easyinvio-bulk-labels.pdf', blob, 'application/pdf');
+}
+const bulkCSVRenderBase = renderCSVResults;
+renderCSVResults = function() {
+  bulkCSVRenderBase();
+  if (!state.batch || !state.session) return;
+  const rows = state.batch.results.filter(r => r.saved && r.shipment_id && !['already_processed', 'booked', 'label_pending'].includes(r.status)).sort((a, b) => Number(b.status === 'quoted') - Number(a.status === 'quoted'));
+  if (!rows.length) return;
+  const button = document.createElement('button');
+  button.className = 'primary';
+  button.textContent = rows.length > 100 ? 'Compare services & checkout first 100 unbooked orders' : 'Compare services & checkout uploaded orders';
+  button.addEventListener('click', () => busy(button, () => openBulkCheckout(rows.slice(0, 100).map(r => r.shipment_id))));
+  $('#batch-result').prepend(button);
+};
+const manifestBulkSelected = new Set();
+$('#manifest-search').insertAdjacentHTML('beforebegin', '<button class="primary" id="manifest-bulk-review">Review &amp; book selected orders</button>');
+$('#manifest-bulk-review').addEventListener('click', () => busy($('#manifest-bulk-review'), () => openBulkCheckout([...manifestBulkSelected])));
+const bulkManifestBase = renderManifest;
+renderManifest = function() {
+  bulkManifestBase();
+  $('#manifest-bulk-review').hidden = !state.session || !['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role);
+  for (const b of $('#manifest-body').querySelectorAll('[data-manifest-detail]')) {
+    const row = manifestRecords().find(r => r.id === b.dataset.manifestDetail);
+    if (!row) continue;
+    const print = b.parentElement.querySelector('[data-print]');
+    if (print && !row.simulated) {
+      print.textContent = 'Download carrier label PDF';
+      print.disabled = !row.booked_at || !row.tracking_number || portal.profile?.workspace_role === 'ACCOUNTANT';
+    }
+    if (!state.session || !['PENDING_IMPORT', 'DRAFT', 'QUOTED'].includes(row.status) || !['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role)) continue;
+    const label = document.createElement('label');
+    label.className = 'check';
+    label.innerHTML = `<input type="checkbox" data-bulk-manifest="${row.id}" ${manifestBulkSelected.has(row.id)?'checked':''}>Select for booking`;
+    b.parentElement.prepend(label);
+  }
+  $('#manifest-ready').textContent = manifestRecords().filter(r => r.booked_at && r.tracking_number).length;
+  $('#manifest-print-mode').textContent = state.session ? 'Carrier PDF downloads' : 'Sample preview';
+};
+$('#manifest-body').addEventListener('change', e => {
+  const input = e.target.closest('[data-bulk-manifest]');
+  if (input) input.checked ? manifestBulkSelected.add(input.dataset.bulkManifest) : manifestBulkSelected.delete(input.dataset.bulkManifest);
+});
+$('#manifest-body').addEventListener('click', e => {
+  const button = e.target.closest('[data-print]');
+  if (!button) return;
+  const row = manifestRecords().find(r => r.id === button.dataset.print);
+  if (!row || row.simulated) return;
+  e.stopImmediatePropagation();
+  busy(button, () => downloadPartnerDocument('/api/v1/shipping/' + row.id + '/documents/label'));
+}, true);
+$('#workspace-buy').textContent = 'Review selected services & checkout';
+$('#workspace-buy').addEventListener('click', e => {
+  e.stopImmediatePropagation();
+  busy($('#workspace-buy'), () => openBulkCheckout(workspaceSelection()));
+}, true);
+const bulkClearBase = clearSession;
+clearSession = function() {
+  bulkDispatch.ids = [];
+  bulkDispatch.orders = [];
+  bulkDispatch.selected.clear();
+  bulkDispatch.generation++;
+  manifestBulkSelected.clear();
+  $('#bulk-checkout-dialog').close();
+  $('#bulk-checkout-body').replaceChildren();
+  $('#bulk-checkout-error').replaceChildren();
+  return bulkClearBase.apply(this, arguments);
+};
+
+let manifestAutoRefreshing = false;
+setInterval(async () => {
+  if (!state.session || document.hidden || $('#manifest').hidden || manifestAutoRefreshing) return;
+  manifestAutoRefreshing = true;
+  try {
+    await refreshManifestRecords();
+  } catch {
+    /* Keep the last confirmed view during a transient network failure. */ } finally {
+    manifestAutoRefreshing = false;
+  }
+}, 15000);
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-bulk-order]');
+  if (button) busy(button, () => openBulkCheckout([button.dataset.bulkOrder]));
+});
 </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-10-11T19:44:31.081675+00:00",
+  "executed_at": "2026-10-13T01:54:49.699770+00:00",
   "database": "actual Supabase SANDBOX",
   "native_http": "controlled MockTransport contracts",
   "external_api_calls": 0,
@@ -10,9 +10,9 @@
     "PASS: SENDCLOUD automatic queue trigger, actual SQL send fence and duplicate sync protection with controlled native HTTP",
     "PASS: SHIPPO automatic queue trigger, actual SQL send fence and duplicate sync protection with controlled native HTTP",
     "PASS: native fulfillment confirmation/update for all three providers against actual SQL; controlled HTTP only",
-    "PASS: EASYPOST signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL",
-    "PASS: SENDCLOUD signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL",
-    "PASS: SHIPPO signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL"
+    "PASS: EASYPOST BOOKED -> IN_TRANSIT -> EXCEPTION -> DELIVERED; three applied tracking receipts; signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL",
+    "PASS: SENDCLOUD BOOKED -> IN_TRANSIT -> EXCEPTION -> DELIVERED; three applied tracking receipts; signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL",
+    "PASS: SHIPPO BOOKED -> IN_TRANSIT -> EXCEPTION -> DELIVERED; three applied tracking receipts; signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL"
   ],
   "status": "PASS"
 }

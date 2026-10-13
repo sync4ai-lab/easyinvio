@@ -19,12 +19,12 @@ function renderCSVResults() {
   const rows = batch.results;
   batch.quoted = rows.filter(row => row.status === 'quoted').length;
   batch.review_required = rows.filter(row => row.status === 'customs_review_required').length;
-  $('#batch-result').innerHTML = `<p style="margin:15px 0"><b>${batch.quoted}/${batch.total} orders quoted</b> · ${batch.simulated ? 'SIMULATION — no database writes' : `${rows.filter(r => r.saved).length} orders saved`} · ${batch.review_required} need customs review · 0 bookings</p>
+  $('#batch-result').innerHTML = `<p style="margin:15px 0"><b>${batch.quoted}/${batch.total} orders quoted</b> · ${batch.simulated ? 'SIMULATION — no database writes' : `${rows.filter(r => r.saved).length} orders saved`} · ${batch.review_required} need customs review · ${rows.filter(r=>r.status==='booked').length} bookings</p>
     <div class="scrolltable"><table><thead><tr><th>Order / cargo</th><th>Status</th><th>Best rate / next step</th><th>Actions</th></tr></thead><tbody>${rows.map(row => `<tr>
     <td><b>${escapeHTML(row.order_reference || 'Row ' + row.row)}</b><br><span class="tag">${escapeHTML(row.cargo_type || 'Invalid row')}</span></td>
     <td>${escapeHTML(row.status.replaceAll('_', ' '))}${row.replayed ? '<br><small>Existing order reused</small>' : ''}</td>
     <td>${row.quote?.rates?.length ? money(row.quote.rates[0].client_price_ex_tax, row.quote.currency) : escapeHTML(row.error || (row.missing_fields || []).join(', ') || 'Order saved')}</td>
-    <td><div class="actions">${row.status === 'customs_review_required' ? `<button class="secondary" data-csv-review-row="${row.row}">Review customs & quote</button>` : ''}${row.saved && row.shipment_id ? `<button class="secondary" data-csv-manifest="${escapeHTML(row.shipment_id)}">Open in manifest</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div>`;
+    <td><div class="actions">${row.status === 'customs_review_required' ? `<button class="secondary" data-csv-review-row="${row.row}">Review customs & quote</button>` : ''}${row.saved && row.shipment_id ? `<button class="secondary" data-csv-manifest="${escapeHTML(row.shipment_id)}">Open in manifest</button>` : ''}${row.saved && row.shipment_id && row.status==='quoted' ? `<button class="secondary" data-bulk-order="${escapeHTML(row.shipment_id)}">Compare services &amp; book</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div>`;
 }
 
 $('#batch-btn').addEventListener('click', () => busy($('#batch-btn'), async () => {
@@ -60,20 +60,20 @@ $('#batch-export').addEventListener('click', () => {
 document.body.insertAdjacentHTML('beforeend', `<dialog id="csv-review-dialog">
   <button class="close" id="csv-review-close" aria-label="Close customs review">×</button>
   <h2>Uploaded order — customs review</h2><p id="csv-review-reference" class="subtle"></p>
-  <div class="notice">Confirm the actual goods origin and net weight. Warehouse country and packed weight do not establish these facts. HS suggestions are simulated. Saving this review fetches rates; it does not buy a label.</div>
+  <div class="notice">Confirm the actual goods origin and net weight. Warehouse country and packed weight do not establish these facts. Select and review HS codes using the official tariff lookup. Saving this review fetches fresh rates; it does not buy a label.</div>
   <form id="csv-review-form"><div class="fields">
   <label>Item description<input name="description" minlength="3" maxlength="500" required></label>
   <label>Quantity<input name="quantity" type="number" min="1" max="10000" step="1" value="1" required></label>
   <label>Unit declared value<input name="unit_value" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" required></label>
   <label>Goods origin country<input name="origin_country" minlength="2" maxlength="3" placeholder="Actual manufacturing origin" required></label>
   <label>Unit goods net weight (kg)<input name="unit_weight_kg" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,3})?" placeholder="Excluding packaging" required></label>
-  <label>Reviewed HS code<input name="hs_code" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></label>
+  <button type="button" class="secondary" id="csv-hs-find">Find HS code in official tariff</button><div id="csv-hs-options"></div><label>Reviewed HS code<input name="hs_code" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></label>
   <label>Recipient phone (E.164)<input name="recipient_phone" type="tel" pattern="\\+[1-9][0-9]{7,14}" placeholder="+12025550123" required></label>
   <label>Origin state/province<input name="origin_state" maxlength="100"></label>
   <label>Destination state/province<input name="destination_state" maxlength="100"></label>
   <label>Customs signer<input name="customs_signer" maxlength="200" required></label>
   <label>Postal form<select name="postal_form"><option value="">Commercial invoice only</option><option>CN22</option><option>CN23</option></select></label>
-  <label>Incoterm<select name="incoterm"><option>DAP</option><option>DDP</option><option>FCA</option><option>EXW</option></select></label>
+  <label>Incoterm<select name="incoterm"><option>DAP</option></select></label>
   <label>Sender EORI (optional)<input name="sender_eori" maxlength="40"></label>
   <label>Recipient EORI (optional)<input name="recipient_eori" maxlength="40"></label>
   <label>Sender VAT (optional)<input name="sender_vat" maxlength="40"></label>
@@ -92,7 +92,7 @@ function openCSVReview(row) {
     quantity: item.quantity || source.item_quantity || 1, unit_value: item.unit_value || row.review?.declared_value || source.item_declared_value || '',
     origin_country: item.origin_country || source.item_origin_country || '',
     unit_weight_kg: item.unit_weight_kg || source.item_net_weight_kg || '',
-    hs_code: item.hs_code || source.hs_code || row.review?.hs_suggestion?.hs_code || '',
+    hs_code: item.hs_code || source.hs_code || '',
     recipient_phone: row.order?.destination?.phone || source.recipient_phone || '',
     origin_state:row.order?.origin?.state || source.origin_state || '',
     destination_state:row.order?.destination?.state || source.destination_state || '',
@@ -102,6 +102,7 @@ function openCSVReview(row) {
   for (const [name,value] of Object.entries(values)) form.elements[name].value = value;
   for (const prefix of ['origin','destination']) form.elements[prefix + '_state'].required = ['US','CA','AU'].includes(row.order?.[prefix]?.country_code);
   $('#csv-review-reference').textContent = `${row.order_reference} · ${row.order?.cargo?.cargo_type || row.cargo_type} · ${row.order?.currency || ''} · Gross ${row.order?.cargo?.actual_weight_kg || ''} kg`;
+  $('#csv-hs-options').replaceChildren();
   $('#csv-review-output').hidden = true;
   $('#csv-review-dialog').showModal();
 }
@@ -180,3 +181,7 @@ renderPortal = function() {
   csvPreviousPortal();
   if (!allowedEnterpriseViews().includes('dispatch')) { activeCSVReview = null;$('#csv-review-dialog').close(); }
 };
+
+$('#csv-hs-find').addEventListener('click',()=>busy($('#csv-hs-find'),async()=>{if(!state.session)throw Error('Sign in to use the official tariff.');const form=$('#csv-review-form');const result=await api('/api/v1/checkout/hs-search',{method:'POST',auth:true,body:{description:form.elements.description.value}});$('#csv-hs-options').innerHTML=result.candidates.map(c=>`<button type="button" class="secondary" data-csv-hs-code="${escapeHTML(c.hs_code)}">${escapeHTML(c.hs_code)} - ${escapeHTML(c.title)}</button>`).join('')||escapeHTML(result.question||'Describe the material and intended use in more detail.');}));
+$('#csv-hs-options').addEventListener('click',e=>{const b=e.target.closest('[data-csv-hs-code]');if(b){$('#csv-review-form').elements.hs_code.value=b.dataset.csvHsCode;$('#csv-review-form').elements.hs_codes_reviewed.checked=false;}});
+$('#csv-review-form').elements.description.addEventListener('input',()=>{$('#csv-hs-options').replaceChildren();$('#csv-review-form').elements.hs_code.value='';$('#csv-review-form').elements.hs_codes_reviewed.checked=false;});

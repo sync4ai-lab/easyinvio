@@ -2369,6 +2369,10 @@ def verify_local_logic() -> None:
     print("Local checks passed: Decimal pricing, rule isolation/priority, currency conversion, ISO parsing, XML and encryption.")
 
 
+from backend.bulk_checkout import build_router as bulk_checkout_router
+app.include_router(bulk_checkout_router(authenticate))
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     if "--self-test" in sys.argv:

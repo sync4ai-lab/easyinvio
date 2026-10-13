@@ -1,0 +1,31 @@
+{
+  "unit_contract_tests": 318,
+  "bulk_browser": "PASS: controlled API responses, zero real purchases/messages",
+  "CSV_round_trip_browser": "PASS: real local-preview import/review/export, no database writes",
+  "database_bulk_probe": "PASS: actual Supabase with controlled carrier responses, all fixture writes rolled back; selected higher-priced service, one capture, replay and PDF bundle",
+  "database_tracking_probe": "PASS: all three native signed formats updated actual shipments and tracking_events through transit, exception and delivery; duplicate, stale, forged signature and POD tests passed; all fixtures rolled back",
+  "genuine_provider_webhook_delivery": "NOT EXECUTED: user confirmed local only; saved native receivers disabled with no signing secret and zero received events",
+  "bulk_workflow": [
+    "Upload saves one order record per CSV row and obtains quotes when packing/customs are complete",
+    "Review all available services per order; lowest client price is suggested, not silently purchased",
+    "Exclude unprepared orders or open customs review; obtain fresh rates when needed",
+    "Confirm selected total to purchase exact stored offers; expired, foreign, altered and unreviewed offers rejected before purchases",
+    "Display each booking outcome; retain successful bookings when others fail; reconcile pending outcomes rather than duplicate a purchase",
+    "Download confirmed carrier labels, PDF bundle and permitted financial receipts; process at most 100 orders per checkout"
+  ],
+  "manifest": [
+    "Records matching filters counts the visible imported, draft, quoted and booked records",
+    "Confirmed bookings counts records with a booking timestamp and tracking number in the workspace",
+    "Signed-in label mode is Carrier PDF downloads; unsigned sample mode is Sample preview",
+    "While open and visible, refresh the tenant manifest every 15 seconds"
+  ],
+  "packaging": "Optional browser/workspace dimension presets retained. Applying one clears packed weight; no weight is copied from another shipment.",
+  "external_delivery_setup": [
+    "Use a public HTTPS backend or tunnel; provider servers cannot deliver callbacks to localhost",
+    "Save matching authentication secrets and enable the native receiver under Orders & Webhooks",
+    "Register its complete source-specific webhook URL at the provider in matching TEST/LIVE mode",
+    "Sendcloud needs native v3 connection and verified numeric status mapping; Shippo needs track_updated and HMAC or a protected URL token",
+    "Check the diagnostics event count, shipment timeline and tracking_events receipts after provider delivery"
+  ],
+  "no_new_migration_required": true
+}

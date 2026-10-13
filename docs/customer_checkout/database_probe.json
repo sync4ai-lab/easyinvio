@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-10-13T01:44:47.100878+00:00",
+  "executed_at": "2026-10-13T01:58:13.082336+00:00",
   "database": "actual Supabase SANDBOX",
   "provider_responses": "controlled MockTransport",
   "external_carrier_calls": 0,
@@ -7,7 +7,8 @@
     "PASS: international customs are attached to native re-quote; invoice reference persists; final price changes require consent; PDF unavailable before payment",
     "PASS: immutable quoted goods; repeated checkout reference is stable; next booking gets a higher EINVIO number; receipt shares the reference and is unavailable before booking",
     "PASS: one label purchase, one wallet capture, booking replay and branded PDF with linked reference, real shipping cost and separate goods currency",
-    "PASS: foreign tenant invoice access rejected"
+    "PASS: foreign tenant invoice access rejected",
+    "PASS: bulk review exposes two distinct services; explicit higher-priced UPS choice is purchased; selected price captured once; checkout replay buys nothing; confirmed label PDF bundle generated without external calls"
   ],
   "status": "PASS",
   "database_writes_rolled_back": true

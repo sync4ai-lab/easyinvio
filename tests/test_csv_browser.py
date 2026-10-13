@@ -36,7 +36,7 @@ async def run():
             page.on('pageerror',lambda error:errors.append(str(error)))
             await page.goto('http://127.0.0.1:8002',wait_until='domcontentloaded')
             await page.wait_for_function("state.mode==='local-preview'")
-            await page.evaluate("setView('dispatch')")
+            await page.evaluate("document.body.classList.remove('auth-locked');$('#loginContainer').hidden=true;setView('dispatch')")
             async with page.expect_download() as downloading:await page.locator('#csv-template').click()
             download=await downloading.value
             content=Path(await download.path()).read_bytes()
@@ -52,7 +52,8 @@ async def run():
             await page.locator('[data-csv-review-row]').click()
             form=page.locator('#csv-review-form')
             await expect(form.locator('[name=description]')).to_have_value('Cotton T-shirt')
-            await expect(form.locator('[name=hs_code]')).to_have_value('610910')
+            await expect(form.locator('[name=hs_code]')).to_have_value('')
+            await form.locator('[name=hs_code]').fill('610910')
             await expect(form.locator('[name=origin_country]')).to_have_value('')
             await expect(form.locator('[name=unit_weight_kg]')).to_have_value('')
             await expect(form.locator('[name=hs_codes_reviewed]')).not_to_be_checked()
@@ -65,7 +66,7 @@ async def run():
             await expect(page.locator('#batch-result')).to_contain_text('4/4 orders quoted')
             doc=await page.evaluate('state.batch.results.find(r=>r.order_reference==="CSV-INTERNATIONAL-001").customs')
             assert doc['postal_form']=='CN23' and doc['items'][0]['hs_code']=='610910' and doc['ready_for_provider']
-            evidence.append('Review prefilled description/value/HS suggestion but did not invent goods origin or net weight; explicit completion generated CN23-ready customs and refreshed the quote.')
+            evidence.append('Review prefilled uploaded description/value, left guessed HS empty and did not invent goods origin or net weight; explicit completion generated CN23-ready customs and refreshed the quote.')
             await page.locator('#csv-review-close').click()
             async with page.expect_download() as downloading:await page.locator('#batch-export').click()
             output=Path(await (await downloading.value).path()).read_text()

@@ -180,6 +180,11 @@ def build_router(authenticate):
         async with request.app.state.finance.pool.acquire() as c:
             row=await c.fetchrow('SELECT account_name,api_base_url,is_active,environment FROM public.platform_carrier_connections WHERE id=$1',connection_id)
             if not row:raise HTTPException(404,'Connection not found')
+            tracking=await c.fetchrow('''SELECT coalesce(o.webhook_enabled,false) AS receiver_enabled,
+                o.webhook_secret IS NOT NULL AS signing_secret_saved,
+                (SELECT count(*) FROM public.tracking_events e JOIN public.shipments s ON s.tenant_id=e.tenant_id AND s.id=e.shipment_id
+                 JOIN public.carrier_accounts a ON a.id=s.carrier_account_id WHERE a.platform_connection_id=$1) AS received_events
+                FROM public.platform_carrier_connections p LEFT JOIN public.partner_provider_options o ON o.platform_connection_id=p.id WHERE p.id=$1''',connection_id)
             accounts=await c.fetch('SELECT id FROM public.carrier_accounts WHERE platform_connection_id=$1',connection_id)
             quotes=await c.fetch('SELECT quote_payload FROM public.partner_unbound_quotes ORDER BY expires_at DESC LIMIT 100')
         import json
@@ -191,7 +196,7 @@ def build_router(authenticate):
             for issue in payload.get('issues',[]):
                 if str(issue.get('account_id')) in ids:codes.add(issue.get('code','UNKNOWN'))
         endpoint=row['api_base_url'];letter='easypost.com' in endpoint
-        return {**dict(row),'parcel':'Implemented; route, currency and enabled carrier accounts determine availability',
+        return {**dict(row),'tracking':dict(tracking),'parcel':'Implemented; route, currency and enabled carrier accounts determine availability',
             'letter':'Implemented with Letter packaging and strict address verification' if letter else 'No verified letter service implemented in this adapter',
             'freight':'No verified industrial freight booking contract/adapter implemented for the three native providers',
             'recent_saved_offer_count':count,'carriers':sorted(carriers),'failure_codes':sorted(codes),
