@@ -2326,6 +2326,9 @@ $('#harmonizer-form').addEventListener('submit', event => {
       }
     });
     $('#hs-results').innerHTML = result.candidates.length ? result.candidates.map(candidate => `<div class="hs-card"><span class="hs-code">${escapeHTML(candidate.hs_code)}</span><h3>${escapeHTML(candidate.title)}</h3><p class="footnote">UK Integrated Online Tariff - review before declaring.</p><button class="secondary" data-use-hs="${escapeHTML(candidate.hs_code)}">Use reviewed candidate</button></div>`).join('') : `<div class="notice">${escapeHTML(result.question || 'No specific match found. Add the material and intended use, or check the official tariff.')}</div>`;
+    if (result.agent_review) {
+      $('#hs-results').insertAdjacentHTML('afterbegin', `<div class="notice">AI-assisted ordering of official candidates. Review the material, function and destination tariff before selecting a code. ${escapeHTML(result.agent_review.explanation || '')}</div>`);
+    }
   });
 });
 $('#hs-results').addEventListener('click', event => {

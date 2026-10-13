@@ -230,7 +230,10 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
             if len(raw) > MAX_BATCH_BYTES:
                 raise HTTPException(413, "CSV is limited to 5 MB")
         try:
-            rows = parse_batch_csv(bytes(raw), rating_model, getattr(request.app.state,'settings',None))
+            engine = getattr(request.app.state, 'logistics_supervisor', None)
+            prepared = (await engine.ingestion.csv_headers(context, bytes(raw))
+                        if engine is not None and engine.runtime.available else bytes(raw))
+            rows = parse_batch_csv(prepared, rating_model, getattr(request.app.state,'settings',None))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         service = getattr(request.app.state, 'csv_orders', None)

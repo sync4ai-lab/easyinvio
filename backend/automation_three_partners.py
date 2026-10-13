@@ -474,9 +474,11 @@ def build_native_router(authenticate):
         if service is None:
             raise HTTPException(503,'Tracking engine unavailable')
         try:
-            result = await service.receive_tracking(request)
+            engine = getattr(request.app.state, 'logistics_supervisor', None)
+            result = (await engine.support.receive_tracking(request, service) if engine is not None
+                      else await service.receive_tracking(request))
             if result.get('support_queued') and result.get('applied'):
-                background_tasks.add_task(wake_exception_delivery, request.app)
+                background_tasks.add_task(engine.support.stage if engine is not None else wake_exception_delivery, request.app)
             return result
         except asyncpg.PostgresError:
             raise HTTPException(503,'Tracking database unavailable; event not acknowledged') from None
@@ -1941,7 +1943,10 @@ def build_router(authenticate):
 
     @router.post('/confirm-booking')
     async def confirm(body: BookingRequest, request: Request, context=Depends(authenticate)):
-        result = await request.app.state.partner_lifecycle.confirm(context, body)
+        engine = getattr(request.app.state, 'logistics_supervisor', None)
+        service = request.app.state.partner_lifecycle
+        result = (await engine.confirm(context, body, service) if engine is not None
+                  else await service.confirm(context, body))
         if result.get('status') == 'SYNC_PENDING':
             from fastapi.responses import JSONResponse
             return JSONResponse(result, status_code=202)

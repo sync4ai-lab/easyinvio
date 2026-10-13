@@ -106,8 +106,14 @@ async def whatsapp_webhook(request: Request) -> Response:
             elif form["NumMedia"] != "0":
                 xml = xml_message("Please send text: Quote 4.5kg from GB to US")
             else:
-                xml = await service.process(context, form["MessageSid"], form["Body"], sender,
-                                            conversational=True)
+                engine = getattr(request.app.state, 'logistics_supervisor', None)
+                if engine is not None and engine.runtime.available:
+                    parsed = await engine.whatsapp_quote(context, form["Body"])
+                    xml = await service.process(context, form["MessageSid"], form["Body"], sender,
+                                                conversational=True, preparsed=parsed)
+                else:
+                    xml = await service.process(context, form["MessageSid"], form["Body"], sender,
+                                                conversational=True)
     except TimeoutError:
         xml = xml_message("The carriers did not respond quickly enough. Please resend shortly.")
     except HTTPException as exc:

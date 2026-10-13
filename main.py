@@ -1745,7 +1745,7 @@ class WhatsAppService:
             "iat": int(datetime.now(timezone.utc).timestamp()), "exp": int(expires_at.timestamp()),
         }, self.settings.quote_link_secret.get_secret_value(), algorithm="HS256")
 
-    async def process(self, context: TenantContext, message_sid: str, body: str, sender_e164: str | None = None, *, conversational: bool = False) -> str:
+    async def process(self, context: TenantContext, message_sid: str, body: str, sender_e164: str | None = None, *, conversational: bool = False, preparsed: ParsedQuote | None = None) -> str:
         async with self.pool.acquire() as connection:
             # READ COMMITTED sees a competing receipt after the advisory lock
             # wait. A repeatable-read snapshot taken before that wait would
@@ -1771,7 +1771,7 @@ class WhatsAppService:
                          AND u.auth_user_id=$2 AND b.sender_e164=$3 AND b.receiver_e164=$4 AND b.is_active AND u.is_active''',
                         context.tenant_id,context.user_id,sender_e164,self.settings.twilio_whatsapp_number)
                 try:
-                    parsed = parse_quote(body)
+                    parsed = preparsed or parse_quote(body)
                 except ValueError:
                     xml = twiml("Send: Quote 4.5kg from GBR to USA\n"
                                 "Use ISO country codes and a weight up to 1000kg.\n"
@@ -1856,7 +1856,7 @@ class WhatsAppService:
 
 
 @asynccontextmanager
-async def lifespan(application: FastAPI):
+async def deterministic_lifespan(application: FastAPI):
     from backend.webhook_security import install_webhook_log_redaction
     install_webhook_log_redaction()
     if "--local-preview" in sys.argv:
@@ -2051,6 +2051,23 @@ async def lifespan(application: FastAPI):
             await pool.close()
 
 
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    from backend.agents.supervisor import LogisticsSupervisor
+    from backend.agents.config import AgentSettings
+    try:
+        agent_settings = AgentSettings()
+    except ValidationError:
+        logger.warning("Invalid optional agent configuration; AI assistance disabled")
+        agent_settings = AgentSettings.model_construct(logistics_agents_enabled=False)
+    application.state.logistics_supervisor = LogisticsSupervisor(agent_settings)
+    try:
+        async with deterministic_lifespan(application):
+            yield
+    finally:
+        await application.state.logistics_supervisor.runtime.close()
+
+
 app = FastAPI(title="EasyInvio.com Backend", version="1.0.0", lifespan=lifespan)
 from dotenv import dotenv_values
 try:
@@ -2074,7 +2091,7 @@ async def branded_carrier_transport(request: Request, call_next):
     branded=(path=='/v1/rates' or path=='/v1/whatsapp/quote-choice' or path.startswith('/api/v1/rates/')
              or path.startswith('/api/v1/routing/') or path.startswith('/api/v1/shipments/')
              or path.startswith('/api/v1/automation/') or path.startswith('/api/v1/dispatch-workspace/')
-             or path.startswith('/api/v1/shipping/')
+             or path.startswith('/api/v1/shipping/') or path.startswith('/api/v1/agents/')
              or path.startswith('/api/v1/support/tickets') or path=='/api/v1/analytics/carrier-performance')
     if not branded:return response
     from backend.carrier_consolidation import public_payload
@@ -2231,7 +2248,9 @@ async def get_rates(body: RatingRequest, request: Request,
     if context.role not in DISPATCH_ROLES | FINANCE_ROLES:
         raise HTTPException(403, "Dispatch permission required")
     try:
-        result = await request.app.state.rating.quote(context, body)
+        engine = getattr(request.app.state, 'logistics_supervisor', None)
+        result = (await engine.rates(context, body, request.app.state.rating) if engine is not None
+                  else await request.app.state.rating.quote(context, body))
         pool=getattr(request.app.state.rating,'pool',None)
         if pool is not None:
             async with pool.acquire() as connection:
@@ -2366,6 +2385,11 @@ async def inbound_whatsapp(request: Request) -> Response:
                     "Ask your workspace owner to verify and register your WhatsApp number, then resend."))
             if form.get("NumMedia", "0") != "0":
                 return xml_response(twiml("Please send text: Quote 4.5kg from GBR to USA"))
+            engine = getattr(request.app.state, 'logistics_supervisor', None)
+            if engine is not None and engine.runtime.available:
+                parsed = await engine.whatsapp_quote(context, form["Body"])
+                return xml_response(await request.app.state.whatsapp.process(context, form["MessageSid"],
+                    form["Body"], sender.group(1), preparsed=parsed))
             return xml_response(await request.app.state.whatsapp.process(context, form["MessageSid"], form["Body"], sender.group(1)))
     except TimeoutError:
         return xml_response(twiml("The carriers did not respond quickly enough. Please resend shortly."))
@@ -2515,6 +2539,9 @@ app.include_router(bulk_checkout_router(authenticate))
 from backend.card_checkout import build_router as card_checkout_router
 app.include_router(card_checkout_router(authenticate))
 
+
+from backend.agents.routes import build_router as agent_router
+app.include_router(agent_router(authenticate, RatingRequest, authenticate_platform_owner))
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")

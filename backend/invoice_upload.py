@@ -196,7 +196,9 @@ def build_router(authenticate):
                         if shipment['currency'] != line.currency:
                             results.append({'upstream_shipment_id': line.upstream_shipment_id, 'status': 'REVIEW_REQUIRED', 'reason': 'Invoice currency does not match booking currency'})
                             continue
-                        findings, baseline, estimated, draft = compare_line(line, shipment)
+                        engine = getattr(request.app.state, 'logistics_supervisor', None)
+                        findings, baseline, estimated, draft = (engine.invoice.compare(line, shipment)
+                            if engine is not None else compare_line(line, shipment))
                         data = line.model_dump(mode='json')
                         digest = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
                         dispute_id = None

@@ -116,7 +116,15 @@ def build_router(authenticate):
 
     @router.post('/hs-search')
     async def hs_search(body:TariffQuery,request:Request,user=Depends(authenticate)):
-        return await search_tariff(request.app.state.partner_lifecycle.client,body.description)
+        result = await search_tariff(request.app.state.partner_lifecycle.client,body.description)
+        engine = getattr(request.app.state, 'logistics_supervisor', None)
+        if engine is not None and engine.runtime.available:
+            try:
+                result = await engine.customs.rank_tariff(user, body.description, result)
+            except HTTPException:
+                # Official results remain usable when optional assistance fails.
+                pass
+        return result
 
     @router.get('/context')
     async def context(offer_id:UUID,request:Request,user=Depends(authenticate)):

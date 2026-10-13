@@ -31,6 +31,20 @@ async def run(origin):
         await page.locator('#loginContainer a[href="/help"]').click()
         await expect(page.get_by_role('heading', name='How can we help?')).to_be_visible()
         await expect(page.locator('.domain-card')).to_have_count(3)
+        await page.locator('#supportSearch').fill('When is my wallet charged?')
+        await page.get_by_role('button', name='Ask the help assistant').click()
+        await expect(page.locator('#support-agent-answer')).to_contain_text('Sign in to ask')
+        await page.evaluate("localStorage.setItem('easyinvio.session', JSON.stringify({access_token:'local-browser-test-only'}))")
+        await page.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
+            'answer': '<script>untrusted text</script> Wallet credit is captured after label confirmation.',
+            'sources': [{'title': 'Booking guidance', 'url': '/help/features/labels-and-tracking'}],
+            'mode': 'AI_CITED_ANSWER'}))
+        await page.get_by_role('button', name='Ask the help assistant').click()
+        await expect(page.locator('#support-agent-answer')).to_contain_text('Wallet credit is captured')
+        assert await page.locator('#support-agent-answer script').count() == 0
+        await expect(page.locator('#support-agent-answer a')).to_have_attribute('href', '/help/features/labels-and-tracking')
+        await page.evaluate("localStorage.removeItem('easyinvio.session')")
+        await page.locator('#supportSearch').fill('')
         await page.screenshot(path=str(output / 'desktop.png'), full_page=True)
         await page.locator('#supportSearch').fill('card payment')
         await expect(page.locator('#support-results-list')).to_contain_text('Add credit and check a card payment')
@@ -84,7 +98,7 @@ async def run(origin):
         assert not errors, errors
         await browser.close()
     report = {'status': 'PASS', 'desktop_width': 1440, 'mobile_width': 390, 'page_errors': errors,
-              'checks': ['Signed-out help access', 'Desktop and mobile layout', 'Search and guide navigation',
+              'checks': ['Signed-out help access', 'Assistant sign-in guidance', 'Cited assistant response with safe text rendering', 'Desktop and mobile layout', 'Search and guide navigation',
                          'Bookmarked search', 'Clearly labelled feature placeholders', 'No-results and clear controls',
                          'Encoded support email draft without sending', 'Useful missing-guide page', 'Five feature guide links', 'Markdown downloads', 'Contents anchors', 'Honest collection limitations'],
               'database_calls': 0, 'provider_calls': 0, 'messages_sent': 0}
