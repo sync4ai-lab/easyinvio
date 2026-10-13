@@ -1,0 +1,46 @@
+XCover protection and native XClaim reconciliation — 13 October 2026
+
+Implemented production code
+
+backend/shipment_protection.py contains the exact Decimal tariff (1%, minimum GBP 1.20, maximum declared package value GBP 5,000), native signed XCover quote/booking/retrieval client, durable protected wallet checkout, recovery worker, private claim support/evidence routes and settlement accounting. The internal book_xcover_policy controller requires explicit tenant/service dependencies; public requests use authenticated workspace membership and opaque saved offers.
+
+backend/xcover_claims.py contains native Basic-auth JWT acquisition and renewal, claim-type/FNOL lookup, private photo uploads, asynchronous claim creation, authoritative claim retrieval, XClaim-Signature body HMAC validation, status reconciliation and a durable send fence. An uncertain claim POST is not repeated. Photo uploads have their own persisted send fence. Partner FNOL bindings are configured from the actual insurer form; required missing fields are not invented. When headless access cannot prepare a claim, the insured customer can save a support case and complete the provider-supplied claims portal.
+
+The native callback endpoint is POST /api/v1/shipping/insurance-updates. XCover booking events use native date signatures plus authoritative booking retrieval. XClaim events use the separate body-signature header and authoritative claim retrieval. Payload status or amount alone cannot authorize a credit. Automatic credit requires Payment Complete/Settled from the authoritative API, an exact configured master-payee match, an explicit funds-received flag, approved GBP amount, payment reference and receipt timestamp. Those partner-specific JSON pointers intentionally default to an empty mapping. An approval before verified receipt creates no wallet credit.
+
+POST /api/v1/admin/insurance/settlements is a platform-owner-only fallback for received funds verified by an operator. Both paths use the same transaction: tenant/case/wallet locks, unique master payment reference, liability cap aggregated across the shipment’s claims, immutable settlement record, one INSURANCE_CLAIM_CREDIT, case/support closure and opted-in merchant notification staging. Native verification stores a SHA-256 fingerprint of the authoritative supplier response; operator verification stores the responsible auth user. Notification delivery retains the existing Twilio consent, service-window, environment and uncertain-send protections. Staged does not mean delivered.
+
+Protected checkout first obtains a supplier quote whose tax-exclusive premium matches the configured retail tariff and whose reported cover amount supports the declared goods value, explicitly adds the insurer’s tax, and presents its disclosure URL and terms acceptance. It supports one packed parcel per insured booking and passes its actual goods descriptions, quantities, values and available HS codes to the insurer. The wallet row is locked while verifying available label + protection funds and reserving the protection amount. Existing label finance reserves and captures the shipping charge. Policy purchase follows confirmed tracking; network calls are never made while holding a wallet transaction open. Protection is captured only after matching policy, parcel product, transaction, total and tax confirmation. Timeouts retain the reserve for GET reconciliation; definitive rejection releases the protection reserve and leaves the already-created label visible. Orphan reservations without a submitted label are recoverable. The GBP 0.80 baseline and derived margin are stored only in explicitly named estimate fields on the capture footprint; they are never posted as realized profit. Actual supplier-reported commission is recorded separately when supplied.
+
+Shipping lifecycle remains BOOKED/IN_TRANSIT/DELIVERED/EXCEPTION. Insurance and claims have separate states, avoiding tracking, printing, receipt or cancellation regressions caused by replacing shipment status with a claims state. Manifest rows expose protection status without revealing supplier commission. Confirmed protection premium and tax appear in the original booking receipt under its stable EINVIO reference. A later cancellation does not erase previously captured charges from that receipt. Carrier delivery events close tracking exception tickets, not open insurance cases.
+
+The new insuranceClaimsModal supports insured-shipment selection, loss/damage notes, incident time and up to four validated JPEG/PNG photographs (5 MB each, 20-megapixel limit). Evidence is tenant-private and downloaded with attachment/no-sniff headers. Progress reflects actual queued/submitted/insurer assessment/payment/credit states. The protected single-label flow currently uses PREPAID_WALLET with goods and shipping in GBP and a GB origin. Its Stripe button is disabled to prevent omitted protection charges. Bulk/card-funded protection, policy cancellation/refund orchestration and foreign-currency conversion are not implemented by this change.
+
+Activation and missing partner values
+
+The user confirmed the desired reseller pricing and master-account payout arrangement, but has no partner ID yet. No fake ID or credential is used. .env.example contains empty server-only XCover and XClaim credentials, disabled feature flags, empty FNOL bindings, empty settlement mappings and an empty master payee ID. Existing local XCOVER_ENVIRONMENT=SANDBOX is accepted as TEST. The optional settings read only XCOVER_* dotenv keys. Invalid optional insurer configuration disables insurance while leaving shipping and payments available. Actual .env contents are not committed or changed.
+
+Migration 033_xcover_claim_cases.sql adds private purchase/case/evidence/settlement/callback tables, constrained insurance ledger entries, separate support-ticket provenance and notification kind. It was exercised inside a test transaction and rolled back. It has NOT been applied persistently. Supply the partner ID, API signing credentials, parcel product/retail tariff approval, separate XClaim credentials, real FNOL bindings and master-payment field mapping before activation. Obtain the production XClaim origin from the integration manager. A public HTTPS receiver is required for external callbacks; local polling can reconcile configured native API claims. LIVE insurance cannot run against sandbox tenants.
+
+Primary documentation
+
+https://xcover-api-docs.covergenius.com/parcel_insurance.html
+  Documented parcel product version 6; POST /partners/{partner_id}/quotes/ then POST /partners/{partner_id}/bookings/{quote_package_id}/. The prompt’s consumer-site URL is not the API booking route.
+https://xcover-api-docs.covergenius.com/
+  Native Date/Authorization signing and booking webhooks.
+https://partner-docs.covergenius.com/xclaim/authentication
+https://partner-docs.covergenius.com/xclaim/claim-creation-workflows
+https://partner-docs.covergenius.com/xclaim/claims/create-a-new-claim
+https://partner-docs.covergenius.com/xclaim/claims/claim-files/upload-file
+https://partner-docs.covergenius.com/xclaim/webhooks/verifying-signatures
+https://partner-docs.covergenius.com/xclaim/webhooks/claim-webhooks
+https://partner-docs.covergenius.com/xclaim/claim-creation-workflows/appendix
+  XClaim uses JWT, FNOL fields and pre-uploaded file UUIDs. Its documented status categories distinguish assessment, Payment Processing, Payment Complete and Settled. Exact extra payout attributes are partner-specific and must be confirmed.
+
+Verification
+
+379 unit tests passed, including native URL/authentication/idempotency checks, exact monetary arithmetic, forged/stale signatures, optional-configuration isolation, unavailable-credentials guards, FNOL required-field checks, image validation and receipt totals.
+
+Controlled Chromium checks cover combined premium/tax total, terms consent, the wallet/card boundary, confirmed-policy display, truthful claims progress, portal referral and fresh-form reset on 375/768/1366px layouts.
+
+The actual Supabase SANDBOX probe tested migration syntax and rerun idempotence; label/protection reservation and capture; insured retries; policy timeout GET recovery without another POST; rejection release; private photo/case idempotence; authoritative status retrieval; forged updates; received-funds operator payout; aggregate liability cap; native XClaim JWT/FNOL/upload/async submission; insurer review; native body signatures; master-payee receipt verification; and exactly-once approved-amount credit. Provider HTTP, supplier-specific extra payout fields and auth were controlled synthetic fixtures. ALL database writes and DDL were rolled back. No real label/policy purchase, supplier claim, payout or customer message occurred. Genuine partner integration validation remains pending credentials and onboarding.

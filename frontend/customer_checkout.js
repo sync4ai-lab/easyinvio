@@ -9,9 +9,10 @@ feeRows = function(rate) {
   let fuel=null;
   if (supplied!=null) { const value=cents(supplied);if(value>=0n && value<=total)fuel=value; }
   const rows=[['Label cost',money(decimalCents(total-(fuel||0n)),rate.currency)],
-    ['Shipment protection','Not added'],['Fuel surcharge',fuel===null?'Included in label cost':money(decimalCents(fuel),rate.currency)],
-    ['Subtotal price (excl. tax)',money(rate.client_price_ex_tax,rate.currency)]];
-  return rows.map(([label,value],i)=>`<div class="fee ${i===3?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('') + '<p class="footnote">Subtotal excludes VAT. Current checkout does not assess or collect VAT. Applicable carrier taxes, import duties and destination charges may be billed separately. No shipment protection fee is included.</p>';
+    ['Shipment protection',rate.protection?money(rate.protection.premium,'GBP'):'Not added'],['Fuel surcharge',fuel===null?'Included in label cost':money(decimalCents(fuel),rate.currency)],
+    ['Subtotal price (excl. tax)',money(decimalCents(total+(rate.protection?cents(rate.protection.premium):0n)),rate.currency)]];
+  if(rate.protection)rows.push(['Protection tax',money(rate.protection.tax_amount,'GBP')],['Total payable',money(decimalCents(total+cents(rate.protection.total_charge)),'GBP')]);
+  return rows.map(([label,value],i)=>`<div class="fee ${i===3||i===5?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('') + '<p class="footnote">Shipping subtotal excludes VAT. Current shipping checkout does not assess or collect VAT. Applicable carrier taxes, import duties and destination charges may be billed separately. '+(rate.protection?'Protection tax is shown separately above.':'No shipment protection fee is included.')+'</p>';
 };
 
 function checkoutError(error) {
@@ -90,16 +91,29 @@ function renderCheckoutCustoms() {
 
 async function prepareCustomerCheckout(customs=null) {
   const generation=customerCheckout.generation;
+  const insuranceRequested=Boolean(customerCheckout.insuranceRequested);
+  const protectionInput=$('#checkout-protection input');if(protectionInput)protectionInput.disabled=true;
   const rate=state.quotes[customerCheckout.index];
   const prepared=await api('/api/v1/checkout/prepare',{method:'POST',auth:true,body:{offer_id:rate.offer_id,customs}});
   if(generation!==customerCheckout.generation)return;
+  if(insuranceRequested){
+    try{
+      const protection=await api('/api/v1/shipping/protection-quote',{method:'POST',auth:true,body:{offer_id:prepared.offer.offer_id}});
+      if(generation!==customerCheckout.generation)return;
+      prepared.protection=protection;prepared.offer.protection=protection;
+    }catch(error){if(generation===customerCheckout.generation){customerCheckout.insuranceRequested=false;if(protectionInput){protectionInput.checked=false;protectionInput.disabled=false;}}throw error;}
+  }
   customerCheckout.prepared=prepared;
   $('#checkout-price').innerHTML=feeRows(prepared.offer);
   $('#checkout-next').innerHTML=`<h2>Confirm your booking</h2><p class="notice">${prepared.price_changed?'The price changed after the carrier evaluated your customs details. Review this final price before purchasing.':'Your shipment is prepared. Confirm the price shown to create the shipping label.'}</p><p class="subtle">${escapeHTML(prepared.invoice_reference)} &middot; ${escapeHTML(money(prepared.offer.client_price_ex_tax,prepared.offer.currency))}</p><button id="checkout-purchase" class="primary full">Confirm &amp; create shipping label</button><p class="footnote">Wallet credit is captured only after label confirmation. ${prepared.customs_required?'Your commercial invoice PDF will be available with the confirmed booking.':''}</p>`;
+  if(prepared.protection)$('#checkout-purchase').insertAdjacentHTML('beforebegin',`<p class="notice">Review the protection premium and tax above. Coverage is confirmed separately after label creation. <a href="${escapeHTML(prepared.protection.terms_url)}" target="_blank" rel="noopener noreferrer">Read XCover policy terms</a></p><label class="check"><input id="checkout-protection-consent" type="checkbox"> I have read the protection terms and agree to the total shown.</label>`);
   $('#checkout-purchase').addEventListener('click',()=>busy($('#checkout-purchase'),async()=>{
     try {
+      if(prepared.protection&&!$('#checkout-protection-consent')?.checked)throw Error('Read and accept the protection terms before purchasing.');
       const result=await api('/api/v1/shipping/confirm-booking',{method:'POST',auth:true,
-        body:{offer_id:prepared.offer.offer_id,tenant_id:portal.profile.tenant_id}});
+        body:{offer_id:prepared.offer.offer_id,tenant_id:portal.profile.tenant_id,
+          insurance_requested:Boolean(prepared.protection),insurance_quote_id:prepared.protection?.insurance_quote_id||null,
+          insurance_terms_accepted:Boolean(prepared.protection&&$('#checkout-protection-consent')?.checked)}});
       if(generation!==customerCheckout.generation)return;
       showCustomerBooking(result,prepared);
     } catch(error) {checkoutError(error);throw error;}
@@ -109,6 +123,7 @@ async function prepareCustomerCheckout(customs=null) {
 function showCustomerBooking(result,prepared) {
   const pending=result.status==='SYNC_PENDING';
   $('#review-content').innerHTML=`<h2>${pending?'Your label is being prepared':'Shipment booked successfully'}</h2><p class="notice">${pending?'Your carrier has accepted the request. Credit remains reserved while the label is prepared. Do not place a second booking.':'Tracking: '+escapeHTML(result.label.tracking_number)}</p><p class="subtle">Booking / invoice reference: ${escapeHTML(prepared.invoice_reference)}</p><div id="checkout-downloads" class="actions"></div><button class="secondary" id="checkout-open-manifest">Open Manifest &amp; Labels</button><button class="secondary" id="checkout-new-shipment">Start a new shipment</button>`;
+  if(result.insurance)$('#checkout-downloads').insertAdjacentHTML('beforebegin',`<p class="notice">${result.insurance.insured?'XCover protection confirmed. Policy: '+escapeHTML(result.insurance.policy_id)+' · Captured premium including tax: '+escapeHTML(money(result.insurance.premium_charged,'GBP')):'Protection is not confirmed. '+escapeHTML(result.insurance.notice||result.insurance.status)+' Do not assume this parcel is insured.'}</p>`);
   if(!pending){
     const documents=[{document_type:'Booking receipt PDF',url:'/api/v1/checkout/'+result.shipment_id+'/receipt.pdf'},{document_type:'Shipping label PDF',url:result.label.label_url},...(result.label.carrier_forms||[])];
     if(prepared.customs_required)documents.push({document_type:'Commercial invoice PDF',url:'/api/v1/checkout/'+result.shipment_id+'/commercial-invoice.pdf'});
@@ -135,6 +150,7 @@ bookLive = async function(index) {
 };
 
 function resetCustomerCheckout() {
+  customerCheckout.insuranceRequested=false;
   customerCheckout.generation++;customerCheckout.index=null;customerCheckout.context=null;customerCheckout.prepared=null;
   $('#review-dialog').classList.remove('checkout-wide');
 }

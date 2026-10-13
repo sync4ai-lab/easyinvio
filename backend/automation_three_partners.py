@@ -1386,6 +1386,8 @@ class BookingRequest(BaseModel):
     tenant_id: UUID
     offer_id: UUID
     insurance_requested: bool = False
+    insurance_quote_id: UUID | None = None
+    insurance_terms_accepted: bool = Field(default=False, strict=True)
 
 
 class VoidRequest(BaseModel):
@@ -1472,8 +1474,13 @@ class PartnerLifecycleService:
     async def confirm(self, context, body):
         authorize(context, body.tenant_id)
         if body.insurance_requested:
-            from backend.shipment_protection import PROTECTION_NOTICE
-            raise HTTPException(409, PROTECTION_NOTICE)
+            protection = getattr(self, 'protection', None)
+            if protection is None:
+                from backend.shipment_protection import PROTECTION_NOTICE
+                raise HTTPException(409, PROTECTION_NOTICE)
+            return await protection.confirm(context, body, self)
+        if body.insurance_quote_id is not None:
+            raise HTTPException(422, 'A protection quote requires insurance_requested=true')
         async with self.pool.acquire() as connection:
             prepared = await connection.fetchval('SELECT EXISTS(SELECT 1 FROM public.partner_shipping_offers WHERE tenant_id=$1 AND offer_id=$2)', context.tenant_id, body.offer_id)
         if not prepared:

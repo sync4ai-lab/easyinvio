@@ -155,6 +155,8 @@ def build_router(authenticate):
             'order_reference':reference,'invoice_reference':reference,'currency':quote.currency,
             'origin':quote.origin.model_dump(mode='json'),'destination':quote.destination.model_dump(mode='json'),
             'cargo':{'cargo_type':quote.cargo_type,'actual_weight_kg':str(quote.weights_kg[0]),'stackable':quote.stackable,**dimensions}}
+        if quoted_goods(quote):
+            order.update(items=quoted_goods(quote),customs_currency=quote.goods_currency or quote.currency)
         if body.customs:
             data=body.customs
             order.update(items=[item.model_dump(mode='json') for item in data.items],customs_signer=data.signer,
@@ -189,7 +191,7 @@ def build_router(authenticate):
         if user.role=='DISPATCHER':raise HTTPException(403,'Financial documents require an owner or accountant role')
         async with request.app.state.partner_lifecycle.pool.acquire() as c:
             row=await c.fetchrow("""SELECT s.customer_reference,s.currency,s.final_client_price,s.tax_amount,s.tracking_number,
-                s.origin_country,s.destination_country,s.booked_at,s.status,s.logistics_metadata->>'payment_cart_id' AS payment_cart_id,t.company_name,t.is_sandbox,t.billing_plan,
+                s.origin_country,s.destination_country,s.booked_at,s.status,s.logistics_metadata->'insurance' AS insurance,s.logistics_metadata->>'payment_cart_id' AS payment_cart_id,t.company_name,t.is_sandbox,t.billing_plan,
                 r.status AS reservation_status FROM public.shipments s JOIN public.tenants t USING(tenant_id)
                 LEFT JOIN public.wallet_reservations r ON r.tenant_id=s.tenant_id AND r.shipment_id=s.id
                 WHERE s.tenant_id=$1 AND s.id=$2""",user.tenant_id,shipment_id)

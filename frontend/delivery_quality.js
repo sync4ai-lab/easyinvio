@@ -27,6 +27,7 @@ clearSession=function(){deliveryQualityGeneration++;deliveryQualityKey='';delive
 
 const protectionBookLiveBase=bookLive;
 bookLive=async function(index){
+ customerCheckout.insuranceRequested=false;
  const generation=customerCheckout.generation+1,session=state.session,rate=state.quotes[index];
  await protectionBookLiveBase(index);
  if(generation!==customerCheckout.generation||session!==state.session||!session||!rate||!$('#review-dialog').open)return;
@@ -35,5 +36,6 @@ bookLive=async function(index){
  catch(error){protection={available:false,notice:'Protection availability could not be verified. No protection fee is charged.'};}
  if(generation!==customerCheckout.generation||session!==state.session||!$('#review-dialog').open)return;
  const panel=$('#checkout-price');
- if(panel)panel.insertAdjacentHTML('afterend',`<section class="notice" id="checkout-protection"><label class="check"><input type="checkbox" disabled> Optional shipment protection: unavailable</label><p>${escapeHTML(protection.notice)}</p>${protection.premium_estimate!=null?`<p>Proposed customer premium: ${escapeHTML(money(protection.premium_estimate,'GBP'))}, before any applicable protection tax. This is an estimate, not purchased cover.</p>`:''}<a href="mailto:support@easyinvio.com?subject=Shipment%20protection%20availability">Contact EasyInvio support</a></section>`);
+ if(panel)panel.insertAdjacentHTML('afterend',`<section class="notice" id="checkout-protection"><label class="check"><input type="checkbox" ${protection.selection_available?'':'disabled'}> Optional shipment protection${protection.selection_available?'':': unavailable'}</label><p>${escapeHTML(protection.notice)}</p>${protection.premium_estimate!=null?`<p>Proposed customer premium: ${escapeHTML(money(protection.premium_estimate,'GBP'))}, before any applicable protection tax. This is an estimate, not purchased cover.</p>`:''}<a href="mailto:support@easyinvio.com?subject=Shipment%20protection%20availability">Contact EasyInvio support</a></section>`);
+ $('#checkout-protection input')?.addEventListener('change',event=>{customerCheckout.insuranceRequested=event.target.checked;});
 };

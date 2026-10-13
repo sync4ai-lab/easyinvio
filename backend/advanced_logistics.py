@@ -328,10 +328,15 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
         for row in rows:
             metadata = json.loads(row["logistics_metadata"]) if isinstance(row["logistics_metadata"], str) else row["logistics_metadata"]
             label_status = metadata.get('label_lifecycle_status') if isinstance(metadata,dict) else None
+            insurance = metadata.get('insurance') if isinstance(metadata,dict) else None
+            insurance = {key:insurance[key] for key in ('provider','status','policy_id','premium','tax_amount','total_charge') if key in insurance} if isinstance(insurance,dict) else None
+            if isinstance(metadata,dict) and 'insurance' in metadata:
+                metadata=dict(metadata,insurance=insurance)
             if not financial_details and isinstance(metadata,dict):
                 metadata={k:v for k,v in metadata.items() if k in {'carrier','destination','cargo_type','tracking','ecommerce','synthetic','fixture_batch','stackable','batch_csv','automation_customs'}}
             entry={"id": str(row["id"]), "status": row["status"], "currency": row["currency"], "price": str(row["final_client_price"]), "tracking_number": row["tracking_number"], "metadata": metadata}
             entry['label_status']=label_status
+            entry['insurance']=insurance
             entry['tenant_id']=str(row['tenant_id']) if row.get('tenant_id') else None
             entry['reference']=row.get('customer_reference') or str(row['id'])[:12]
             entry['batch_import']=isinstance(metadata,dict) and 'batch_csv' in metadata

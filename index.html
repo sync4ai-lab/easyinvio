@@ -2749,9 +2749,9 @@ function renderLanes() {
 function renderTickets() {
   $('#support-count').textContent = `${portal.tickets.filter(t=>['OPEN','IN_REVIEW'].includes(t.status)).length} ACTIVE SUPPORT ISSUES`;
   $('#support-tickets').innerHTML = portal.tickets.map(t => {
-    const internal = t.ticket_type === 'PROCESSING_ISSUE',
+    const internal = ['PROCESSING_ISSUE', 'INSURANCE_SUPPORT'].includes(t.ticket_type),
       archived = ['CLOSED', 'RESOLVED'].includes(t.status);
-    const title = internal ? 'Shipment preparation issue' : 'Carrier tracking exception';
+    const title = t.ticket_type === 'INSURANCE_SUPPORT' ? 'Insurance claim support' : internal ? 'Shipment preparation issue' : 'Carrier tracking exception';
     const canReview = portalDemo() || portal.role === 'SUPER_ADMIN' || ['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role);
     const podMessages = {
       NOT_BOOKED: 'Delivery proof is not applicable: no confirmed booking.',
@@ -3379,7 +3379,7 @@ renderManifest = function() {
     const status = displayedStatus(row),
       carrier = row.metadata?.carrier || row.carrier_code || 'Not recorded',
       type = row.cargo_type || row.metadata?.cargo_type || 'PARCEL';
-    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(({PENDING_IMPORT:'Imported - needs review',DRAFT:'Draft - needs quote',QUOTED:'Quoted - not booked',BOOKING:'Booking in progress',LABEL_CREATED:'Label created'})[status]||status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
+    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}${row.insurance?`<p class="subtle">Protection: ${escapeHTML(({CONFIRMED:'XCover confirmed',PENDING:'awaiting insurer confirmation',FAILED:'not added',CANCELLED:'policy cancelled'})[row.insurance.status]||'not confirmed')}</p>`:''}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(({PENDING_IMPORT:'Imported - needs review',DRAFT:'Draft - needs quote',QUOTED:'Quoted - not booked',BOOKING:'Booking in progress',LABEL_CREATED:'Label created'})[status]||status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
   }).join('') : '<tr><td colspan="5"><div class="empty"><h3>No Active Shipments</h3><p>No shipments match this view. Create a quote or change the filter.</p><button class="secondary" data-manifest-create="true">Open Speed Quote Matrix</button></div></td></tr>';
   refreshIcons()
 };
@@ -5777,11 +5777,12 @@ feeRows = function(rate) {
   }
   const rows = [
     ['Label cost', money(decimalCents(total - (fuel || 0n)), rate.currency)],
-    ['Shipment protection', 'Not added'],
+    ['Shipment protection', rate.protection ? money(rate.protection.premium, 'GBP') : 'Not added'],
     ['Fuel surcharge', fuel === null ? 'Included in label cost' : money(decimalCents(fuel), rate.currency)],
-    ['Subtotal price (excl. tax)', money(rate.client_price_ex_tax, rate.currency)]
+    ['Subtotal price (excl. tax)', money(decimalCents(total + (rate.protection ? cents(rate.protection.premium) : 0n)), rate.currency)]
   ];
-  return rows.map(([label, value], i) => `<div class="fee ${i===3?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('') + '<p class="footnote">Subtotal excludes VAT. Current checkout does not assess or collect VAT. Applicable carrier taxes, import duties and destination charges may be billed separately. No shipment protection fee is included.</p>';
+  if (rate.protection) rows.push(['Protection tax', money(rate.protection.tax_amount, 'GBP')], ['Total payable', money(decimalCents(total + cents(rate.protection.total_charge)), 'GBP')]);
+  return rows.map(([label, value], i) => `<div class="fee ${i===3||i===5?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('') + '<p class="footnote">Shipping subtotal excludes VAT. Current shipping checkout does not assess or collect VAT. Applicable carrier taxes, import duties and destination charges may be billed separately. ' + (rate.protection ? 'Protection tax is shown separately above.' : 'No shipment protection fee is included.') + '</p>';
 };
 
 function checkoutError(error) {
@@ -5894,6 +5895,9 @@ function renderCheckoutCustoms() {
 
 async function prepareCustomerCheckout(customs = null) {
   const generation = customerCheckout.generation;
+  const insuranceRequested = Boolean(customerCheckout.insuranceRequested);
+  const protectionInput = $('#checkout-protection input');
+  if (protectionInput) protectionInput.disabled = true;
   const rate = state.quotes[customerCheckout.index];
   const prepared = await api('/api/v1/checkout/prepare', {
     method: 'POST',
@@ -5904,17 +5908,45 @@ async function prepareCustomerCheckout(customs = null) {
     }
   });
   if (generation !== customerCheckout.generation) return;
+  if (insuranceRequested) {
+    try {
+      const protection = await api('/api/v1/shipping/protection-quote', {
+        method: 'POST',
+        auth: true,
+        body: {
+          offer_id: prepared.offer.offer_id
+        }
+      });
+      if (generation !== customerCheckout.generation) return;
+      prepared.protection = protection;
+      prepared.offer.protection = protection;
+    } catch (error) {
+      if (generation === customerCheckout.generation) {
+        customerCheckout.insuranceRequested = false;
+        if (protectionInput) {
+          protectionInput.checked = false;
+          protectionInput.disabled = false;
+        }
+      }
+      throw error;
+    }
+  }
   customerCheckout.prepared = prepared;
   $('#checkout-price').innerHTML = feeRows(prepared.offer);
   $('#checkout-next').innerHTML = `<h2>Confirm your booking</h2><p class="notice">${prepared.price_changed?'The price changed after the carrier evaluated your customs details. Review this final price before purchasing.':'Your shipment is prepared. Confirm the price shown to create the shipping label.'}</p><p class="subtle">${escapeHTML(prepared.invoice_reference)} &middot; ${escapeHTML(money(prepared.offer.client_price_ex_tax,prepared.offer.currency))}</p><button id="checkout-purchase" class="primary full">Confirm &amp; create shipping label</button><p class="footnote">Wallet credit is captured only after label confirmation. ${prepared.customs_required?'Your commercial invoice PDF will be available with the confirmed booking.':''}</p>`;
+  if (prepared.protection) $('#checkout-purchase').insertAdjacentHTML('beforebegin', `<p class="notice">Review the protection premium and tax above. Coverage is confirmed separately after label creation. <a href="${escapeHTML(prepared.protection.terms_url)}" target="_blank" rel="noopener noreferrer">Read XCover policy terms</a></p><label class="check"><input id="checkout-protection-consent" type="checkbox"> I have read the protection terms and agree to the total shown.</label>`);
   $('#checkout-purchase').addEventListener('click', () => busy($('#checkout-purchase'), async () => {
     try {
+      if (prepared.protection && !$('#checkout-protection-consent')?.checked) throw Error('Read and accept the protection terms before purchasing.');
       const result = await api('/api/v1/shipping/confirm-booking', {
         method: 'POST',
         auth: true,
         body: {
           offer_id: prepared.offer.offer_id,
-          tenant_id: portal.profile.tenant_id
+          tenant_id: portal.profile.tenant_id,
+          insurance_requested: Boolean(prepared.protection),
+          insurance_quote_id: prepared.protection?.insurance_quote_id || null,
+          insurance_terms_accepted: Boolean(prepared.protection && $('#checkout-protection-consent')?.checked)
         }
       });
       if (generation !== customerCheckout.generation) return;
@@ -5929,6 +5961,7 @@ async function prepareCustomerCheckout(customs = null) {
 function showCustomerBooking(result, prepared) {
   const pending = result.status === 'SYNC_PENDING';
   $('#review-content').innerHTML = `<h2>${pending?'Your label is being prepared':'Shipment booked successfully'}</h2><p class="notice">${pending?'Your carrier has accepted the request. Credit remains reserved while the label is prepared. Do not place a second booking.':'Tracking: '+escapeHTML(result.label.tracking_number)}</p><p class="subtle">Booking / invoice reference: ${escapeHTML(prepared.invoice_reference)}</p><div id="checkout-downloads" class="actions"></div><button class="secondary" id="checkout-open-manifest">Open Manifest &amp; Labels</button><button class="secondary" id="checkout-new-shipment">Start a new shipment</button>`;
+  if (result.insurance) $('#checkout-downloads').insertAdjacentHTML('beforebegin', `<p class="notice">${result.insurance.insured?'XCover protection confirmed. Policy: '+escapeHTML(result.insurance.policy_id)+' · Captured premium including tax: '+escapeHTML(money(result.insurance.premium_charged,'GBP')):'Protection is not confirmed. '+escapeHTML(result.insurance.notice||result.insurance.status)+' Do not assume this parcel is insured.'}</p>`);
   if (!pending) {
     const documents = [{
       document_type: 'Booking receipt PDF',
@@ -5986,6 +6019,7 @@ bookLive = async function(index) {
 };
 
 function resetCustomerCheckout() {
+  customerCheckout.insuranceRequested = false;
   customerCheckout.generation++;
   customerCheckout.index = null;
   customerCheckout.context = null;
@@ -6565,7 +6599,8 @@ prepareCustomerCheckout = async function(...args) {
     const b = document.createElement('button');
     b.id = 'checkout-pay-card';
     b.className = 'secondary full';
-    b.textContent = 'Pay by card with Stripe';
+    b.textContent = prepared.protection ? 'Protected checkout currently uses your prepaid wallet' : 'Pay by card with Stripe';
+    b.disabled = Boolean(prepared.protection);
     b.addEventListener('click', () => busy(b, () => startLabelCardPayment([{
       shipment_id: prepared.shipment_id,
       offer_id: prepared.offer.offer_id,
@@ -7082,6 +7117,7 @@ clearSession = function() {
 
 const protectionBookLiveBase = bookLive;
 bookLive = async function(index) {
+  customerCheckout.insuranceRequested = false;
   const generation = customerCheckout.generation + 1,
     session = state.session,
     rate = state.quotes[index];
@@ -7100,7 +7136,164 @@ bookLive = async function(index) {
   }
   if (generation !== customerCheckout.generation || session !== state.session || !$('#review-dialog').open) return;
   const panel = $('#checkout-price');
-  if (panel) panel.insertAdjacentHTML('afterend', `<section class="notice" id="checkout-protection"><label class="check"><input type="checkbox" disabled> Optional shipment protection: unavailable</label><p>${escapeHTML(protection.notice)}</p>${protection.premium_estimate!=null?`<p>Proposed customer premium: ${escapeHTML(money(protection.premium_estimate,'GBP'))}, before any applicable protection tax. This is an estimate, not purchased cover.</p>`:''}<a href="mailto:support@easyinvio.com?subject=Shipment%20protection%20availability">Contact EasyInvio support</a></section>`);
+  if (panel) panel.insertAdjacentHTML('afterend', `<section class="notice" id="checkout-protection"><label class="check"><input type="checkbox" ${protection.selection_available?'':'disabled'}> Optional shipment protection${protection.selection_available?'':': unavailable'}</label><p>${escapeHTML(protection.notice)}</p>${protection.premium_estimate!=null?`<p>Proposed customer premium: ${escapeHTML(money(protection.premium_estimate,'GBP'))}, before any applicable protection tax. This is an estimate, not purchased cover.</p>`:''}<a href="mailto:support@easyinvio.com?subject=Shipment%20protection%20availability">Contact EasyInvio support</a></section>`);
+  $('#checkout-protection input')?.addEventListener('change', event => {
+    customerCheckout.insuranceRequested = event.target.checked;
+  });
+};
+</script>
+<style>
+#insuranceClaimsModal{width:min(680px,calc(100vw - 32px));max-height:90dvh;overflow:auto}
+#insuranceClaimsModal::backdrop{background:rgba(2,6,23,.7);backdrop-filter:blur(4px)}
+#insuranceClaimsModal .pipeline{flex-wrap:wrap;gap:8px;margin:16px 0}
+#insuranceClaimsModal .pipeline span{white-space:normal;max-width:100%;font-size:12px}
+</style>
+<dialog id="insuranceClaimsModal" aria-labelledby="insurance-claims-title" class="insurance-claims-modal">
+<button id="insurance-claims-close" class="close" type="button" aria-label="Close insurance claim">&times;</button>
+<h2 id="insurance-claims-title">XCover shipment protection &amp; claims</h2>
+<p class="notice" id="insurance-claims-notice" role="status">
+</p>
+<form id="insurance-claims-form">
+<label for="insurance-claims-shipment">Shipment with confirmed XCover protection</label>
+<select id="insurance-claims-shipment" name="shipment_id" required>
+</select>
+<label for="insurance-claims-reason">Reason for claim</label>
+<select id="insurance-claims-reason" name="reason" required>
+<option value="PARCEL_LOST">Parcel lost</option>
+<option value="PARCEL_DAMAGED">Parcel damaged</option>
+</select>
+<label for="insurance-claims-notes">Describe the incident</label>
+<textarea id="insurance-claims-notes" name="notes" minlength="10" maxlength="2000" rows="5" required placeholder="What happened, when you noticed it, and any carrier reference">
+</textarea>
+<label for="insurance-claims-incident">When did you notice the loss or damage?</label>
+<input id="insurance-claims-incident" name="incident_at" type="datetime-local">
+<label for="insurance-claims-photos">Damage photographs</label>
+<input id="insurance-claims-photos" name="photos" type="file" accept="image/jpeg,image/png" multiple>
+<p class="footnote">Up to four JPEG or PNG images, each up to 5 MB. Preserve the damaged item and packaging. Saving a support case does not confirm insurer submission, review or payment.</p>
+<button id="insurance-claims-submit" class="primary full" type="submit" disabled>Save claim support case</button>
+</form>
+<div id="insurance-claims-progress" aria-live="polite">
+</div>
+</dialog>
+<script>
+// Private XCover support intake and truthful case progress.
+document.querySelector('#manifest-refresh').insertAdjacentHTML('beforebegin', '<button id="insurance-claims-open" class="secondary">Shipment protection &amp; claims</button>');
+let insuranceCaseGeneration = 0;
+let insuranceCaseId = null;
+let insuranceCasePoll = null;
+
+function resetInsuranceCase() {
+  insuranceCaseGeneration++;
+  insuranceCaseId = null;
+  if (insuranceCasePoll) clearTimeout(insuranceCasePoll);
+  insuranceCasePoll = null;
+  document.querySelector('#insurance-claims-form').reset();
+  document.querySelector('#insurance-claims-progress').replaceChildren();
+  document.querySelector('#insurance-claims-submit').disabled = true;
+}
+
+function showInsuranceProgress(result) {
+  const credited = result.status === 'REFUND_APPROVED_AND_CREDITED';
+  const reviewing = ['UNDER_INSURER_REVIEW', 'INSURER_PAYMENT_REPORTED', 'REFUND_APPROVED_AND_CREDITED'].includes(result.status);
+  const submitted = Boolean(result.insurer_submission_confirmed);
+  document.querySelector('#insurance-claims-progress').innerHTML = `<div class="notice"><b>${credited?'Verified payment credited':submitted?'Insurer claim submitted':result.status==='SUBMISSION_PENDING'?'Claim queued':'Support case received'}</b><p>${escapeHTML(result.notice)}</p><div class="pipeline"><span class="tag green">Case received</span><span class="tag ${reviewing?'green':''}">${credited?'Insurer payment reconciled':reviewing?'Under insurer review':'Insurer review: not confirmed'}</span><span class="tag ${credited?'green':''}">${credited?'Wallet credited':'Wallet credit: not confirmed'}</span></div>${result.claims_portal_url?`<p><a class="primary" href="${escapeHTML(result.claims_portal_url)}" target="_blank" rel="noopener noreferrer">Continue to XCover to file the insurer claim</a></p>`:''}</div>`;
+}
+async function pollInsuranceCase(generation, session) {
+  if (generation !== insuranceCaseGeneration || session !== state.session || !insuranceCaseId || !document.querySelector('#insuranceClaimsModal').open) return;
+  try {
+    const result = await api('/api/v1/shipping/claims/' + encodeURIComponent(insuranceCaseId), {
+      auth: true
+    });
+    if (generation !== insuranceCaseGeneration || session !== state.session) return;
+    const currentLink = document.querySelector('#insurance-claims-progress a')?.href;
+    showInsuranceProgress({
+      ...result,
+      claims_portal_url: currentLink
+    });
+    if (result.status === 'REFUND_APPROVED_AND_CREDITED') return;
+  } catch (error) {
+    if (generation === insuranceCaseGeneration) document.querySelector('#insurance-claims-notice').textContent = 'Case status could not be refreshed. Your saved case has not been resubmitted.';
+  }
+  insuranceCasePoll = setTimeout(() => pollInsuranceCase(generation, session), 15000);
+}
+document.querySelector('#insurance-claims-open').addEventListener('click', async () => {
+  resetInsuranceCase();
+  const dialog = document.querySelector('#insuranceClaimsModal'),
+    generation = insuranceCaseGeneration,
+    session = state.session;
+  dialog.showModal();
+  document.querySelector('#insurance-claims-notice').textContent = 'Checking confirmed protection for your workspace…';
+  document.querySelector('#insurance-claims-shipment').replaceChildren();
+  try {
+    if (!session) throw Error('Sign in to your workspace to view insured shipments.');
+    const result = await api('/api/v1/shipping/insured-shipments', {
+      auth: true
+    });
+    if (generation !== insuranceCaseGeneration || session !== state.session || !dialog.open) return;
+    document.querySelector('#insurance-claims-notice').textContent = result.notice;
+    document.querySelector('#insurance-claims-submit').textContent = result.headless_claims ? 'Submit claim to insurer' : 'Save claim support case';
+    for (const shipment of result.shipments) {
+      const option = document.createElement('option');
+      option.value = shipment.id;
+      option.textContent = (shipment.reference || shipment.id) + ' · ' + (shipment.tracking_number || 'Tracking unavailable');
+      document.querySelector('#insurance-claims-shipment').append(option);
+    }
+    document.querySelector('#insurance-claims-submit').disabled = !result.available || !result.shipments.length;
+    if (result.available && !result.shipments.length) document.querySelector('#insurance-claims-notice').textContent = 'No shipments with confirmed XCover policies are available in this workspace.';
+  } catch (error) {
+    if (generation === insuranceCaseGeneration) document.querySelector('#insurance-claims-notice').textContent = error.message;
+  }
+});
+document.querySelector('#insurance-claims-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(document.querySelector('#insurance-claims-submit'), async () => {
+    const generation = insuranceCaseGeneration,
+      session = state.session;
+    if (!session) throw Error('Sign in before submitting a claim support case.');
+    const form = document.querySelector('#insurance-claims-form'),
+      photos = Array.from(form.elements.photos.files);
+    if (photos.length > 4 || photos.some(photo => photo.size > 5000000 || !['image/jpeg', 'image/png'].includes(photo.type))) throw Error('Upload at most four JPEG or PNG photographs, each no larger than 5 MB.');
+    const caseId = insuranceCaseId || crypto.randomUUID();
+    insuranceCaseId = caseId;
+    const data = new FormData(form);
+    data.append('claim_id', caseId);
+    if (data.get('incident_at')) data.set('incident_at', new Date(String(data.get('incident_at'))).toISOString());
+    if (!photos.length) data.delete('photos');
+    try {
+      const response = await fetch(API + '/api/v1/shipping/submit-claim', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + session.access_token
+        },
+        body: data
+      });
+      const result = await response.json();
+      if (generation !== insuranceCaseGeneration || session !== state.session) return;
+      if (!response.ok) throw Error(typeof result.detail === 'string' ? result.detail : 'Claim support intake failed.');
+      showInsuranceProgress(result);
+      document.querySelector('#insurance-claims-notice').textContent = 'Your case is saved privately. The timeline shows confirmed insurer progress. Use the XCover link only when portal filing is requested.';
+      setTimeout(() => {
+        if (generation === insuranceCaseGeneration) document.querySelector('#insurance-claims-submit').disabled = true;
+      }, 0);
+      for (const input of form.elements) input.disabled = true;
+      insuranceCasePoll = setTimeout(() => pollInsuranceCase(generation, session), 15000);
+    } catch (error) {
+      if (generation === insuranceCaseGeneration) document.querySelector('#insurance-claims-notice').textContent = error.message;
+      throw error;
+    }
+  });
+});
+document.querySelector('#insurance-claims-close').addEventListener('click', () => document.querySelector('#insuranceClaimsModal').close());
+document.querySelector('#insuranceClaimsModal').addEventListener('close', () => {
+  resetInsuranceCase();
+  for (const input of document.querySelector('#insurance-claims-form').elements) input.disabled = false;
+  document.querySelector('#insurance-claims-submit').disabled = true;
+});
+const insuranceClaimsClearSessionBase = clearSession;
+clearSession = function() {
+  document.querySelector('#insuranceClaimsModal').close();
+  resetInsuranceCase();
+  return insuranceClaimsClearSessionBase.apply(this, arguments);
 };
 </script>
 </body>

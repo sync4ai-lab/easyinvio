@@ -9,9 +9,13 @@ from backend.automation_freight_engine import processing_remedy
 def present_ticket(row):
     result=dict(row)
     internal=bool(row.get('automation_failure_id'))
+    insurance=bool(row.get('insurance_claim_id'))
     booked=bool(row.get('booked_at') and row.get('shipment_tracking_number'))
     result['ticket_type']='PROCESSING_ISSUE' if internal else 'CARRIER_EXCEPTION'
     result['responsibility']='EasyInvio internal support' if internal else 'Carrier tracking; shipper action may be required'
+    if insurance:
+        result['ticket_type']='INSURANCE_SUPPORT'
+        result['responsibility']='EasyInvio support case; XCover assesses the insurer claim'
     if internal:
         result['ai_summary']=processing_remedy(row.get('error_code') or 'ORDER_SERVICE_FAILED')
     result['pod_state']=('NOT_BOOKED' if not booked else 'AWAITING_DELIVERY' if row.get('shipment_status')!='DELIVERED'
@@ -19,8 +23,10 @@ def present_ticket(row):
     notifications=row.get('notifications') or []
     if isinstance(notifications,str):notifications=json.loads(notifications)
     result['notifications']=notifications
-    if internal:
+    if internal or insurance:
         result['notification_explanation']='No merchant alert is queued for an internal preparation issue. Notes stay inside EasyInvio.'
+        if insurance:
+            result['notification_explanation']='Support notes do not submit a claim to XCover or confirm insurer review or payment.'
     elif notifications:
         result['notification_explanation']='Delivery states below are receipts for queued WhatsApp alerts; accepted does not mean delivered.'
     else:

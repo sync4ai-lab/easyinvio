@@ -1870,9 +1870,15 @@ async def lifespan(application: FastAPI):
                 application.state.repository = repository
                 application.state.rating = rating
                 application.state.finance = FinanceEngine(pool, settings, stripe_client)
+                from backend.shipment_protection import XCoverClient, load_xcover_settings, ProtectionService
+                application.state.xcover = XCoverClient(http_client, load_xcover_settings())
+                application.state.protection = ProtectionService(pool, application.state.xcover, application.state.finance)
+                from backend.xcover_claims import XClaimClient, XClaimService
+                application.state.claims = XClaimService(pool, XClaimClient(http_client, application.state.xcover.settings), application.state.protection)
                 application.state.automation_freight=AutomationService(pool,rating,application.state.finance,repository,RatingRequest,http_client,settings)
                 from backend.automation_three_partners import PartnerLifecycleService, FactoryPurchaseBridge
                 application.state.partner_lifecycle = PartnerLifecycleService(application.state.automation_freight, http_client)
+                application.state.partner_lifecycle.protection = application.state.protection
                 application.state.automation_freight.register_purchase_adapter('EASYPOST',
                     FactoryPurchaseBridge(http_client, pool, settings.provider_environment))
                 application.state.automation_freight.register_purchase_adapter('REGIONAL',
@@ -1900,6 +1906,8 @@ async def lifespan(application: FastAPI):
                 application.state.automation_freight.native_orders = application.state.native_partners
                 native_order_task = asyncio.create_task(application.state.native_partners.worker())
                 partner_task = asyncio.create_task(application.state.partner_lifecycle.worker())
+                protection_task = asyncio.create_task(application.state.protection.worker()) if application.state.xcover.settings.unavailable_reason() is None else None
+                claims_task = asyncio.create_task(application.state.claims.worker()) if application.state.claims.client.unavailable_reason() is None else None
                 from backend.dispatch_realtime import DispatchUpdates
                 application.state.dispatch_updates = DispatchUpdates(settings, tls)
                 dispatch_updates_task = asyncio.create_task(application.state.dispatch_updates.worker())
@@ -1926,6 +1934,18 @@ async def lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    if claims_task is not None:
+                        claims_task.cancel()
+                        try:
+                            await claims_task
+                        except asyncio.CancelledError:
+                            pass
+                    if protection_task is not None:
+                        protection_task.cancel()
+                        try:
+                            await protection_task
+                        except asyncio.CancelledError:
+                            pass
                     dispatch_updates_task.cancel()
                     amazon_inbound_task.cancel()
                     for integration_task in (dispatch_updates_task, amazon_inbound_task):

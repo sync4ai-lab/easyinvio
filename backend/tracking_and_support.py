@@ -186,11 +186,11 @@ class TrackingSupportService:
                             (tenant_id,ticket_id,actor_name,activity_type,note)
                             SELECT tenant_id,id,'Carrier tracking','RESOLVED','Verified carrier event confirmed delivery.'
                             FROM public.support_tickets WHERE tenant_id=$1 AND shipment_id=$2
-                            AND status IN ('OPEN','IN_REVIEW')""", key.tenant_id, shipment['id'])
-                        await connection.execute("UPDATE public.support_tickets SET status='CLOSED',archived_at=now() WHERE tenant_id=$1 AND shipment_id=$2 AND status IN ('OPEN','IN_REVIEW')", key.tenant_id, shipment["id"])
+                            AND tracking_event_id IS NOT NULL AND status IN ('OPEN','IN_REVIEW')""", key.tenant_id, shipment['id'])
+                        await connection.execute("UPDATE public.support_tickets SET status='CLOSED',archived_at=now() WHERE tenant_id=$1 AND shipment_id=$2 AND tracking_event_id IS NOT NULL AND status IN ('OPEN','IN_REVIEW')", key.tenant_id, shipment["id"])
                         await connection.execute("""UPDATE public.support_message_outbox SET status='CANCELLED'
                             WHERE tenant_id=$1 AND status='STAGED' AND ticket_id IN
-                            (SELECT id FROM public.support_tickets WHERE tenant_id=$1 AND shipment_id=$2)""", key.tenant_id, shipment["id"])
+                            (SELECT id FROM public.support_tickets WHERE tenant_id=$1 AND shipment_id=$2 AND tracking_event_id IS NOT NULL)""", key.tenant_id, shipment["id"])
                 result = {"shipment_id": str(shipment["id"]), "status": event.status if applied else shipment["status"],
                           "applied": applied, "replayed": False, "support_queued": applied and event.status == "EXCEPTION"}
                 await connection.execute("""INSERT INTO public.tracking_events

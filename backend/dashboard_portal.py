@@ -141,7 +141,7 @@ def build_router(authenticate):
             history="""coalesce((SELECT jsonb_agg(jsonb_build_object('actor',h.actor_name,'type',h.activity_type,'note',h.note,'created_at',h.created_at)
                 ORDER BY h.created_at,h.id) FROM public.support_ticket_activity h WHERE h.tenant_id=t.tenant_id AND h.ticket_id=t.id),'[]'::jsonb)""" if activity_ready else "'[]'::jsonb"
             rows = await connection.fetch("""SELECT t.id,t.tenant_id,t.shipment_id,t.status,t.ai_summary,t.ai_method,
-                t.automation_failure_id,a.error_code,s.status AS shipment_status,s.booked_at,s.tracking_number AS shipment_tracking_number,
+                t.automation_failure_id,to_jsonb(t)->>'insurance_claim_id' AS insurance_claim_id,a.error_code,s.status AS shipment_status,s.booked_at,s.tracking_number AS shipment_tracking_number,
                 to_jsonb(t)->>'reviewed_by_auth_user_id' AS reviewer_id,to_jsonb(t)->>'review_started_at' AS review_started_at,
                 coalesce((SELECT nullif(p.full_name,'') FROM public.app_user_profiles p
                     WHERE p.auth_user_id::text=to_jsonb(t)->>'reviewed_by_auth_user_id'),

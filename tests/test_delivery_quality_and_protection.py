@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 from fastapi import HTTPException
-from backend.shipment_protection import calculate_shipsurance_premium
+from backend.shipment_protection import calculate_xcover_premium
 from backend.delivery_quality import tracking_readiness
 from backend.carrier_consolidation import carrier_identity, service_identity, summarize_history, route_history
 from backend.automation_three_partners import BookingRequest, PartnerLifecycleService
@@ -15,15 +15,15 @@ from backend.automation_three_partners import BookingRequest, PartnerLifecycleSe
 class PremiumTests(unittest.IsolatedAsyncioTestCase):
     async def test_floor_percentage_cap_and_no_invented_wholesale(self):
         for value, premium in [('1', '1.20'), ('120', '1.20'), ('200', '2.00'), ('5000', '50.00')]:
-            result = await calculate_shipsurance_premium(Decimal(value))
+            result = await calculate_xcover_premium(Decimal(value))
             self.assertEqual(result['premium_estimate'], premium)
             self.assertFalse(result['insured']);self.assertFalse(result['available'])
             self.assertIsNone(result['profit_margin']);self.assertIsNone(result['wholesale_cost'])
         with self.assertRaises(HTTPException) as error:
-            await calculate_shipsurance_premium(Decimal('5000.01'))
+            await calculate_xcover_premium(Decimal('5000.01'))
         self.assertEqual(error.exception.status_code, 400)
         for value in ['0', '-1', 'NaN', 'Infinity']:
-            with self.assertRaises(HTTPException):await calculate_shipsurance_premium(Decimal(value))
+            with self.assertRaises(HTTPException):await calculate_xcover_premium(Decimal(value))
 
     async def test_unsupported_protection_fails_before_any_wallet_or_provider_call(self):
         lifecycle = object.__new__(PartnerLifecycleService)
