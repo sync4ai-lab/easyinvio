@@ -185,6 +185,10 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
     async def test_document_fallback_citations_and_cache_are_local(self):
         response = await self.engine.help.answer(self.context, 'wallet card payment')
         self.assertEqual(response['mode'], 'DOCUMENT_EXCERPTS')
+        self.assertEqual(response['fallback_reason'], 'AI_NOT_CONFIGURED')
+        self.assertTrue(response['excerpts'])
+        self.assertLess(len(response['answer']), 200)
+        self.assertTrue(all(len(item['text']) <= 280 for item in response['excerpts']))
         self.assertTrue(response['sources'])
         self.assertTrue(all(source['url'].startswith('/help/') for source in response['sources']))
         cached = await self.engine.help.answer(self.context, 'wallet card payment')
@@ -207,6 +211,65 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
         response = await retriever.answer(self.context, 'wallet payment')
         self.assertNotEqual(response['answer'], 'invented')
         self.assertNotEqual(response['mode'], 'AI_CITED_ANSWER')
+        self.assertEqual(response['fallback_reason'], 'UNSUPPORTED_CITATIONS')
+
+    async def test_html_guides_have_section_citations_and_complete_wallet_rule(self):
+        chunks, version = self.engine.help.corpus()
+        wallet = next(chunk for chunk in chunks if chunk.url == '/help/booking-payments#wallet-charge')
+        self.assertIn('only after the shipping service confirms', wallet.text)
+        self.assertIn('first reserves', wallet.text)
+        self.assertNotIn('Two ways to pay', wallet.text)
+        from html.parser import HTMLParser
+        from backend.help_center import GUIDES
+        class IDs(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.values = set()
+            def handle_starttag(self, tag, attrs):
+                identity = dict(attrs).get('id')
+                if identity:
+                    self.values.add(identity)
+        for chunk in chunks:
+            if chunk.source_file is None and '#' in chunk.url:
+                slug, fragment = chunk.url.removeprefix('/help/').split('#', 1)
+                parser = IDs()
+                parser.feed(GUIDES[slug].body)
+                self.assertIn(fragment, parser.values)
+
+    async def test_embedding_outage_still_generates_from_retrieved_docs(self):
+        runtime = AgentRuntime(settings(True), client=SimpleNamespace())
+        retriever = HelpRetriever(runtime)
+        retriever.index = AsyncMock(side_effect=HTTPException(503, 'Unavailable'))
+        async def generate(tenant, worker, instructions, payload, output_type=None):
+            identity = payload['chunks'][0]['id']
+            return ModelResult(CitedAnswer(answer='Credit is reserved first and charged after label confirmation.',
+                chunk_ids=[identity], insufficient_evidence=False), 20, 10, 0)
+        runtime.run = AsyncMock(side_effect=generate)
+        response = await retriever.answer(self.context, 'When is my wallet charged?')
+        self.assertEqual(response['mode'], 'AI_CITED_ANSWER')
+        self.assertEqual(response['retrieval'], 'KEYWORD')
+        self.assertIsNone(response['fallback_reason'])
+        runtime.run.assert_awaited_once()
+
+    async def test_failed_generation_is_not_cached_over_recovery(self):
+        runtime = AgentRuntime(settings(True), client=SimpleNamespace())
+        retriever = HelpRetriever(runtime)
+        retriever.index = AsyncMock(side_effect=HTTPException(503, 'Unavailable'))
+        runtime.run = AsyncMock(side_effect=HTTPException(503, 'Temporarily unavailable'))
+        result = await retriever.answer(self.context, 'When is my wallet charged?')
+        self.assertEqual(result['fallback_reason'], 'ANSWER_UNAVAILABLE')
+        await retriever.answer(self.context, 'When is my wallet charged?')
+        self.assertEqual(runtime.run.await_count, 2)
+
+    async def test_insufficient_evidence_is_not_misreported_as_bad_citation(self):
+        runtime = AgentRuntime(settings(True), client=SimpleNamespace())
+        retriever = HelpRetriever(runtime)
+        retriever.index = AsyncMock(side_effect=HTTPException(503, 'Unavailable'))
+        runtime.run = AsyncMock(return_value=ModelResult(CitedAnswer(answer='Not enough evidence',
+            chunk_ids=[], insufficient_evidence=True), 20, 10, 0))
+        result = await retriever.answer(self.context, 'wallet payments')
+        self.assertEqual(result['fallback_reason'], 'INSUFFICIENT_EVIDENCE')
+        self.assertNotEqual(result['mode'], 'AI_CITED_ANSWER')
 
     async def test_public_index_cache_has_no_customer_questions(self):
         runtime = AgentRuntime(settings(True), client=SimpleNamespace())

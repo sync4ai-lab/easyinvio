@@ -14,7 +14,7 @@ The supervisor coordinates narrow workers around existing services. It is an app
 | Booking | Existing authenticated confirm-booking route passes a chosen opaque offer to Supervisor, then PartnerLifecycleService | Existing FinanceEngine locks, reservation/capture/release, uncertain-purchase reconciliation and PDF proxies are unchanged. No model has this tool |
 | Invoice audits | InvoiceSurchargeAuditorAgent delegates existing exact Decimal comparisons | Current tenant-scoped snapshots, confidence definition, idempotency and billing_disputes writes stay authoritative. Zero model tokens |
 | Tracking exceptions | ProactiveClaimsSupportAgent delegates authenticated provider ingestion and durable ticket/outbox staging | Current signature checks, event deduplication, administrator controls, verified recipient and notification consent remain mandatory. Zero model tokens |
-| Help | Published local guides are versioned into 61 bounded chunks at this revision. Optional 256-dimensional embeddings rank excerpts; structured answers must cite retrieved IDs | Authenticated workspace requests only. No access to customer records, purchases or messages. Unavailable AI falls back to document excerpts |
+| Help | Published local guides are split at section headings into versioned, bounded chunks with direct section citations. Optional 256-dimensional embeddings rank excerpts; structured answers must cite retrieved IDs | Authenticated workspace requests only. No access to customer records, purchases or messages. Unavailable AI falls back to compact related-guide cards with an explicit availability message |
 
 ## API surface
 
@@ -43,7 +43,7 @@ Identical private requests cache in bounded memory for five minutes, scoped to t
 
 SDK tracing is disabled, Responses storage is disabled and application usage logs contain worker names and token counts rather than prompt content. CSV assistance sends only unfamiliar headers and remaining allowable targets. Customs assistance sends descriptions and example dictionary entries. Help removes obvious emails, international phone numbers and UUIDs before processing, but this is not a comprehensive personal-data scrubber: users must avoid entering private details. Sending model inputs is still subject to your OpenAI account's data-handling settings.
 
-Model failure cannot debit a wallet. A failed model call offers standard-form guidance; help falls back to original documentation. Consequential service failures preserve existing reservation release or reconciliation behavior rather than letting an agent retry purchases. Durable tickets and outbox jobs remain in the existing database pipeline, not a new in-memory message queue.
+Model failure cannot debit a wallet. A failed model call offers standard-form guidance; help falls back to compact cards linking to original documentation. If vector retrieval is unavailable, generation can still use source-backed keyword retrieval. Transient generation failures are not cached over subsequent recovery. Consequential service failures preserve existing reservation release or reconciliation behavior rather than letting an agent retry purchases. Durable tickets and outbox jobs remain in the existing database pipeline, not a new in-memory message queue.
 
 ## What this does not claim
 

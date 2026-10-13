@@ -92,7 +92,10 @@ GUIDES = {
     'booking-payments': Guide(
         'Pay for labels and read wallet activity', 'Understand your money',
         'Understand available credit, temporary holds, confirmed charges and failed bookings.',
-        """<h2 id="payment-options">Two ways to pay</h2>
+        """<h2 id="wallet-charge">When is my wallet charged?</h2>
+        <p>Your wallet is charged only after the shipping service confirms the label purchase. When you confirm a booking, EasyInvio first reserves the amount: this lowers your available credit but is not yet a completed charge.</p>
+        <p>If the purchase is definitely rejected, the reservation is released. If the outcome is still unclear, the amount remains reserved while support checks the booking. For a multi-box booking, all package labels must be confirmed before the booking cost is deducted.</p>
+        <h2 id="payment-options">Two ways to pay</h2>
         <p>Use existing wallet credit when you confirm a prepared shipment, or choose the available Stripe card checkout for that booking or selected basket. Review the total before paying.</p>
         <p>Card checkout first confirms the payment and then attempts the selected bookings. Each label must still be confirmed by the shipping service.</p>
         <h2 id="wallet-activity">What the wallet entries mean</h2>

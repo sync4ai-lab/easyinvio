@@ -17,21 +17,62 @@
     ask.className = 'button-link';
     ask.textContent = 'Ask the help assistant';
     const note = document.createElement('p');
-    note.textContent = 'Ask a general how-to question. Avoid names, addresses and order details. AI answers can contain mistakes; check the linked guides.';
+    note.className = 'assistant-note';
+    note.textContent = 'Ask about using EasyInvio. Keep personal and order details out of your question.';
     const answer = document.createElement('section');
     answer.id = 'support-agent-answer';
+    answer.className = 'support-answer';
     answer.setAttribute('aria-live', 'polite');
+    answer.setAttribute('aria-labelledby', 'support-answer-question');
     answer.hidden = true;
     form.insertAdjacentElement('afterend', note);
     note.insertAdjacentElement('afterend', ask);
-    ask.insertAdjacentElement('afterend', answer);
+    form.closest('.help-hero').insertAdjacentElement('afterend', answer);
     let controller;
+
+    function frame(question, label) {
+      answer.replaceChildren();
+      answer.hidden = false;
+      const header = document.createElement('div');
+      header.className = 'support-answer-header';
+      const name = document.createElement('span');
+      name.className = 'support-answer-name';
+      name.textContent = 'EasyInvio help';
+      const badge = document.createElement('span');
+      badge.className = 'support-answer-badge';
+      badge.textContent = label;
+      header.append(name, badge);
+      const heading = document.createElement('h2');
+      heading.id = 'support-answer-question';
+      heading.textContent = question;
+      answer.append(header, heading);
+    }
+
+    function paragraph(text, className = '') {
+      const element = document.createElement('p');
+      element.className = className;
+      element.textContent = text;
+      answer.append(element);
+      return element;
+    }
+
+    function safeLink(source) {
+      if (!source || typeof source.url !== 'string' || typeof source.title !== 'string') return null;
+      try {
+        const url = new URL(source.url, location.origin);
+        if (url.origin !== location.origin || !url.pathname.startsWith('/help/')) return null;
+        const link = document.createElement('a');
+        link.href = url.pathname + url.hash;
+        link.textContent = source.title;
+        return link;
+      } catch { return null; }
+    }
+
     ask.addEventListener('click', async () => {
       const question = search.value.trim();
-      answer.hidden = false;
-      answer.replaceChildren();
+      frame(question || 'Ask a question', 'Help assistant');
       if (question.length < 3) {
-        answer.textContent = 'Enter your question in the search box first.';
+        paragraph('Enter your question in the search box first.');
         search.focus();
         return;
       }
@@ -39,46 +80,92 @@
       try { token = JSON.parse(localStorage.getItem('easyinvio.session') || 'null')?.access_token; }
       catch { token = null; }
       if (!token) {
-        answer.textContent = 'Sign in to ask the help assistant. You can browse and search all guides without signing in.';
+        paragraph('Sign in to ask the help assistant. You can browse and search all guides without signing in.');
         return;
       }
       controller?.abort();
-      controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000);
+      const active = new AbortController();
+      controller = active;
+      const timeout = setTimeout(() => active.abort(), 25000);
       ask.disabled = true;
-      answer.textContent = 'Checking the EasyInvio guides…';
+      results.hidden = true;
+      answer.setAttribute('aria-busy', 'true');
+      paragraph('Finding guidance in the EasyInvio Help Centre?', 'support-answer-loading');
       try {
         const response = await fetch('/api/v1/help/search-agent', {
           method: 'POST', headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + token},
-          body: JSON.stringify({query: question}), signal: controller.signal
+          body: JSON.stringify({query: question}), signal: active.signal
         });
         if (!response.ok) throw Error(response.status === 401 || response.status === 403 ? 'Sign in again to ask the assistant.' : 'Assistance is unavailable. Browse the search results or contact support.');
         const data = await response.json();
         if (typeof data.answer !== 'string' || !Array.isArray(data.sources)) throw Error('Assistance is unavailable. Browse the guides below.');
-        answer.replaceChildren();
-        const mode = document.createElement('p');
-        mode.textContent = data.mode === 'AI_CITED_ANSWER' ? 'AI answer · check the cited guides' : 'Documentation excerpts · no generated answer';
-        const text = document.createElement('p');
-        text.style.whiteSpace = 'pre-wrap';
-        text.textContent = data.answer;
-        const sources = document.createElement('ul');
-        for (const source of data.sources.slice(0, 4)) {
-          const url = new URL(source.url, location.origin);
-          if (url.origin !== location.origin || !url.pathname.startsWith('/help/')) continue;
-          const item = document.createElement('li');
-          const link = document.createElement('a');
-          link.href = url.pathname + url.hash;
-          link.textContent = source.title;
-          item.append(link);
-          sources.append(item);
+        if (search.value.trim() !== question) return;
+        const generated = data.mode === 'AI_CITED_ANSWER';
+        frame(question, generated ? 'AI answer' : 'Related guides');
+        if (generated || data.mode === 'NO_EVIDENCE') {
+          const content = document.createElement('div');
+          content.className = 'support-answer-body';
+          for (const block of data.answer.trim().split(/\n\s*\n/).slice(0, 12)) {
+            const text = document.createElement('p');
+            text.textContent = block.trim();
+            content.append(text);
+          }
+          answer.append(content);
+        } else {
+          paragraph(data.fallback_reason === 'AI_NOT_CONFIGURED'
+            ? 'AI answers are not enabled on this server yet. These guides can still help.'
+            : data.fallback_reason === 'INSUFFICIENT_EVIDENCE'
+              ? 'The guides do not contain enough information for a reliable answer. You can check these related topics or contact support.'
+              : 'The assistant could not respond just now. You can continue with these guides.', 'support-answer-notice');
         }
-        answer.append(mode, text, sources);
+        const references = document.createElement('div');
+        references.className = generated ? 'support-answer-sources' : 'support-answer-guides';
+        if (generated && data.sources.length) {
+          const title = document.createElement('h3');
+          title.textContent = 'Read the source';
+          references.append(title);
+        }
+        const seen = new Set();
+        const sources = !generated && Array.isArray(data.excerpts) && data.excerpts.length ? data.excerpts : data.sources;
+        for (const source of sources.slice(0, 4)) {
+          const link = safeLink(source);
+          if (!link || seen.has(link.href)) continue;
+          seen.add(link.href);
+          const item = document.createElement('div');
+          item.className = 'support-answer-source';
+          item.append(link);
+          if (!generated && typeof source.text === 'string') {
+            const preview = document.createElement('p');
+            preview.textContent = source.text.slice(0, 280);
+            item.append(preview);
+          }
+          references.append(item);
+        }
+        answer.append(references);
+        const footer = document.createElement('div');
+        footer.className = 'support-answer-footer';
+        const caption = document.createElement('span');
+        caption.textContent = generated ? 'Based on EasyInvio guides. Check the source before acting.' : 'Still need help?';
+        const contact = safeLink({url: '/help/contact', title: 'Contact support'});
+        footer.append(caption, contact);
+        answer.append(footer);
       } catch (error) {
-        answer.textContent = error.name === 'AbortError' ? 'Assistance took too long. Use the guides below or try again.' : error.message;
+        if (search.value.trim() !== question) return;
+        frame(question, 'Help assistant');
+        paragraph(error.name === 'AbortError' ? 'Assistance took too long. Use the guides below or try again.' : error.message, 'support-answer-notice');
       } finally {
         clearTimeout(timeout);
+        answer.setAttribute('aria-busy', 'false');
         ask.disabled = false;
       }
+    });
+    search.addEventListener('input', () => {
+      controller?.abort();
+      answer.hidden = true;
+    });
+    clear?.addEventListener('click', () => {
+      controller?.abort();
+      answer.hidden = true;
     });
   }
 

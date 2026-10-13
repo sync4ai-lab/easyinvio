@@ -42,9 +42,32 @@ async def run(origin):
         await page.get_by_role('button', name='Ask the help assistant').click()
         await expect(page.locator('#support-agent-answer')).to_contain_text('Wallet credit is captured')
         assert await page.locator('#support-agent-answer script').count() == 0
-        await expect(page.locator('#support-agent-answer a')).to_have_attribute('href', '/help/features/labels-and-tracking')
+        await expect(page.locator('#support-agent-answer .support-answer-sources a')).to_have_attribute('href', '/help/features/labels-and-tracking')
+        await page.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
+            'answer': 'Your wallet is charged only after the shipping service confirms the label purchase.\n\nWhen you confirm a booking, the amount is reserved first. If the purchase is rejected, that reservation is released.',
+            'sources': [{'title': 'When is my wallet charged?', 'url': '/help/booking-payments#wallet-charge'}],
+            'mode': 'AI_CITED_ANSWER'}))
+        await page.get_by_role('button', name='Ask the help assistant').click()
+        await expect(page.locator('#support-agent-answer')).to_contain_text('the amount is reserved first')
+        assert await page.locator('.help-hero #support-agent-answer').count() == 0
+        assert await page.locator('#support-agent-answer').evaluate("element => getComputedStyle(element).textAlign === 'left' && element.getBoundingClientRect().width <= 860")
+        await page.locator('#support-agent-answer').screenshot(path=str(output / 'assistant-desktop.png'))
+        await page.set_viewport_size({'width': 390, 'height': 844})
+        assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+        await page.locator('#support-agent-answer').screenshot(path=str(output / 'assistant-mobile.png'))
+        await page.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
+            'answer': 'Related guides', 'sources': [{'title': 'Wallet charges', 'url': '/help/booking-payments#wallet-charge'}],
+            'excerpts': [{'title': 'When is my wallet charged?', 'url': '/help/booking-payments#wallet-charge', 'text': 'Credit is reserved first. The charge completes after label confirmation.'}],
+            'fallback_reason': 'AI_NOT_CONFIGURED', 'mode': 'DOCUMENT_EXCERPTS'}))
+        await page.get_by_role('button', name='Ask the help assistant').click()
+        await expect(page.locator('#support-agent-answer')).to_contain_text('AI answers are not enabled on this server')
+        await expect(page.locator('#support-agent-answer .support-answer-guides')).to_contain_text('Credit is reserved first')
+        assert await page.locator('#support-agent-answer ul').count() == 0
+        await page.screenshot(path=str(output / 'assistant-fallback-mobile.png'), full_page=True)
+        await page.set_viewport_size({'width': 1440, 'height': 1100})
         await page.evaluate("localStorage.removeItem('easyinvio.session')")
         await page.locator('#supportSearch').fill('')
+        await expect(page.locator('#support-agent-answer')).to_be_hidden()
         await page.screenshot(path=str(output / 'desktop.png'), full_page=True)
         await page.locator('#supportSearch').fill('card payment')
         await expect(page.locator('#support-results-list')).to_contain_text('Add credit and check a card payment')
