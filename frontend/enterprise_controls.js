@@ -48,7 +48,7 @@ const personaControls = $('#role-admin').parentElement;
 personaControls.classList.add('header-personas');
 document.querySelector('.topbar-actions').prepend(personaControls);
 const enterpriseNavItems = {
-    dashboard: ['Overview', 'layout-dashboard'],
+    dashboard: ['Overview', 'layout-dashboard'], settings: ['Settings','settings'],
     'admin-clients': ['Client Accounts Node', 'building-2'],
     'admin-carriers': ['Carrier Connectors', 'plug'],
     'admin-margins': ['Margin Rule Matrix', 'sliders-horizontal'],
@@ -63,7 +63,7 @@ function allowedEnterpriseViews() {
     if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest', 'profile'];
     if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'dispatch', 'wallet', 'customs', 'stores', 'profile'];
     if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard','profile'];
-    return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile'];
+    return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile', ...(['OWNER','ADMIN'].includes(portal.profile?.workspace_role)?['settings']:[])];
 }
 function enterpriseAdminGuard() {
     if (!allowedEnterpriseViews().includes('admin-clients')) throw Error('Platform-owner authorization is required.');

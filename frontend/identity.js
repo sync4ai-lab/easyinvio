@@ -2,6 +2,7 @@
 const identityStorageKey = 'easyinvio.session';
 let identityProfile = null;
 let identityRecoveryHash = null;
+let identityInviteToken = null;
 document.head.insertAdjacentHTML('beforeend', `<style>
 body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-nav,body.auth-locked>#customs-backdrop,body.auth-locked>#box-backdrop{display:none!important}
 #loginContainer{min-height:100dvh;display:grid;place-items:center;padding:24px;color:#f1f5f9;background:radial-gradient(ellipse at 50% 20%,#25245666,transparent 60%),#0f172a}
@@ -117,6 +118,10 @@ async function restoreIdentitySession() {
 // Recovery links carry a one-use token hash in the fragment, never an app JWT.
 // Remove it before rendering or restoring any saved workspace session.
 const recoveryFragment = new URLSearchParams(location.hash.slice(1));
+if (recoveryFragment.get('type') === 'invite') {
+  identityInviteToken=recoveryFragment.get('access_token');
+  history.replaceState(null,'',location.pathname+location.search);clearSession();
+}
 if (recoveryFragment.get('type') === 'recovery') {
   identityRecoveryHash = recoveryFragment.get('token_hash');
   history.replaceState(null, '', location.pathname + location.search);
@@ -140,6 +145,7 @@ document.querySelector('#identity-login-form').insertAdjacentHTML('afterend', `
  <p class="footnote" role="status" aria-live="polite"></p>
 </form>`);
 function identityRecoveryView(view) {
+  if(view==='reset'){$('#identity-reset-form h2').textContent=identityInviteToken?'Accept your workspace invitation':'Choose a new password';$('#identity-reset-form button[type=submit]').textContent=identityInviteToken?'Set password and activate access':'Update password securely';$('#identity-reset-form [role=status]').textContent='';}
   $('#identity-login-form').hidden = view !== 'login';
   $('#identity-forgot').hidden = view !== 'login';
   $('#identity-recovery-form').hidden = view !== 'request';
@@ -151,7 +157,7 @@ $('#identity-forgot').addEventListener('click', () => {
   identityRecoveryView('request');$('#identity-recovery-email').focus();
 });
 $$('[data-identity-back]').forEach(button => button.addEventListener('click', () => {
-  identityRecoveryHash = null;$('#identity-reset-form').reset();identityRecoveryView('login');
+  identityRecoveryHash = null;identityInviteToken=null;$('#identity-reset-form').reset();identityRecoveryView('login');
 }));
 $('#identity-recovery-form').addEventListener('submit', async event => {
   event.preventDefault();const form=event.target;const button=form.querySelector('[type=submit]');const status=form.querySelector('[role=status]');
@@ -164,10 +170,11 @@ $('#identity-reset-form').addEventListener('submit', async event => {
   event.preventDefault();const form=event.target;const button=form.querySelector('[type=submit]');const status=form.querySelector('[role=status]');
   const password=$('#identity-new-password').value;
   if(password!==$('#identity-confirm-password').value){status.textContent='Passwords must match.';return;}
-  if(!identityRecoveryHash){status.textContent='This link is invalid. Request a new reset link.';return;}
+  if(!identityRecoveryHash&&!identityInviteToken){status.textContent='This link is invalid. Request a new link from your workspace owner.';return;}
   button.disabled=true;status.textContent='Updating your password?';
   try {
-    const result=await api('/api/v1/auth/reset-password',{method:'POST',body:{token_hash:identityRecoveryHash,password}});
+    const result=await api(identityInviteToken?'/api/v1/auth/accept-invitation':'/api/v1/auth/reset-password',{method:'POST',body:identityInviteToken?{access_token:identityInviteToken,password}:{token_hash:identityRecoveryHash,password}});
+    identityInviteToken=null;
     identityRecoveryHash=null;clearSession();identityRecoveryView('login');$('#identity-login-status').textContent=result.message;
   } catch(error) {status.textContent=error.message || 'Unable to reset. Request a new link.';}
   finally {form.reset();button.disabled=false;}
@@ -175,11 +182,13 @@ $('#identity-reset-form').addEventListener('submit', async event => {
 if(recoveryFragment.get('type')==='recovery') {
   identityRecoveryView('reset');
   if(!identityRecoveryHash) $('#identity-reset-form [role=status]').textContent='This link is invalid. Request a new reset link.';
-} else restoreIdentitySession();
+} else if(recoveryFragment.get('type')==='invite'){identityRecoveryView('reset');$('#identity-reset-form h2').textContent='Accept your workspace invitation';$('#identity-reset-form button[type=submit]').textContent='Set password and activate access';if(!identityInviteToken)$('#identity-reset-form [role=status]').textContent='Invitation link is invalid or expired. Contact your workspace owner.';} else restoreIdentitySession();
 
 window.addEventListener('hashchange', () => {
   const incoming = new URLSearchParams(location.hash.slice(1));
+  if(incoming.get('type')==='invite'){identityInviteToken=incoming.get('access_token');identityRecoveryHash=null;history.replaceState(null,'',location.pathname+location.search);clearSession();identityRecoveryView('reset');$('#identity-reset-form h2').textContent='Accept your workspace invitation';$('#identity-reset-form button[type=submit]').textContent='Set password and activate access';return;}
   if (incoming.get('type') !== 'recovery') return;
+  identityInviteToken=null;
   identityRecoveryHash = incoming.get('token_hash');
   history.replaceState(null, '', location.pathname + location.search);
   clearSession();identityRecoveryView('reset');

@@ -783,22 +783,54 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 </div>
 </section>
-<section id="workspace-team" class="card" hidden>
-<h2>Warehouse team</h2>
-<p>Add an existing Supabase user already provisioned for this workspace.</p>
-<form id="workspace-member-form">
-<label for="member-auth-id">Workspace auth user UUID</label>
-<input id="member-auth-id" required>
-<label for="member-name">Full name</label>
-<input id="member-name" maxlength="200" required>
-<label for="member-role">Role</label>
-<select id="member-role">
-<option>DISPATCHER</option>
-<option>ACCOUNTANT</option>
-<option>ADMIN</option>
-</select>
-<button class="primary" type="submit">Add warehouse user</button>
+<section id="settings" hidden>
+<div class="pagehead">
+<div>
+<div class="eyebrow">Workspace administration</div>
+<h1>Settings</h1>
+<p>Company profile and team access for your workspace.</p>
+</div>
+</div>
+<article class="card">
+<h2>Company profile</h2>
+<form id="company-settings-form">
+<label>Company name<input name="company_name" maxlength="200" required>
+</label>
+<label>Workspace name<input name="workspace_name" maxlength="200" required>
+</label>
+<label>Billing email<input name="billing_email" type="email" required>
+</label>
+<button class="primary">Save company profile</button>
 </form>
+</article>
+<article id="workspace-team" class="card">
+<h2>Team access</h2>
+<p class="subtle">Invite a colleague by email. They verify their email and choose their own password. Invitations expire after 24 hours; access is granted only after acceptance.</p>
+<form id="workspace-member-form">
+<div class="fields">
+<label>First name<input id="member-first-name" maxlength="100" required autocomplete="given-name">
+</label>
+<label>Last name<input id="member-last-name" maxlength="100" required autocomplete="family-name">
+</label>
+</div>
+<label>Email<input id="member-email" type="email" required autocomplete="email">
+</label>
+<label>Role<select id="member-role">
+<option value="DISPATCHER">Dispatcher (quotes, booking and warehouse operations)</option>
+<option value="ACCOUNTANT">Accountant (billing and financial reports)</option>
+</select>
+</label>
+<button class="primary">Send secure invitation</button>
+<p id="member-invite-status" class="subtle" role="status">
+</p>
+</form>
+<h3 style="margin-top:20px">Workspace users</h3>
+<div id="settings-members">
+</div>
+<h3 style="margin-top:20px">Invitations</h3>
+<div id="settings-invitations">
+</div>
+</article>
 </section>
 </main>
 </div>
@@ -908,11 +940,14 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <textarea id="dispute-draft" aria-label="Dispute draft" rows="7">
 </textarea>
 <div class="actions">
+<button id="dispute-save" class="primary">Save draft</button>
+<p id="dispute-status" class="subtle" role="status">Internal draft only. Use Download or Copy to submit through the carrier?s accepted dispute channel.</p>
 <button id="dispute-download" class="secondary">Download draft</button>
 <button id="dispute-copy" class="secondary">Copy draft</button>
 </div>
 <details style="margin-top:16px">
 <summary>Compare a billed invoice against stored shipment charges</summary>
+<p id="quick-audit-help" class="subtle">Enter the actual carrier invoice figures. This compares billed charges with the stored shipment baseline and updates the draft when supported discrepancies are found.</p>
 <form id="quick-audit-form">
 <div class="fields">
 <div>
@@ -925,13 +960,13 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <div>
 <label for="qa-weight">Billed weight · kg</label>
-<input id="qa-weight" value="4.800" inputmode="decimal" required>
+<input id="qa-weight" placeholder="Actual invoiced weight, e.g. 4.800" inputmode="decimal" required>
 </div>
 </div>
 <div class="fields">
 <div>
 <label for="qa-base">Billed base cost</label>
-<input id="qa-base" value="0.00" inputmode="decimal" required>
+<input id="qa-base" placeholder="Actual billed base amount" inputmode="decimal" required>
 </div>
 <div>
 <label for="qa-fuel">Fuel surcharge</label>
@@ -2100,22 +2135,7 @@ renderPortal();
 setView('dashboard');
 </script>
 <script>
-document.querySelector('#workspace-member-form').addEventListener('submit', event => {
-  event.preventDefault();
-  busy(event.target.querySelector('button'), async () => {
-    await api('/api/v1/workspace/users', {
-      method: 'POST',
-      auth: true,
-      body: {
-        auth_user_id: $('#member-auth-id').value.trim(),
-        full_name: $('#member-name').value.trim(),
-        role: $('#member-role').value
-      }
-    });
-    event.target.reset();
-    notify('Warehouse user added to your workspace.')
-  })
-});
+
 </script>
 <script>
 // Cargo-aware operations, document export and accessible manifest actions.
@@ -2439,20 +2459,43 @@ renderTickets = function() {
     if (!actions || !ticket) return;
     const pod = actions.querySelector('[data-ticket-action="pod"]');
     if (pod) pod.textContent = 'View delivery proof';
-    if (ticket.ticket_type === 'PROCESSING_ISSUE') return;
+    if (ticket.ticket_type === 'PROCESSING_ISSUE' || ticket.pod_state === 'NOT_BOOKED') return;
     const allowed = portalDemo() || portal.role === 'SUPER_ADMIN' || ['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal.profile?.workspace_role);
     actions.insertAdjacentHTML('beforeend', `<button class="secondary" data-dispute-ticket="${escapeHTML(ticket.id)}" ${allowed?'':'disabled title="Financial role required"'}>Auto-Draft Surcharge Dispute</button>`)
   });
   refreshIcons()
 };
 
+function disputeDraftPath(ticket) {
+  return `/api/v1/${portal.role==='SUPER_ADMIN'?'admin/':''}shipments/${ticket.shipment_id}/dispute-draft${portal.role==='SUPER_ADMIN'?'?tenant_id='+encodeURIComponent(ticket.tenant_id):''}`;
+}
+
 function openDispute(ticket) {
+  if (ticket.ticket_type === 'PROCESSING_ISSUE' || (!ticket.demo && !ticket.shipment_id)) {
+    notify('A surcharge dispute needs a confirmed shipment and carrier invoice. A failed quote cannot be audited.', true);
+    return;
+  }
   activeDispute = ticket;
   $('#dispute-context').textContent = (ticket.demo ? 'Sample case · ' : 'Shipment · ') + (ticket.tracking_number || ticket.shipment_id || ticket.title || ticket.id);
   $('#dispute-draft').value = `DRAFT — not sent\n\nPlease review the billed weight and accessorial charges for shipment ${ticket.tracking_number||ticket.shipment_id||ticket.id}.\n\nReported issue: ${ticket.ai_summary||'Carrier exception; review supporting records.'}\n\nPlease provide the invoice, recorded measurements and surcharge evidence. Any overcharge amount remains unconfirmed until the billed charges are compared with the stored carrier baseline.\n\nThis draft requires merchant review before submission.`;
+  $('#quick-audit-form').reset();
+  $('#dispute-status').textContent = 'Internal draft only. Saving does not submit it to a carrier.';
+  $('#dispute-save').disabled = !!ticket.demo;
+  if (!ticket.demo) api(disputeDraftPath(ticket), {
+    auth: true
+  }).then(r => {
+    if (activeDispute === ticket && r.draft) {
+      $('#dispute-draft').value = r.draft.content;
+      $('#dispute-status').textContent = 'Saved internal draft loaded. Not sent to carrier.';
+    }
+  }).catch(e => {
+    $('#dispute-status').textContent = e.message;
+  });
   $('#quick-audit-result').replaceChildren();
   $('#qa-currency').value = state.walletCurrency || 'GBP';
-  $('#quick-audit-form').querySelector('button').disabled = !!ticket.demo || !ticket.shipment_id;
+  const auditUnavailable = !!ticket.demo || !ticket.shipment_id;
+  $('#quick-audit-form').querySelector('button').disabled = auditUnavailable;
+  $('#quick-audit-help').textContent = auditUnavailable ? 'Comparison is unavailable for sample or unbooked shipments. Select a confirmed shipment with an actual invoice.' : 'Enter actual invoice amounts and weight. Compare checks them against stored shipment charges; it does not send a dispute.';
   $('#dispute-dialog').showModal()
 }
 $('#support-tickets').addEventListener('click', e => {
@@ -2461,6 +2504,17 @@ $('#support-tickets').addEventListener('click', e => {
   const ticket = portal.tickets.find(t => t.id === b.dataset.disputeTicket);
   if (ticket) openDispute(ticket)
 });
+$('#dispute-save').addEventListener('click', () => busy($('#dispute-save'), async () => {
+  if (!activeDispute || activeDispute.demo || !activeDispute.shipment_id) throw Error('Select a confirmed shipment.');
+  await api(disputeDraftPath(activeDispute), {
+    method: 'PUT',
+    auth: true,
+    body: {
+      content: $('#dispute-draft').value
+    }
+  });
+  $('#dispute-status').textContent = 'Draft saved to this shipment. Not sent to carrier.';
+}));
 $('#dispute-download').addEventListener('click', () => download('easyinvio-dispute-draft.txt', $('#dispute-draft').value, 'text/plain'));
 $('#dispute-copy').addEventListener('click', async () => {
   try {
@@ -2493,10 +2547,18 @@ $('#quick-audit-form').addEventListener('submit', event => {
       auth: true
     });
     const audited = result.results[0];
-    $('#quick-audit-result').innerHTML = '<pre></pre>';
-    $('#quick-audit-result pre').textContent = JSON.stringify(audited, null, 2);
-    if (audited.dispute_draft) $('#dispute-draft').value = audited.dispute_draft;
-    else notify('No supported overcharge draft could be established. Review the audit result.')
+    const messages = {
+      baseline_missing_or_invalid: 'Comparison unavailable: this shipment has no complete, trusted fee breakdown. No overcharge is inferred. You can still save a manual evidence-based draft.',
+      currency_mismatch: 'The invoice currency differs from the stored carrier charges. Correct the currency before comparing.',
+      shipment_not_found: 'No matching shipment is available in this workspace.',
+      matched: 'The supplied invoice figures match the recorded baseline.',
+      review_required: 'Differences found. Review the invoice evidence before submitting a dispute.'
+    };
+    $('#quick-audit-result').innerHTML = `<div class="notice">${escapeHTML(messages[audited.status]||'Review the comparison result.')}${(audited.findings||[]).map(f=>`<p><strong>${escapeHTML(f.field.replaceAll('_',' '))}</strong>: recorded ${escapeHTML(f.expected)}, billed ${escapeHTML(f.billed)}${f.overcharge!==null?' ? difference '+escapeHTML(f.overcharge)+' '+escapeHTML(audited.currency):' ? supporting weight evidence required'}</p>`).join('')}</div>`;
+    if (audited.dispute_draft) {
+      $('#dispute-draft').value = audited.dispute_draft;
+      $('#dispute-status').textContent = 'Comparison updated the draft. Click Save draft to keep it. Nothing was sent.';
+    } else notify('No supported overcharge draft could be established. Review the audit result.')
   })
 });
 const modernSetViewBase = setView;
@@ -2646,6 +2708,7 @@ personaControls.classList.add('header-personas');
 document.querySelector('.topbar-actions').prepend(personaControls);
 const enterpriseNavItems = {
   dashboard: ['Overview', 'layout-dashboard'],
+  settings: ['Settings', 'settings'],
   'admin-clients': ['Client Accounts Node', 'building-2'],
   'admin-carriers': ['Carrier Connectors', 'plug'],
   'admin-margins': ['Margin Rule Matrix', 'sliders-horizontal'],
@@ -2666,7 +2729,7 @@ function allowedEnterpriseViews() {
   if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest', 'profile'];
   if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'dispatch', 'wallet', 'customs', 'stores', 'profile'];
   if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard', 'profile'];
-  return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile'];
+  return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile', ...(['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role) ? ['settings'] : [])];
 }
 
 function enterpriseAdminGuard() {
@@ -4303,6 +4366,7 @@ void resumeStripePayment();
 const identityStorageKey = 'easyinvio.session';
 let identityProfile = null;
 let identityRecoveryHash = null;
+let identityInviteToken = null;
 document.head.insertAdjacentHTML('beforeend', `<style>
 body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-nav,body.auth-locked>#customs-backdrop,body.auth-locked>#box-backdrop{display:none!important}
 #loginContainer{min-height:100dvh;display:grid;place-items:center;padding:24px;color:#f1f5f9;background:radial-gradient(ellipse at 50% 20%,#25245666,transparent 60%),#0f172a}
@@ -4475,6 +4539,11 @@ async function restoreIdentitySession() {
 // Recovery links carry a one-use token hash in the fragment, never an app JWT.
 // Remove it before rendering or restoring any saved workspace session.
 const recoveryFragment = new URLSearchParams(location.hash.slice(1));
+if (recoveryFragment.get('type') === 'invite') {
+  identityInviteToken = recoveryFragment.get('access_token');
+  history.replaceState(null, '', location.pathname + location.search);
+  clearSession();
+}
 if (recoveryFragment.get('type') === 'recovery') {
   identityRecoveryHash = recoveryFragment.get('token_hash');
   history.replaceState(null, '', location.pathname + location.search);
@@ -4499,6 +4568,11 @@ document.querySelector('#identity-login-form').insertAdjacentHTML('afterend', `
 </form>`);
 
 function identityRecoveryView(view) {
+  if (view === 'reset') {
+    $('#identity-reset-form h2').textContent = identityInviteToken ? 'Accept your workspace invitation' : 'Choose a new password';
+    $('#identity-reset-form button[type=submit]').textContent = identityInviteToken ? 'Set password and activate access' : 'Update password securely';
+    $('#identity-reset-form [role=status]').textContent = '';
+  }
   $('#identity-login-form').hidden = view !== 'login';
   $('#identity-forgot').hidden = view !== 'login';
   $('#identity-recovery-form').hidden = view !== 'request';
@@ -4512,6 +4586,7 @@ $('#identity-forgot').addEventListener('click', () => {
 });
 $$('[data-identity-back]').forEach(button => button.addEventListener('click', () => {
   identityRecoveryHash = null;
+  identityInviteToken = null;
   $('#identity-reset-form').reset();
   identityRecoveryView('login');
 }));
@@ -4546,20 +4621,24 @@ $('#identity-reset-form').addEventListener('submit', async event => {
     status.textContent = 'Passwords must match.';
     return;
   }
-  if (!identityRecoveryHash) {
-    status.textContent = 'This link is invalid. Request a new reset link.';
+  if (!identityRecoveryHash && !identityInviteToken) {
+    status.textContent = 'This link is invalid. Request a new link from your workspace owner.';
     return;
   }
   button.disabled = true;
   status.textContent = 'Updating your password?';
   try {
-    const result = await api('/api/v1/auth/reset-password', {
+    const result = await api(identityInviteToken ? '/api/v1/auth/accept-invitation' : '/api/v1/auth/reset-password', {
       method: 'POST',
-      body: {
+      body: identityInviteToken ? {
+        access_token: identityInviteToken,
+        password
+      } : {
         token_hash: identityRecoveryHash,
         password
       }
     });
+    identityInviteToken = null;
     identityRecoveryHash = null;
     clearSession();
     identityRecoveryView('login');
@@ -4574,11 +4653,27 @@ $('#identity-reset-form').addEventListener('submit', async event => {
 if (recoveryFragment.get('type') === 'recovery') {
   identityRecoveryView('reset');
   if (!identityRecoveryHash) $('#identity-reset-form [role=status]').textContent = 'This link is invalid. Request a new reset link.';
+} else if (recoveryFragment.get('type') === 'invite') {
+  identityRecoveryView('reset');
+  $('#identity-reset-form h2').textContent = 'Accept your workspace invitation';
+  $('#identity-reset-form button[type=submit]').textContent = 'Set password and activate access';
+  if (!identityInviteToken) $('#identity-reset-form [role=status]').textContent = 'Invitation link is invalid or expired. Contact your workspace owner.';
 } else restoreIdentitySession();
 
 window.addEventListener('hashchange', () => {
   const incoming = new URLSearchParams(location.hash.slice(1));
+  if (incoming.get('type') === 'invite') {
+    identityInviteToken = incoming.get('access_token');
+    identityRecoveryHash = null;
+    history.replaceState(null, '', location.pathname + location.search);
+    clearSession();
+    identityRecoveryView('reset');
+    $('#identity-reset-form h2').textContent = 'Accept your workspace invitation';
+    $('#identity-reset-form button[type=submit]').textContent = 'Set password and activate access';
+    return;
+  }
   if (incoming.get('type') !== 'recovery') return;
+  identityInviteToken = null;
   identityRecoveryHash = incoming.get('token_hash');
   history.replaceState(null, '', location.pathname + location.search);
   clearSession();
@@ -4867,6 +4962,109 @@ $('#shipment-doc-print').addEventListener('click', event => {
   if (!checkoutManifestInvoiceId) return;
   busy($('#shipment-doc-print'), () => downloadPartnerDocument('/api/v1/checkout/' + encodeURIComponent(checkoutManifestInvoiceId) + '/commercial-invoice.pdf'));
 }, true);
+</script>
+<script>
+// Workspace company and team settings; all mutations are server-authorized.
+async function loadWorkspaceSettings() {
+  if (!state.session || !['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) throw Error('Sign in as your workspace owner.');
+  const session = state.session,
+    tenant = portal.profile.tenant_id;
+  const result = await api('/api/v1/workspace/settings', {
+    auth: true
+  });
+  if (state.session !== session || portal.profile?.tenant_id !== tenant) return;
+  $('#workspace-team').hidden = false;
+  for (const field of ['company_name', 'workspace_name', 'billing_email']) $('#company-settings-form').elements[field].value = result.company[field] || '';
+  $('#settings-members').innerHTML = result.members.map(m => `<div class="notice"><strong>${escapeHTML(m.full_name)}</strong> &middot; ${escapeHTML(m.email)} &middot; ${escapeHTML(m.role)} ? ${m.is_active?'Active':'Disabled'}${['DISPATCHER','ACCOUNTANT'].includes(m.role)?`<div class="actions"><select aria-label="Role for ${escapeHTML(m.full_name)}" data-member-role="${m.id}"><option ${m.role==='DISPATCHER'?'selected':''}>DISPATCHER</option><option ${m.role==='ACCOUNTANT'?'selected':''}>ACCOUNTANT</option></select><button class="secondary" data-member-update="${m.id}" data-member-active="${m.is_active}">Update role</button><button class="secondary" data-member-reset="${escapeHTML(m.email)}">Send password reset link</button><button class="secondary" data-member-toggle="${m.id}" data-member-active="${!m.is_active}">${m.is_active?'Disable':'Enable'}</button></div>`:''}</div>`).join('') || '<p>No workspace users.</p>';
+  $('#settings-invitations').innerHTML = result.invitations.map(i => `<p>${escapeHTML(i.first_name+' '+i.last_name)} &middot; ${escapeHTML(i.email)} &middot; ${escapeHTML(i.role)} &middot; ${escapeHTML(i.status==='PENDING'&&new Date(i.expires_at).getTime()<Date.now()?'EXPIRED':i.status)}${['PENDING','FAILED','CANCELLED'].includes(i.status)?`<button class="secondary" data-invite-resend="${i.id}">Resend invitation</button>`:''}${['SENDING','PENDING'].includes(i.status)?`<button class="secondary" data-invite-cancel="${i.id}">Cancel invitation</button>`:''}</p>`).join('') || '<p>No invitations.</p>';
+}
+const settingsSetViewBase = setView;
+setView = function(view) {
+  settingsSetViewBase(view);
+  if (view === 'settings' && !$('#settings').hidden) loadWorkspaceSettings().catch(e => notify(e.message, true));
+};
+$('#workspace-member-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('button'), async () => {
+    const result = await api('/api/v1/workspace/invitations', {
+      method: 'POST',
+      auth: true,
+      body: {
+        first_name: $('#member-first-name').value.trim(),
+        last_name: $('#member-last-name').value.trim(),
+        email: $('#member-email').value.trim(),
+        role: $('#member-role').value
+      }
+    });
+    event.target.reset();
+    $('#member-invite-status').textContent = result.message;
+    await loadWorkspaceSettings();
+  });
+});
+$('#company-settings-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('button'), async () => {
+    await api('/api/v1/workspace/settings', {
+      method: 'PATCH',
+      auth: true,
+      body: Object.fromEntries(new FormData(event.target))
+    });
+    notify('Workspace company profile saved.');
+  });
+});
+$('#settings-members').addEventListener('click', event => {
+  const reset = event.target.closest('[data-member-reset]');
+  if (reset) {
+    busy(reset, async () => {
+      const r = await api('/api/v1/auth/forgot-password', {
+        method: 'POST',
+        body: {
+          email: reset.dataset.memberReset
+        }
+      });
+      notify(r.message);
+    });
+    return;
+  }
+  const b = event.target.closest('[data-member-update],[data-member-toggle]');
+  if (!b) return;
+  busy(b, async () => {
+    const id = b.dataset.memberUpdate || b.dataset.memberToggle;
+    await api('/api/v1/workspace/users/' + id, {
+      method: 'PATCH',
+      auth: true,
+      body: {
+        role: document.querySelector(`[data-member-role="${id}"]`).value,
+        is_active: b.dataset.memberActive === 'true'
+      }
+    });
+    await loadWorkspaceSettings();
+    notify('Team access updated; previous app sessions revoked.');
+  });
+});
+$('#settings-invitations').addEventListener('click', event => {
+  const b = event.target.closest('[data-invite-cancel],[data-invite-resend]');
+  if (!b) return;
+  busy(b, async () => {
+    await api('/api/v1/workspace/invitations/' + (b.dataset.inviteCancel || b.dataset.inviteResend) + (b.dataset.inviteResend ? '/resend' : '/cancel'), {
+      method: 'POST',
+      auth: true
+    });
+    await loadWorkspaceSettings();
+  });
+});
+const settingsClearBase = clearSession;
+clearSession = function() {
+  activeDispute = null;
+  $('#dispute-draft').value = '';
+  $('#dispute-status').textContent = '';
+  $('#dispute-dialog').close();
+  for (const id of ['settings-members', 'settings-invitations']) $('#' + id).replaceChildren();
+  $('#company-settings-form').reset();
+  $('#workspace-member-form').reset();
+  $('#member-invite-status').textContent = '';
+  return settingsClearBase.apply(this, arguments);
+};
 </script>
 </body>
 </html>

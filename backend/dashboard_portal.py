@@ -19,7 +19,7 @@ class WorkspaceMember(BaseModel):
     model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
     auth_user_id: UUID
     full_name: str=Field(min_length=1,max_length=200)
-    role: Literal['ADMIN','DISPATCHER','ACCOUNTANT']='DISPATCHER'
+    role: Literal['DISPATCHER','ACCOUNTANT']='DISPATCHER'
 
 class StoreConfiguration(BaseModel):
     model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
@@ -193,4 +193,6 @@ def build_router(authenticate):
         return await add_internal_note(request.app.state.finance.pool,ticket_id,owner.user_id,
             'Internal support review closed. No carrier or merchant notification was sent.',start_review=True,resolve=True)
 
+    from backend.workspace_settings import build_router as settings_router
+    router.include_router(settings_router(authenticate))
     return router

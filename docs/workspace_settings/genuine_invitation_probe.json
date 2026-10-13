@@ -1,0 +1,25 @@
+{
+  "workspace": "Mavuri Consultancy Services Limited sandbox",
+  "recipient_explicitly_authorized": true,
+  "boundary": "real Supabase Auth email API with server-side test owner context; not browser JWT login",
+  "recipient_already_registered": false,
+  "http_status": 201,
+  "result": {
+    "status": "PENDING",
+    "message": "Invitation email accepted for delivery. The user must verify their email and choose a password before workspace access is activated."
+  },
+  "status": "PASS_ACCEPTED_AND_LOGGED_IN",
+  "acceptance_evidence": {
+    "status": "ACCEPTED",
+    "email_verified": true,
+    "role": "DISPATCHER",
+    "is_active": true,
+    "company_name": "Mavuri Consultancy Services Limited",
+    "is_sandbox": true,
+    "active_matching_app_session": true,
+    "membership_count": 1
+  },
+  "recipient_confirmed_login": true,
+  "membership_created_before_acceptance": false,
+  "membership_created": true
+}

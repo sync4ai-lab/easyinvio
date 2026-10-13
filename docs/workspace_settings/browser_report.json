@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "scope": "controlled browser API; no real emails",
+  "checks": [
+    "Settings contains company and email-based team invitation form; no UUID or Admin role",
+    "Pending invitation visible without sending a password",
+    "375/768/1366px responsive layout",
+    "Saved dispute reload, enabled invoice comparison, readable findings and save action",
+    "Logout clears dispute and team details",
+    "Invite fragment removed, password selection activates stored membership and returns to sign-in without persisting provider token"
+  ],
+  "javascript_errors": []
+}

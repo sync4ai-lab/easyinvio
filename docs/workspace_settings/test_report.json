@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "unit_contract_tests": 298,
+  "browser_checks": [
+    "Workspace settings and invitation acceptance",
+    "Saved dispute audit and reload",
+    "Customer checkout regression",
+    "Support note and review regression"
+  ],
+  "actual_database_probe": "PASS; fixture writes rolled back; provider email responses controlled",
+  "genuine_email_flow": "PASS: recipient confirmed acceptance and login; database confirmed verified email, one active Dispatcher membership and matching app session",
+  "migration": "027 applied twice in configured SANDBOX; private tables deny browser-role access",
+  "remaining_production_configuration": "Configure a public HTTPS app redirect and allow it in Supabase before inviting users on other devices. Dispute drafts are internal and must be submitted through the carrier accepted channel."
+}

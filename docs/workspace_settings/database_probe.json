@@ -1,0 +1,13 @@
+{
+  "database": "actual Supabase SANDBOX",
+  "auth_http": "controlled MockTransport",
+  "real_emails_sent": 0,
+  "writes_rolled_back": true,
+  "checks": [
+    "Email-accepted invitation remains pending; no membership before verification and password setup",
+    "One accepted membership in stored tenant and Dispatcher role; spoofed Admin metadata ignored; replay rejected",
+    "Actual Settings SQL lists company, members and invitation state",
+    "Dispute save and reload are tenant-scoped; foreign write rejected; user disable and Accountant update work; Admin escalation rejected"
+  ],
+  "status": "PASS"
+}
