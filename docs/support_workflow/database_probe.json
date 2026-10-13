@@ -1,0 +1,19 @@
+{
+  "executed_at": "2026-10-13T00:53:29.181353+00:00",
+  "database": "actual Supabase SANDBOX",
+  "native_http": "controlled MockTransport contracts",
+  "external_api_calls": 0,
+  "messages_sent": 0,
+  "database_writes_rolled_back": true,
+  "checks": [
+    "PASS: EASYPOST automatic queue trigger, actual SQL send fence and duplicate sync protection with controlled native HTTP",
+    "PASS: SENDCLOUD automatic queue trigger, actual SQL send fence and duplicate sync protection with controlled native HTTP",
+    "PASS: SHIPPO automatic queue trigger, actual SQL send fence and duplicate sync protection with controlled native HTTP",
+    "PASS: native fulfillment confirmation/update for all three providers against actual SQL; controlled HTTP only",
+    "PASS: EASYPOST signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL",
+    "PASS: SENDCLOUD signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL",
+    "PASS: SHIPPO signed native exception, duplicate event, one support ticket, approved POD mapping, terminal/stale protection and forged-signature rejection against actual SQL",
+    "PASS: all three signed IN_TRANSIT ? EXCEPTION ? internal note ? assigned review ? DELIVERED ? late POD; history retained, foreign note rejected and no note notification queued"
+  ],
+  "status": "PASS"
+}

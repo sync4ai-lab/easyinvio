@@ -20,6 +20,7 @@ class Database:
         self.tenant, self.account, self.shipment = uuid4(), uuid4(), uuid4()
         self.status, self.last = "BOOKED", None
         self.receipts, self.calls = {}, []
+        self.pod = None
     @asynccontextmanager
     async def acquire(self):
         yield self
@@ -36,7 +37,7 @@ class Database:
         if "JOIN public.carrier_accounts" in sql:
             if args[:2] != (self.tenant, self.account):
                 return []
-            return [{"id": self.shipment, "status": self.status, "last_tracking_event_at": self.last}]
+            return [{"id": self.shipment, "status": self.status, "last_tracking_event_at": self.last,"proof_of_delivery_url":self.pod}]
         if "GROUP BY currency" in sql:
             return [{"currency": "GBP", "package_count": 2, "spend": Decimal("12.34"), "margin": Decimal("2.05")},
                     {"currency": "USD", "package_count": 1, "spend": Decimal("9.99"), "margin": Decimal("1.01")}]
@@ -48,6 +49,7 @@ class Database:
         self.calls.append((sql, args))
         if "UPDATE public.shipments" in sql:
             self.status, self.last = args[2:4]
+            self.pod = args[4] or self.pod
         if "INSERT INTO public.tracking_events" in sql:
             self.receipts[(args[0], args[2], args[3])] = {"body_sha256": args[4], "response": json.loads(args[8])}
 
@@ -83,6 +85,17 @@ class TrackingTests(unittest.IsolatedAsyncioTestCase):
         result = await self.service.ingest("fixture", self.key, self.event(event_id="event2"), "hash2")
         self.assertFalse(result["support_queued"])
         self.assertEqual(self.db.status, "DELIVERED")
+
+    async def test_late_delivery_proof_enriches_same_scan_without_state_regression(self):
+        moment=datetime.now(timezone.utc)
+        self.db.status,self.db.last='DELIVERED',moment
+        url='https://proof.carrier.example/signature.jpg'
+        result=await self.service.ingest('fixture',self.key,self.event(status='DELIVERED',occurred_at=moment,proof_of_delivery_url=url),'late-pod')
+        self.assertTrue(result['applied'])
+        self.assertFalse(result['support_queued'])
+        self.assertEqual(self.db.pod,url)
+        result=await self.service.ingest('fixture',self.key,self.event(event_id='older',status='DELIVERED',occurred_at=moment-timedelta(seconds=1),proof_of_delivery_url=url),'older')
+        self.assertFalse(result['applied'])
 
     async def test_delivery_proof_and_ticket_resolution(self):
         url = "https://proof.carrier.example/photos/signature.jpg"

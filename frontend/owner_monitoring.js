@@ -35,7 +35,7 @@ renderTickets=function(){
     const ticket=portal.tickets[index];if(!ticket || ticket.demo)return;
     const info=document.createElement('p');info.className='subtle';
     const notifications=Array.isArray(ticket.notifications)?ticket.notifications:[];
-    info.textContent=(portal.role==='SUPER_ADMIN'?(ticket.company_name||ticket.tenant_id)+' · ':'')+'WhatsApp: '+(notifications.length?notifications.map(n=>n.status+(n.error_code?' ('+n.error_code+')':'')).join(', '):'Not staged');
+    info.textContent=(portal.role==='SUPER_ADMIN'?(ticket.company_name||ticket.tenant_id)+' · ':'')+'WhatsApp: '+(notifications.length?notifications.map(n=>n.status+(n.error_code?' ('+n.error_code+')':'')).join(', '):(ticket.notification_explanation||'No WhatsApp alert has been queued.'));
     node.append(info);
   });
 };

@@ -27,6 +27,9 @@ class DB:
         if 'AS volume' in sql:
             return [{'carrier':'DHL','volume':12}]
         return []
+    async def fetchrow(self,sql,*args):
+        self.calls.append((sql,args))
+        return {"id":args[0],"tenant_id":args[1],"status":"OPEN"}
     async def fetchval(self,sql,*args):
         self.calls.append((sql,args))
         return 42
@@ -86,6 +89,26 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(args[:2],(self.context.tenant_id,ticket_id))
         self.context.role='ACCOUNTANT'
         self.assertEqual(self.client.post(f'/api/v1/support/tickets/{ticket_id}/intervene',json={'note':'Review issue'}).status_code,403)
+
+    def test_note_does_not_assign_review_or_notify_and_history_is_scoped(self):
+        ticket=uuid4()
+        response=self.client.post(f'/api/v1/support/tickets/{ticket}/intervene',json={'note':'Internal finding','start_review':False})
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json()['status'],'OPEN')
+        self.assertFalse(response.json()['merchant_notified'])
+        self.assertFalse(response.json()['carrier_contacted'])
+        sql,args=self.db.calls[-1]
+        self.assertIn('support_ticket_activity',sql)
+        self.assertEqual(args[4],'INTERNAL_NOTE')
+        self.assertEqual(args[:2],(self.context.tenant_id,ticket))
+
+    def test_processing_issue_is_not_carrier_exception_or_missing_pod(self):
+        from backend.support_workflow import present_ticket
+        ticket=present_ticket({'automation_failure_id':uuid4(),'error_code':'ORDER_SERVICE_FAILED','notifications':[]})
+        self.assertEqual(ticket['ticket_type'],'PROCESSING_ISSUE')
+        self.assertEqual(ticket['pod_state'],'NOT_BOOKED')
+        self.assertNotIn('Bulk order',ticket['ai_summary'])
+        self.assertIn('internal',ticket['notification_explanation'])
 
 
 if __name__=='__main__':

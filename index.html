@@ -870,14 +870,17 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </dialog>
 <dialog id="ticket-dialog">
 <button class="close" data-close="ticket-dialog" aria-label="Close intervention">×</button>
-<h2>Manually intervene</h2>
+<h2>Internal support note</h2>
 <p id="intervention-context">
 </p>
 <form id="intervention-form">
-<label for="intervention-note">Dispatch note</label>
-<textarea id="intervention-note" minlength="3" maxlength="2000" required placeholder="Record the action you will take with the carrier.">
+<label class="check">
+<input type="checkbox" id="intervention-start-review">Assign this review to me and mark In Review</label>
+<p class="notice">This note stays inside EasyInvio. It does not contact the carrier or notify the customer.</p>
+<label for="intervention-note">Internal note</label>
+<textarea id="intervention-note" minlength="3" maxlength="2000" required placeholder="Record your findings or next step.">
 </textarea>
-<button class="primary full" style="margin-top:14px">Save intervention note</button>
+<button class="primary full" style="margin-top:14px">Save internal note</button>
 </form>
 </dialog>
 <dialog id="pod-dialog">
@@ -1783,9 +1786,20 @@ function renderLanes() {
 }
 
 function renderTickets() {
-  const tickets = portal.tickets;
-  $('#support-count').textContent = `${tickets.filter(t=>t.status==='OPEN').length} ${portalDemo()?'DEMO ':''}OPEN EXCEPTIONS`;
-  $('#support-tickets').innerHTML = tickets.length ? tickets.map(t => `${['CLOSED','RESOLVED'].includes(t.status)?'<details class="ticket-archive"><summary>Archived exception</summary>':''}<article class="support-ticket"><div class="ticket-header"><span class="ticket-alert">!</span><div class="ticket-title">${escapeHTML(t.title||`Shipment #${t.tracking_number||(t.shipment_id||t.id).slice(0,8)} → ${t.status==='RESOLVED'?'Resolved':'Carrier exception'} (${t.destination_country||'—'})`)}<span class="ticket-caption">${t.demo?'Illustrative automation history':escapeHTML(t.ai_method)+' · '+escapeHTML(t.created_at||'')}${t.manual_note?' · Intervention recorded':''}</span></div><span class="tag ${t.status==='RESOLVED'?'green':'orange'}">${escapeHTML(t.status)}</span></div><details><summary>✦ AI resolution action <span aria-hidden="true">⌄</span></summary><div class="remedy">${t.demo?'<span class="source-badge">DEMO SCENARIO</span><br>':''}${escapeHTML(t.ai_summary)}</div></details><div class="ticket-actions"><button class="secondary" data-ticket-action="intervene" data-ticket-id="${escapeHTML(t.id)}">Manually Intervene</button><button class="secondary" data-ticket-action="pod" data-ticket-id="${escapeHTML(t.id)}">View Live Carrier POD Token</button></div></article>${['CLOSED','RESOLVED'].includes(t.status)?'</details>':''}`).join('') : '<div class="empty">No support tickets in this view. Carrier exceptions appear here after verified tracking ingestion.</div>'
+  $('#support-count').textContent = `${portal.tickets.filter(t=>['OPEN','IN_REVIEW'].includes(t.status)).length} ACTIVE SUPPORT ISSUES`;
+  $('#support-tickets').innerHTML = portal.tickets.map(t => {
+    const internal = t.ticket_type === 'PROCESSING_ISSUE',
+      archived = ['CLOSED', 'RESOLVED'].includes(t.status);
+    const title = internal ? 'Shipment preparation issue' : 'Carrier tracking exception';
+    const canReview = portalDemo() || portal.role === 'SUPER_ADMIN' || ['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role);
+    const podMessages = {
+      NOT_BOOKED: 'Delivery proof is not applicable: no confirmed booking.',
+      AWAITING_DELIVERY: 'Delivery proof becomes available after delivery, if supplied by the carrier.',
+      NOT_PROVIDED: 'Delivered; the carrier has not supplied a delivery-proof link.'
+    };
+    const history = (t.activity || []).map(h => `<p><strong>${escapeHTML(h.actor)}</strong> ? ${escapeHTML(h.created_at)}<br>${escapeHTML(h.note)}</p>`).join('');
+    return `<article class="support-ticket"><div class="ticket-header"><span class="ticket-alert">!</span><div class="ticket-title">${escapeHTML(title)} ? ${escapeHTML(t.tracking_number||t.title||t.id)}<span class="ticket-caption">${escapeHTML(t.responsibility||'Carrier tracking; shipper action may be required')} ? ${escapeHTML(t.created_at||'')}</span></div><span class="tag">${escapeHTML(t.status)}</span></div><details><summary>Recommended next step</summary><div class="remedy">${escapeHTML(t.ai_summary||'Review shipment tracking for the next update.')}</div></details>${t.status==='IN_REVIEW'?`<p class="subtle">Internal reviewer: ${escapeHTML(t.reviewer_name||(t.reviewer_id?'Workspace reviewer':'Not recorded for this earlier review'))}. This is not a carrier review.</p>`:''}${t.manual_note?`<div class="notice"><strong>Latest internal note</strong><p>${escapeHTML(t.manual_note)}</p><small>Internal only. No customer notification or carrier message is sent.</small></div>`:''}${history?`<details><summary>Internal review history</summary>${history}</details>`:''}<div class="ticket-actions">${archived||!canReview?'':`<button class="secondary" data-ticket-action="intervene" data-ticket-id="${escapeHTML(t.id)}">Add internal note</button><button class="secondary" data-ticket-action="resolve" data-ticket-id="${escapeHTML(t.id)}">Close internal review</button>`}${!internal&&t.pod_state!=='NOT_BOOKED'?`<button class="secondary" data-ticket-action="pod" data-ticket-id="${escapeHTML(t.id)}">View delivery proof</button>`:''}</div><p class="subtle">${escapeHTML(podMessages[t.pod_state]||'')}</p></article>`;
+  }).join('') || '<div class="empty">No support issues. Carrier updates arrive through authenticated tracking webhooks after booking.</div>';
 }
 $('#support-tickets').addEventListener('click', event => {
   const button = event.target.closest('[data-ticket-action]');
@@ -1795,15 +1809,31 @@ $('#support-tickets').addEventListener('click', event => {
   portal.activeTicket = ticket;
   if (button.dataset.ticketAction === 'intervene') {
     $('#intervention-context').textContent = (ticket.demo ? 'Demo intervention · ' : 'Shipment · ') + (ticket.title || ticket.tracking_number || ticket.shipment_id);
-    $('#intervention-note').value = ticket.manual_note || '';
+    $('#intervention-note').value = '';
+    $('#intervention-start-review').checked = false;
     $('#ticket-dialog').showModal()
+  } else if (button.dataset.ticketAction === 'resolve') {
+    busy(button, async () => {
+      if (ticket.demo) ticket.status = 'CLOSED';
+      else {
+        await api(`/api/v1/${portal.role==='SUPER_ADMIN'?'admin/':''}support/tickets/${ticket.id}/resolve`, {
+          method: 'POST',
+          auth: true
+        });
+        portal.tickets = (await api(`/api/v1/${portal.role==='SUPER_ADMIN'?'admin/':''}support/tickets${portal.role==='SUPER_ADMIN'?'?active_only='+ownerActiveSupportOnly()+'&environment='+ownerReportEnvironment():''}`, {
+          auth: true
+        })).tickets;
+      }
+      notify('Internal review closed. Carrier tracking is unchanged; no notification was sent.');
+      renderTickets();
+    });
   } else {
     $('#pod-content').replaceChildren();
     const url = ticket.proof_of_delivery_url;
-    if (url && new URL(url).protocol === 'https:') {
+    if (safeHTTPS(url)) {
       $('#pod-content').innerHTML = `<p>Provider-hosted delivery evidence. This link may expire.</p><a class="primary" href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">Open carrier delivery proof</a>`
     } else {
-      $('#pod-content').textContent = ticket.demo ? 'Demo POD inspection: no live signature, image or carrier token exists for this sample shipment.' : 'The carrier has not supplied a delivery-proof URL for this shipment.'
+      $('#pod-content').textContent = ticket.demo ? 'Demo POD inspection: no live signature, image or carrier token exists for this sample shipment.' : ticket.pod_state === 'AWAITING_DELIVERY' ? 'Awaiting delivery. A proof link is available only after delivery, if the carrier supplies one.' : ticket.pod_state === 'NOT_BOOKED' ? 'No confirmed booking exists, so delivery proof is not applicable.' : 'Delivered, but the carrier has not supplied a delivery-proof URL. Some services do not include a signature or photo.'
     }
     $('#pod-dialog').showModal()
   }
@@ -1816,19 +1846,23 @@ $('#intervention-form').addEventListener('submit', event => {
   busy(event.target.querySelector?.('button') || $('#dashboard-refresh'), async () => {
     if (ticket.demo) {
       ticket.manual_note = note;
-      ticket.status = 'IN_REVIEW';
+      ticket.status = $('#intervention-start-review').checked ? 'IN_REVIEW' : ticket.status;
       notify('Demo intervention recorded in this browser session.')
     } else {
-      await api(`/api/v1/${portal.role==='SUPER_ADMIN'?'admin/':''}support/tickets/${ticket.id}/intervene`, {
+      const result = await api(`/api/v1/${portal.role==='SUPER_ADMIN'?'admin/':''}support/tickets/${ticket.id}/intervene`, {
         method: 'POST',
         body: {
-          note
+          note,
+          start_review: $('#intervention-start-review').checked
         },
         auth: true
       });
       ticket.manual_note = note;
-      ticket.status = 'IN_REVIEW';
-      notify('Intervention note saved to your support ticket.')
+      ticket.status = result.status;
+      portal.tickets = (await api(`/api/v1/${portal.role==='SUPER_ADMIN'?'admin/':''}support/tickets${portal.role==='SUPER_ADMIN'?'?active_only='+ownerActiveSupportOnly()+'&environment='+ownerReportEnvironment():''}`, {
+        auth: true
+      })).tickets;
+      notify('Internal note saved. No carrier or customer message was sent.')
     }
     $('#ticket-dialog').close();
     renderTickets()
@@ -2404,7 +2438,8 @@ renderTickets = function() {
       actions = article.querySelector('.ticket-actions');
     if (!actions || !ticket) return;
     const pod = actions.querySelector('[data-ticket-action="pod"]');
-    if (pod) pod.textContent = 'View POD Signature Link';
+    if (pod) pod.textContent = 'View delivery proof';
+    if (ticket.ticket_type === 'PROCESSING_ISSUE') return;
     const allowed = portalDemo() || portal.role === 'SUPER_ADMIN' || ['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal.profile?.workspace_role);
     actions.insertAdjacentHTML('beforeend', `<button class="secondary" data-dispute-ticket="${escapeHTML(ticket.id)}" ${allowed?'':'disabled title="Financial role required"'}>Auto-Draft Surcharge Dispute</button>`)
   });
@@ -4032,7 +4067,7 @@ renderTickets = function() {
     const info = document.createElement('p');
     info.className = 'subtle';
     const notifications = Array.isArray(ticket.notifications) ? ticket.notifications : [];
-    info.textContent = (portal.role === 'SUPER_ADMIN' ? (ticket.company_name || ticket.tenant_id) + ' · ' : '') + 'WhatsApp: ' + (notifications.length ? notifications.map(n => n.status + (n.error_code ? ' (' + n.error_code + ')' : '')).join(', ') : 'Not staged');
+    info.textContent = (portal.role === 'SUPER_ADMIN' ? (ticket.company_name || ticket.tenant_id) + ' · ' : '') + 'WhatsApp: ' + (notifications.length ? notifications.map(n => n.status + (n.error_code ? ' (' + n.error_code + ')' : '')).join(', ') : (ticket.notification_explanation || 'No WhatsApp alert has been queued.'));
     node.append(info);
   });
 };

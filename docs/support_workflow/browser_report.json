@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "boundary": "controlled browser API; no real messages",
+  "checks": [
+    "Processing issue classified separately; no invalid POD/dispute actions",
+    "Internal note shown with history and no implicit assignment",
+    "Explicit assigned review identifies reviewer",
+    "New note starts empty",
+    "375/768/1366px no horizontal overflow"
+  ],
+  "javascript_errors": []
+}

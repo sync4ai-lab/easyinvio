@@ -7,11 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from backend.admin_portal import authenticate_platform_owner
 from backend.tracking_and_support import money
+from backend.support_workflow import add_internal_note,present_ticket
 
 
 class Intervention(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     note: str = Field(min_length=3, max_length=2000)
+    start_review: bool = False
 
 class WorkspaceMember(BaseModel):
     model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
@@ -132,7 +134,17 @@ def build_router(authenticate):
 
     async def tickets_query(request, tenant_id=None, sandbox=None, active_only=False):
         async with request.app.state.finance.pool.acquire() as connection:
+            activity_ready=await connection.fetchval("SELECT to_regclass('public.support_ticket_activity') IS NOT NULL")
+            history="""coalesce((SELECT jsonb_agg(jsonb_build_object('actor',h.actor_name,'type',h.activity_type,'note',h.note,'created_at',h.created_at)
+                ORDER BY h.created_at,h.id) FROM public.support_ticket_activity h WHERE h.tenant_id=t.tenant_id AND h.ticket_id=t.id),'[]'::jsonb)""" if activity_ready else "'[]'::jsonb"
             rows = await connection.fetch("""SELECT t.id,t.tenant_id,t.shipment_id,t.status,t.ai_summary,t.ai_method,
+                t.automation_failure_id,a.error_code,s.status AS shipment_status,s.booked_at,s.tracking_number AS shipment_tracking_number,
+                to_jsonb(t)->>'reviewed_by_auth_user_id' AS reviewer_id,to_jsonb(t)->>'review_started_at' AS review_started_at,
+                coalesce((SELECT nullif(p.full_name,'') FROM public.app_user_profiles p
+                    WHERE p.auth_user_id::text=to_jsonb(t)->>'reviewed_by_auth_user_id'),
+                    (SELECT nullif(u.full_name,'') FROM public.users u WHERE u.tenant_id=t.tenant_id
+                     AND u.auth_user_id::text=to_jsonb(t)->>'reviewed_by_auth_user_id' LIMIT 1)) AS reviewer_name,
+                """+history+""" AS activity,
                 t.manual_note,t.archived_at,t.created_at,coalesce(s.tracking_number,a.order_reference) AS tracking_number,s.destination_country,s.proof_of_delivery_url,
                 company.company_name,
                 coalesce((SELECT jsonb_agg(jsonb_build_object('status',m.status,'updated_at',m.delivery_updated_at,'error_code',m.last_error_code))
@@ -144,7 +156,8 @@ def build_router(authenticate):
                 AND (NOT $3::boolean OR t.status IN ('OPEN','IN_REVIEW'))
                 ORDER BY t.created_at DESC LIMIT 100""", tenant_id,sandbox,active_only)
         import json
-        return {"tickets": [{**dict(row), "id": str(row["id"]), "tenant_id": str(row["tenant_id"]), "shipment_id": str(row["shipment_id"]) if row['shipment_id'] else None,
+        return {"tickets": [{**present_ticket(row), "id": str(row["id"]), "tenant_id": str(row["tenant_id"]), "shipment_id": str(row["shipment_id"]) if row['shipment_id'] else None,
+                'activity':json.loads(row['activity']) if isinstance(row.get('activity'),str) else row.get('activity',[]),
                 'notifications':json.loads(row['notifications']) if isinstance(row.get('notifications'),str) else row.get('notifications',[]),
                 "created_at": row["created_at"].isoformat()} for row in rows]}
 
@@ -160,27 +173,24 @@ def build_router(authenticate):
     async def intervene(ticket_id: UUID, body: Intervention, request: Request, context: Any = Depends(authenticate)):
         if context.role not in {"OWNER","ADMIN","DISPATCHER"}:
             raise HTTPException(403,"Dispatch permission required")
-        async with request.app.state.finance.pool.acquire() as connection:
-            result = await connection.execute("UPDATE public.support_tickets SET manual_note=$3,status='IN_REVIEW' WHERE tenant_id=$1 AND id=$2 AND status IN ('OPEN','IN_REVIEW')", context.tenant_id,ticket_id,body.note)
-        if result == 'UPDATE 0':
-            raise HTTPException(404,"Ticket not found")
-        return {"status":"IN_REVIEW","ticket_id":str(ticket_id)}
+        return await add_internal_note(request.app.state.finance.pool,ticket_id,context.user_id,body.note,
+            tenant_id=context.tenant_id,start_review=body.start_review)
 
     @router.post("/admin/support/tickets/{ticket_id}/intervene")
     async def admin_intervene(ticket_id: UUID, body: Intervention, request: Request, owner: Any = Depends(authenticate_platform_owner)):
-        async with request.app.state.finance.pool.acquire() as connection:
-            result = await connection.execute("UPDATE public.support_tickets SET manual_note=$2,status='IN_REVIEW' WHERE id=$1 AND status IN ('OPEN','IN_REVIEW')", ticket_id,body.note)
-        if result == 'UPDATE 0':
-            raise HTTPException(404,"Ticket not found")
-        return {"status":"IN_REVIEW","ticket_id":str(ticket_id)}
+        return await add_internal_note(request.app.state.finance.pool,ticket_id,owner.user_id,body.note,start_review=body.start_review)
 
     @router.post('/support/tickets/{ticket_id}/resolve')
     async def resolve(ticket_id: UUID, request: Request, context: Any = Depends(authenticate)):
         if context.role not in {'OWNER','ADMIN','DISPATCHER'}:
             raise HTTPException(403,'Dispatch permission required')
-        async with request.app.state.finance.pool.acquire() as connection:
-            result=await connection.execute("UPDATE public.support_tickets SET status='CLOSED',archived_at=coalesce(archived_at,now()) WHERE tenant_id=$1 AND id=$2",context.tenant_id,ticket_id)
-        if result=='UPDATE 0':raise HTTPException(404,'Ticket not found')
-        return {'status':'CLOSED','ticket_id':str(ticket_id)}
+        return await add_internal_note(request.app.state.finance.pool,ticket_id,context.user_id,
+            'Internal support review closed. No carrier or merchant notification was sent.',
+            tenant_id=context.tenant_id,start_review=True,resolve=True)
+
+    @router.post('/admin/support/tickets/{ticket_id}/resolve')
+    async def admin_resolve(ticket_id: UUID, request: Request, owner: Any = Depends(authenticate_platform_owner)):
+        return await add_internal_note(request.app.state.finance.pool,ticket_id,owner.user_id,
+            'Internal support review closed. No carrier or merchant notification was sent.',start_review=True,resolve=True)
 
     return router

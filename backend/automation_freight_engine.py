@@ -319,7 +319,7 @@ class AutomationService:
                     (tenant_id,shipment_id,automation_failure_id,status,ai_summary,ai_method,prompt_version)
                     VALUES($1,$2,$3,'OPEN',$4,'DETERMINISTIC_MOCK','bulk-remediation-v1')
                     ON CONFLICT(automation_failure_id) DO UPDATE SET ai_summary=$4,status='OPEN'""",tenant_id,shipment_id,failure_id,
-                    'Bulk order needs attention: '+code+'. Verify its address, packing, customs data, carrier configuration and wallet availability before retrying.')
+                    processing_remedy(code))
 
     async def process(self,context,raw,mode,*,private_quote=None):
         shipment_id=None; permit=None;submitted=False;order=None
@@ -490,7 +490,7 @@ class AutomationService:
             if permit and not submitted:
                 try: await self.finance.finish_booking(permit,'NOT_SUBMITTED')
                 except Exception: pass
-            code='INSUFFICIENT_WALLET_CREDIT' if isinstance(exc,HTTPException) and exc.status_code==402 else str(exc.detail) if isinstance(exc,HTTPException) and isinstance(exc.detail,str) else 'PURCHASE_RECONCILIATION_REQUIRED' if submitted else 'ORDER_VALIDATION_FAILED' if isinstance(exc,ValueError) else 'ORDER_SERVICE_FAILED'
+            code='INSUFFICIENT_WALLET_CREDIT' if isinstance(exc,HTTPException) and exc.status_code==402 else str(exc.detail) if isinstance(exc,HTTPException) and isinstance(exc.detail,str) else 'PURCHASE_RECONCILIATION_REQUIRED' if submitted else 'ORDER_VALIDATION_FAILED' if isinstance(exc,ValueError) else 'ORDER_DATABASE_FAILED' if isinstance(exc,asyncpg.PostgresError) else 'ORDER_SERVICE_FAILED'
             # Do not store raw payload/exception text, which may contain PII or keys.
             safe_code=code if re_safe(code) else 'ORDER_SERVICE_FAILED'
             ticket_recorded=False
@@ -508,6 +508,20 @@ class AutomationService:
 
 def re_safe(value):
     return len(value)<=100 and all(c.isupper() or c.isdigit() or c=='_' for c in value)
+
+
+def processing_remedy(code):
+    """App processing guidance is distinct from a carrier tracking exception."""
+    actions={
+        'INSUFFICIENT_WALLET_CREDIT':'Add wallet credit before confirming this booking.',
+        'CUSTOMS_DATA_REQUIRES_REVIEW':'Complete and review the goods description, HS code, value and origin in checkout.',
+        'ORDER_VALIDATION_FAILED':'Correct the packing, address or customs fields highlighted in checkout.',
+        'ORDER_DATABASE_FAILED':'EasyInvio could not save the prepared order. Internal support must review the database diagnostic before retrying.',
+        'PURCHASE_RECONCILIATION_REQUIRED':'A purchase was submitted but its outcome is unconfirmed. Credit remains reserved; reconcile the original request instead of buying another label.',
+        'BOOKING_RECONCILIATION_REQUIRED':'The existing booking needs reconciliation. Do not place a duplicate purchase.',
+    }
+    return 'Shipment preparation issue ('+code+'). '+actions.get(code,
+        'EasyInvio internal support should review this processing failure. This is not evidence of a carrier delivery delay; tracking begins only after a confirmed booking.')
 
 
 def build_router(authenticate):

@@ -151,7 +151,7 @@ class TrackingSupportService:
                         raise HTTPException(409, "Tracking event ID already used with different data")
                     result = json.loads(receipt["response"]) if isinstance(receipt["response"], str) else receipt["response"]
                     return {**result, "replayed": True}
-                rows = await connection.fetch("""SELECT s.id,s.status,s.last_tracking_event_at FROM public.shipments s
+                rows = await connection.fetch("""SELECT s.id,s.status,s.last_tracking_event_at,s.proof_of_delivery_url FROM public.shipments s
                     JOIN public.carrier_accounts a ON a.id=s.carrier_account_id AND a.tenant_id=s.tenant_id
                     WHERE s.tenant_id=$1 AND s.carrier_account_id=$2 AND s.tracking_number=$3
                     ORDER BY s.id LIMIT 2 FOR UPDATE OF s""", key.tenant_id, key.carrier_account_id, event.tracking_number)
@@ -165,7 +165,12 @@ class TrackingSupportService:
                     raise HTTPException(409, "Shipment has no confirmed carrier dispatch")
                 stale = shipment["last_tracking_event_at"] is not None and event.occurred_at <= shipment["last_tracking_event_at"]
                 terminal = shipment["status"] == "DELIVERED" and event.status != "DELIVERED"
-                applied = not stale and not terminal
+                # Delivery evidence can arrive separately at the same final scan timestamp.
+                # Enrich a missing POD only; never regress state or accept older evidence.
+                late_pod = (shipment["status"] == "DELIVERED" and event.status == "DELIVERED"
+                    and event.occurred_at == shipment["last_tracking_event_at"]
+                    and pod is not None and not shipment.get("proof_of_delivery_url"))
+                applied = (not stale and not terminal) or late_pod
                 if applied:
                     await connection.execute("""UPDATE public.shipments SET status=$3,last_tracking_event_at=$4,
                         delivered_at=CASE WHEN $3='DELIVERED' THEN coalesce(delivered_at,$4) ELSE delivered_at END,
