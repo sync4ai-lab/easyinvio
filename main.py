@@ -424,6 +424,7 @@ class ClientRate(StrictModel):
     avg_transit_days: Decimal | None = None
     route_risk_level: Literal['LOW','MEDIUM','HIGH_DELAY_ALERT'] = 'LOW'
     history_status: str = 'NO_HISTORY'
+    metric_scope: str = 'NO_MEASURED_HISTORY'
     history_samples: int = 0
     delivery_samples: int = 0
     on_time_samples: int = 0
@@ -1164,12 +1165,14 @@ class RatingService:
         from backend.carrier_consolidation import consolidate_rates,route_history,carrier_identity,unknown_history
         rates=consolidate_rates(rates)
         try:
-            history=await route_history(self.pool,context.tenant_id,request.destination.country_code,request.origin.country_code)
+            history=await route_history(self.pool,context.tenant_id,request.destination.country_code,request.origin.country_code,include_services=True)
             unavailable=False
         except (asyncpg.PostgresError,ValueError,KeyError,TypeError):
             logger.warning('Carrier performance history unavailable; no statistics fabricated')
             history={};unavailable=True
-        rates=[rate.model_copy(update=history.get(carrier_identity(rate.carrier_code),unknown_history('HISTORY_UNAVAILABLE' if unavailable else 'NO_HISTORY'))) for rate in rates]
+        from backend.carrier_consolidation import service_identity
+        rates=[rate.model_copy(update=history.get(carrier_identity(rate.carrier_code)+'|'+service_identity(rate.carrier_code,rate.service_code),
+            history.get(carrier_identity(rate.carrier_code),unknown_history('HISTORY_UNAVAILABLE' if unavailable else 'NO_HISTORY')))) for rate in rates]
         return RatingResponse(
             request_id=uuid4(), currency=request.currency, quoted_at=quoted_at,
             expires_at=quoted_at + timedelta(seconds=self.settings.quote_ttl_seconds),
@@ -2347,6 +2350,10 @@ app.include_router(ai_router(authenticate))
 app.include_router(logistics_router(authenticate, RatingRequest))
 from backend.package_guidance import build_router as package_guidance_router
 app.include_router(package_guidance_router(authenticate))
+from backend.shipment_protection import build_router as protection_router
+from backend.delivery_quality import build_router as delivery_quality_router
+app.include_router(protection_router(authenticate))
+app.include_router(delivery_quality_router(authenticate))
 app.include_router(admin_router)
 from backend.admin_management import router as admin_management_router
 app.include_router(admin_management_router)

@@ -1,0 +1,17 @@
+Delivery quality and protection readiness ? 13 October 2026
+
+Read-only diagnosis of the requested sandbox workspace: three active TEST provider connections, zero configured signed receivers, zero received route tracking events, and no qualified LIVE deliveries on GB?FR. Localhost cannot receive external carrier callbacks. Tracking configuration and a public HTTPS receiver must be registered with each provider before genuine delivery testing.
+
+Quote comparison now supports price, on-time percentage, measured transit and provider estimates. Measurements use this workspace?s LIVE, non-synthetic/non-fixture shipments on the origin/destination country route over 90 days. Service-level groups are preferred; carrier-level fallback is explicitly labelled. Transit starts at recorded dispatch or the first accepted in-transit event; booking time is not substituted. On-time compares the saved business-day estimate with delivery, excluding weekends but not national holidays. Sample counts are shown. Unknown scores sort last. These measurements are not global carrier ratings or a future delivery guarantee.
+
+Verification: 363 unit tests; controlled Chromium quote sorting, cheapest-price badge, sample scope, checkout protection disclosure and 375/768/1366px layouts. Signed provider event contracts were exercised against actual Supabase SANDBOX SQL for all three providers: BOOKED?IN_TRANSIT?EXCEPTION?DELIVERED, duplicate handling, forged-signature rejection, terminal/stale-event protection, one exception ticket and approved POD mapping. Provider HTTP was controlled MockTransport, no external purchases or messages occurred, and all database writes were rolled back. This is not a genuine provider-to-public-receiver delivery test.
+
+Shipsurance readiness: backend/shipment_protection.py calculates the proposed GBP customer premium at 1%, minimum ?1.20, maximum declared package value ?5,000. This is an estimate only, not a supplier quote. Paid protection is unavailable; insurance_requested=true is rejected before wallet/provider actions. No wholesale cost, margin, coverage purchase, claim submission, approval webhook or wallet settlement has been invented. A UK-origin partner agreement, permitted carriers/destinations/commodities, official API/authentication/webhook specifications, actual wholesale tariff and tax treatment are required to complete those paths. A tracking number must be obtained before requesting cover; those steps cannot run in parallel. Claim settlement must use an authenticated, reconciled approved payout and currency with idempotency, rather than automatically crediting the entire declared value.
+
+Supplier primary sources checked:
+https://www.shipsurance.com/questions ? published open coverage originates in US/Canada, exclusions apply; pricing varies by volume, valuation, commodity and claims history. The $0.80 illustration is not a ?0.80 universal fee.
+https://www.shipsurance.com/integration ? integration exists, reporting API specifics are supplied by sales; the homepage is not a documented purchase API.
+
+Checkout explicitly discloses that shipping subtotal excludes VAT, current checkout does not assess/collect VAT, and carrier/import/destination charges may be separate. No protection fee is charged. This disclosure does not implement or certify tax compliance.
+
+No migration, deployment, production database change, insurance purchase or customer message was performed for this change.

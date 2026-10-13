@@ -466,9 +466,18 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <p class="subtle" id="rates-summary">Connected strategies, sorted by final price.</p>
 <p class="subtle" id="quote-route-summary" aria-live="polite">
 </p>
+<div id="delivery-quality-readiness" class="notice" hidden>
+</div>
 </div>
 <span class="tag orange" id="rates-badge">AWAITING REQUEST</span>
 </div>
+<label for="rate-sort">Compare options by</label>
+<select id="rate-sort">
+<option value="price">Lowest customer price</option>
+<option value="on_time">Highest recorded on-time percentage</option>
+<option value="transit">Shortest recorded transit time</option>
+<option value="estimate">Shortest provider delivery estimate</option>
+</select>
 <label for="carrier-filter">Carrier filter</label>
 <select id="carrier-filter">
 <option value="">All carriers</option>
@@ -2004,6 +2013,7 @@ async function updateWeight() {
 $('#quote-form').addEventListener('input', () => {
   state.generation++;
   state.quotes = [];
+  state.lastRateResult = null;
   state.quoteRequest = null;
   $('#rates').innerHTML = '<div class="empty"><h3>Parcel details changed</h3><p>Fetch fresh rates for these details.</p></div>';
   $('#rates-badge').textContent = 'REFRESH REQUIRED';
@@ -2154,17 +2164,31 @@ function carrierWordmark(code) {
 function historyRibbon(rate) {
   const onTime = rate.on_time_rate == null ? 'On-time history unavailable' : `${escapeHTML(rate.on_time_rate)}% on time`;
   const days = rate.avg_transit_days == null ? 'Transit history unavailable' : `${escapeHTML(rate.avg_transit_days)} days average`;
-  return `<div class="trust-ribbon" title="${escapeHTML(rate.on_time_method || 'Recorded shipment history')} &middot; ${escapeHTML(rate.transit_method || '')}"><span>&#11088; ${onTime}</span><span>&#9889; ${days}</span><span class="subtle">${Number(rate.delivery_samples || 0)} measured deliveries</span></div>`;
+  return `<div class="trust-ribbon" title="${escapeHTML(rate.on_time_method || 'Recorded shipment history')} &middot; ${escapeHTML(rate.transit_method || '')}"><span>&#11088; ${onTime}</span><span>&#9889; ${days}</span><span class="subtle">${Number(rate.delivery_samples || 0)} measured LIVE deliveries; ${Number(rate.on_time_samples || 0)} with a delivery estimate</span><span class="subtle">${rate.metric_scope==='SERVICE_ROUTE'?'This service on this route':rate.metric_scope==='CARRIER_ROUTE'?'This carrier on this route':'No measured route history'}</span></div>`;
 }
 
 function renderRates(result) {
-  result.rates.sort((a, b) => cents(a.client_price_ex_tax) < cents(b.client_price_ex_tax) ? -1 : cents(a.client_price_ex_tax) > cents(b.client_price_ex_tax) ? 1 : 0);
+  const order = $('#rate-sort')?.value || 'price';
+  const metric = {
+    on_time: 'on_time_rate',
+    transit: 'avg_transit_days',
+    estimate: 'delivery_days'
+  } [order];
+  result.rates.sort((a, b) => {
+    if (metric) {
+      if (a[metric] == null && b[metric] != null) return 1;
+      if (b[metric] == null && a[metric] != null) return -1;
+      if (a[metric] != null && b[metric] != null && Number(a[metric]) !== Number(b[metric])) return order === 'on_time' ? Number(b[metric]) - Number(a[metric]) : Number(a[metric]) - Number(b[metric]);
+    }
+    return cents(a.client_price_ex_tax) < cents(b.client_price_ex_tax) ? -1 : cents(a.client_price_ex_tax) > cents(b.client_price_ex_tax) ? 1 : 0;
+  });
+  const lowest = result.rates.reduce((value, rate) => value === null || cents(rate.client_price_ex_tax) < value ? cents(rate.client_price_ex_tax) : value, null);
   const filter = $('#carrier-filter'),
     selected = state.renderedQuoteResult === result ? filter.value : '';
   state.renderedQuoteResult = result;
   filter.innerHTML = '<option value="">All carriers</option>' + [...new Set(result.rates.map(r => r.carrier_code))].map(c => `<option value="${escapeHTML(c)}">${escapeHTML(carrierDisplay(c))}</option>`).join('');
   filter.value = selected;
-  $('#rates-summary').textContent = `${result.rates.length} carrier services \u00b7 ${result.partial?'some options unavailable':'sorted by customer price'}`;
+  $('#rates-summary').textContent = `${result.rates.length} carrier services · sorted by ${{price:'customer price',on_time:'recorded on-time percentage',transit:'recorded transit time',estimate:'provider delivery estimate'}[order]}${result.partial?' · some options unavailable':''}`;
   $('#rates-badge').textContent = result.simulated ? 'PREVIEW RATES' : 'EASYINVIO QUOTES';
   const finance = ['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal?.profile?.workspace_role);
   $('#rates').innerHTML = (result.issues?.length ? '<div class="notice">Some carrier options are temporarily unavailable. Available quotes are shown.</div>' : '') + result.rates.map((rate, index) => ({
@@ -2177,9 +2201,12 @@ function renderRates(result) {
     index
   }) => {
     const alert = rate.route_risk_level === 'HIGH_DELAY_ALERT';
-    return `<article class="rate ${alert?'route-delay-alert':''}"><div class="ratehead"><div>${carrierWordmark(rate.carrier_code)}<h3>${escapeHTML(carrierDisplay(rate.carrier_code))} ${escapeHTML(carrierDisplay(rate.service_code))}</h3>${historyRibbon(rate)}<p class="subtle">${rate.delivery_days==null?'Delivery estimate unavailable':escapeHTML(rate.delivery_days)+' working days estimated'}</p>${index===0?'<span class="tag green">LOWEST CUSTOMER PRICE</span>':''}</div><div class="rate-price"><div class="price">${money(rate.client_price_ex_tax,rate.currency)}</div><span class="subtle">excl. tax &middot; ${result.simulated?'preview':'EasyInvio quote'}</span></div></div>${alert?'<div class="route-warning">&#9888;&#65039; AI Route Alert: Recent exceptions or delivery delays reported. Choose an alternative carrier for critical dispatches.</div>':''}${finance?`<details><summary>View surcharge breakdown &darr;</summary>${feeRows(rate)}</details>`:''}<div class="ratefooter"><span class="tag">EasyInvio.com</span><button class="${index===0?'primary':'secondary'}" data-review="${index}">Review option &rarr;</button></div></article>`;
+    return `<article class="rate ${alert?'route-delay-alert':''}"><div class="ratehead"><div>${carrierWordmark(rate.carrier_code)}<h3>${escapeHTML(carrierDisplay(rate.carrier_code))} ${escapeHTML(carrierDisplay(rate.service_code))}</h3>${historyRibbon(rate)}<p class="subtle">${rate.delivery_days==null?'Delivery estimate unavailable':escapeHTML(rate.delivery_days)+' working days estimated'}</p>${cents(rate.client_price_ex_tax)===lowest?'<span class="tag green">LOWEST CUSTOMER PRICE</span>':''}</div><div class="rate-price"><div class="price">${money(rate.client_price_ex_tax,rate.currency)}</div><span class="subtle">excl. tax &middot; ${result.simulated?'preview':'EasyInvio quote'}</span></div></div>${alert?'<div class="route-warning">&#9888;&#65039; AI Route Alert: Recent exceptions or delivery delays reported. Choose an alternative carrier for critical dispatches.</div>':''}${finance?`<details><summary>View surcharge breakdown &darr;</summary>${feeRows(rate)}</details>`:''}<div class="ratefooter"><span class="tag">EasyInvio.com</span><button class="${index===0?'primary':'secondary'}" data-review="${index}">Review option &rarr;</button></div></article>`;
   }).join('');
 }
+$('#rate-sort').addEventListener('change', () => {
+  if (state.lastRateResult) renderRates(state.lastRateResult);
+});
 $('#carrier-filter').addEventListener('change', () => {
   if (state.lastRateResult) renderRates(state.lastRateResult)
 });
@@ -5754,7 +5781,7 @@ feeRows = function(rate) {
     ['Fuel surcharge', fuel === null ? 'Included in label cost' : money(decimalCents(fuel), rate.currency)],
     ['Subtotal price (excl. tax)', money(rate.client_price_ex_tax, rate.currency)]
   ];
-  return rows.map(([label, value], i) => `<div class="fee ${i===3?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('');
+  return rows.map(([label, value], i) => `<div class="fee ${i===3?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('') + '<p class="footnote">Subtotal excludes VAT. Current checkout does not assess or collect VAT. Applicable carrier taxes, import duties and destination charges may be billed separately. No shipment protection fee is included.</p>';
 };
 
 function checkoutError(error) {
@@ -6996,6 +7023,85 @@ window.addEventListener('easyinvio-session-ready', () => {
     history.replaceState(null, '', location.pathname + location.hash);
   }
 });
+</script>
+<script>
+// Measured delivery quality and explicit protection readiness.
+let deliveryQualityGeneration = 0;
+let deliveryQualityKey = '';
+let deliveryQualityResult = null;
+async function refreshDeliveryQuality() {
+  const session = state.session,
+    quote = state.quoteRequest;
+  if (!session || !quote || state.lastRateResult?.simulated) return;
+  const key = portal.profile?.tenant_id + ':' + quote.origin.country_code + ':' + quote.destination.country_code;
+  if (key === deliveryQualityKey && deliveryQualityResult) {
+    showDeliveryQuality(deliveryQualityResult);
+    return;
+  }
+  const generation = ++deliveryQualityGeneration;
+  try {
+    const result = await api('/api/v1/analytics/tracking-readiness?origin_country=' + encodeURIComponent(quote.origin.country_code) + '&destination_country=' + encodeURIComponent(quote.destination.country_code), {
+      auth: true
+    });
+    if (!Array.isArray(result.reasons) || typeof result.method !== 'string') throw Error('Unexpected tracking readiness response');
+    if (session !== state.session || generation !== deliveryQualityGeneration) return;
+    deliveryQualityKey = key;
+    deliveryQualityResult = result;
+    showDeliveryQuality(result);
+  } catch (error) {
+    if (session === state.session && generation === deliveryQualityGeneration) {
+      $('#delivery-quality-readiness').hidden = false;
+      $('#delivery-quality-readiness').textContent = 'Tracking readiness could not be loaded. Delivery scores remain unavailable until verified history can be read.';
+    }
+  }
+}
+
+function showDeliveryQuality(result) {
+  $('#delivery-quality-readiness').hidden = false;
+  $('#delivery-quality-readiness').innerHTML = '<b>About delivery estimates and measured history</b><p>' + escapeHTML(result.reasons?.join(' ') || 'Recorded route history is available; sample counts are shown on each service.') + '</p><details><summary>How these figures are calculated</summary><p>' + escapeHTML(result.method) + '</p></details>';
+}
+const measuredRenderRatesBase = renderRates;
+renderRates = function(result) {
+  measuredRenderRatesBase(result);
+  refreshDeliveryQuality();
+};
+$('#quote-form').addEventListener('input', () => {
+  deliveryQualityGeneration++;
+  deliveryQualityKey = '';
+  deliveryQualityResult = null;
+  $('#delivery-quality-readiness').hidden = true;
+});
+const measuredClearSessionBase = clearSession;
+clearSession = function() {
+  deliveryQualityGeneration++;
+  deliveryQualityKey = '';
+  deliveryQualityResult = null;
+  $('#delivery-quality-readiness').hidden = true;
+  return measuredClearSessionBase.apply(this, arguments);
+};
+
+const protectionBookLiveBase = bookLive;
+bookLive = async function(index) {
+  const generation = customerCheckout.generation + 1,
+    session = state.session,
+    rate = state.quotes[index];
+  await protectionBookLiveBase(index);
+  if (generation !== customerCheckout.generation || session !== state.session || !session || !rate || !$('#review-dialog').open) return;
+  let protection;
+  try {
+    protection = await api('/api/v1/shipping/protection-quote?offer_id=' + encodeURIComponent(rate.offer_id), {
+      auth: true
+    });
+  } catch (error) {
+    protection = {
+      available: false,
+      notice: 'Protection availability could not be verified. No protection fee is charged.'
+    };
+  }
+  if (generation !== customerCheckout.generation || session !== state.session || !$('#review-dialog').open) return;
+  const panel = $('#checkout-price');
+  if (panel) panel.insertAdjacentHTML('afterend', `<section class="notice" id="checkout-protection"><label class="check"><input type="checkbox" disabled> Optional shipment protection: unavailable</label><p>${escapeHTML(protection.notice)}</p>${protection.premium_estimate!=null?`<p>Proposed customer premium: ${escapeHTML(money(protection.premium_estimate,'GBP'))}, before any applicable protection tax. This is an estimate, not purchased cover.</p>`:''}<a href="mailto:support@easyinvio.com?subject=Shipment%20protection%20availability">Contact EasyInvio support</a></section>`);
+};
 </script>
 </body>
 </html>

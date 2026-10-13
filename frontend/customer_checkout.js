@@ -11,7 +11,7 @@ feeRows = function(rate) {
   const rows=[['Label cost',money(decimalCents(total-(fuel||0n)),rate.currency)],
     ['Shipment protection','Not added'],['Fuel surcharge',fuel===null?'Included in label cost':money(decimalCents(fuel),rate.currency)],
     ['Subtotal price (excl. tax)',money(rate.client_price_ex_tax,rate.currency)]];
-  return rows.map(([label,value],i)=>`<div class="fee ${i===3?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('');
+  return rows.map(([label,value],i)=>`<div class="fee ${i===3?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('') + '<p class="footnote">Subtotal excludes VAT. Current checkout does not assess or collect VAT. Applicable carrier taxes, import duties and destination charges may be billed separately. No shipment protection fee is included.</p>';
 };
 
 function checkoutError(error) {

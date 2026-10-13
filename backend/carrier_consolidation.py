@@ -5,7 +5,7 @@ from decimal import Decimal,ROUND_HALF_UP
 from uuid import uuid4
 import asyncpg
 
-ALIASES={'DHLEXPRESS':'DHL','DHL':'DHL','UNITEDPARCELSERVICE':'UPS','UPS':'UPS','DPD':'DPD','FEDEX':'FEDEX','FEDERALEXPRESS':'FEDEX'}
+ALIASES={'DHLEXPRESS':'DHL','DHL':'DHL','UNITEDPARCELSERVICE':'UPS','UPS':'UPS','DPD':'DPD','DPDUK':'DPD','DPDGB':'DPD','FEDEX':'FEDEX','FEDERALEXPRESS':'FEDEX'}
 SERVICE_ALIASES={'EXPRESSWORLDWIDE':'EXPRESSWORLDWIDE','WORLDWIDEEXPRESS':'EXPRESSWORLDWIDE','NEXTDAYAIR':'NEXTDAYAIR','UPS_NEXT_DAY_AIR':'NEXTDAYAIR'}
 PRIVATE_KEYS={'provider','aggregator','account_id','carrier_account_id','platform_connection_id','upstream_shipment_id','upstream_rate_id','upstream_id','execution_details','recommended_provider'}
 BRANDS=re.compile(r'(?i)easypost|sendcloud|shippo|localregional')
@@ -18,7 +18,7 @@ def carrier_identity(name):
 
 def service_identity(carrier,service):
     code=re.sub(r'[^A-Z0-9]','',service.upper())
-    for prefix in [carrier_identity(carrier),re.sub(r'[^A-Z0-9]','',carrier.upper())]:
+    for prefix in sorted({carrier_identity(carrier),re.sub(r'[^A-Z0-9]','',carrier.upper())},key=len,reverse=True):
         if code.startswith(prefix) and len(code)>len(prefix):code=code[len(prefix):];break
     return SERVICE_ALIASES.get(code,code)
 
@@ -46,10 +46,13 @@ def business_days(start,end):
     return weeks*5+sum((start.weekday()+i)%7<5 for i in range(1,remainder+1))
 
 
-def summarize_history(rows):
+def summarize_history(rows, service_level=False):
     groups={}
     for row in rows:
         carrier=carrier_identity(row['carrier_code'] or '')
+        if service_level:
+            if not row.get('service_code'):continue
+            carrier += '|' + service_identity(row['carrier_code'], row['service_code'])
         data=groups.setdefault(carrier,{'transits':[],'eligible':0,'on_time':0,'exceptions':0,'samples':0})
         data['samples']+=1
         if row['status']=='EXCEPTION':data['exceptions']+=1
@@ -71,6 +74,7 @@ def summarize_history(rows):
         results[carrier]={'on_time_rate':on_time,'avg_transit_days':average,'route_risk_level':'HIGH_DELAY_ALERT' if high else 'MEDIUM' if medium else 'LOW',
             'history_samples':data['samples'],'delivery_samples':len(data['transits']),'on_time_samples':data['eligible'],
             'active_exceptions':data['exceptions'],'history_status':'RECORDED_HISTORY',
+            'metric_scope':'SERVICE_ROUTE' if service_level else 'CARRIER_ROUTE',
             'on_time_method':'quoted business-day estimate; weekends excluded, holidays not adjusted',
             'transit_method':'elapsed calendar days from recorded dispatch or first accepted in-transit update; booking time is never substituted'}
     return results
@@ -78,24 +82,27 @@ def summarize_history(rows):
 
 def unknown_history(status='NO_HISTORY'):
     return {'on_time_rate':None,'avg_transit_days':None,'route_risk_level':'LOW','history_samples':0,
+            'metric_scope':'NO_MEASURED_HISTORY',
             'delivery_samples':0,'on_time_samples':0,'active_exceptions':0,'history_status':status,
             'on_time_method':'No qualified delivery estimate history','transit_method':'No measured deliveries'}
 
 
-async def route_history(pool,tenant_id,destination,origin=None):
+async def route_history(pool,tenant_id,destination,origin=None,*,include_services=False):
     if pool is None:return {}
     async with pool.acquire() as connection:
-        rows=await connection.fetch("""SELECT carrier_code,status,booked_at,dispatched_at,delivered_at,
-                (SELECT min(e.occurred_at) FROM public.tracking_events e WHERE e.tenant_id=shipments.tenant_id
-                 AND e.shipment_id=shipments.id AND e.status='IN_TRANSIT' AND e.response->>'applied'='true') AS first_observed_transit,
-                pricing_snapshot->'selected_rate'->>'delivery_days' AS delivery_days
-            FROM public.shipments WHERE tenant_id=$1 AND destination_country=$2
-            AND ($3::text IS NULL OR origin_country=$3)
-            AND COALESCE(delivered_at,last_tracking_event_at,booked_at,created_at)>=now()-interval '90 days'
-            AND logistics_metadata->>'synthetic' IS DISTINCT FROM 'true'
-            AND NOT (logistics_metadata ? 'fixture_batch') LIMIT 10001""",tenant_id,destination,origin)
+        rows=await connection.fetch("""SELECT s.carrier_code,s.service_code,s.status,s.booked_at,s.dispatched_at,s.delivered_at,
+                (SELECT min(e.occurred_at) FROM public.tracking_events e WHERE e.tenant_id=s.tenant_id
+                 AND e.shipment_id=s.id AND e.status='IN_TRANSIT' AND e.response->>'applied'='true') AS first_observed_transit,
+                s.pricing_snapshot->'selected_rate'->>'delivery_days' AS delivery_days
+            FROM public.shipments s JOIN public.carrier_accounts a ON a.tenant_id=s.tenant_id AND a.id=s.carrier_account_id
+            WHERE s.tenant_id=$1 AND s.destination_country=$2 AND a.environment='LIVE'
+            AND ($3::text IS NULL OR s.origin_country=$3)
+            AND COALESCE(s.delivered_at,s.last_tracking_event_at,s.booked_at,s.created_at)>=now()-interval '90 days'
+            AND s.logistics_metadata->>'synthetic' IS DISTINCT FROM 'true'
+            AND NOT (s.logistics_metadata ? 'fixture_batch') LIMIT 10001""",tenant_id,destination,origin)
     if len(rows)>10000:raise ValueError('History capacity exceeded; no biased sample published')
-    return summarize_history(rows)
+    result=summarize_history(rows)
+    return result | summarize_history(rows, service_level=True) if include_services else result
 
 
 def public_payload(value,financial=True,key=None):

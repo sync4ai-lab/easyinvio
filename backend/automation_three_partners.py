@@ -1385,6 +1385,7 @@ class BookingRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     tenant_id: UUID
     offer_id: UUID
+    insurance_requested: bool = False
 
 
 class VoidRequest(BaseModel):
@@ -1470,6 +1471,9 @@ class PartnerLifecycleService:
 
     async def confirm(self, context, body):
         authorize(context, body.tenant_id)
+        if body.insurance_requested:
+            from backend.shipment_protection import PROTECTION_NOTICE
+            raise HTTPException(409, PROTECTION_NOTICE)
         async with self.pool.acquire() as connection:
             prepared = await connection.fetchval('SELECT EXISTS(SELECT 1 FROM public.partner_shipping_offers WHERE tenant_id=$1 AND offer_id=$2)', context.tenant_id, body.offer_id)
         if not prepared:
