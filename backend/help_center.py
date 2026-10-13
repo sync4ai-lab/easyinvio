@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from html import escape
 from pathlib import Path
 
+import markdown
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 
@@ -19,6 +20,7 @@ class Guide:
     body: str
     keywords: str
     prepared: bool = True
+    source_file: str | None = None
 
 
 GUIDES = {
@@ -166,22 +168,63 @@ GUIDES = {
         <p>Check that the store and connection are enabled, the permission is still valid and the order is eligible for import. Missing verified product weights or a permission problem can require review. Include the store name and an affected order reference when asking for help.</p>
         <p>Store administrators can read <a href="https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens" target="_blank" rel="noopener noreferrer">Shopify's official access guidance</a>. For other platforms, use the How to connect guidance in Store Integrations; some catalogue entries need assisted setup rather than an active order importer.</p>""",
         'shopify store ecommerce e commerce integration connect connection sync retrieve import orders webhook webhooks'),
-    'features/pricing': Guide(
-        'How carrier options and prices work', 'Shipping tools',
-        'Detailed guidance about carrier comparisons and the prices shown in your workspace.',
-        '<p>This detailed guide is being prepared. You can already use eligible carrier comparisons in Speed Quote Matrix.</p><p>For help today, read <a href="/help/first-shipment">Compare prices and create a label</a> and <a href="/help/prices-and-currencies">Prices, currencies and extra charges</a>.</p><p>Platform pricing and carrier-contract settings are managed by EasyInvio administrators. This page does not offer a client pricing-rule editor.</p>',
-        'features pricing margin markup comparisons algorithm priorities', False),
     'features/bulk-dispatch': Guide(
         'Prepare and book several orders', 'Shipping tools',
         'A forthcoming guide to bulk uploads, marketplace preparation and selected-label checkout.',
         '<p>This detailed guide is being prepared. Bulk upload and Marketplace Workspace are existing tools; an imported row is not a purchased label.</p><p>For help today, read <a href="/help/booking-payments">Pay for labels and read wallet activity</a> or <a href="/help/contact">ask support about preparing several orders</a>.</p>',
         'features bulk csv upload batch warehouse multiple multi boxes parcels matrices', False),
-    'features/labels-and-tracking': Guide(
-        'Follow labels and delivery updates', 'Shipping tools',
-        'A forthcoming guide to label documents, pending bookings and carrier tracking.',
-        '<p>This detailed guide is being prepared. Manifest &amp; Labels already shows your recorded shipments and confirmed documents.</p><p>For help today, see <a href="/help/first-shipment#label-problem">No printable label yet?</a> and <a href="/help/booking-payments#failed-booking">Pending or failed bookings</a>.</p><p>Carrier tracking starts after a confirmed booking. Internal preparation failures are reviewed by EasyInvio support; they are not proof of a delivery delay.</p>',
-        'features tracking labels pdf print pending asynchronous exception transit delivered', False),
+
 }
+
+
+# These repository-authored sources are maintained once and rendered on their pages.
+GUIDES.update({
+    'features/order-processing': Guide(
+        'Import and prepare store orders', 'Shipping tools',
+        'Shopify and Amazon intake, validation recovery and the limits of order defaults.',
+        '', 'orders shopify amazon inbound ingestion webhook sync defaults validation postal city sku',
+        source_file='docs_order_processing.md'),
+    'features/pricing': Guide(
+        'Understand pricing rules and carrier choices', 'Shipping tools',
+        'An administrator guide to rule priorities, margins and customer service choices.',
+        '', 'rules routing priority margins markup profit weekend holiday pricing admin',
+        source_file='docs_routing_rules.md'),
+    'features/labels-and-tracking': Guide(
+        'Follow tracking updates and understand delivery history', 'Shipping tools',
+        'Accepted carrier events, measured 90-day history and current branding limits.',
+        '', 'tracking branding webhooks history transit on time scores weekend holidays photo signature',
+        source_file='docs_tracking_branding.md'),
+    'features/returns': Guide(
+        'Prepare a return without changing the original sale', 'Shipping tools',
+        'Supported reverse preparation, Shopify return references and reviewed customs documents.',
+        '', 'return reverse logistics shopify amazon customs cn22 cn23 brexit inspection',
+        source_file='docs_returns_lifecycle.md'),
+    'features/carrier-pickups': Guide(
+        'Get shipments ready for an externally arranged collection', 'Shipping tools',
+        'Prepare confirmed parcels while arranging pickup outside EasyInvio; scheduling is not yet built.',
+        '', 'pickup pickups courier collection schedule scheduling manifest closeout driver capacity',
+        source_file='docs_carrier_pickups.md'),
+})
+
+
+def guide_source(guide):
+    # No client-supplied filename or uploaded Markdown is accepted here.
+    if not guide.source_file:
+        raise HTTPException(404, 'A Markdown source is not available for this guide')
+    path = Path(__file__).resolve().parents[1] / guide.source_file
+    if not path.is_file():
+        raise HTTPException(503, 'This guide is temporarily unavailable')
+    return path
+
+
+def rendered_guide(guide):
+    source = guide_source(guide).read_text(encoding='utf-8')
+    lines = source.splitlines()
+    if not lines or lines[0] != '# ' + guide.title:
+        raise ValueError('Guide title must match its published catalogue entry')
+    converter = markdown.Markdown(extensions=['toc', 'sane_lists'], output_format='html')
+    body = converter.convert('\n'.join(lines[1:]))
+    return body, converter.toc
 
 
 CONTACT_BODY = """<p class="article-intro">Tell us what you expected and what happened. We can help with account access, payments, store connections and shipments.</p>
@@ -201,8 +244,10 @@ CONTACT_BODY = """<p class="article-intro">Tell us what you expected and what ha
 <noscript><p>Email support@easyinvio.com directly and include the topic and reference.</p></noscript>"""
 
 
-def render_page(title, category, summary, body, *, prepared=True):
+def render_page(title, category, summary, body, *, prepared=True, contents="", source_url=None):
     status = '' if prepared else '<div class="notice"><strong>Guide being prepared</strong><br>This guide is not ready yet. Use the links below for help with the existing tool.</div>'
+    navigation = '<nav class="guide-contents" aria-label="In this guide"><h2>In this guide</h2>'+contents+'</nav>' if contents else ''
+    download = '<p><a href="'+escape(source_url, quote=True)+'">Download this guide as Markdown</a></p>' if source_url else ''
     related = '\n'.join(f'<a href="/help/{escape(slug, quote=True)}">{escape(guide.title)}</a>'
                         for slug, guide in GUIDES.items() if guide.category == category and guide.title != title)
     return f'''<!doctype html>
@@ -232,7 +277,9 @@ def render_page(title, category, summary, body, *, prepared=True):
         <h1>{escape(title)}</h1>
         <p class="article-intro">{escape(summary)}</p>
         {status}
+        {navigation}
         {body}
+        {download}
       </article>
       <aside class="article-sidebar" aria-label="More help">
         <h2>Keep going</h2>
@@ -277,6 +324,15 @@ async def support_contact():
                                     'Open an email draft for the EasyInvio support team.', CONTACT_BODY), headers=HEADERS)
 
 
+@router.get('/help/source/{slug:path}', include_in_schema=False)
+async def support_source(slug: str):
+    guide = GUIDES.get(slug)
+    if guide is None:
+        raise HTTPException(404, 'Guide source not found')
+    path = guide_source(guide)
+    return FileResponse(path, media_type='text/markdown', filename=path.name, headers=HEADERS)
+
+
 @router.get('/help/{slug:path}', response_class=HTMLResponse, include_in_schema=False)
 async def support_guide(slug: str):
     guide = GUIDES.get(slug)
@@ -284,5 +340,12 @@ async def support_guide(slug: str):
         return HTMLResponse(render_page('We could not find that guide', 'Help Centre',
             'The link may have changed. Browse help topics or contact EasyInvio support.',
             '<p><a class="button-link" href="/help">Browse the Help Centre</a></p>'), status_code=404, headers=HEADERS)
+    if guide.source_file:
+        try:
+            body, contents = rendered_guide(guide)
+        except (OSError, ValueError):
+            raise HTTPException(503, 'This guide is temporarily unavailable') from None
+        return HTMLResponse(render_page(guide.title, guide.category, guide.summary, body,
+            contents=contents, source_url='/help/source/' + slug), headers=HEADERS)
     return HTMLResponse(render_page(guide.title, guide.category, guide.summary, guide.body,
                                     prepared=guide.prepared), headers=HEADERS)

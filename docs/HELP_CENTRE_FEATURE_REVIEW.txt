@@ -1,0 +1,88 @@
+EasyInvio feature documentation verification
+Reviewed against the current repository on 13 October 2026.
+
+Requested files and published routes:
+docs_order_processing.md -> /help/features/order-processing
+docs_routing_rules.md -> /help/features/pricing
+docs_tracking_branding.md -> /help/features/labels-and-tracking
+docs_returns_lifecycle.md -> /help/features/returns
+docs_carrier_pickups.md -> /help/features/carrier-pickups
+
+Inbound orders
+Verified: signed Shopify order-created/paid intake, Shopify open/unfulfilled
+retrieval, Amazon authenticated notification queue and current order lookup,
+merchant-fulfilled wholly-unshipped Amazon filtering, verified SKU weights,
+store/order deduplication and changed-payload reconciliation.
+Not promised: instantaneous intake of every sale, identical eligibility filtering
+on every notification path, saving every rejected Shopify payload, automatic
+packaging/fallback carrier selection or hands-free label purchase.
+Sources: backend/ecommerce_connectors.py, ecommerce_inbound.py, ecommerce_sync.py,
+dispatch_workspace.py and frontend/store_integrations.js.
+
+Pricing rules
+Verified: tenant/currency/active/date matching; optional carrier/account/service,
+origin/destination, weight, cost, plan, cargo and volume selectors; minimum
+inclusive and maximum exclusive boundaries; lower priority first, more selectors,
+older creation and UUID tie-breaks; fixed/percentage markup and clamps; current
+20% fallback; parallel eligible rates, ascending client prices and cheapest
+initial automated-order proposal, with prepared alternatives for explicit choice.
+Not implemented: highest-absolute-profit service selection, client-managed
+platform margin editing or recurring holiday pricing calendars.
+Sources: backend/admin_portal.py, main.py, automation_freight_engine.py,
+frontend/enterprise_controls.js and backend/carrier_consolidation.py.
+
+Tracking and branding
+Verified: configured provider authentication, native parsing, tenant/account
+matching, duplicates/stale protection, per-package group delivery, approved POD
+links, carrier-exception support trail and conditional messaging. History is
+workspace-local LIVE data over 90 days, with synthetic fixtures excluded.
+Transit is elapsed calendar days from dispatch/accepted transit to delivery;
+on-time compares qualified estimates using weekdays, without holiday adjustment.
+Private provider identities/IDs are removed from normal public quote projections.
+Not implemented: merchant-customised public recipient tracking portal, universal
+photo notifications, public-holiday calendars or automatic best-trust selection.
+Sources: automation_three_partners.py, tracking_and_support.py,
+carrier_consolidation.py, delivery_quality.py and support_delivery.py.
+
+Returns
+Verified: authenticated original-shipment preparation, reversed original
+addresses, separate return parent/lifecycle, adapter-specific return parameters,
+return outbox fence and native approved Shopify reverse-delivery tracking.
+Not promised: automatic reopening/closing/refunding/restocking of the original
+order; a dashboard customer return portal; arbitrary partial/repacked return
+editing; grouped return purchasing; generic Amazon return synchronization;
+automatic customs relief/procedure codes or invented CN22/CN23 forms.
+The existing prepare-return path copies goods and sets postal_form to NULL.
+Required postal forms must be carrier issued; print checks reject missing forms.
+Sources: automation_three_partners.py, carrier_access.py, store_returns.py,
+ecommerce_sync.py, automation_freight_engine.py and dispatch_pdf.py.
+External references checked: Shopify reverseDeliveryCreateWithShipping and
+GOV.UK returning-goods-to-the-uk. No legal eligibility outcome is promised.
+
+Collections
+No native pickup scheduling, rescheduling, cancellation, capacity handling or
+carrier end-of-day closeout was found. Current manifest, CSV export and label
+PDFs support warehouse preparation. Carrier tracking exceptions do not prove
+that every missed collection is detected or automatically logged.
+The guide therefore explains externally arranged collections and manual handover
+checks, while clearly identifying the product gaps.
+Sources: main.py, backend route inventory, frontend/bulk_checkout.js,
+dispatch_workspace.py, dispatch_pdf.py and tracking_and_support.py.
+
+Implementation and checks
+- Five original Markdown sources; no competitor article text was fetched/copied.
+- Python-Markdown renders only registered repository sources, with contents links
+  and source downloads. Added Markdown>=3.7,<4 to project requirements.
+- Two old feature placeholders replaced; bulk-dispatch placeholder remains.
+- 403 Python tests passed, including all internal links and fragments, exact
+  source downloads, heading uniqueness and unsupported-feature wording.
+- Chromium desktop/mobile navigation, contents anchors and downloads passed.
+  Screenshots inspected; no page errors or horizontal overflow reported.
+- No schema changes, provider operations, label purchases or messages.
+
+Future product decisions, separate from this documentation request
+Hands-free packing/dispatch policies; profit-versus-quality selection and client
+consent; regional working calendars; branded recipient portal/media messaging;
+customer return intake/partial returns; Amazon program-specific returns; pickup
+booking and native carrier closeout. Each needs its own confirmed API contracts,
+permissions, financial behaviour and user flow before public availability claims.

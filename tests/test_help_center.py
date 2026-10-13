@@ -49,7 +49,7 @@ class HelpCentreTests(unittest.TestCase):
     def test_search_catalogue_and_feature_guides_are_truthful(self):
         index = self.client.get('/help/search-index.json').json()['guides']
         self.assertEqual(len(index), len(GUIDES))
-        self.assertEqual(sum(not guide['prepared'] for guide in index), 3)
+        self.assertEqual(sum(not guide['prepared'] for guide in index), 1)
         for guide in index:
             response = self.client.get(guide['url'])
             if not guide['prepared']:
@@ -66,6 +66,36 @@ class HelpCentreTests(unittest.TestCase):
             response = self.client.get('/help/assets/' + asset)
             self.assertEqual(response.status_code, 200)
             self.assertIn('no-store', response.headers['cache-control'])
+
+    def test_markdown_sources_render_and_download_without_duplicate_titles(self):
+        from pathlib import Path
+        for slug, guide in GUIDES.items():
+            if not guide.source_file:
+                continue
+            response = self.client.get('/help/' + slug)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.text.count('<h1>'), 1)
+            self.assertIn('In this guide', response.text)
+            self.assertIn('Download this guide as Markdown', response.text)
+            download = self.client.get('/help/source/' + slug)
+            self.assertEqual(download.status_code, 200)
+            self.assertIn('text/markdown', download.headers['content-type'])
+            self.assertIn(guide.source_file, download.headers['content-disposition'])
+            expected = (Path(__file__).resolve().parents[1] / guide.source_file).read_text(encoding='utf-8')
+            self.assertEqual(download.text, expected)
+        self.assertEqual(self.client.get('/help/source/account-access').status_code, 404)
+        self.assertEqual(self.client.get('/help/source/unknown').status_code, 404)
+
+    def test_feature_guides_do_not_claim_unimplemented_services(self):
+        pickups = self.client.get('/help/features/carrier-pickups').text
+        self.assertIn('does not offer dashboard courier pickup scheduling', pickups)
+        pricing = self.client.get('/help/features/pricing').text
+        self.assertIn('Automatic highest-profit carrier selection is not implemented', pricing)
+        tracking = self.client.get('/help/features/labels-and-tracking').text
+        self.assertIn('public holidays are not adjusted', tracking)
+        returns = self.client.get('/help/features/returns').text
+        self.assertIn('generic Amazon return update is not implemented', returns)
+        self.assertIn('does not automatically request CN22/CN23', returns)
 
     def test_component_has_no_external_runtime_dependency_or_empty_links(self):
         html = (COMPONENTS / 'SupportHub.html').read_text(encoding='utf-8')

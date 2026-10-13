@@ -17,13 +17,17 @@ Nine published guides:
 - Actual packed measurements and volumetric-weight guidance
 - Shopify registration, authorised connection and order retrieval
 
-Three feature guide placeholders, each with a working route, visible preparation
-status and links to available guidance:
-- /help/features/pricing
-- /help/features/bulk-dispatch
+Five detailed feature guides now render from the requested root Markdown files:
+- /help/features/order-processing
+- /help/features/pricing (platform administrator configuration guide)
 - /help/features/labels-and-tracking
-These placeholders describe documentation that is forthcoming, not a new
-product capability or a guarantee that every account has enabled live services.
+- /help/features/returns (supported workflows and limitations)
+- /help/features/carrier-pickups (external arrangement; no native scheduling)
+
+The remaining /help/features/bulk-dispatch guide is explicitly being prepared.
+Published guides distinguish documentation readiness from product availability.
+Markdown source downloads and generated section navigation keep source and web
+content consistent. Only registered repository-authored sources can be served.
 
 Prompt corrections:
 - Replaced developer/sandbox and accounting jargon with customer task names.
@@ -60,17 +64,18 @@ was checked against its official documentation. Lucide/Feather icon notices are
 included in the component and ICONS_LICENSE.txt.
 
 Validation:
-- 401 Python unit tests passed, including public routes, every internal guide
+- 403 Python unit tests passed, including public routes, every internal guide
   and fragment target, correct feature preparation labels and asset allowlist.
 - Chromium at 1440px and 390px: signed-out entry, search, bookmarked search,
   no-results/reset controls, linked guides, clearly marked placeholders,
-  email draft encoding, missing-guide page and no horizontal overflow.
+  email draft encoding, missing-guide page, Markdown downloads, section links
+  and no horizontal overflow.
 - Desktop, mobile and article screenshots inspected visually.
 - No database migrations or database/provider/message operations in this change.
 
 Future documentation expansion when requested:
-Detailed customs/HS review, bulk multi-box preparation, returns, protection
-eligibility/claims, delivery history and label cancellation/reconciliation.
+Detailed customs/HS review, bulk multi-box preparation, protection
+eligibility/claims and label cancellation/reconciliation.
 Product decisions needed separately: low-wallet alert thresholds and channels,
 currency conversion and settlement rules, managed store onboarding, and a
 server-backed general helpdesk ticket form if email drafts are insufficient.

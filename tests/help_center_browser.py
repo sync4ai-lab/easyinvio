@@ -65,6 +65,20 @@ async def run(origin):
         await expect(page.locator('#support-results-list')).to_contain_text('Why size affects the price')
         await page.locator('#support-results-list a').filter(has_text='Why size').click()
         assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+        await page.goto(origin + '/help')
+        await expect(page.locator('.feature-guide-grid > a')).to_have_count(5)
+        await page.locator('.feature-guide-grid a[href="/help/features/labels-and-tracking"]').click()
+        await page.get_by_role('link', name='How delivery history is measured', exact=True).click()
+        await expect(page.locator('#how-delivery-history-is-measured')).to_be_in_viewport()
+        assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+        await page.screenshot(path=str(output / 'tracking-guide-mobile.png'), full_page=True)
+        async with page.expect_download() as download_event:
+            await page.get_by_role('link', name='Download this guide as Markdown').click()
+        assert (await download_event.value).suggested_filename == 'docs_tracking_branding.md'
+        await page.set_viewport_size({'width': 1440, 'height': 1100})
+        await page.goto(origin + '/help/features/carrier-pickups')
+        await expect(page.locator('.help-article')).to_contain_text('does not offer dashboard courier pickup scheduling')
+        await page.screenshot(path=str(output / 'collection-guide.png'), full_page=True)
         await page.goto(origin + '/help/unknown')
         await expect(page.get_by_role('heading', name='We could not find that guide')).to_be_visible()
         assert not errors, errors
@@ -72,7 +86,7 @@ async def run(origin):
     report = {'status': 'PASS', 'desktop_width': 1440, 'mobile_width': 390, 'page_errors': errors,
               'checks': ['Signed-out help access', 'Desktop and mobile layout', 'Search and guide navigation',
                          'Bookmarked search', 'Clearly labelled feature placeholders', 'No-results and clear controls',
-                         'Encoded support email draft without sending', 'Useful missing-guide page'],
+                         'Encoded support email draft without sending', 'Useful missing-guide page', 'Five feature guide links', 'Markdown downloads', 'Contents anchors', 'Honest collection limitations'],
               'database_calls': 0, 'provider_calls': 0, 'messages_sent': 0}
     (output / 'browser-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, indent=2))
