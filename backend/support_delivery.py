@@ -63,6 +63,8 @@ class SupportDelivery:
                       AND account.workspace_status='ACTIVE' AND account.is_sandbox=$2)
                    AND EXISTS(SELECT 1 FROM public.whatsapp_bindings b JOIN public.users u ON u.tenant_id=b.tenant_id AND u.id=b.user_id
                      WHERE b.tenant_id=o.tenant_id AND b.sender_e164=o.recipient_e164 AND b.is_active AND b.notification_opt_in
+                     AND b.verified_at IS NOT NULL
+                     AND NOT coalesce((to_jsonb(b)->>'alerts_paused')::boolean,false)
                       AND b.receiver_e164=$1
                       AND ($3::boolean OR b.last_inbound_at>now()-interval '23 hours 59 minutes')
                       AND u.is_active AND u.role IN ('OWNER','ADMIN'))
@@ -152,7 +154,8 @@ def build_router(authenticate):
         async with request.app.state.finance.pool.acquire() as c:
             result=await c.execute('''UPDATE public.whatsapp_bindings b SET notification_opt_in=$3 FROM public.users u
                 WHERE b.tenant_id=$1 AND b.user_id=u.id AND u.tenant_id=b.tenant_id AND u.auth_user_id=$2
-                 AND u.is_active AND b.is_active''',context.tenant_id,context.user_id,body.notification_opt_in)
-        if result=='UPDATE 0':raise HTTPException(404,'Bind and verify your WhatsApp number first')
+                 AND u.is_active AND (NOT $3::boolean OR (b.is_active AND b.verified_at IS NOT NULL))''',context.tenant_id,context.user_id,body.notification_opt_in)
+        if result=='UPDATE 0' and body.notification_opt_in:
+            raise HTTPException(409,'No verified WhatsApp number is linked to your account. Ask EasyInvio support to complete number verification before opting in.')
         return {'notification_opt_in':body.notification_opt_in}
     return router

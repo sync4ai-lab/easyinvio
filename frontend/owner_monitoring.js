@@ -12,6 +12,7 @@ function ownerActiveSupportOnly(){return $('#owner-support-scope')?.value !== 'A
 function renderOwnerMonitoring(){
   const owner=portal.role==='SUPER_ADMIN' && (!state.session || portal.profile?.portal_role==='SUPER_ADMIN');
   $('#owner-command-center').hidden=!owner;
+  $('#support-tickets').closest('.support-card').hidden=!owner;
   if(!owner){for(const id of ['owner-currency-rows','owner-billing-pipeline','owner-payment-pipeline','owner-active-threads'])$('#'+id).replaceChildren();return;}
   $('#dashboard-title').textContent='Super-Admin Command Center';
   const report=state.session?portal.report:null;
@@ -37,14 +38,28 @@ renderTickets=function(){
     const notifications=Array.isArray(ticket.notifications)?ticket.notifications:[];
     info.textContent=(portal.role==='SUPER_ADMIN'?(ticket.company_name||ticket.tenant_id)+' · ':'')+'WhatsApp: '+(notifications.length?notifications.map(n=>n.status+(n.error_code?' ('+n.error_code+')':'')).join(', '):(ticket.notification_explanation||'No WhatsApp alert has been queued.'));
     node.append(info);
+    if(portal.role==='SUPER_ADMIN' && ticket.purchase_failure){
+      const failure=typeof ticket.purchase_failure==='string'?JSON.parse(ticket.purchase_failure):ticket.purchase_failure;
+      const diagnostic=document.createElement('p');diagnostic.className='subtle';diagnostic.textContent='Purchase diagnostic: '+(failure.code||'Provider rejection')+' / '+(failure.provider||'')+' / transaction '+(failure.transaction_id||'not returned');node.append(diagnostic);
+    }
   });
 };
-$('#wallet').insertAdjacentHTML('beforeend',`<article class="card" id="support-consent-card"><h2>Proactive WhatsApp alerts</h2><p>After your merchant number is verified and bound, explicitly opt in to carrier-exception notifications. Alerts require an enabled Twilio sender and approved template.</p><div class="actions"><button class="secondary" id="support-opt-in">Enable exception alerts</button><button class="secondary" id="support-opt-out">Disable exception alerts</button></div><p id="support-consent-result" class="subtle"></p></article>`);
-for(const [id,enabled] of [['support-opt-in',true],['support-opt-out',false]])$('#'+id).addEventListener('click',()=>busy($('#'+id),async()=>{
-  const result=await api('/api/v1/support/whatsapp/consent',{method:'POST',auth:true,body:{notification_opt_in:enabled}});
-  $('#support-consent-result').textContent=result.notification_opt_in?'Verified number opted in. Delivery still depends on configured Twilio credentials.':'Exception alerts opted out.';
-}));
+$('#admin-carriers').insertAdjacentHTML('beforeend', `<article class="card" id="admin-alert-settings" style="margin-top:18px"><div class="cardhead"><div><h2>WhatsApp notification settings</h2><p class="subtle">Control delivery for verified, consenting recipients. Internal booking and application failures stay in the admin support center.</p></div><button type="button" class="secondary" id="admin-alert-refresh">Refresh</button></div><p id="admin-alert-setup" class="notice">Load settings to check sender configuration and verified recipients.</p><div class="scrolltable"><table><thead><tr><th>Company / environment</th><th>Verified number</th><th>Recipient consent</th><th>Delivery</th><th>Control</th></tr></thead><tbody id="admin-alert-bindings"></tbody></table></div></article>`);
+let adminAlertEpoch=0;
+async function loadAdminAlerts(){
+  const generation=++adminAlertEpoch, session=state.session;
+  if(portal.role!=='SUPER_ADMIN' || !session)return;
+  const result=await api('/api/v1/admin/support/whatsapp/bindings',{auth:true});
+  if(generation!==adminAlertEpoch || session!==state.session || portal.role!=='SUPER_ADMIN')return;
+  $('#admin-alert-setup').textContent=(result.configured?'Sender enabled. ':'Sender is not configured for delivery. ')+(result.controls_ready?'':'Apply migration 034 for pause/resume controls. ')+result.setup;
+  $('#admin-alert-bindings').innerHTML=result.bindings.map(binding=>`<tr><td>${escapeHTML(binding.company_name)}<br>${binding.is_sandbox?'TEST':'LIVE'}</td><td>Ending ${escapeHTML(binding.number_suffix)}${binding.is_active?'':' (inactive)'}</td><td>${binding.notification_opt_in?'Opted in':'Not opted in'}</td><td>${binding.alerts_paused?'Paused':!binding.verified || !binding.is_active?'Awaiting verification':!binding.notification_opt_in?'Awaiting consent':result.configured?'Eligible for delivery':'Sender setup needed'}</td><td><button type="button" class="secondary" data-alert-binding="${escapeHTML(binding.id)}" data-alert-paused="${!binding.alerts_paused}" ${!result.controls_ready || (binding.alerts_paused && (!binding.is_active || !binding.notification_opt_in || !binding.verified))?'disabled':''}>${binding.alerts_paused?'Resume delivery':'Pause delivery'}</button></td></tr>`).join('') || '<tr><td colspan="5">No verified WhatsApp numbers linked. Contact recipients to complete verification and opt-in before delivery.</td></tr>';
+}
+$('#admin-alert-refresh').addEventListener('click',()=>busy($('#admin-alert-refresh'),loadAdminAlerts));
+$('#admin-alert-bindings').addEventListener('click',event=>{
+ const button=event.target.closest('[data-alert-binding]');if(!button)return;
+ busy(button,async()=>{await api('/api/v1/admin/support/whatsapp/bindings/'+encodeURIComponent(button.dataset.alertBinding),{method:'PATCH',auth:true,body:{paused:button.dataset.alertPaused==='true'}});await loadAdminAlerts();});
+});
+const monitoringSetViewBase=setView;
+setView=function(view){monitoringSetViewBase(view);if(view==='admin-carriers' && portal.role==='SUPER_ADMIN')busy($('#admin-alert-refresh'),loadAdminAlerts);};
 const monitoringClearBase=clearSession;
-clearSession=function(){$('#owner-environment').value='PRODUCTION';$('#owner-support-scope').value='ACTIVE';$('#support-consent-result').textContent='';monitoringClearBase();renderOwnerMonitoring();};
-const monitoringRenderBase=renderPortal;
-renderPortal=function(){monitoringRenderBase();$('#support-consent-card').hidden=!['OWNER','ADMIN'].includes(portal.profile?.workspace_role);};
+clearSession=function(){adminAlertEpoch++;$('#admin-alert-bindings').replaceChildren();$('#owner-environment').value='PRODUCTION';$('#owner-support-scope').value='ACTIVE';monitoringClearBase();renderOwnerMonitoring();};

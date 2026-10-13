@@ -136,6 +136,7 @@ function showCustomerBooking(result,prepared) {
 }
 
 bookLive = async function(index) {
+  if(state.quotes[index]?.label_purchase_available===false)throw Error(state.quotes[index].label_purchase_notice);
   if(!state.session||!portal.profile?.tenant_id)throw Error('Sign in to a client workspace before booking.');
   customerCheckout.index=index;customerCheckout.prepared=null;const generation=++customerCheckout.generation;
   try {

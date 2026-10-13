@@ -102,6 +102,8 @@ async def offer_context(service,context,offer_id):
     selected=next((rate for rate in result.rates if rate.offer_id==offer_id),None)
     if selected is None:
         raise HTTPException(404,'Service not found in this quote')
+    from backend.label_availability import require_label_purchase
+    require_label_purchase(service.automation.settings, selected)
     if len(request.weights_kg)!=1 or len(request.dimensions)>1:
         raise HTTPException(422,'Use the packed-order workspace for multiple parcels')
     reference=await booking_reference(service.pool,context.tenant_id,row['request_id'])

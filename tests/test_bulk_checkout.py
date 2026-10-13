@@ -25,7 +25,7 @@ class BulkTests(unittest.IsolatedAsyncioTestCase):
    async def fetchrow(self,sql,*args):
     if 'public.wallets' in sql:return parent.wallet
     return {'billing_plan':'PREPAID_WALLET','workspace_status':'ACTIVE','billing_status':'ACTIVE'}
-  self.service=SimpleNamespace(pool=Pool(),confirm=AsyncMock(return_value={'shipment_id':str(self.sid),'status':'BOOKED','label':{'tracking_number':'QA'}}))
+  self.service=SimpleNamespace(pool=Pool(),automation=SimpleNamespace(settings=SimpleNamespace(provider_environment='TEST')),confirm=AsyncMock(return_value={'shipment_id':str(self.sid),'status':'BOOKED','label':{'tracking_number':'QA'}}))
  def body(self,**update):return CheckoutSelection(offers=[{'shipment_id':self.sid,'offer_id':self.oid,'expected_price':'12.50','currency':'GBP',**update}])
  async def reject(self,status,body=None):
   with self.assertRaises(HTTPException) as e:await checkout_orders(self.service,self.context,body or self.body())

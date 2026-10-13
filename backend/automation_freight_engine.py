@@ -513,6 +513,7 @@ def re_safe(value):
 def processing_remedy(code):
     """App processing guidance is distinct from a carrier tracking exception."""
     actions={
+        'SHIPPO_CARRIER_UNAVAILABLE':'Shippo reported carrier unavailability. The label was not issued and reserved credit was released. Check provider/carrier status; request fresh rates or offer another carrier. Card-funded wallet credit is not automatically a card refund.',
         'INSUFFICIENT_WALLET_CREDIT':'Add wallet credit before confirming this booking.',
         'CUSTOMS_DATA_REQUIRES_REVIEW':'Complete and review the goods description, HS code, value and origin in checkout.',
         'ORDER_VALIDATION_FAILED':'Correct the packing, address or customs fields highlighted in checkout.',

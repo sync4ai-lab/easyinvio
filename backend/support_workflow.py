@@ -41,7 +41,7 @@ async def add_internal_note(pool,ticket_id,actor_id,note,*,tenant_id=None,start_
             if not await connection.fetchval("SELECT to_regclass('public.support_ticket_activity') IS NOT NULL"):
                 raise HTTPException(503,'Apply migration 026 to record reviewer identity and note history')
             row=await connection.fetchrow('''SELECT id,tenant_id,status,manual_note FROM public.support_tickets
-                WHERE id=$1 AND ($2::uuid IS NULL OR tenant_id=$2) FOR UPDATE''',ticket_id,tenant_id)
+                WHERE id=$1 AND ($2::uuid IS NULL OR (tenant_id=$2 AND automation_failure_id IS NULL)) FOR UPDATE''',ticket_id,tenant_id)
             if row is None:raise HTTPException(404,'Ticket not found')
             if row['status'] not in {'OPEN','IN_REVIEW'}:
                 raise HTTPException(409,'This ticket is archived; its review history is read-only')

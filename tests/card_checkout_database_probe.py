@@ -46,7 +46,7 @@ async def run():
         class Repository:
             async def accounts(self,user,**kwargs):
                 assert user.tenant_id==tenant;return [account]
-        calls=[];remote={};customs_seen=[]
+        calls=[];remote={};customs_seen=[];reject_purchase=[False]
         def transport(request):
             calls.append((request.method,request.url.path))
             if request.method=='POST' and request.url.path=='/v2/shipments':
@@ -62,6 +62,7 @@ async def run():
             sid=request.url.path.split('/')[3];body=remote[sid]
             if request.method=='POST':
                 assert request.url.path.endswith('/buy')
+                if reject_purchase[0]:return httpx.Response(400,json={'error':{'code':'controlled_rejection'}})
                 body.update(selected_rate={'id':json.loads(request.content)['rate']['id']},tracking_code='TEST-'+sid[-12:],
                     postage_label={'label_pdf_url':'https://easypost-files.s3.amazonaws.com/synthetic-checkout.pdf'})
             return httpx.Response(200,json=body)
@@ -198,6 +199,31 @@ async def run():
             assert sum(path.endswith('/buy') for _,path in calls)==buys
             assert await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)==before+Decimal(cart2['amount'])
             report['checks'].append('PASS: paid expired basket purchases nothing; verified funds remain available in the wallet for fresh rates')
+            reject_purchase[0]=True
+            failed_order={**order,'idempotency_key':str(uuid4()),'order_reference':'ROLLBACK-REJECTED-LABEL'}
+            failed_quote=await automation.process(context,failed_order,'QUOTE_ONLY')
+            failed_id=UUID(failed_quote['shipment_id']);failed_review=await review_orders(service,context,[failed_id]);failed_rate=failed_review['orders'][0]['rates'][0]
+            before=await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)
+            try:await service.confirm(context,BookingRequest(tenant_id=tenant,offer_id=UUID(failed_rate['offer_id'])))
+            except HTTPException as exc:assert exc.status_code==502
+            else:raise AssertionError('Rejected label falsely booked')
+            assert await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)==before
+            assert await connection.fetchval('SELECT reserved_balance FROM public.wallets WHERE tenant_id=$1',tenant)==0
+            failure=await connection.fetchrow("SELECT status,logistics_metadata->'purchase_failure' AS diagnostic FROM public.shipments WHERE id=$1",failed_id)
+            assert failure['status']=='FAILED' and json.loads(failure['diagnostic'])['http_status']==400
+            assert await connection.fetchval("SELECT count(*) FROM public.wallet_ledger l JOIN public.wallet_reservations r ON r.id=l.reservation_id WHERE r.shipment_id=$1 AND l.entry_type='CAPTURE'",failed_id)==0
+            report['checks'].append('PASS: definitive provider rejection releases reservation, captures nothing, keeps wallet funds and persists private diagnostics; no false booking')
+            body3,cart3=await card_order('ROLLBACK-CARD-REJECTED')
+            before=await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)
+            sessions['cs_test_'+str(body3.request_id)]['payment_status']='paid'
+            await connection.execute("UPDATE public.payment_carts SET updated_at=now()-interval '30 seconds' WHERE id=$1",body3.request_id)
+            rejected_cart=await complete_cart(service,context,body3.request_id)
+            assert rejected_cart['status']=='REVIEW_REQUIRED'
+            assert await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)==before+Decimal(cart3['amount'])
+            assert await connection.fetchval('SELECT reserved_balance FROM public.wallets WHERE tenant_id=$1',tenant)==0
+            assert (await complete_cart(service,context,body3.request_id))['replayed']
+            report['checks'].append('PASS: verified card payment followed by rejected label retains exact card-funded wallet credit, releases reservations and does not retry the rejected purchase on replay')
+
         report['status']='PASS'
     finally:
         await outer.rollback();await connection.close();report['database_writes_rolled_back']=True

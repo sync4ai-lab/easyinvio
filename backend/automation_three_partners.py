@@ -954,6 +954,12 @@ class ShippoAdapter(BaseAggregatorAdapter):
              **({'order': rate_snapshot['native_order_id']} if rate_snapshot.get('native_order_id') else {})})
         self.last_remote_id = body.get('object_id')
         if body.get('status') == 'ERROR':
+            messages = body.get('messages') or []
+            if any(isinstance(message, dict)
+                   and message.get('code') == 'carrier_request_failed'
+                   and 'carrier is unavailable' in str(message.get('text', '')).lower()
+                   for message in messages):
+                raise PurchaseRejected('SHIPPO_CARRIER_UNAVAILABLE')
             raise PurchaseRejected('LABEL_REJECTED')
         return self.normalize(body, rate_snapshot)
 
@@ -1340,6 +1346,23 @@ class FactoryPurchaseBridge:
                 label = await adapter.generate_return_label(original)
             else:
                 label = await adapter.purchase_label(snapshot)
+        except PurchaseRejected as exc:
+            # Preserve bounded diagnostics without storing arbitrary provider bodies.
+            code = str(exc) if str(exc) in {'SHIPPO_CARRIER_UNAVAILABLE', 'LABEL_REJECTED',
+                'RATE_NO_LONGER_AVAILABLE', 'REMOTE_MODE_MISMATCH'} else 'NATIVE_PURCHASE_REJECTED'
+            try:
+                async with self.pool.acquire() as connection:
+                    await connection.execute('''UPDATE public.shipments SET logistics_metadata=
+                        logistics_metadata||jsonb_build_object('purchase_failure',$4::jsonb)
+                        WHERE tenant_id=$1 AND carrier_account_id=$2
+                        AND pricing_snapshot->'selected_rate'->>'offer_id'=$3 AND status='BOOKING' ''',
+                        account.tenant_id, account.id, str(rate.offer_id), json.dumps({
+                            'code': code, 'provider': type(adapter).__name__,
+                            'transaction_id': adapter.last_remote_id if isinstance(adapter.last_remote_id, str) and len(adapter.last_remote_id) <= 150 else None, 'http_status': adapter.last_http_status}))
+            except Exception:
+                import logging
+                logging.getLogger(__name__).warning('Definitive rejection diagnostic deferred')
+            raise
         except PurchaseUncertain:
             if adapter.last_remote_id:
                 try:
@@ -1596,10 +1619,15 @@ class PartnerLifecycleService:
                     bridge = FactoryPurchaseBridge(self.client, self.pool, environment)
                     try:
                         label = await bridge.buy(account, rate)
-                    except PurchaseRejected:
+                    except PurchaseRejected as exc:
                         await self.finance.finish_booking(permit, 'DEFINITIVE_FAILURE')
-                        await self.ticket(context, row['id'], 'NATIVE_PURCHASE_REJECTED')
-                        raise HTTPException(502, 'Shipping service rejected the purchase; reserved credit released') from None
+                        unavailable = str(exc) == 'SHIPPO_CARRIER_UNAVAILABLE'
+                        await self.ticket(context, row['id'], 'SHIPPO_CARRIER_UNAVAILABLE' if unavailable else 'NATIVE_PURCHASE_REJECTED')
+                        message = ('This carrier is temporarily unavailable. Request fresh quotes and choose another carrier, '
+                                   'or try again later. Reserved wallet credit has been released.' if unavailable else
+                                   'The carrier could not create this label. Reserved wallet credit has been released. '
+                                   'Request fresh quotes or contact EasyInvio support; the failure is recorded for our team.')
+                        raise HTTPException(502, message) from None
                     except Exception:
                         pending = await lock.fetchval('''SELECT logistics_metadata->>'label_lifecycle_status'
                             FROM public.shipments WHERE tenant_id=$1 AND id=$2''', context.tenant_id, row['id'])

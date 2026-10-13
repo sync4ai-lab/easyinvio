@@ -418,6 +418,8 @@ class WholesaleRate(StrictModel):
 
 
 class ClientRate(StrictModel):
+    label_purchase_available: bool = True
+    label_purchase_notice: str = ''
     execution_details: dict = Field(default_factory=dict)
     offer_id: UUID = Field(default_factory=uuid4)
     on_time_rate: Decimal | None = None
@@ -1155,6 +1157,9 @@ class RatingService:
                         "source": "provider" if rate.fee_components else "quote_total",
                     },
                 ))
+        from backend.label_availability import label_availability
+        for rate in rates:
+            rate.label_purchase_available, rate.label_purchase_notice = label_availability(self.settings, rate)
         if not rates:
             from backend.rate_diagnostics import no_rates_message
             raise HTTPException(503, {
@@ -2386,6 +2391,9 @@ app.include_router(ecommerce_router(authenticate))
 app.include_router(hubspot_router(authenticate))
 app.include_router(tracking_router(authenticate))
 app.include_router(support_delivery_router(authenticate))
+from backend.support_alert_controls import build_router as support_alert_controls_router
+from backend.admin_portal import authenticate_platform_owner
+app.include_router(support_alert_controls_router(authenticate_platform_owner))
 app.include_router(dashboard_router(authenticate))
 app.include_router(automation_router(authenticate))
 from backend.automation_three_partners import build_router as partner_lifecycle_router

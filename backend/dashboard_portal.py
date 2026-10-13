@@ -142,6 +142,7 @@ def build_router(authenticate):
                 ORDER BY h.created_at,h.id) FROM public.support_ticket_activity h WHERE h.tenant_id=t.tenant_id AND h.ticket_id=t.id),'[]'::jsonb)""" if activity_ready else "'[]'::jsonb"
             rows = await connection.fetch("""SELECT t.id,t.tenant_id,t.shipment_id,t.status,t.ai_summary,t.ai_method,
                 t.automation_failure_id,to_jsonb(t)->>'insurance_claim_id' AS insurance_claim_id,a.error_code,s.status AS shipment_status,s.booked_at,s.tracking_number AS shipment_tracking_number,
+                CASE WHEN $1::uuid IS NULL THEN s.logistics_metadata->'purchase_failure' END AS purchase_failure,
                 to_jsonb(t)->>'reviewed_by_auth_user_id' AS reviewer_id,to_jsonb(t)->>'review_started_at' AS review_started_at,
                 coalesce((SELECT nullif(p.full_name,'') FROM public.app_user_profiles p
                     WHERE p.auth_user_id::text=to_jsonb(t)->>'reviewed_by_auth_user_id'),
@@ -157,6 +158,7 @@ def build_router(authenticate):
                 LEFT JOIN public.automation_failures a ON a.id=t.automation_failure_id AND a.tenant_id=t.tenant_id
                 WHERE ($1::uuid IS NULL OR t.tenant_id=$1) AND ($2::boolean IS NULL OR company.is_sandbox=$2)
                 AND (NOT $3::boolean OR t.status IN ('OPEN','IN_REVIEW'))
+                AND ($1::uuid IS NULL OR t.automation_failure_id IS NULL)
                 ORDER BY t.created_at DESC LIMIT 100""", tenant_id,sandbox,active_only)
         import json
         return {"tickets": [{**present_ticket(row), "id": str(row["id"]), "tenant_id": str(row["tenant_id"]), "shipment_id": str(row["shipment_id"]) if row['shipment_id'] else None,

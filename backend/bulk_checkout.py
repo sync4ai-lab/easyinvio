@@ -73,6 +73,10 @@ async def validate_checkout(service,context,selection,*,check_wallet=True):
             raise HTTPException(409,'A selected price changed. Review rates again; no labels were purchased.')
         snapshot=decoded(row['pricing_snapshot']).get('selected_rate',{})
         already_submitted=row['status'] in {'BOOKED','BOOKING','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}
+        if not already_submitted:
+            from backend.label_availability import require_label_purchase
+            from types import SimpleNamespace
+            require_label_purchase(service.automation.settings, SimpleNamespace(execution_details=rate.get('execution_details', {})))
         if already_submitted:
             if snapshot.get('offer_id')!=str(selected.offer_id):raise HTTPException(409,'This order already has another booking in progress or confirmed')
         else:

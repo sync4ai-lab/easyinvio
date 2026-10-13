@@ -1,0 +1,69 @@
+Label purchase and notification operations - 13 October 2026
+
+Actual failure diagnosis
+The reported DPD UK Classic purchase used the configured Shippo TEST account.
+The existing Shippo transaction was ERROR, test=true, with carrier_request_failed:
+"Carrier is unavailable. Please try again in a few minutes."
+A new, explicitly non-billable TEST retry returned the same failure. No live
+label, Stripe charge or wallet mutation was performed for this external test.
+The app cannot override carrier unavailability or fabricate a confirmed label.
+Restore the carrier service through Shippo/DPD or configure another bookable
+carrier contract. A quote response alone does not guarantee label acceptance.
+
+Latest saved alternative FedEx quotes used the Sendcloud TEST connection.
+That connection has no verified non-billable label test contract and is quotes
+only. Fresh quotes now expose this purchase limitation and disable checkout.
+Server guards block these services before single checkout and card/bulk funding,
+including older cached offers. Never bypass this by switching TEST to LIVE merely
+to test: Sendcloud announcements can be billable.
+
+Changes
+- Native carrier-unavailable responses retain a bounded private diagnostic and
+  transaction reference. Customers get a fresh-quote/alternative-carrier remedy.
+- Internal processing tickets are excluded from the tenant support API and
+  tenant review actions. The Operations & Dispatch Support Center is shown only
+  in the platform admin dashboard. Genuine tracking exceptions remain available
+  to customers through shipment tracking and tenant support APIs.
+- Wallet WhatsApp controls are removed. Admin > Carrier Connectors > WhatsApp
+  notification settings provides masked recipient records and pause/resume.
+- Migration 034 adds alerts_paused to existing verified phone bindings. It has
+  been tested with rollback, not persistently applied. Apply it before using
+  pause/resume controls. The UI explicitly reports missing migration readiness.
+- Admin pause never grants recipient consent. Resume requires active, verified,
+  opted-in bindings. The delivery worker checks paused state and verification
+  before submission. Already submitted notifications cannot be recalled.
+- Recipient opt-out is safe even with no active binding; opt-in explains the
+  verification prerequisite. Recipient consent remains a recipient permission.
+
+WhatsApp setup prerequisites
+1. Provision and verify the merchant's WhatsApp binding to the correct workspace,
+   user and sender; record recipient opt-in after permission is obtained.
+2. Configure Twilio credentials, WhatsApp sender and TWILIO_ENABLED. Sandbox and
+   LIVE recipient environments must match the account environment.
+3. Configure SUPPORT_WHATSAPP_ENABLED, an approved Content SID for proactive
+   messages, and the public HTTPS SUPPORT_WHATSAPP_STATUS_URL. Without a template,
+   delivery is limited to the active messaging window.
+4. Configure signed inbound and status callbacks through a public HTTPS origin.
+   localhost:8000 alone is not reachable by Twilio or carrier webhooks.
+5. Apply migration 034; refresh the admin settings table. Resume only verified,
+   consenting recipients. Internal label/application failures never queue
+   merchant exception alerts; they are administrative support cases.
+No credentials, bindings, consent or messaging configuration were changed here.
+
+Payment behavior and validation
+Wallet: reserve before native purchase, capture once after confirmed label;
+definitive rejection releases reservation and leaves balance unchanged.
+Card: verified Stripe payment funds the wallet, then uses the same reservation
+and purchase flow. If the carrier rejects the label, unused paid funds remain
+available in the wallet. This is not an automatic card refund; do not pay twice.
+
+387 unit tests passed. Controlled browser checks passed for admin-only support,
+removed wallet controls, pause/resume, quote-only checkout prevention and mobile
+layouts. Actual sandbox SQL with simulated provider responses verified wallet
+and card success, replay, rejected purchase release, retained card funds, private
+diagnostics, migration 034, pause/resume, consent preservation and customer ticket
+filtering. All SQL probe changes were rolled back; no messages were sent.
+
+Primary provider references
+https://docs.goshippo.com/docs/guides_general/authentication/
+https://docs.goshippo.com/shippoapi/public-api/transactions/createtransaction
