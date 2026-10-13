@@ -1037,16 +1037,21 @@ class ShippoRateStrategy:
             raise ValueError('Native quote environment does not match the connection')
         results = []
         if not body.get('rates'):raise PurchaseRejected('NO_SERVICES_FOR_ROUTE_OR_ACCOUNT')
+        available_currencies = set()
         for rate in body.get('rates', []):
             if request.is_return and str(rate.get('provider', '')).upper() not in {'USPS', 'UPS', 'FEDEX'}:
                 continue
             if rate.get('currency') != request.currency:
+                available_currencies.add(rate.get('currency'))
                 continue
             service = rate.get('servicelevel') or {}
             results.append(self.rate_model(provider='REGIONAL', account_id=self.account.id,
                 upstream_shipment_id=body['object_id'], upstream_rate_id=rate['object_id'],
                 carrier_code=rate['provider'], service_code=service['token'], currency=rate['currency'],
                 wholesale_cost=str(rate['amount']), delivery_days=rate.get('estimated_days')))
+        if not results and available_currencies:
+            from backend.rate_diagnostics import RateCurrencyUnavailable
+            raise RateCurrencyUnavailable(available_currencies)
         return results
 
 

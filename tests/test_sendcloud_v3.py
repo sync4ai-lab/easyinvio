@@ -29,7 +29,9 @@ class SendcloudV3Tests(unittest.IsolatedAsyncioTestCase):
  async def test_missing_price_currency_and_estimated_surcharges_not_invented(self):
   options=[self.option(None),self.option('8.50','EUR'),self.option()]
   options[2]['quotes'][0]['estimated_surcharges']=[{'price':{'value':'2.00','currency':'GBP'}}]
-  self.assertEqual(await self.rates(options),[])
+  from backend.rate_diagnostics import RateCurrencyUnavailable
+  with self.assertRaises(RateCurrencyUnavailable) as error:await self.rates(options)
+  self.assertEqual(error.exception.available_currencies,['EUR'])
  async def test_invalid_money_and_scope_errors_fail_closed(self):
   for value in ['NaN','Infinity','not-money']:
    with self.assertRaises((ValueError,ArithmeticError)):await self.rates([self.option(value)])

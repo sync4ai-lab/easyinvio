@@ -130,7 +130,8 @@ async def quote_sendcloud_v3(client, account, request):
             auth=sendcloud_credentials(account.api_key),timeout=account.timeout_seconds,
             follow_redirects=False) as response:
         if response.status_code != 200:
-            raise ValueError('Sendcloud shipping options unavailable')
+            from backend.rate_diagnostics import RateHTTPRejected
+            raise RateHTTPRejected(response.status_code)
         raw=bytearray()
         async for chunk in response.aiter_bytes():
             raw.extend(chunk)
@@ -139,7 +140,7 @@ async def quote_sendcloud_v3(client, account, request):
     options=data.get('data') if isinstance(data,dict) else None
     if not isinstance(options,list) or len(options)>500:
         raise ValueError('Invalid Sendcloud shipping options response')
-    rates=[];seen=set()
+    rates=[];seen=set();available_currencies=set()
     for option in options:
         if not isinstance(option,dict):raise ValueError('Invalid Sendcloud option')
         if option.get('price_error'):continue
@@ -151,7 +152,7 @@ async def quote_sendcloud_v3(client, account, request):
             # Estimated extra charges need a distinct customer confirmation flow.
             if quote.get('estimated_surcharges'):continue
             total=(quote.get('price') or {}).get('total') or {}
-            if total.get('currency')!=request.currency or total.get('value') is None:continue
+            if total.get('value') is None:continue
             cost=strict_decimal(total['value'])
             if cost<=0:continue
             bounds=quote.get('weight')
@@ -159,6 +160,9 @@ async def quote_sendcloud_v3(client, account, request):
                 low,high=bounds.get('min'),bounds.get('max')
                 if not isinstance(low,dict) or not isinstance(high,dict) or low.get('unit')!='kg' or high.get('unit')!='kg':continue
                 if not all(strict_decimal(low['value'])<=weight<strict_decimal(high['value']) for weight in request.weights_kg):continue
+            if total.get('currency') != request.currency:
+                available_currencies.add(total.get('currency'))
+                continue
             identity=(code,str(cost),request.currency)
             if identity in seen:continue
             seen.add(identity)
@@ -169,4 +173,7 @@ async def quote_sendcloud_v3(client, account, request):
                 'carrier_code':carrier.upper(),'service_code':code,'currency':request.currency,
                 'wholesale_cost':cost,'delivery_days':days,
                 'execution_details':{'contract_id':(option.get('contract') or {}).get('id')}})
+    if not rates and available_currencies:
+        from backend.rate_diagnostics import RateCurrencyUnavailable
+        raise RateCurrencyUnavailable(available_currencies)
     return rates

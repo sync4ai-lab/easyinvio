@@ -1,6 +1,6 @@
 """Owner-managed shared provider connections; tenant shipments retain isolated FKs."""
 import json
-from uuid import UUID
+from uuid import UUID, uuid5, NAMESPACE_URL
 import asyncpg
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, Request, HTTPException, Depends
@@ -133,6 +133,71 @@ async def capabilities(request: Request, actor=owner):
     from backend.aggregator_registry import public_capabilities
     return {'providers': public_capabilities(), 'generic_regional_protocol': True,
             'notice': 'API credentials alone do not implement a new provider wire protocol.'}
+
+
+@router.post('/{connection_id}/upgrade-sendcloud')
+async def upgrade_sendcloud(connection_id: UUID, request: Request, actor=owner):
+    """Replace legacy rate configuration without modifying historical connections."""
+    import httpx
+    from backend.sendcloud_adapter import sendcloud_credentials, V3_ENDPOINT
+    settings = request.app.state.settings
+    replacement_id = uuid5(NAMESPACE_URL, 'easyinvio:sendcloud-v3:' + str(connection_id))
+    async with request.app.state.finance.pool.acquire() as c:
+        source = await c.fetchrow('SELECT * FROM public.platform_carrier_connections WHERE id=$1', connection_id)
+    if source is None:
+        raise HTTPException(404, 'Platform connection not found')
+    if source['api_base_url'] != 'https://panel.sendcloud.sc/api/v2' or source['environment'] != settings.provider_environment:
+        raise HTTPException(422, 'Only a legacy Sendcloud connection in the current environment can be upgraded')
+    try:
+        key = settings.credential_keys[source['credential_key_id']].get_secret_value().encode()
+        envelope = json.loads(Fernet(key).decrypt(bytes(source['credentials_ciphertext'])))
+        if envelope.get('platform_id') != str(connection_id):
+            raise ValueError('Credential identity mismatch')
+        secret = envelope['api_key']
+        auth = sendcloud_credentials(secret)
+    except (ValueError, KeyError, TypeError, InvalidToken):
+        raise HTTPException(503, 'Private carrier credential configuration is unavailable') from None
+    try:
+        async with httpx.AsyncClient(trust_env=False, timeout=min(source['timeout_seconds'], 20)) as client:
+            response = await client.get(V3_ENDPOINT + '/user/auth/metadata', auth=auth, follow_redirects=False)
+        if response.status_code != 200:
+            raise HTTPException(409, 'Sendcloud v3 credential verification failed; no connection was changed')
+    except httpx.HTTPError:
+        raise HTTPException(503, 'Sendcloud verification is temporarily unavailable; no connection was changed') from None
+    try:
+        async with request.app.state.finance.pool.acquire() as c:
+            async with c.transaction():
+                await c.execute("SELECT pg_advisory_xact_lock(hashtextextended('platform-carriers',0))")
+                current = await c.fetchrow('SELECT * FROM public.platform_carrier_connections WHERE id=$1 FOR UPDATE', connection_id)
+                if current is None or any(current[field] != source[field] for field in (
+                        'api_base_url', 'environment', 'credentials_ciphertext', 'credential_key_id', 'is_active', 'retired_at',
+                        'priority', 'timeout_seconds', 'account_name', 'upstream_account_id')):
+                    raise HTTPException(409, 'Connection changed during verification; retry the upgrade')
+                existing = await c.fetchrow('SELECT * FROM public.platform_carrier_connections WHERE id=$1', replacement_id)
+                if existing is not None:
+                    if source['is_active'] or existing['api_base_url'] != V3_ENDPOINT or existing['environment'] != source['environment']:
+                        raise HTTPException(409, 'Replacement connection identity is invalid')
+                    return {'id': str(replacement_id), 'previous_connection_id': str(connection_id),
+                            'is_active': existing['is_active'], 'upgraded': True}
+                # Disabling first keeps active connection counts unchanged during propagation.
+                await c.execute('UPDATE public.platform_carrier_connections SET is_active=false,retired_at=NULL WHERE id=$1', connection_id)
+                cipher = Fernet(key).encrypt(json.dumps({'platform_id': str(replacement_id), 'api_key': secret}).encode())
+                await c.execute('''INSERT INTO public.platform_carrier_connections
+                    (id,account_name,aggregator,regional_provider_code,api_base_url,upstream_account_id,environment,
+                     credentials_ciphertext,credential_key_id,priority,timeout_seconds,is_active)
+                    VALUES($1,$2,'REGIONAL','SENDCLOUD_V3',$3,$4,$5,$6,$7,$8,$9,$10)''',
+                    replacement_id, source['account_name'][:195] + ' v3', V3_ENDPOINT, source['upstream_account_id'],
+                    source['environment'], cipher, source['credential_key_id'], source['priority'],
+                    source['timeout_seconds'], source['is_active'])
+                for identifier, action, snapshot in (
+                        (connection_id, 'RETIRE', {'replacement_id': str(replacement_id), 'reason': 'SENDCLOUD_V3_UPGRADE'}),
+                        (replacement_id, 'SAVE', {'previous_connection_id': str(connection_id), 'reason': 'SENDCLOUD_V3_UPGRADE'})):
+                    await c.execute('''INSERT INTO public.platform_carrier_events(actor_auth_user_id,connection_id,action,snapshot)
+                        VALUES($1,$2,$3,$4::jsonb)''', actor.user_id, identifier, action, json.dumps(snapshot))
+        return {'id': str(replacement_id), 'previous_connection_id': str(connection_id),
+                'is_active': source['is_active'], 'upgraded': True}
+    except asyncpg.PostgresError as exc:
+        raise database_error(exc) from None
 
 
 @router.post('/{connection_id}/verify')

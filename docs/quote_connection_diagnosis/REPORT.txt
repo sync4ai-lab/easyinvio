@@ -1,0 +1,32 @@
+Quote connection diagnosis ? 13 October 2026
+
+All three configured TEST accounts returned HTTP 200 to genuine read-only authentication checks.
+The saved Sendcloud connection is still API v2. Its credentials also authenticate against v3.
+A replacement upgrade is available to the platform owner under Carrier Connectors. It verifies
+v3 credentials, disables the legacy connection, creates a newly bound encrypted v3 connection,
+and preserves the original connection and shipment references. No label is purchased. Applying
+the saved configuration change is awaiting the user's approval; it has not been committed to the database.
+Sendcloud recommends API v3: https://www.sendcloud.com/api/
+
+Genuine external quote checks used the previously authorized saved GB-to-France parcel details.
+Full pipeline checks used actual tenant pricing, consolidation and database reads. For those checks,
+the proposed v3 replacement was modeled in memory; stored configuration remained unchanged.
+GBP, 2.500 kg: four services returned across Shippo and Sendcloud, DPD carrier services.
+GBP, 22 kg: three Sendcloud services returned, DPD and FedEx. Shippo returned no services.
+EUR, 2.500 kg: returned provider prices were GBP; none matched EUR.
+EasyPost authenticated but returned no eligible services for all tested UK-origin parcels.
+These results do not certify every destination, freight/letter contracts, or label purchase eligibility.
+Sendcloud's existing guard still prevents purchases with an unverified TEST label contract.
+
+Changes: actionable currency/authentication/configuration/unavailable-service messages; failed quote
+snapshots saved in the existing private quote table for support; clear stale selectable offers and
+update the failure badge; owner-only atomic, repeatable Sendcloud upgrade with credential binding.
+Credentials, addresses and full provider responses are absent from this report.
+
+Checks: 348 full-suite unit tests passed, plus a new failed-quote persistence test passed separately.
+Controlled browser verified failed-quote clearing, currency message/badge and upgrade dialog submission.
+Actual sandbox upgrade probe verified propagation to 26 active workspaces, unchanged active counts,
+new credential binding and repeatable requests. All probe configuration writes were rolled back.
+There were zero historical shipments linked to this particular legacy Sendcloud connection at the probe.
+No label purchases, customer messages, payment operations or permanent database changes were performed.
+Application restarted on http://127.0.0.1:8000/ and health returned configured/ok.

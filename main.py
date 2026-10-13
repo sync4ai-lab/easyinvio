@@ -447,6 +447,7 @@ class ProviderIssue(StrictModel):
     account_id: UUID
     code: str
     retryable: bool
+    available_currencies: list[Currency] = Field(default_factory=list)
 
 
 class RatingResponse(StrictModel):
@@ -961,6 +962,9 @@ class EasyPostStrategy(RateStrategy):
                 currency=raw["currency"], wholesale_cost=raw["rate"],
                 delivery_days=raw.get("delivery_days"),
             ))
+        if not result:
+            from backend.rate_diagnostics import RateCurrencyUnavailable
+            raise RateCurrencyUnavailable(raw.get('currency') for raw in body['rates'])
         return result
 
 
@@ -1031,6 +1035,8 @@ class RatingService:
     async def run_provider(self, strategy: RateStrategy, request: RatingRequest,
                            deadline: int) -> tuple[list[WholesaleRate], ProviderIssue | None]:
         account = strategy.account
+        from backend.rate_diagnostics import RateCurrencyUnavailable, RateHTTPRejected
+        available_currencies = []
         try:
             endpoint=getattr(account,'base_url','')
             known=bool(identify_aggregator(endpoint))
@@ -1046,6 +1052,13 @@ class RatingService:
             return rates, None
         except ProviderFailure as exc:
             code, retryable = exc.code, exc.retryable
+        except RateCurrencyUnavailable as exc:
+            code, retryable = 'NO_RATES_IN_REQUESTED_CURRENCY', False
+            available_currencies = exc.available_currencies
+        except RateHTTPRejected as exc:
+            code = ('UPSTREAM_AUTHENTICATION_REJECTED' if exc.status in {401, 403} else
+                    'UPSTREAM_REQUEST_REJECTED' if exc.status in {400, 422} else 'UPSTREAM_UNAVAILABLE')
+            retryable = exc.status >= 500 or exc.status == 429
         except PurchaseRejected as exc:
             text=str(exc)
             code=('UPSTREAM_AUTHENTICATION_REJECTED' if 'HTTP_401' in text or 'HTTP_403' in text else
@@ -1063,7 +1076,7 @@ class RatingService:
         logger.warning("Provider failed provider=%s account=%s code=%s",
                        account.provider, account.id, code)
         return [], ProviderIssue(provider=account.provider, account_id=account.id,
-                                 code=code, retryable=retryable)
+                                 code=code, retryable=retryable, available_currencies=available_currencies)
 
     async def quote(self, context: TenantContext, request: RatingRequest,
                     provider_deadline: int | None = None, *, return_of_shipment_id: UUID | None = None) -> RatingResponse:
@@ -1142,11 +1155,10 @@ class RatingService:
                     },
                 ))
         if not rates:
+            from backend.rate_diagnostics import no_rates_message
             raise HTTPException(503, {
                 "code": "NO_CARRIER_RATES_AVAILABLE",
-                "message": ('Freight booking is not configured for these integrations. A verified freight adapter and carrier contract are required; this does not mean all carriers reject your cargo.' if request.cargo_type in {'PALLET','OVERLAND_FREIGHT'} else
-                    'No eligible letter service returned a rate. Check document-service availability and address verification with platform support.' if request.cargo_type=='LETTER' else
-                    'No matching rates were returned for this route and currency. Platform support can distinguish account configuration, currency and carrier eligibility.'),
+                "message": no_rates_message(request, issues),
                 "issues": [i.model_dump(mode="json") for i in issues],
             })
         from backend.carrier_consolidation import consolidate_rates,route_history,carrier_identity,unknown_history
@@ -2158,7 +2170,27 @@ async def get_rates(body: RatingRequest, request: Request,
         if context.role == 'DISPATCHER':
             result = result.model_copy(update={'rates': [rate.model_copy(update={'fee_breakdown': {'source': 'financial_role_required'}}) for rate in result.rates]})
         return result
-    except HTTPException:
+    except HTTPException as exc:
+        if exc.status_code == 503 and isinstance(exc.detail, dict) and exc.detail.get('code') == 'NO_CARRIER_RATES_AVAILABLE':
+            # Save unsuccessful comparisons too, so support can inspect the actual
+            # package and failure codes rather than the last successful quote.
+            quote_id = uuid4()
+            quoted_at = datetime.now(timezone.utc)
+            expires_at = quoted_at + timedelta(seconds=request.app.state.settings.quote_ttl_seconds)
+            snapshot = {'request_id': str(quote_id), 'currency': body.currency,
+                        'quoted_at': quoted_at.isoformat(), 'expires_at': expires_at.isoformat(),
+                        'partial': True, 'rates': [], 'issues': exc.detail.get('issues', [])}
+            pool = getattr(request.app.state.rating, 'pool', None)
+            if pool is not None:
+                try:
+                    async with pool.acquire() as connection:
+                        await connection.execute('''INSERT INTO public.partner_unbound_quotes
+                            (tenant_id,request_id,request_payload,quote_payload,expires_at)
+                            VALUES($1,$2,$3::jsonb,$4::jsonb,$5)''', context.tenant_id, quote_id,
+                            body.model_dump_json(), json.dumps(snapshot), expires_at)
+                    exc.detail['request_id'] = str(quote_id)
+                except Exception:
+                    logger.warning('Unsuccessful quote diagnostic persistence unavailable')
         raise
     except Exception:
         logger.error("Rating processing failure tenant=%s", context.tenant_id)
