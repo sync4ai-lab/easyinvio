@@ -98,6 +98,8 @@ class Goods(StrictInput):
     unit_value: Decimal = Field(gt=0,le=1000000,decimal_places=2)
     unit_weight_kg: Decimal = Field(gt=0,le=30000,decimal_places=3)
     origin_country: str
+    sku: str | None = Field(default=None,max_length=200)
+    package_index: int | None = Field(default=None,strict=True,ge=1,le=100)
     hs_code: str | None = Field(default=None,pattern=r'^\d{6}(?:\d{2})?(?:\d{2})?$')
 
     @field_validator('unit_value','unit_weight_kg',mode='before')
@@ -117,6 +119,8 @@ class Order(StrictInput):
     origin: dict
     destination: dict
     cargo: Cargo
+    packages: list[Cargo] = Field(default_factory=list,max_length=100)
+    multi_parcel_dimensions: list[dict] = Field(default_factory=list,max_length=100)
     currency: Literal['GBP','EUR','USD'] = 'GBP'
     items: list[Goods] = Field(default_factory=list,max_length=100)
     sender_eori: str | None = Field(default=None,max_length=40)
@@ -136,10 +140,28 @@ class Order(StrictInput):
     return_of_shipment_id: UUID | None = None
     original_invoice_number: str | None = Field(default=None, max_length=40)
     return_data: dict | None = None
+    store_return_reference: str | None = Field(default=None,max_length=200)
+
+    @model_validator(mode='before')
+    @classmethod
+    def unpack_boxes(cls,value):
+        if isinstance(value,dict) and value.get('multi_parcel_dimensions'):
+            from backend.package_sets import PackageInput
+            boxes=[PackageInput.model_validate(box) for box in value['multi_parcel_dimensions']]
+            if [box.box_index for box in boxes]!=list(range(1,len(boxes)+1)):raise ValueError('Box indices must be sequential')
+            packages=[{'cargo_type':'PARCEL','stackable':value.get('cargo',{}).get('stackable',True),**{key:getattr(box,key) for key in ('length_cm','width_cm','height_cm','actual_weight_kg')}} for box in boxes]
+            if value.get('packages') and [Cargo.model_validate(box) for box in value['packages']]!=[Cargo.model_validate(box) for box in packages]:raise ValueError('Package inputs disagree')
+            return {**value,'packages':packages,'cargo':value.get('cargo',packages[0])}
+        return value
 
     @model_validator(mode='after')
     def store_pair(self):
-        if self.customs_category == 'OTHER' and not self.customs_category_other:
+        from backend.package_sets import validate_goods_allocation
+        if self.packages:
+            if self.cargo != self.packages[0] or any(box.cargo_type!='PARCEL' for box in self.packages):
+                raise ValueError('Packages must be Standard Parcels and cargo must match box 1')
+        validate_goods_allocation(self.items,[box.actual_weight_kg for box in self.packages] or [self.cargo.actual_weight_kg])
+        if self.customs_category == 'OTHER'  and not self.customs_category_other:
             raise ValueError('Describe the OTHER export category')
         if bool(self.is_return)!=bool(self.return_of_shipment_id):
             raise ValueError('Returns require an original shipment reference')
@@ -170,7 +192,7 @@ def customs_matrix(shipment_id: UUID, order: Order, tenant: dict) -> dict:
             value+=line_value;weight+=line_weight
             items.append({**item.model_dump(mode='json'),'hs_code':code,'hs_prediction':prediction,
                           'line_value':format(line_value,'.2f'),'line_weight_kg':str(line_weight)})
-        if weight>order.cargo.actual_weight_kg:
+        if weight>sum((box.actual_weight_kg for box in order.packages or [order.cargo]),Decimal(0)):
             raise HTTPException(422,'Goods net weight exceeds cargo gross weight')
     return {'required':True,'shipment_id':str(shipment_id),'document_type':'COMMERCIAL_INVOICE',
             'created_at':datetime.now(timezone.utc).isoformat(),
@@ -328,8 +350,8 @@ class AutomationService:
         try:
             order=Order.model_validate(raw);failure_key=order.idempotency_key
             request=self.rating_model.model_validate({'origin':order.origin,'destination':order.destination,'currency':order.currency,
-                'cargo_type':order.cargo.cargo_type,'stackable':order.cargo.stackable,'weights_kg':[str(order.cargo.actual_weight_kg)],
-                'dimensions':[] if order.cargo.cargo_type=='LETTER' else [{'length_cm':str(order.cargo.length_cm),'width_cm':str(order.cargo.width_cm),'height_cm':str(order.cargo.height_cm)}],
+                'cargo_type':order.cargo.cargo_type,'stackable':order.cargo.stackable,'weights_kg':[str(box.actual_weight_kg) for box in order.packages or [order.cargo]],
+                'dimensions':[] if order.cargo.cargo_type=='LETTER' else [{key:str(getattr(box,key)) for key in ('length_cm','width_cm','height_cm')} for box in order.packages or [order.cargo]],
                 'is_return':order.is_return})
             fingerprint=hashlib.sha256(order.model_dump_json().encode()).hexdigest()
             # Dedicated session lock prevents duplicate purchases across batches.
@@ -424,6 +446,8 @@ class AutomationService:
                         WHERE public.shipments.status IN ('PENDING_IMPORT','UNFULFILLED')""",shipment_id,context.tenant_id,user_id,accounts[0].id,order.idempotency_key,reference,
                         request.origin.country_code,request.destination.country_code,request.origin.model_dump_json(),request.destination.model_dump_json(),order.cargo.actual_weight_kg,
                         dims.length_cm if dims else None,dims.width_cm if dims else None,dims.height_cm if dims else None,order.currency,json.dumps(metadata),declaration['required'],json.dumps(declaration.get('items',[])),order.store_id,order.store_order_id,order.cargo.cargo_type,order.incoterm)
+                    from backend.package_sets import persist_package_goods
+                    await persist_package_goods(lock,context.tenant_id,shipment_id,order)
                     quote_result=private_quote if private_quote is not None else (await self.rating.quote(context,request,return_of_shipment_id=order.return_of_shipment_id) if order.is_return else await self.rating.quote(context,request))
                     if mode=='FULFILL' and getattr(quote_result,'partial',False):
                         raise HTTPException(503,'PARTIAL_RATE_RESULTS_REQUIRE_RETRY')
@@ -440,6 +464,9 @@ class AutomationService:
                             kg_per_m3=getattr(self.settings,'freight_kg_per_m3',Decimal('333')),
                             kg_per_loading_metre=getattr(self.settings,'freight_kg_per_loading_metre',Decimal('1750')),
                             deck_width_m=getattr(self.settings,'freight_deck_width_m',Decimal('2.4')))
+                        if order.packages:
+                            from backend.package_sets import package_charge
+                            charge=package_charge(order.packages,[box.actual_weight_kg for box in order.packages])
                         await record_invoice_baseline(lock,context.tenant_id,shipment_id,
                             {key:rate.fee_breakdown[key] for key in ('base_cost','fuel_surcharge','residential_fee','remote_area_fee')}|
                             {'currency':rate.currency,'billable_weight_kg':charge['billable_weight_kg']})

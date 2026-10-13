@@ -52,6 +52,9 @@ async def save(body, request, actor, connection_id=None):
                 # Serialize platform rollout and capacity decisions with other platform saves.
                 await c.execute("SELECT pg_advisory_xact_lock(hashtextextended('platform-carriers',0))")
                 previous = await c.fetchrow('SELECT * FROM public.platform_carrier_connections WHERE id=$1 FOR UPDATE', identifier)
+                if previous is not None and connection_id and (secret or any(previous[key]!=getattr(body,key) for key in ('api_base_url','aggregator','environment','upstream_account_id'))):
+                    from backend.credential_rotation import require_recent_admin_auth
+                    require_recent_admin_auth(request)
                 if connection_id and previous is None:
                     raise HTTPException(404, 'Platform connection not found')
                 if previous is not None and not secret and any(previous[k] != getattr(body,k)

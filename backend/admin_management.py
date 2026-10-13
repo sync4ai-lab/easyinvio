@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 import asyncpg
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from backend.admin_portal import InputModel, MarginCreate, authenticate_platform_owner, database_error
 
 router = APIRouter(prefix='/api/v1/admin', tags=['Platform management'])
@@ -103,6 +103,12 @@ class CarrierCreate(InputModel):
     is_active: bool=Field(default=False,strict=True)
 
 class CarrierUpdate(InputModel):
+    @model_validator(mode='before')
+    @classmethod
+    def sealed_fields(cls, value):
+        if isinstance(value,dict) and set(value) & {'credentials_ciphertext','credential_key_id','credential_version','credential_write_locked','api_key','api_base_url','upstream_account_id','environment','tenant_id'}:
+            raise HTTPException(403, 'Credential identity is write-locked. Use the fresh-admin replacement flow; raw ciphertext is never accepted.')
+        return value
     is_active: bool=Field(strict=True)
     priority: int=Field(default=100,ge=0,le=1000000,strict=True)
     timeout_seconds: int=Field(default=30,ge=1,le=120,strict=True)
@@ -167,7 +173,7 @@ async def add_carrier(body: CarrierCreate, request: Request, owner=owner_depende
                     raise HTTPException(422,'Tenant active-carrier limit reached; disable a connection first')
                 await c.execute('''INSERT INTO public.carrier_accounts(id,tenant_id,account_name,aggregator,
                     regional_provider_code,api_base_url,environment,credentials_ciphertext,credential_key_id,
-                    upstream_account_id,timeout_seconds,priority,is_active) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)''',
+                    upstream_account_id,timeout_seconds,priority,is_active,credential_write_locked) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,true)''',
                     account_id,body.tenant_id,body.account_name.strip(),body.aggregator,body.regional_provider_code,
                     body.api_base_url,body.environment,ciphertext,key_id,body.upstream_account_id,body.timeout_seconds,body.priority,body.is_active)
                 await audit(c,owner,body.tenant_id,'CREATE_CARRIER',account_id,{'account_name':body.account_name,'aggregator':body.aggregator,'environment':body.environment,'is_active':body.is_active})

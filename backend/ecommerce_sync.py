@@ -138,6 +138,10 @@ def tracking_link(carrier: str, number: str) -> str | None:
     return root + encoded if root else None
 
 
+class ReturnReference(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    reference:str=Field(pattern=r'^gid://shopify/ReverseFulfillmentOrder/[1-9][0-9]{0,30}$')
+
 class EcommerceService:
     def __init__(self, pool, *, connectors=None, client=None, credential_keys=None):
         self.pool = pool
@@ -150,7 +154,7 @@ class EcommerceService:
         async with self.pool.acquire() as connection:
             rows = await connection.fetch('''SELECT o.id,o.store_id,o.payload FROM public.ecommerce_tracking_outbox o
                 JOIN public.ecommerce_stores s ON s.tenant_id=o.tenant_id AND s.id=o.store_id
-                WHERE o.tenant_id=$1 AND o.store_order_id=$2 AND o.status='PENDING' AND s.is_active''', tenant_id,store_order_id)
+                WHERE o.tenant_id=$1 AND o.store_order_id=$2 AND o.status='PENDING' AND o.tracking_lifecycle_type='FORWARD_SHIPMENT' AND s.is_active''', tenant_id,store_order_id)
         for row in rows:
             from backend.store_connections import resolve_connector
             config = await resolve_connector(self, row['store_id'])
@@ -174,9 +178,11 @@ class EcommerceService:
                 # No remote error payload or credentials enter the outbox/logs.
                 continue
             async with self.pool.acquire() as connection:
-                await connection.execute('''UPDATE public.ecommerce_tracking_outbox SET status='DELIVERED',
-                    delivered_at=now(),response=$3::jsonb WHERE tenant_id=$1 AND id=$2 AND status='RECONCILIATION_REQUIRED' ''',
-                    tenant_id,row['id'],json.dumps(response))
+                async with connection.transaction():
+                    await connection.execute('''UPDATE public.ecommerce_tracking_outbox SET status='DELIVERED',
+                        delivered_at=now(),response=$3::jsonb WHERE tenant_id=$1 AND id=$2 AND status='RECONCILIATION_REQUIRED' ''',
+                        tenant_id,row['id'],json.dumps(response))
+                    await connection.execute("UPDATE public.shipments SET store_fulfillment_status='FULFILLED' WHERE tenant_id=$1 AND id=(SELECT shipment_id FROM public.ecommerce_tracking_outbox WHERE tenant_id=$1 AND id=$2) AND tracking_lifecycle_type='FORWARD_SHIPMENT'",tenant_id,row['id'])
 
     async def import_order(self, context, payload: ImportPayload, *, initial_status="PENDING_IMPORT") -> dict:
         if initial_status not in {"PENDING_IMPORT", "UNFULFILLED"}:
@@ -246,18 +252,27 @@ class EcommerceService:
     async def queue_confirmed_tracking(self, connection, tenant_id, shipment_id, tracking_number, carrier_name):
         """Called in the label settlement transaction; no network inside the lock."""
         shipment = await connection.fetchrow(
-            "SELECT ecommerce_store_id,store_order_id FROM public.shipments WHERE tenant_id=$1 AND id=$2",
+            "SELECT ecommerce_store_id,store_order_id,tracking_lifecycle_type,return_of_shipment_id,logistics_metadata FROM public.shipments WHERE tenant_id=$1 AND id=$2",
             tenant_id, shipment_id)
-        if shipment is None or shipment["ecommerce_store_id"] is None:
+        if shipment is None:
             return None
-        body = {"fulfillment_state": "SHIPPED", "store_order_id": shipment["store_order_id"],
+        metadata=json.loads(shipment.get('logistics_metadata','{}')) if isinstance(shipment.get('logistics_metadata'),str) else shipment.get('logistics_metadata') or {}
+        lifecycle=shipment.get('tracking_lifecycle_type','FORWARD_SHIPMENT')
+        if metadata.get('automation_order',{}).get('is_return'):lifecycle='RETURN_SHIPMENT'
+        if lifecycle=='RETURN_SHIPMENT' and shipment.get('return_of_shipment_id'):
+            parent=await connection.fetchrow('SELECT ecommerce_store_id,store_order_id FROM public.shipments WHERE tenant_id=$1 AND id=$2',tenant_id,shipment['return_of_shipment_id'])
+            if parent:shipment={**dict(shipment),'ecommerce_store_id':parent['ecommerce_store_id'],'store_order_id':parent['store_order_id']}
+        if shipment['ecommerce_store_id'] is None:return None
+        body = {"return_quantity":sum(item['quantity'] for item in metadata.get('automation_order',{}).get('items',[])),"tracking_lifecycle_type":lifecycle,"store_return_reference":metadata.get('automation_order',{}).get('store_return_reference'),
+                "tracking_numbers":[piece['tracking_number'] for piece in metadata.get('automation_label',{}).get('package_labels',[])],
+                "fulfillment_state": "RETURN_LABEL_CREATED" if lifecycle=='RETURN_SHIPMENT' else "SHIPPED", "store_order_id": shipment["store_order_id"],
                 "tracking_number": tracking_number, "carrier_name": carrier_name,
                 "tracking_url": tracking_link(carrier_name, tracking_number)}
         await connection.execute(
             """INSERT INTO public.ecommerce_tracking_outbox
-               (tenant_id,shipment_id,store_id,store_order_id,payload)
-               VALUES ($1,$2,$3,$4,$5::jsonb) ON CONFLICT (tenant_id,shipment_id) DO NOTHING""",
-            tenant_id, shipment_id, shipment["ecommerce_store_id"], shipment["store_order_id"], json.dumps(body))
+               (tenant_id,shipment_id,store_id,store_order_id,payload,tracking_lifecycle_type,store_return_reference)
+               VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7) ON CONFLICT (tenant_id,shipment_id) DO NOTHING""",
+            tenant_id, shipment_id, shipment["ecommerce_store_id"], shipment["store_order_id"], json.dumps(body),lifecycle,body['store_return_reference'])
         return shipment["store_order_id"]
 
     async def push(self, tenant_id: UUID, store_order_id: str, tracking_number: str, carrier_name: str):
@@ -268,13 +283,14 @@ class EcommerceService:
         async with self.pool.acquire() as connection:
             async with connection.transaction():
                 rows = await connection.fetch(
-                    """SELECT o.id,o.payload,o.status FROM public.ecommerce_tracking_outbox o
+                    """SELECT o.id,o.payload,o.status,o.tracking_lifecycle_type FROM public.ecommerce_tracking_outbox o
                        JOIN public.ecommerce_stores s ON s.id=o.store_id AND s.tenant_id=o.tenant_id
                        WHERE o.tenant_id=$1 AND o.store_order_id=$2 AND s.is_active
                        ORDER BY o.id FOR UPDATE OF o""", tenant_id, store_order_id)
                 matched = 0
                 for row in rows:
                     body = json.loads(row["payload"]) if isinstance(row["payload"], str) else row["payload"]
+                    if row.get('tracking_lifecycle_type','FORWARD_SHIPMENT')!='FORWARD_SHIPMENT':continue
                     if body["tracking_number"] != tracking_number or body["carrier_name"] != carrier_name:
                         continue
                     matched += 1
@@ -300,7 +316,7 @@ class EcommerceService:
 
     async def retry_pending(self):
         async with self.pool.acquire() as connection:
-            rows = await connection.fetch("SELECT tenant_id,store_order_id,payload FROM public.ecommerce_tracking_outbox WHERE status='PENDING' ORDER BY created_at LIMIT 100")
+            rows = await connection.fetch("SELECT tenant_id,store_order_id,payload FROM public.ecommerce_tracking_outbox WHERE status='PENDING' AND tracking_lifecycle_type='FORWARD_SHIPMENT' ORDER BY created_at LIMIT 100")
         for row in rows:
             body = json.loads(row["payload"]) if isinstance(row["payload"], str) else row["payload"]
             try:
@@ -308,6 +324,8 @@ class EcommerceService:
             except (asyncpg.PostgresError, httpx.HTTPError, HTTPException):
                 # Retain the durable pending record; a later cycle retries it.
                 continue
+        from backend.store_returns import sync_return_jobs
+        await sync_return_jobs(self)
 
 
 def configure_ecommerce_service(service: EcommerceService | None):
@@ -347,7 +365,8 @@ def build_router(authenticate):
         if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:
             raise HTTPException(403,'Integration management permission required')
         async with request.app.state.ecommerce.pool.acquire() as connection:
-            rows=await connection.fetch('''SELECT id,store_id,shipment_id,status,attempts,created_at,delivered_at
+            rows=await connection.fetch('''SELECT id,store_id,shipment_id,status,attempts,created_at,delivered_at,
+                tracking_lifecycle_type,store_sync_error_code,store_return_reference
                 FROM public.ecommerce_tracking_outbox WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 200''',context.tenant_id)
         return {'events':[dict(row) for row in rows],'limit':200}
 
@@ -357,7 +376,7 @@ def build_router(authenticate):
             raise HTTPException(403,'Integration management permission required')
         service=request.app.state.ecommerce
         async with service.pool.acquire() as connection:
-            row=await connection.fetchrow('''SELECT o.store_id,o.payload FROM public.ecommerce_tracking_outbox o
+            row=await connection.fetchrow('''SELECT o.store_id,o.payload,o.tracking_lifecycle_type FROM public.ecommerce_tracking_outbox o
                 JOIN public.ecommerce_stores s ON s.tenant_id=o.tenant_id AND s.id=o.store_id
                 WHERE o.tenant_id=$1 AND o.id=$2 AND o.status='RECONCILIATION_REQUIRED' AND s.is_active''',context.tenant_id,event_id)
         if not row: raise HTTPException(404,'Pending reconciliation not found')
@@ -368,7 +387,11 @@ def build_router(authenticate):
         from backend.ecommerce_connectors import ShopifyFulfillment
         body=json.loads(row['payload']) if isinstance(row['payload'],str) else row['payload']
         try:
-            response=await ShopifyFulfillment(service.client,config).deliver(body,verify_only=True)
+            if row['tracking_lifecycle_type']=='RETURN_SHIPMENT':
+                from backend.store_returns import ShopifyReturnTracking
+                response=await ShopifyReturnTracking(service.client,config).deliver(body,verify_only=True)
+            elif row['tracking_lifecycle_type']=='FORWARD_SHIPMENT':response=await ShopifyFulfillment(service.client,config).deliver(body,verify_only=True)
+            else:raise HTTPException(409,'Exchange tracking requires a verified replacement-order allocation')
         except (httpx.HTTPError,ValueError,KeyError,TypeError):
             raise HTTPException(503,'Store verification unavailable; hold retained') from None
         async with service.pool.acquire() as connection:
@@ -376,6 +399,26 @@ def build_router(authenticate):
                 delivered_at=now(),response=$3::jsonb WHERE tenant_id=$1 AND id=$2 AND status='RECONCILIATION_REQUIRED' ''',
                 context.tenant_id,event_id,json.dumps(response))
         return {'event_id':str(event_id),'status':'DELIVERED','purchase_retried':False}
+
+    @router.post('/tracking-events/{event_id}/return-reference')
+    async def link_return(event_id:UUID,body:ReturnReference,request:Request,context:Any=Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Store management permission required')
+        service=request.app.state.ecommerce
+        async with service.pool.acquire() as connection:
+            row=await connection.fetchrow("SELECT store_id,payload,store_sync_error_code FROM public.ecommerce_tracking_outbox WHERE tenant_id=$1 AND id=$2 AND tracking_lifecycle_type='RETURN_SHIPMENT' AND status='RECONCILIATION_REQUIRED'",context.tenant_id,event_id)
+        if not row:raise HTTPException(404,'Held return tracking job not found')
+        if row['store_sync_error_code']=='RETURN_SUBMITTED':raise HTTPException(409,'The original return submission requires verification; its reference cannot be replaced')
+        from backend.store_connections import resolve_connector
+        from backend.store_returns import ShopifyReturnTracking
+        config=await resolve_connector(service,row['store_id'])
+        if not config or config.tenant_id!=context.tenant_id or config.platform!='SHOPIFY' or not config.live_delivery:raise HTTPException(409,'Enable the verified Shopify return connector before linking a return')
+        payload=json.loads(row['payload']) if isinstance(row['payload'],str) else row['payload']
+        payload={**payload,'store_return_reference':body.reference}
+        await ShopifyReturnTracking(service.client,config).inspect(payload)
+        async with service.pool.acquire() as connection:
+            result=await connection.execute("UPDATE public.ecommerce_tracking_outbox SET store_return_reference=$3,payload=$4::jsonb,store_sync_error_code='RETURN_ADAPTER_UPGRADE_REQUIRED',attempts=0 WHERE tenant_id=$1 AND id=$2 AND status='RECONCILIATION_REQUIRED' AND store_sync_error_code IS DISTINCT FROM 'RETURN_SUBMITTED'",context.tenant_id,event_id,body.reference,json.dumps(payload))
+        if result=='UPDATE 0':raise HTTPException(409,'Return submission started; reference retained')
+        return {'event_id':str(event_id),'status':'RECONCILIATION_REQUIRED','return_reference_verified':True,'original_fulfillment_changed':False}
 
     @router.post("/pull-orders", status_code=201)
     async def pull_orders(request: Request, context: Any = Depends(authenticate)):

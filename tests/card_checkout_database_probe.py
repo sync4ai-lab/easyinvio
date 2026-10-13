@@ -59,6 +59,18 @@ async def run():
                     'rate':'12.00' if customs else '10.00','delivery_days':2}]}
                 body['rates'].append({'id':'rate_'+uuid4().hex,'carrier':'UPS','service':'Express Saver','currency':'GBP','rate':'13.00' if customs else '11.00','delivery_days':3})
                 remote[sid]=body;return httpx.Response(201,json=body)
+            if request.url.path.startswith('/v2/orders'):
+                if request.method=='POST' and request.url.path=='/v2/orders':
+                    pieces=json.loads(request.content)['order']['shipments'];assert len(pieces)==2
+                    oid='order_'+uuid4().hex
+                    body={'id':oid,'mode':'test','rates':[{'id':'rate_'+uuid4().hex,'carrier':'UPS','service':'Ground','currency':'GBP','rate':'18.00'}],
+                          'shipments':[{'id':'shp_'+uuid4().hex,'mode':'test'} for piece in pieces]}
+                    remote[oid]=body;return httpx.Response(201,json=body)
+                oid=request.url.path.split('/')[3];body=remote[oid]
+                if request.method=='POST':
+                    for index,piece in enumerate(body['shipments']):
+                        piece.update(selected_rate={'id':'rate_'+str(index),'carrier':'UPS','service':'Ground'},tracking_code='GROUP-'+piece['id'][-12:],postage_label={'label_pdf_url':'https://easypost-files.s3.amazonaws.com/box'+str(index)+'.pdf'})
+                return httpx.Response(200,json=body)
             sid=request.url.path.split('/')[3];body=remote[sid]
             if request.method=='POST':
                 assert request.url.path.endswith('/buy')
@@ -224,6 +236,69 @@ async def run():
             assert (await complete_cart(service,context,body3.request_id))['replayed']
             report['checks'].append('PASS: verified card payment followed by rejected label retains exact card-funded wallet credit, releases reservations and does not retry the rejected purchase on replay')
 
+            reject_purchase[0]=False
+            from backend.automation_freight_engine import Order
+            from backend.tracking_and_support import TrackingSupportService,TrackingSettings,TrackingKey,TrackingEvent
+            from tests.test_multi_piece_flow import boxes
+            group_order=Order(idempotency_key=uuid4(),order_reference='ROLLBACK-MULTI-BOX',origin=origin,destination=origin,multi_parcel_dimensions=boxes(),items=[{'description':'Steel component','quantity':1,'unit_value':'15','unit_weight_kg':'1','origin_country':'GB','sku':'QA-PART','package_index':2}])
+            group_quote=await automation.process(context,group_order,'QUOTE_ONLY')
+            assert group_quote['status']=='QUOTED',group_quote
+            group_sid=UUID(group_quote['shipment_id'])
+            before=await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)
+            group_booking=await service.confirm(context,BookingRequest(tenant_id=tenant,offer_id=group_quote['rate']['offer_id']))
+            assert group_booking['status']=='BOOKED',group_booking
+            metadata=json.loads(await connection.fetchval('SELECT logistics_metadata FROM public.shipments WHERE id=$1',group_sid))
+            labels=metadata['automation_label']['package_labels'];assert len(labels)==2
+            assert await connection.fetchval('SELECT balance FROM public.wallets WHERE tenant_id=$1',tenant)==before-Decimal(group_quote['rate']['client_price_ex_tax'])
+            assert await connection.fetchval("SELECT count(*) FROM public.wallet_ledger l JOIN public.wallet_reservations r ON r.id=l.reservation_id WHERE r.shipment_id=$1 AND l.entry_type='CAPTURE'",group_sid)==1
+            assert await connection.fetchval('SELECT package_index FROM public.shipment_goods_items WHERE shipment_id=$1',group_sid)==2
+            key=TrackingKey(tenant_id=tenant,carrier_account_id=aid,secret='synthetic-tracking-signature-32-bytes')
+            tracker=TrackingSupportService(pool,TrackingSettings(_env_file=None,tracking_webhook_keys={}))
+            from datetime import timedelta
+            now=datetime.now(timezone.utc)
+            for index,piece in enumerate(labels):
+                event=TrackingEvent(event_id='group-'+str(index),tracking_number=piece['tracking_number'],status='DELIVERED',occurred_at=now-timedelta(minutes=index+1))
+                result=await tracker.ingest('rollback-multi-piece',key,event,str(index)*64);assert result['applied']
+                expected='IN_TRANSIT' if index==0 else 'DELIVERED'
+                assert await connection.fetchval('SELECT status FROM public.shipments WHERE id=$1',group_sid)==expected
+            from backend.ecommerce_sync import EcommerceService
+            from backend.store_returns import sync_return_jobs
+            from unittest.mock import AsyncMock,patch
+            store_id=uuid4()
+            await connection.execute("INSERT INTO public.ecommerce_stores(id,tenant_id,platform,display_name) VALUES($1,$2,'SHOPIFY','ROLLBACK Return Store')",store_id,tenant)
+            await connection.execute("UPDATE public.shipments SET ecommerce_store_id=$2,store_order_id='123' WHERE id=$1",group_sid,store_id)
+            await connection.execute("UPDATE public.shipments SET tracking_lifecycle_type='RETURN_SHIPMENT',return_of_shipment_id=$2,logistics_metadata=jsonb_set(jsonb_set(logistics_metadata,'{automation_order,is_return}','true'),'{automation_order,store_return_reference}',to_jsonb('gid://shopify/ReverseFulfillmentOrder/456'::text)) WHERE id=$1",sid,group_sid)
+            ecommerce=EcommerceService(pool,client=client)
+            tracking_number=await connection.fetchval('SELECT tracking_number FROM public.shipments WHERE id=$1',sid)
+            assert await ecommerce.queue_confirmed_tracking(connection,tenant,sid,tracking_number,'DHL')=='123'
+            job=await connection.fetchrow('SELECT * FROM public.ecommerce_tracking_outbox WHERE shipment_id=$1',sid)
+            assert job['status']=='RECONCILIATION_REQUIRED' and job['tracking_lifecycle_type']=='RETURN_SHIPMENT' and job['store_return_reference'].endswith('/456')
+            parent_status=await connection.fetchval('SELECT store_fulfillment_status FROM public.shipments WHERE id=$1',group_sid)
+            config=SimpleNamespace(tenant_id=tenant,platform='SHOPIFY',live_delivery=True)
+            with patch('backend.store_connections.resolve_connector',AsyncMock(return_value=config)),patch('backend.store_returns.ShopifyReturnTracking.deliver',AsyncMock(return_value={'return_tracking_attached':True,'original_fulfillment_changed':False})) as reverse_delivery:
+                await sync_return_jobs(ecommerce);await sync_return_jobs(ecommerce)
+                reverse_delivery.assert_awaited_once()
+            assert await connection.fetchval('SELECT status FROM public.ecommerce_tracking_outbox WHERE shipment_id=$1',sid)=='DELIVERED'
+            assert await connection.fetchval('SELECT store_fulfillment_status FROM public.shipments WHERE id=$1',group_sid)==parent_status
+            report['checks'].append('PASS: return outbox derives original store without a duplicate store-order row, starts fenced from forward fulfillment, sends reverse tracking once and leaves original fulfillment status unchanged')
+            from backend.admin_portal import PlatformOwner
+            from backend.credential_rotation import replace_credentials,CredentialReplacement
+            import time
+            old_id=uuid4();new_id=uuid4()
+            old_secret=Fernet(settings.credential_keys[key_id].get_secret_value().encode()).encrypt(json.dumps({'tenant_id':str(tenant),'account_id':str(old_id),'api_key':'synthetic-old-key'}).encode())
+            await connection.execute('''INSERT INTO public.carrier_accounts(id,tenant_id,account_name,aggregator,api_base_url,environment,credentials_ciphertext,credential_key_id,is_active)
+                VALUES($1,$2,'ROLLBACK Sealed Standalone','EASYPOST','https://api.easypost.com/v2','TEST',$3,$4,false)''',old_id,tenant,old_secret,key_id)
+            rotation_request=SimpleNamespace(state=SimpleNamespace(platform_auth_claims={'amr':[{'method':'password','timestamp':time.time()}]}),app=SimpleNamespace(state=SimpleNamespace(settings=settings,finance=finance)))
+            result=await replace_credentials(old_id,CredentialReplacement(request_id=new_id,new_api_key='synthetic-new-key',reason='Rollback-only rotation verification'),rotation_request,PlatformOwner(member))
+            assert result['credential_write_locked'] and not result['is_active']
+            replacement=await connection.fetchrow('SELECT credential_write_locked,credential_version,credentials_ciphertext,last_security_audit_at FROM public.carrier_accounts WHERE id=$1',new_id)
+            assert replacement['credential_write_locked'] and replacement['credential_version']==2 and replacement['last_security_audit_at']
+            envelope=json.loads(Fernet(settings.credential_keys[key_id].get_secret_value().encode()).decrypt(bytes(replacement['credentials_ciphertext'])))
+            assert envelope['account_id']==str(new_id) and envelope['tenant_id']==str(tenant)
+            assert not await connection.fetchval('SELECT is_active FROM public.carrier_accounts WHERE id=$1',old_id)
+            report['checks'].append('PASS: fresh-admin replacement creates a new sealed, disabled connection with tenant/account-bound ciphertext and audit timestamp; historical connection retained')
+            await connection.execute('SET CONSTRAINTS ALL IMMEDIATE')
+            report['checks'].append('PASS: two differently sized boxes, allocated normalized goods, two confirmed labels, one exact wallet capture; first delivered box leaves shipment in transit; older event for second box completes delivery; all deferred SQL constraints pass')
         report['status']='PASS'
     finally:
         await outer.rollback();await connection.close();report['database_writes_rolled_back']=True

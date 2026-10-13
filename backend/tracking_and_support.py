@@ -151,9 +151,9 @@ class TrackingSupportService:
                         raise HTTPException(409, "Tracking event ID already used with different data")
                     result = json.loads(receipt["response"]) if isinstance(receipt["response"], str) else receipt["response"]
                     return {**result, "replayed": True}
-                rows = await connection.fetch("""SELECT s.id,s.status,s.last_tracking_event_at,s.proof_of_delivery_url FROM public.shipments s
+                rows = await connection.fetch("""SELECT s.id,s.status,s.last_tracking_event_at,s.proof_of_delivery_url,s.logistics_metadata FROM public.shipments s
                     JOIN public.carrier_accounts a ON a.id=s.carrier_account_id AND a.tenant_id=s.tenant_id
-                    WHERE s.tenant_id=$1 AND s.carrier_account_id=$2 AND s.tracking_number=$3
+                    WHERE s.tenant_id=$1 AND s.carrier_account_id=$2 AND (s.tracking_number=$3 OR s.logistics_metadata->'automation_label'->'package_labels' @> jsonb_build_array(jsonb_build_object('tracking_number',$3::text)))
                     ORDER BY s.id LIMIT 2 FOR UPDATE OF s""", key.tenant_id, key.carrier_account_id, event.tracking_number)
                 if not rows:
                     raise HTTPException(404, "Shipment not found for this integration")
@@ -163,15 +163,28 @@ class TrackingSupportService:
                 allowed = {"BOOKED", "DISPATCHED", "IN_TRANSIT", "EXCEPTION", "DELIVERED"}
                 if shipment["status"] not in allowed:
                     raise HTTPException(409, "Shipment has no confirmed carrier dispatch")
-                stale = shipment["last_tracking_event_at"] is not None and event.occurred_at <= shipment["last_tracking_event_at"]
-                terminal = shipment["status"] == "DELIVERED" and event.status != "DELIVERED"
+                metadata=json.loads(shipment.get('logistics_metadata','{}')) if isinstance(shipment.get('logistics_metadata'),str) else shipment.get('logistics_metadata') or {}
+                labels=metadata.get('automation_label',{}).get('package_labels',[])
+                pieces=metadata.get('package_tracking',{})
+                previous=pieces.get(event.tracking_number,{}) if len(labels)>1 else {}
+                previous_time=datetime.fromisoformat(previous['occurred_at']) if previous.get('occurred_at') else shipment['last_tracking_event_at'] if len(labels)<2 else None
+                applied_status=event.status
+                stale = previous_time is not None and event.occurred_at <= previous_time
+                terminal = (shipment["status"] == "DELIVERED" or previous.get("status")=="DELIVERED") and event.status != "DELIVERED"
                 # Delivery evidence can arrive separately at the same final scan timestamp.
                 # Enrich a missing POD only; never regress state or accept older evidence.
                 late_pod = (shipment["status"] == "DELIVERED" and event.status == "DELIVERED"
                     and event.occurred_at == shipment["last_tracking_event_at"]
                     and pod is not None and not shipment.get("proof_of_delivery_url"))
-                applied = (not stale and not terminal) or late_pod
+                late_piece_pod=bool(len(labels)>1 and previous.get('status')=='DELIVERED' and event.status=='DELIVERED' and event.occurred_at==previous_time and pod and not previous.get('proof_of_delivery_url'))
+                applied = (not stale and not terminal) or late_pod or late_piece_pod
                 if applied:
+                    if len(labels)>1:
+                        pieces[event.tracking_number]={'status':event.status,'occurred_at':event.occurred_at.isoformat(),'proof_of_delivery_url':pod or previous.get('proof_of_delivery_url')}
+                        statuses=[pieces.get(piece['tracking_number'],{}).get('status','BOOKED') for piece in labels]
+                        applied_status='DELIVERED' if all(status=='DELIVERED' for status in statuses) else 'EXCEPTION' if 'EXCEPTION' in statuses else 'IN_TRANSIT'
+                        await connection.execute("UPDATE public.shipments SET logistics_metadata=logistics_metadata||jsonb_build_object('package_tracking',$3::jsonb) WHERE tenant_id=$1 AND id=$2",key.tenant_id,shipment['id'],json.dumps(pieces))
+                        if applied_status!='DELIVERED':pod=None
                     await connection.execute("""UPDATE public.shipments SET status=$3,last_tracking_event_at=$4,
                         delivered_at=CASE WHEN $3='DELIVERED' THEN coalesce(delivered_at,$4) ELSE delivered_at END,
                         proof_of_delivery_url=CASE WHEN $3='DELIVERED' THEN coalesce($5,proof_of_delivery_url) ELSE proof_of_delivery_url END,
@@ -180,8 +193,8 @@ class TrackingSupportService:
                             'tracking',coalesce(logistics_metadata->'tracking','{}'::jsonb)||jsonb_build_object(
                                 'provider',(SELECT aggregator FROM public.carrier_accounts WHERE tenant_id=$1 AND id=carrier_account_id),
                                 'active_exception',$3='EXCEPTION')),
-                        updated_at=now() WHERE tenant_id=$1 AND id=$2""", key.tenant_id, shipment["id"], event.status, event.occurred_at, pod)
-                    if event.status == "DELIVERED":
+                        updated_at=now() WHERE tenant_id=$1 AND id=$2""", key.tenant_id, shipment["id"], applied_status, max(event.occurred_at,shipment["last_tracking_event_at"]) if shipment["last_tracking_event_at"] else event.occurred_at, pod)
+                    if applied_status == "DELIVERED":
                         await connection.execute("""INSERT INTO public.support_ticket_activity
                             (tenant_id,ticket_id,actor_name,activity_type,note)
                             SELECT tenant_id,id,'Carrier tracking','RESOLVED','Verified carrier event confirmed delivery.'
@@ -191,7 +204,9 @@ class TrackingSupportService:
                         await connection.execute("""UPDATE public.support_message_outbox SET status='CANCELLED'
                             WHERE tenant_id=$1 AND status='STAGED' AND ticket_id IN
                             (SELECT id FROM public.support_tickets WHERE tenant_id=$1 AND shipment_id=$2 AND tracking_event_id IS NOT NULL)""", key.tenant_id, shipment["id"])
-                result = {"shipment_id": str(shipment["id"]), "status": event.status if applied else shipment["status"],
+                if applied:
+                    await connection.execute("UPDATE public.shipments SET store_return_status=CASE WHEN $3='DELIVERED' THEN 'RECEIVED' WHEN $3 IN ('IN_TRANSIT','EXCEPTION') THEN 'IN_TRANSIT' ELSE store_return_status END WHERE tenant_id=$1 AND id=$2 AND tracking_lifecycle_type='RETURN_SHIPMENT'",key.tenant_id,shipment['id'],applied_status)
+                result = {"shipment_id": str(shipment["id"]), "status": applied_status if applied else shipment["status"],
                           "applied": applied, "replayed": False, "support_queued": applied and event.status == "EXCEPTION"}
                 await connection.execute("""INSERT INTO public.tracking_events
                     (tenant_id,shipment_id,integration_key_id,event_id,body_sha256,status,occurred_at,raw_error,response,support_pending)

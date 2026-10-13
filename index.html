@@ -4851,6 +4851,7 @@ document.body.insertAdjacentHTML('beforeend', `<dialog id="workspace-pack-dialog
  <label>Stackable<select name="stackable"><option value="false">No</option><option value="true">Yes</option></select></label>
  <label>Customs signer<input name="customs_signer" maxlength="200"></label><label>Postal form<select name="postal_form"><option value="">Commercial invoice</option><option>CN22</option><option>CN23</option></select></label>
  </div><label>Sender address (JSON)<textarea name="origin" rows="5" required></textarea></label><label>Recipient address including phone/state (JSON)<textarea name="destination" rows="5" required></textarea></label>
+ <details><summary>Multiple boxes</summary><label>Measured boxes (JSON array)<textarea name="multi_parcel_dimensions" rows="6" placeholder='[{"box_index":1,"length_cm":"30","width_cm":"20","height_cm":"10","actual_weight_kg":"2"}]'></textarea></label><p class="subtle">Standard parcels only. Number boxes from 1 and assign each goods line a package_index. The measurements above must match box 1. Leave empty for one box.</p></details>
  <label>Goods (JSON array: description, quantity, unit_value, unit_weight_kg, origin_country, hs_code)<textarea name="items" rows="10" required></textarea></label>
  <p class="notice">HS codes require explicit review. Check each code and provide actual manufacturing origin, unit declared value and net weight. Warehouse dimensions must be measured, not inferred from the storefront. CN22/CN23 printing requires the corresponding carrier-issued form.</p>
  <label class="check"><input name="reviewed" type="checkbox">I have checked the international customs facts and HS codes</label>
@@ -4933,6 +4934,13 @@ document.addEventListener('click', event => {
     $('#workspace-pack-reference').textContent = result.order.order_reference + ' · ' + result.status;
     for (const key of ['cargo_type', 'actual_weight_kg', 'length_cm', 'width_cm', 'height_cm', 'stackable']) form.elements[key].value = String(result.order.cargo[key] ?? '');
     for (const key of ['origin', 'destination', 'items']) form.elements[key].value = JSON.stringify(result.order[key], null, 2);
+    form.elements.multi_parcel_dimensions.value = JSON.stringify(result.order.multi_parcel_dimensions?.length ? result.order.multi_parcel_dimensions : (result.order.packages || []).map((box, index) => ({
+      box_index: index + 1,
+      length_cm: box.length_cm,
+      width_cm: box.width_cm,
+      height_cm: box.height_cm,
+      actual_weight_kg: box.actual_weight_kg
+    })), null, 2);
     form.elements.customs_signer.value = result.order.customs_signer || '';
     form.elements.postal_form.value = result.order.postal_form || '';
     form.elements.reviewed.checked = false;
@@ -4954,6 +4962,8 @@ $('#workspace-pack-form').addEventListener('submit', event => {
     };
     for (const key of ['length_cm', 'width_cm', 'height_cm']) order.cargo[key] = form[key].value || null;
     for (const key of ['origin', 'destination', 'items']) order[key] = JSON.parse(form[key].value);
+    order.multi_parcel_dimensions = JSON.parse(form.multi_parcel_dimensions.value || '[]');
+    order.packages = [];
     order.customs_signer = form.customs_signer.value || null;
     order.postal_form = form.postal_form.value || null;
     order.hs_codes_reviewed = form.reviewed.checked;
@@ -5810,7 +5820,7 @@ function checkoutError(error) {
 
 function checkoutProduct(item = {}) {
   const value = name => escapeHTML(item[name] ?? '');
-  return `<div class="checkout-product"><label>Product description</label><textarea name="description" minlength="3" maxlength="500" placeholder="e.g. Electric steam iron for household clothing" required>${value('description')}</textarea>
+  return `<div class="checkout-product"><input type="hidden" name="sku" value="${value('sku')}"><input type="hidden" name="package_index" value="${value('package_index')}">${item.package_index?`<p class="subtle">Box ${value('package_index')}${item.sku?` &middot; SKU ${value('sku')}`:''}</p>`:''}<label>Product description</label><textarea name="description" minlength="3" maxlength="500" placeholder="e.g. Electric steam iron for household clothing" required>${value('description')}</textarea>
   <button type="button" class="secondary" data-checkout-hs>Find HS code in official tariff</button><div class="checkout-tariffs" aria-live="polite"></div>
   <div class="fields"><div><label>Reviewed HS code</label><input name="hs_code" value="${value('hs_code')}" placeholder="6, 8 or 10 digits" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></div><div><label>Country of manufacture</label><input readonly name="origin_country" value="${value('origin_country')}" placeholder="e.g. GB" pattern="[A-Za-z]{2}" required></div>
   <div><label>Quantity</label><input readonly name="quantity" value="${value('quantity')}" type="number" min="1" max="10000" step="1" placeholder="e.g. 2" required></div><div><label>Value per item</label><input readonly name="unit_value" value="${value('unit_value')}" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" placeholder="e.g. 25.00" required></div>
@@ -5889,6 +5899,11 @@ function renderCheckoutCustoms() {
     busy($('#checkout-prepare-btn'), async () => {
       try {
         const items = [...form.querySelectorAll('.checkout-product')].map(product => Object.fromEntries(['description', 'hs_code', 'origin_country', 'quantity', 'unit_value', 'unit_weight_kg'].map(name => [name, name === 'quantity' ? Number(product.querySelector(`[name=${name}]`).value) : product.querySelector(`[name=${name}]`).value.trim()])));
+        items.forEach((item, index) => {
+          const product = form.querySelectorAll('.checkout-product')[index];
+          item.sku = product.querySelector('[name=sku]').value || null;
+          item.package_index = product.querySelector('[name=package_index]').value ? Number(product.querySelector('[name=package_index]').value) : null;
+        });
         await prepareCustomerCheckout({
           items,
           signer: form.elements.signer.value.trim(),

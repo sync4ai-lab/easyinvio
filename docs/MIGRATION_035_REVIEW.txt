@@ -70,3 +70,70 @@ goods mass/allocation, cross-tenant lines and count mismatches rejected; submitt
 snapshots frozen; returns fenced from the old forward worker; credential overwrite
 and unlock blocked; trusted catalog propagation preserved; goods remain private.
 All database test writes rolled back; zero provider calls or messages.
+
+Backend implementation following confirmed migration execution
+-------------------------------------------------------------
+RatingRequest accepts multi_parcel_dimensions with sequential box_index,
+length_cm, width_cm, height_cm and actual_weight_kg. Decimal math computes
+max(actual, L*W*H/5000) independently per box, rounding upward to 0.001 kg,
+then sums. Carrier APIs receive each physical box, not duplicated aggregate
+weights. ClientRate exposes package_count and package_weight_summary.
+
+Order preparation persists normalized shipment_goods_items. Each multi-box
+goods line needs package_index; SKU and box assignment remain immutable
+through checkout. Marketplace preparation supports the measured-box JSON
+array; single-box fields must match box 1. Net goods weight must not exceed
+packed weight, globally or for an allocated box.
+
+EasyPost uses native Orders for multiple packages (maximum 100). Shippo uses
+its multi-parcel Shipment and retrieves every Transaction after one buy;
+current implementation limits UPS to 40 boxes and FedEx to 12. Sendcloud v3
+requests multicollo and quotes only options explicitly supporting it. v2 and
+unverified regional multi-box adapters are excluded. Existing TEST/LIVE and
+purchase-capability guards continue to apply. Group purchases require all
+package labels; uncertain/partial results remain reserved for reconciliation.
+Every package PDF and unique tracking number is retained. Group invoice mass
+checks compare the sum of packed weights rather than box 1. Delivery becomes final
+only when all packages are delivered. Group cancellation/refund and grouped
+return purchase are guarded pending complete native reconciliation support.
+
+Return jobs remain separate from forward fulfillment. Shopify synchronization
+requires an existing approved ReverseFulfillmentOrder belonging to the original
+order, matching quantities and read_returns/write_returns permissions. It uses
+reverseDeliveryCreateWithShipping, not fulfillmentCreate, and performs no
+refund, return approval, disposal or restocking. A send fence is committed
+before mutation; recovery verifies native state rather than resubmitting.
+Amazon return synchronization remains RECONCILIATION_REQUIRED until a specific native
+seller return program is configured; no generic Amazon return endpoint is
+invented. Local physical return scans update IN_TRANSIT/RECEIVED independently.
+
+GET /api/v1/integration/tracking-events exposes lifecycle and review codes.
+POST /api/v1/integration/tracking-events/{event_id}/return-reference links a
+verified Shopify reverse fulfillment order, prior to submission.
+POST /api/v1/integration/tracking-events/{event_id}/reconcile verifies native
+tracking without creating another label or forward fulfillment.
+
+POST /api/v1/admin/carriers/{account_id}/replace-credentials requires a real
+platform administrator with a verified authentication-method timestamp within
+five minutes. JWT issue time or refresh alone does not qualify. Submit a new
+request_id, new_api_key and reason. The old sealed identity is retained and
+disabled; a uniquely named, sealed replacement is created disabled, with a
+new tenant/account-bound encrypted envelope and private audit entries. Verify
+and activate the replacement before quoting. Shared catalog credential changes
+also require fresh authentication; mirrored tenant credentials remain sealed.
+
+Validation evidence: docs/migration035_backend_checks.json. Actual Supabase
+SANDBOX transactions validate two-box booking, exact capture, per-box tracking,
+normalized goods and deferred mass constraints, return outbox isolation and
+fresh-admin credential replacement. All writes roll back; HTTP provider and
+Stripe responses are controlled. These tests do not establish live carrier
+contract eligibility or a real storefront's granted scopes.
+
+Native references:
+https://docs.easypost.com/docs/orders
+https://docs.goshippo.com/shipments/multi-piece-shipment
+https://sendcloud.dev/docs/shipments/multicollo
+https://shopify.dev/docs/api/admin-graphql/2026-07/mutations/reverseDeliveryCreateWithShipping
+
+Final local checks: 397 unit tests pass; 18 embedded scripts parse; Chromium
+verifies multi-box preparation and immutable SKU/box customs fields.

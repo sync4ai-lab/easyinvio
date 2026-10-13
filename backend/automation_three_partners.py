@@ -425,7 +425,7 @@ class NativePartnerService:
         async with self.pool.acquire() as connection:
             rows=await connection.fetch('''SELECT s.tenant_id,s.carrier_account_id,s.upstream_shipment_id,
                 s.logistics_metadata FROM public.shipments s JOIN public.carrier_accounts a ON a.tenant_id=s.tenant_id AND a.id=s.carrier_account_id
-                WHERE a.platform_connection_id=$1 AND s.tracking_number=$2 AND a.environment=$3 LIMIT 2''',source_id,event.tracking_number,source['environment'])
+                WHERE a.platform_connection_id=$1 AND (s.tracking_number=$2 OR s.logistics_metadata->'automation_label'->'package_labels' @> jsonb_build_array(jsonb_build_object('tracking_number',$2::text))) AND a.environment=$3 LIMIT 2''',source_id,event.tracking_number,source['environment'])
         if not rows:
             raise HTTPException(404,'Tracked shipment not found for this connection')
         if len(rows)!=1:
@@ -433,6 +433,8 @@ class NativePartnerService:
         row=rows[0]
         if remote_id:
             expected=row['upstream_shipment_id'] if provider=='EASYPOST' else decode_json(row['logistics_metadata']).get('automation_label',{}).get('upstream_id')
+            labels=decode_json(row['logistics_metadata']).get('automation_label',{}).get('package_labels',[])
+            if any(piece.get('upstream_id')==str(remote_id) and piece.get('tracking_number')==event.tracking_number for piece in labels):expected=remote_id
             if str(remote_id)!=str(expected):
                 raise HTTPException(409,'Native shipment reference does not match')
         key=TrackingKey(tenant_id=row['tenant_id'],carrier_account_id=row['carrier_account_id'],
@@ -772,6 +774,9 @@ class EasyPostAdapter(BaseAggregatorAdapter):
             if body.get('id')!=snapshot['upstream_shipment_id']:
                 raise PurchaseUncertain('EASYPOST_ORDER_SHIPMENT_IDENTITY_MISMATCH')
             kind = 'Shipment'
+        elif len(packages)>1 and str(snapshot.get('upstream_shipment_id','')).startswith('order_'):
+            body=await self.request('GET','/orders/'+identifier(snapshot['upstream_shipment_id']))
+            kind='Order'
         elif len(packages) == 1:
             shipment = {'reference': native_order_key(snapshot), 'from_address': easypost_address(snapshot['origin']),
                         'to_address': easypost_address(snapshot['destination']), 'parcel': easypost_parcel(packages[0]),
@@ -801,6 +806,11 @@ class EasyPostAdapter(BaseAggregatorAdapter):
         return {'remote_id': body['id'], 'object_type': kind}
 
     async def confirm_order_fulfillment(self, remote_id, snapshot, label):
+        if label.get('package_labels'):
+            body=await self.request('GET','/orders/'+identifier(label['upstream_id']))
+            if body.get('mode')!=('test' if self.environment=='TEST' else 'production') or {piece.get('tracking_code') for piece in body.get('shipments',[])}!={piece['tracking_number'] for piece in label['package_labels']}:
+                raise PurchaseUncertain('EASYPOST_FULFILLMENT_NOT_CONFIRMED')
+            return True
         body = await self.request('GET', '/shipments/' + identifier(label['upstream_id']))
         if body.get('mode')!=('test' if self.environment=='TEST' else 'production') or body.get('tracking_code')!=label['tracking_number'] or not body.get('postage_label'):
             raise PurchaseUncertain('EASYPOST_FULFILLMENT_NOT_CONFIRMED')
@@ -810,7 +820,7 @@ class EasyPostAdapter(BaseAggregatorAdapter):
         kind = 'Shipment' if str(remote_id).startswith('shp_') else 'Order'
         path = '/shipments/' if kind=='Shipment' else '/orders/'
         body = await self.request('GET', path + identifier(remote_id))
-        reference_matches = body.get('reference')==native_order_key(snapshot) or (kind=='Shipment' and str(remote_id)==str(snapshot.get('upstream_shipment_id')))
+        reference_matches = body.get('reference')==native_order_key(snapshot) or str(remote_id)==str(snapshot.get('upstream_shipment_id'))
         if not reference_matches or body.get('id')!=remote_id or body.get('mode')!=('test' if self.environment=='TEST' else 'production'):
             raise PurchaseRejected('EASYPOST_ORDER_IDENTITY_MISMATCH')
         return {'remote_id':body['id'],'object_type':kind}
@@ -831,10 +841,37 @@ class EasyPostAdapter(BaseAggregatorAdapter):
                 'carrier_forms': [{'document_type': f.get('form_type', 'CUSTOMS_FORM'),
                                    'url': secure_link(f['form_url'])} for f in body.get('forms', [])]}
 
+    def normalize_order(self,body,snapshot):
+        from backend.multi_label import bundle_labels
+        pieces=body.get('shipments') or []
+        expected=snapshot.get('package_shipment_ids',[])
+        if body.get('mode')!=('test' if self.environment=='TEST' else 'production') or body.get('id')!=snapshot['upstream_shipment_id']:
+            raise PurchaseUncertain('REMOTE_ORDER_IDENTITY_MISMATCH')
+        if len(pieces)!=len(snapshot.get('packages') or expected) or len(pieces)<2 or set(expected)!={piece.get('id') for piece in pieces}:
+            raise PurchaseUncertain('PACKAGE_LABELS_INCOMPLETE')
+        labels=[]
+        for remote_id in expected:
+            piece=next(value for value in pieces if value.get('id')==remote_id)
+            selected=piece.get('selected_rate') or {}
+            if str(selected.get('carrier','')).upper()!=snapshot['carrier_code'].upper() or str(selected.get('service','')).upper()!=snapshot['service_code'].upper():
+                raise PurchaseUncertain('REMOTE_ORDER_SERVICE_MISMATCH')
+            labels.append(self.normalize(piece,{**snapshot,'upstream_shipment_id':remote_id,'upstream_rate_id':selected['id']}))
+        return bundle_labels(labels,body['id'])
+
     async def purchase_label(self, rate_snapshot):
         if rate_snapshot.get('cargo'):
             validate_native_cargo(rate_snapshot['cargo'], 'EASYPOST')
         shipment_id = identifier(rate_snapshot['upstream_shipment_id'])
+        if rate_snapshot.get('easypost_order'):
+            remote=await self.request('GET','/orders/'+shipment_id)
+            if remote.get('mode')!=('test' if self.environment=='TEST' else 'production'):raise PurchaseRejected('REMOTE_MODE_MISMATCH')
+            pieces=remote.get('shipments') or []
+            if any(piece.get('postage_label') for piece in pieces):return self.normalize_order(remote,rate_snapshot)
+            selected=next((rate for rate in remote.get('rates',[]) if rate.get('id')==rate_snapshot['upstream_rate_id']),None)
+            if not selected:raise PurchaseRejected('RATE_NO_LONGER_AVAILABLE')
+            self.last_remote_id=shipment_id
+            body=await self.request('POST','/orders/'+shipment_id+'/buy',{'carrier':selected['carrier'],'service':selected['service']})
+            return self.normalize_order(body,rate_snapshot)
         # Confirm the key's actual remote mode before any charge-producing call.
         remote = await self.request('GET', '/shipments/' + shipment_id)
         if remote.get('mode') != ('test' if self.environment == 'TEST' else 'production'):
@@ -866,6 +903,9 @@ class EasyPostAdapter(BaseAggregatorAdapter):
         return result
 
     async def retrieve_label(self, upstream_shipment_id, rate_snapshot):
+        rate_snapshot={**rate_snapshot,**rate_snapshot.get('execution_details',{})}
+        if rate_snapshot.get('easypost_order'):
+            return self.normalize_order(await self.request('GET','/orders/'+identifier(upstream_shipment_id)),rate_snapshot)
         return self.normalize(await self.request('GET', '/shipments/' + identifier(upstream_shipment_id)), rate_snapshot)
 
     async def void_label(self, upstream_shipment_id):
@@ -949,11 +989,15 @@ class ShippoAdapter(BaseAggregatorAdapter):
     async def purchase_label(self, rate_snapshot):
         if rate_snapshot.get('cargo'):
             validate_native_cargo(rate_snapshot['cargo'], 'SHIPPO')
+        if rate_snapshot.get('package_count',1)>1:
+            self.last_remote_id=rate_snapshot.get('upstream_shipment_id')
         body = await self.request('POST', '/transactions/',
             {'rate': rate_snapshot['upstream_rate_id'], 'label_file_type': 'PDF', 'async': False,
              **({'order': rate_snapshot['native_order_id']} if rate_snapshot.get('native_order_id') else {})})
-        self.last_remote_id = body.get('object_id')
+        self.last_remote_id = body.get('object_id') or (rate_snapshot['upstream_shipment_id'] if rate_snapshot.get('package_count',1)>1 else None)
         if body.get('status') == 'ERROR':
+            if rate_snapshot.get('package_count',1)>1:
+                raise PurchaseUncertain('MULTIPIECE_PURCHASE_RECONCILIATION_REQUIRED')
             messages = body.get('messages') or []
             if any(isinstance(message, dict)
                    and message.get('code') == 'carrier_request_failed'
@@ -961,9 +1005,22 @@ class ShippoAdapter(BaseAggregatorAdapter):
                    for message in messages):
                 raise PurchaseRejected('SHIPPO_CARRIER_UNAVAILABLE')
             raise PurchaseRejected('LABEL_REJECTED')
+        if rate_snapshot.get('package_count',1)>1:return await self.retrieve_package_labels(rate_snapshot)
         return self.normalize(body, rate_snapshot)
 
+    async def retrieve_package_labels(self,snapshot):
+        from backend.multi_label import bundle_labels
+        body=await self.request('GET','/transactions/?results=100&rate='+identifier(snapshot['upstream_rate_id']))
+        pieces=body.get('results') or []
+        if body.get('next') or len(pieces)!=snapshot['package_count']:raise PurchaseUncertain('PACKAGE_LABELS_INCOMPLETE')
+        labels=[self.normalize(piece,snapshot) for piece in pieces]
+        return bundle_labels(labels,self.last_remote_id or labels[0]['upstream_id'])
+
     async def retrieve_label(self, upstream_shipment_id, rate_snapshot):
+        rate_snapshot={**rate_snapshot,**rate_snapshot.get('execution_details',{})}
+        if rate_snapshot.get('package_count',1)>1:
+            self.last_remote_id=upstream_shipment_id
+            return await self.retrieve_package_labels(rate_snapshot)
         return self.normalize(await self.request('GET', '/transactions/' + identifier(upstream_shipment_id) + '/'), rate_snapshot)
 
     async def inject_customs(self, parcel_data):
@@ -1023,11 +1080,10 @@ class ShippoRateStrategy:
         def address(value):
             data = value.model_dump(mode='json')
             return {target: data[source] for source, target in mapping.items() if data.get(source)}
-        dimensions = request.dimensions[0]
-        payload = {'address_from': address(request.origin), 'address_to': address(request.destination),
-            'parcels': [{'length': str(dimensions.length_cm), 'width': str(dimensions.width_cm),
-                'height': str(dimensions.height_cm), 'distance_unit': 'cm',
-                'weight': str(request.weights_kg[0]), 'mass_unit': 'kg'}], 'async': False}
+        payload = {'address_from':address(request.origin),'address_to':address(request.destination),
+            'parcels':[{'length':str(box.length_cm),'width':str(box.width_cm),'height':str(box.height_cm),
+                'distance_unit':'cm','weight':str(weight),'mass_unit':'kg'} for box,weight in zip(request.dimensions,request.weights_kg,strict=True)],'async':False}
+        if len(request.weights_kg)>40:raise PurchaseRejected('SHIPPO_MULTIPIECE_LIMIT_40')
         if request.customs_document:
             mapped = await self.adapter.inject_customs({'customs_document': request.customs_document})
             if mapped.get('customs_declaration'):
@@ -1050,11 +1106,13 @@ class ShippoRateStrategy:
             if rate.get('currency') != request.currency:
                 available_currencies.add(rate.get('currency'))
                 continue
+            if len(request.weights_kg)>1 and (str(rate.get('provider','')).upper() not in {'UPS','FEDEX'} or (str(rate.get('provider','')).upper()=='FEDEX' and len(request.weights_kg)>12)):continue
             service = rate.get('servicelevel') or {}
             results.append(self.rate_model(provider='REGIONAL', account_id=self.account.id,
                 upstream_shipment_id=body['object_id'], upstream_rate_id=rate['object_id'],
                 carrier_code=rate['provider'], service_code=service['token'], currency=rate['currency'],
-                wholesale_cost=str(rate['amount']), delivery_days=rate.get('estimated_days')))
+                wholesale_cost=str(rate['amount']), delivery_days=rate.get('estimated_days'),
+                execution_details={'package_count':len(request.weights_kg)}))
         if not results and available_currencies:
             from backend.rate_diagnostics import RateCurrencyUnavailable
             raise RateCurrencyUnavailable(available_currencies)
@@ -1108,25 +1166,28 @@ class SendcloudAdapter(BaseAggregatorAdapter):
             if result.get('is_return') and document.get('return_data'):
                 result['customs_information']['return_data'] = document['return_data']
             result['parcel_items'] = [{'description': i['description'], 'quantity': i['quantity'],
-                'hs_code': i['hs_code'], 'origin_country': i['origin_country'],
+                'hs_code': i['hs_code'], 'origin_country': i['origin_country'], 'package_index':i.get('package_index'),
                 'weight': {'value': str(i['unit_weight_kg']), 'unit': 'kg'},
                 'price': {'value': str(i['unit_value']), 'currency': document['currency']}}
                 for i in document['items']]
         return result
 
     def payload(self, snapshot):
-        cargo = snapshot['cargo']
-        validate_native_cargo(cargo, 'SENDCLOUD')
-        parcel = {'weight': {'value': str(cargo['actual_weight_kg']), 'unit': 'kg'},
-                  'dimensions': {**{key: str(cargo[key + '_cm']) for key in ('length', 'width', 'height')}, 'unit': 'cm'}}
-        if snapshot.get('parcel_items'):
-            parcel['parcel_items'] = snapshot['parcel_items']
+        parcels=[]
+        for index,cargo in enumerate(snapshot.get('packages') or [snapshot['cargo']],1):
+            validate_native_cargo(cargo,'SENDCLOUD')
+            parcel={'weight':{'value':str(cargo['actual_weight_kg']),'unit':'kg'},
+                'dimensions':{**{key:str(cargo[key+'_cm']) for key in ('length','width','height')},'unit':'cm'}}
+            if snapshot.get('parcel_items'):
+                parcel['parcel_items']=[{key:value for key,value in item.items() if key!='package_index'} for item in snapshot['parcel_items'] if len(snapshot.get('packages') or [])<2 or item.get('package_index')==index]
+                if not parcel['parcel_items']:raise PurchaseRejected('MULTIPIECE_CUSTOMS_ALLOCATION_REQUIRED')
+            parcels.append(parcel)
         properties = {'shipping_option_code': snapshot['upstream_rate_id']}
         if snapshot.get('contract_id'):
             properties['contract_id'] = snapshot['contract_id']
         result = {'from_address': sendcloud_address(snapshot['origin']),
             'to_address': sendcloud_address(snapshot['destination']), 'order_number': snapshot['order_reference'],
-            'ship_with': {'type': 'shipping_option_code', 'properties': properties}, 'parcels': [parcel],
+            'ship_with': {'type': 'shipping_option_code', 'properties': properties}, 'parcels': parcels,
             'label_details': {'mime_type': 'application/pdf', 'dpi': 72}}
         if snapshot.get('customs_information'):
             result['customs_information'] = snapshot['customs_information']
@@ -1134,7 +1195,20 @@ class SendcloudAdapter(BaseAggregatorAdapter):
                                            'currency': snapshot['customs_document']['currency']}
         return result
 
-    def normalize(self, body):
+    def normalize(self,body,expected_count=1):
+        from backend.multi_label import bundle_labels
+        data=body.get('data',body);parcels=data.get('parcels') or []
+        self.last_remote_id=str(data['id']) if data.get('id') is not None else None
+        if len(parcels)!=expected_count:raise PurchaseUncertain('PACKAGE_LABELS_INCOMPLETE')
+        if expected_count==1:return self.normalize_single(body)
+        labels=[]
+        for parcel in parcels:
+            label=self.normalize_single({'data':{**data,'parcels':[parcel]}})
+            label['upstream_id']=str(parcel.get('id') or '')
+            labels.append(label)
+        return bundle_labels(labels,self.last_remote_id)
+
+    def normalize_single(self, body):
         data = body.get('data', body)
         self.last_remote_id = str(data['id']) if data.get('id') is not None else None
         parcels = data.get('parcels') or []
@@ -1220,7 +1294,7 @@ class SendcloudAdapter(BaseAggregatorAdapter):
         # An accepted announcement never authorizes financial capture.
         if self.last_http_status == 202:
             raise PurchaseUncertain('SENDCLOUD_LABEL_SYNC_PENDING')
-        return self.normalize(body)
+        return self.normalize(body,len(rate_snapshot.get('packages') or [rate_snapshot.get('cargo')]))
 
     def normalize_return(self, data):
         label = (data.get('label') or {}).get('label_printer') or data.get('label_url')
@@ -1230,13 +1304,14 @@ class SendcloudAdapter(BaseAggregatorAdapter):
                 'tracking_url': data.get('tracking_url'), 'label_url': secure_link(label), 'carrier_forms': []}
 
     async def retrieve_label(self, upstream_shipment_id, rate_snapshot):
+        rate_snapshot={**rate_snapshot,**rate_snapshot.get('execution_details',{})}
         if rate_snapshot.get('is_return') or getattr(self, 'is_return', False):
             self.last_remote_id = str(upstream_shipment_id)
             return self.normalize_return(await self.request('GET', '/returns/' + identifier(upstream_shipment_id)))
         body = await self.request('GET', '/shipments/' + identifier(upstream_shipment_id))
         if str(body.get('data', body).get('id')) != str(upstream_shipment_id):
             raise PurchaseUncertain('SENDCLOUD_SHIPMENT_IDENTITY_MISMATCH')
-        return self.normalize(body)
+        return self.normalize(body,rate_snapshot.get('package_count',len(rate_snapshot.get('packages') or [None])))
 
     async def void_label(self, upstream_shipment_id):
         self.purchase_allowed()
@@ -1336,6 +1411,8 @@ class FactoryPurchaseBridge:
         verify_quote_connection(account, rate)
         adapter = create_adapter(self.client, account, environment=self.environment)
         snapshot = await self.snapshot(account, rate)
+        if snapshot.get('is_return') and len(snapshot.get('packages') or []) > 1:
+            raise PurchaseRejected('MULTIPIECE_RETURN_REQUIRES_SEPARATE_PARCELS')
         try:
             if snapshot.get('is_return'):
                 # Adapter methods consume the original forward orientation;
@@ -1423,6 +1500,7 @@ class ReturnRequest(VoidRequest):
     idempotency_key: UUID
     customs_signer: str | None = None
     hs_codes_reviewed: bool = False
+    store_return_reference: str | None = Field(default=None,max_length=200)
 
 
 def authorize(context, tenant_id):
@@ -1462,6 +1540,7 @@ class PartnerLifecycleService:
         root = '/api/v1/shipping/' + str(shipment_id) + '/documents/'
         return {'shipment_id': str(shipment_id), 'status': 'BOOKED', 'label_status': 'LABEL_CREATED', 'replayed': replayed,
                 'label': {'tracking_number': label['tracking_number'], 'tracking_url': '/?view=manifest&shipment_id=' + str(shipment_id), 'label_url': root + 'label',
+                          'package_labels':[{'tracking_number':piece['tracking_number'],'label_url':root+('label' if index==0 else str(next(i for i,form in enumerate(label.get('carrier_forms',[])) if form['url']==piece['label_url'])))} for index,piece in enumerate(label.get('package_labels',[]))],
                           'carrier_forms': [{'document_type': f['document_type'], 'url': root + str(i)}
                                             for i, f in enumerate(label.get('carrier_forms', []))]},
                 'customs': customs}
@@ -1476,17 +1555,18 @@ class PartnerLifecycleService:
             raise HTTPException(404, 'Offer not found in this workspace or expired')
         request = RatingRequest.model_validate_json(row['request_payload']) if isinstance(row['request_payload'],str) else RatingRequest.model_validate(row['request_payload'])
         quoted = RatingResponse.model_validate_json(row['quote_payload']) if isinstance(row['quote_payload'],str) else RatingResponse.model_validate(row['quote_payload'])
-        if len(request.weights_kg)!=1 or len(request.dimensions)>1:
-            raise HTTPException(422, 'Prepare individual packed orders through the bulk workspace for multi-package dispatches')
+
         dimensions = request.dimensions[0].model_dump(mode='json') if request.dimensions else {}
         document = request.customs_document or {}
         order = {'idempotency_key':str(row['request_id']), 'order_reference':'QUOTE-'+str(row['request_id']),
             'origin':request.origin.model_dump(mode='json'),'destination':request.destination.model_dump(mode='json'),
             'currency':request.currency,'cargo':{'cargo_type':request.cargo_type,'actual_weight_kg':str(request.weights_kg[0]),
                                              'stackable':request.stackable,**dimensions},
-            'items':[{field:item[field] for field in ('description','quantity','unit_value','unit_weight_kg','origin_country','hs_code')}
+            'items':[{field:item[field] for field in ('description','quantity','unit_value','unit_weight_kg','origin_country','hs_code','sku','package_index') if field in item}
                      for item in document.get('items',[])],
             'customs_signer':document.get('signer'), 'hs_codes_reviewed':bool(document.get('ready_for_provider'))}
+        if len(request.weights_kg)>1:
+            order['packages']=[{'cargo_type':'PARCEL','actual_weight_kg':str(weight),'stackable':request.stackable,**box.model_dump(mode='json')} for box,weight in zip(request.dimensions,request.weights_kg,strict=True)]
         if request.is_return:
             raise HTTPException(422, 'Prepare returns through the authenticated original shipment workflow')
         async with self.automation.order_limiter:
@@ -1671,6 +1751,8 @@ class PartnerLifecycleService:
                 tenant = await lock.fetchrow('SELECT is_sandbox FROM public.tenants WHERE tenant_id=$1', context.tenant_id)
                 adapter = create_adapter(self.client, account, environment=self.environment(tenant))
                 metadata = json.loads(shipment['logistics_metadata']) if isinstance(shipment['logistics_metadata'], str) else shipment['logistics_metadata']
+                if len((metadata.get('automation_label') or {}).get('package_labels',[]))>1:
+                    raise HTTPException(409,'Multi-piece cancellation requires all-package refund reconciliation. Contact support; no cancellation or wallet refund was submitted.')
                 adapter.is_return = bool(metadata.get('automation_order', {}).get('is_return'))
                 label = metadata.get('automation_label') or {}
                 remote_id = label.get('upstream_id', shipment['upstream_shipment_id'])
@@ -1885,11 +1967,14 @@ def build_router(authenticate):
         original = metadata.get('automation_order')
         if not original or original.get('is_return'):
             raise HTTPException(422, 'An original prepared outbound shipment is required')
+        if len(original.get('packages') or [])>1:
+            raise HTTPException(409,'Create separately measured return parcels; grouped return purchase is not enabled')
         order = copy.deepcopy(original)
         customs = metadata.get('automation_customs') or {}
         order.update(idempotency_key=str(body.idempotency_key), order_reference=('RETURN-' + original['order_reference'])[:100],
             origin=original['destination'], destination=original['origin'], is_return=True,
             return_of_shipment_id=str(body.shipment_id), platform='MANUAL', store_id=None, store_order_id=None,
+            store_return_reference=body.store_return_reference,
             customs_signer=body.customs_signer, hs_codes_reviewed=body.hs_codes_reviewed, postal_form=None,
             sender_eori=customs.get('recipient', {}).get('eori'), recipient_eori=customs.get('sender', {}).get('eori'),
             sender_vat=customs.get('recipient', {}).get('vat_registration'), recipient_vat=customs.get('sender', {}).get('vat_registration'),

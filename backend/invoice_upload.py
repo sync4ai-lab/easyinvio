@@ -131,7 +131,10 @@ def compare_line(line, shipment):
         verification = {}
     commercial = verification.get('verified') is True and verification.get('is_commercial') is True
     findings = []
-    weight_delta = abs(line.invoice_weight_kg - shipment['parcel_weight_kg'])
+    packages=shipment.get('multi_parcel_dimensions') or []
+    if isinstance(packages,str):packages=json.loads(packages)
+    packed_weight=sum((Decimal(str(box['actual_weight_kg'])) for box in packages),Decimal(0)) if packages else shipment['parcel_weight_kg']
+    weight_delta = abs(line.invoice_weight_kg - packed_weight)
     if weight_delta > Decimal('0.1'):
         findings.append({'code': 'WEIGHT_DELTA', 'difference_kg': str(weight_delta)})
     residential = line.residential_fee if commercial else Decimal('0')
@@ -142,7 +145,7 @@ def compare_line(line, shipment):
         findings.append({'code': 'WHOLESALE_COST_EXCEEDS_SNAPSHOT', 'amount': str(price_delta)})
     # Residential charges may already be inside the wholesale total: never add twice.
     estimated = max(price_delta, residential)
-    baseline = {'parcel_weight_kg': str(shipment['parcel_weight_kg']), 'wholesale_cost': str(shipment['wholesale_cost']),
+    baseline = {'parcel_weight_kg': str(packed_weight), 'wholesale_cost': str(shipment['wholesale_cost']),
                 'currency': shipment['currency'], 'commercial_address_verified': commercial,
                 'address_verification': verification}
     draft = 'Subject: Invoice review request ' + line.upstream_shipment_id + '\n\n'
@@ -176,7 +179,7 @@ def build_router(authenticate):
             async with request.app.state.finance.pool.acquire() as connection:
                 async with connection.transaction(isolation='repeatable_read'):
                     rows = await connection.fetch('''SELECT id,upstream_shipment_id,currency,wholesale_cost,
-                        parcel_weight_kg,logistics_metadata,booked_at FROM public.shipments
+                        parcel_weight_kg,multi_parcel_dimensions,logistics_metadata,booked_at FROM public.shipments
                         WHERE tenant_id=$1 AND (upstream_shipment_id=ANY($2::text[]) OR logistics_metadata->'automation_label'->>'upstream_id'=ANY($2::text[]))
                         AND booked_at IS NOT NULL AND ($3::uuid IS NULL OR carrier_account_id=$3)''', context.tenant_id,
                         [line.upstream_shipment_id for line in lines], carrier_account_id)

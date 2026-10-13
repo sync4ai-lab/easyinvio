@@ -125,7 +125,8 @@ async def quote_sendcloud_v3(client, account, request):
             'height':str(dimensions.height_cm),'unit':'cm'}})
     body={'from_address':address(request.origin),'to_address':address(request.destination),
           'parcels':parcels,'calculate_quotes':True}
-    if getattr(request,'is_return',False):body['functionalities']={'returns':True}
+    if len(parcels)>1:body['functionalities']={'multicollo':True}
+    if getattr(request,'is_return',False):body.setdefault('functionalities',{})['returns']=True
     async with client.stream('POST',V3_ENDPOINT+'/shipping-options',json=body,
             auth=sendcloud_credentials(account.api_key),timeout=account.timeout_seconds,
             follow_redirects=False) as response:
@@ -148,6 +149,7 @@ async def quote_sendcloud_v3(client, account, request):
         if not isinstance(code,str) or not code or len(code)>100 or not isinstance(carrier,str) or not carrier:continue
         functionality=option.get('functionalities') or {}
         if bool(functionality.get('returns')) != bool(getattr(request,'is_return',False)) or functionality.get('last_mile')=='service_point':continue
+        if len(parcels)>1 and functionality.get('multicollo') is not True:continue
         for quote in option.get('quotes') or []:
             # Estimated extra charges need a distinct customer confirmation flow.
             if quote.get('estimated_surcharges'):continue

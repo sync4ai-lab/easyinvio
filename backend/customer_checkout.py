@@ -85,7 +85,7 @@ async def booking_reference(pool,tenant,request_id):
 
 def quoted_goods(quote):
     source=quote.shipment_items or (quote.customs_document or {}).get('items',[])
-    return [{k:item[k] for k in ['description','quantity','unit_value','unit_weight_kg','origin_country','hs_code'] if k in item} for item in source]
+    return [{k:item[k] for k in ['description','quantity','unit_value','unit_weight_kg','origin_country','hs_code','sku','package_index'] if k in item} for item in source]
 
 async def offer_context(service,context,offer_id):
     from main import RatingRequest,RatingResponse
@@ -104,8 +104,7 @@ async def offer_context(service,context,offer_id):
         raise HTTPException(404,'Service not found in this quote')
     from backend.label_availability import require_label_purchase
     require_label_purchase(service.automation.settings, selected)
-    if len(request.weights_kg)!=1 or len(request.dimensions)>1:
-        raise HTTPException(422,'Use the packed-order workspace for multiple parcels')
+
     reference=await booking_reference(service.pool,context.tenant_id,row['request_id'])
     required=request.origin.country_code!=request.destination.country_code and not {
         request.origin.country_code,request.destination.country_code}<=EU_CUSTOMS_AREA
@@ -142,9 +141,9 @@ def build_router(authenticate):
             if not original:raise HTTPException(409,'This quote has no goods snapshot. Enter the goods in Create shipment and request fresh rates.')
             if len(original)!=len(body.customs.items):raise HTTPException(409,'Goods changed; request a new quote')
             for saved,submitted in zip(original,body.customs.items,strict=True):
-                for key in ('quantity','unit_value','unit_weight_kg','origin_country'):
-                    expected=saved[key];actual=getattr(submitted,key)
-                    equal=(str(expected).upper()==str(actual).upper()) if key=='origin_country' else Decimal(str(expected))==Decimal(str(actual))
+                for key in ('quantity','unit_value','unit_weight_kg','origin_country','package_index','sku'):
+                    expected=saved.get(key);actual=getattr(submitted,key)
+                    equal=expected==actual if key in {'sku','package_index'} else (str(expected).upper()==str(actual).upper()) if key=='origin_country' else Decimal(str(expected))==Decimal(str(actual))
                     if not equal:raise HTTPException(409,'Quoted goods values are immutable. Change the shipment and request fresh rates.')
             if body.customs.currency!=(quote.goods_currency or ('USD' if selected.execution_details.get('account_endpoint')=='https://api.easypost.com/v2' else quote.currency)):
                 raise HTTPException(409,'Goods currency changed; request a new quote')
@@ -159,6 +158,8 @@ def build_router(authenticate):
             'cargo':{'cargo_type':quote.cargo_type,'actual_weight_kg':str(quote.weights_kg[0]),'stackable':quote.stackable,**dimensions}}
         if quoted_goods(quote):
             order.update(items=quoted_goods(quote),customs_currency=quote.goods_currency or quote.currency)
+        if len(quote.weights_kg)>1:
+            order['packages']=[{'cargo_type':'PARCEL','actual_weight_kg':str(weight),'stackable':quote.stackable,**dimension.model_dump(mode='json')} for dimension,weight in zip(quote.dimensions,quote.weights_kg,strict=True)]
         if body.customs:
             data=body.customs
             order.update(items=[item.model_dump(mode='json') for item in data.items],customs_signer=data.signer,

@@ -236,8 +236,11 @@ class ShopifyFulfillment:
         order = data.get('order')
         if not order:
             raise HTTPException(404, 'Store order not found')
+        numbers=body.get('tracking_numbers') or [body['tracking_number']]
+        if not numbers or len(numbers)>100 or len(numbers)!=len(set(numbers)):
+            raise HTTPException(422,'Unique tracking numbers are required for all packages')
         for fulfillment in order['fulfillments']:
-            if fulfillment['status'] == 'SUCCESS' and any(t['number']==body['tracking_number'] for t in fulfillment['trackingInfo']):
+            if fulfillment['status'] == 'SUCCESS' and set(numbers).issubset({t['number'] for t in fulfillment['trackingInfo']}):
                 return {'fulfillment_state':'SHIPPED','fulfillment_id':fulfillment['id'],'replayed':True,'simulated':False}
         if verify_only:
             raise HTTPException(409, 'No confirmed matching fulfillment; keep reconciliation hold')
@@ -248,8 +251,8 @@ class ShopifyFulfillment:
         locations = {o['assignedLocation']['location']['id'] for o in eligible if o['assignedLocation'].get('location')}
         if orders['pageInfo']['hasNextPage'] or len(locations)!=1 or not eligible or len(eligible)!=len(orders['nodes']) or any(not o['assignedLocation'].get('location') for o in eligible):
             raise HTTPException(409, 'Split or partial fulfillment requires explicit allocation')
-        info = {'company':body['carrier_name'],'number':body['tracking_number']}
-        if body.get('tracking_url'):
+        info = {'company':body['carrier_name'],**({'numbers':numbers} if len(numbers)>1 else {'number':numbers[0]})}
+        if len(numbers)==1 and body.get('tracking_url'):
             info['url'] = body['tracking_url']
         result = await self.graphql('''mutation EasyInvioShip($fulfillment:FulfillmentInput!) {
             fulfillmentCreate(fulfillment:$fulfillment) { fulfillment { id status } userErrors { field message } } }''',

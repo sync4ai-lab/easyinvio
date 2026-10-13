@@ -47,7 +47,7 @@ class Database:
         return []
     async def execute(self, sql, *args):
         self.calls.append((sql, args))
-        if "UPDATE public.shipments" in sql:
+        if "UPDATE public.shipments SET status=$3" in sql:
             self.status, self.last = args[2:4]
             self.pod = args[4] or self.pod
         if "INSERT INTO public.tracking_events" in sql:

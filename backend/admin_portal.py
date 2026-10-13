@@ -222,6 +222,7 @@ async def authenticate_platform_owner(
     if user_id not in set(getattr(settings, "platform_admin_user_ids", [])):
         raise HTTPException(403, "Platform-owner permission required")
     # No tenant membership is needed: the platform owner can create tenant #1.
+    request.state.platform_auth_claims = claims
     return PlatformOwner(user_id)
 
 
@@ -529,6 +530,8 @@ def service_for(request: Request) -> AdminService:
 
 
 def database_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, asyncpg.InsufficientPrivilegeError):
+        return HTTPException(403, 'Credential identity is locked. Sign in again as a platform administrator and use a replacement connection.')
     if isinstance(exc, asyncpg.UniqueViolationError):
         return HTTPException(409, "Configuration conflicts with an existing record")
     if isinstance(exc, (asyncpg.ForeignKeyViolationError, asyncpg.CheckViolationError)):

@@ -54,7 +54,7 @@ class Database:
             self.shipments[(tenant, store, order)] = {"id": sid, "status": "PENDING_IMPORT", "store_import_hash": digest,
                                                        "ecommerce_store_id": store, "store_order_id": order}
         elif "INSERT INTO public.ecommerce_tracking_outbox" in sql:
-            tenant, sid, store, order, body = args
+            tenant, sid, store, order, body = args[:5]
             self.events.setdefault((tenant, sid), {"id": uuid4(), "tenant_id": tenant, "store_order_id": order,
                                                     "payload": body, "status": "PENDING", "attempts": 0})
         elif "UPDATE public.ecommerce_tracking_outbox" in sql:

@@ -20,6 +20,7 @@ document.body.insertAdjacentHTML('beforeend', `<dialog id="workspace-pack-dialog
  <label>Stackable<select name="stackable"><option value="false">No</option><option value="true">Yes</option></select></label>
  <label>Customs signer<input name="customs_signer" maxlength="200"></label><label>Postal form<select name="postal_form"><option value="">Commercial invoice</option><option>CN22</option><option>CN23</option></select></label>
  </div><label>Sender address (JSON)<textarea name="origin" rows="5" required></textarea></label><label>Recipient address including phone/state (JSON)<textarea name="destination" rows="5" required></textarea></label>
+ <details><summary>Multiple boxes</summary><label>Measured boxes (JSON array)<textarea name="multi_parcel_dimensions" rows="6" placeholder='[{"box_index":1,"length_cm":"30","width_cm":"20","height_cm":"10","actual_weight_kg":"2"}]'></textarea></label><p class="subtle">Standard parcels only. Number boxes from 1 and assign each goods line a package_index. The measurements above must match box 1. Leave empty for one box.</p></details>
  <label>Goods (JSON array: description, quantity, unit_value, unit_weight_kg, origin_country, hs_code)<textarea name="items" rows="10" required></textarea></label>
  <p class="notice">HS codes require explicit review. Check each code and provide actual manufacturing origin, unit declared value and net weight. Warehouse dimensions must be measured, not inferred from the storefront. CN22/CN23 printing requires the corresponding carrier-issued form.</p>
  <label class="check"><input name="reviewed" type="checkbox">I have checked the international customs facts and HS codes</label>
@@ -75,6 +76,7 @@ document.addEventListener('click', event => {
     $('#workspace-pack-reference').textContent = result.order.order_reference + ' · ' + result.status;
     for (const key of ['cargo_type','actual_weight_kg','length_cm','width_cm','height_cm','stackable']) form.elements[key].value = String(result.order.cargo[key] ?? '');
     for (const key of ['origin','destination','items']) form.elements[key].value = JSON.stringify(result.order[key], null, 2);
+    form.elements.multi_parcel_dimensions.value=JSON.stringify(result.order.multi_parcel_dimensions?.length?result.order.multi_parcel_dimensions:(result.order.packages||[]).map((box,index)=>({box_index:index+1,length_cm:box.length_cm,width_cm:box.width_cm,height_cm:box.height_cm,actual_weight_kg:box.actual_weight_kg})),null,2);
     form.elements.customs_signer.value = result.order.customs_signer || '';
     form.elements.postal_form.value = result.order.postal_form || '';
     form.elements.reviewed.checked = false;
@@ -90,6 +92,8 @@ $('#workspace-pack-form').addEventListener('submit', event => {
     order.cargo = {cargo_type:form.cargo_type.value, actual_weight_kg:form.actual_weight_kg.value, stackable:form.stackable.value==='true'};
     for (const key of ['length_cm','width_cm','height_cm']) order.cargo[key] = form[key].value || null;
     for (const key of ['origin','destination','items']) order[key] = JSON.parse(form[key].value);
+    order.multi_parcel_dimensions=JSON.parse(form.multi_parcel_dimensions.value||'[]');
+    order.packages=[];
     order.customs_signer = form.customs_signer.value || null;
     order.postal_form = form.postal_form.value || null;order.hs_codes_reviewed = form.reviewed.checked;
     const result = await api('/api/v1/dispatch-workspace/orders/'+dispatchWorkspace.preparing.id+'/prepare', {method:'POST',body:order,auth:true});

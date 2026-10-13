@@ -22,7 +22,7 @@ function checkoutError(error) {
 
 function checkoutProduct(item={}) {
   const value=name=>escapeHTML(item[name]??'');
-  return `<div class="checkout-product"><label>Product description</label><textarea name="description" minlength="3" maxlength="500" placeholder="e.g. Electric steam iron for household clothing" required>${value('description')}</textarea>
+  return `<div class="checkout-product"><input type="hidden" name="sku" value="${value('sku')}"><input type="hidden" name="package_index" value="${value('package_index')}">${item.package_index?`<p class="subtle">Box ${value('package_index')}${item.sku?` &middot; SKU ${value('sku')}`:''}</p>`:''}<label>Product description</label><textarea name="description" minlength="3" maxlength="500" placeholder="e.g. Electric steam iron for household clothing" required>${value('description')}</textarea>
   <button type="button" class="secondary" data-checkout-hs>Find HS code in official tariff</button><div class="checkout-tariffs" aria-live="polite"></div>
   <div class="fields"><div><label>Reviewed HS code</label><input name="hs_code" value="${value('hs_code')}" placeholder="6, 8 or 10 digits" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></div><div><label>Country of manufacture</label><input readonly name="origin_country" value="${value('origin_country')}" placeholder="e.g. GB" pattern="[A-Za-z]{2}" required></div>
   <div><label>Quantity</label><input readonly name="quantity" value="${value('quantity')}" type="number" min="1" max="10000" step="1" placeholder="e.g. 2" required></div><div><label>Value per item</label><input readonly name="unit_value" value="${value('unit_value')}" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" placeholder="e.g. 25.00" required></div>
@@ -80,6 +80,7 @@ function renderCheckoutCustoms() {
     event.preventDefault();busy($('#checkout-prepare-btn'),async()=>{
       try {
         const items=[...form.querySelectorAll('.checkout-product')].map(product=>Object.fromEntries(['description','hs_code','origin_country','quantity','unit_value','unit_weight_kg'].map(name=>[name,name==='quantity'?Number(product.querySelector(`[name=${name}]`).value):product.querySelector(`[name=${name}]`).value.trim()])));
+        items.forEach((item,index)=>{const product=form.querySelectorAll('.checkout-product')[index];item.sku=product.querySelector('[name=sku]').value||null;item.package_index=product.querySelector('[name=package_index]').value?Number(product.querySelector('[name=package_index]').value):null;});
         await prepareCustomerCheckout({items,signer:form.elements.signer.value.trim(),reviewed:form.elements.reviewed.checked,
           currency:form.elements.currency.value,category:form.elements.category.value,
           category_other:form.elements.category.value==='OTHER'?form.elements.category_other.value.trim():null,

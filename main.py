@@ -322,13 +322,16 @@ class Address(StrictModel):
         return value
 
 
+from backend.package_sets import PackageInput, package_charge, validate_goods_allocation
+
 class RatingRequest(StrictModel):
+    multi_parcel_dimensions: list[PackageInput] = Field(default_factory=list, max_length=100)
     origin: Address
     destination: Address
-    dimensions: list[Dimensions] = Field(default_factory=list, max_length=1)
+    dimensions: list[Dimensions] = Field(default_factory=list, max_length=100)
     weights_kg: list[
         Annotated[Decimal, Field(gt=0, le=30000, decimal_places=3)]
-    ] = Field(min_length=1, max_length=1)
+    ] = Field(default_factory=list, max_length=100)
     currency: Currency = "GBP"
     cargo_type: Literal['LETTER','PARCEL','PALLET','OVERLAND_FREIGHT'] = 'PARCEL'
     stackable: bool = True
@@ -354,11 +357,21 @@ class RatingRequest(StrictModel):
 
     @model_validator(mode="after")
     def matching_arrays(self) -> RatingRequest:
+        if self.multi_parcel_dimensions:
+            if self.cargo_type != 'PARCEL': raise ValueError('Multi-piece boxes require Standard Parcel')
+            if [box.box_index for box in self.multi_parcel_dimensions] != list(range(1,len(self.multi_parcel_dimensions)+1)):
+                raise ValueError('Box indices must be sequential starting at 1')
+            dimensions=[Dimensions(length_cm=box.length_cm,width_cm=box.width_cm,height_cm=box.height_cm) for box in self.multi_parcel_dimensions]
+            weights=[box.actual_weight_kg for box in self.multi_parcel_dimensions]
+            if (self.dimensions and self.dimensions != dimensions) or (self.weights_kg and self.weights_kg != weights):
+                raise ValueError('Package arrays disagree with legacy dimensions or weights')
+            self.dimensions,self.weights_kg=dimensions,weights
+        if not self.weights_kg: raise ValueError('Enter packed weight for each package')
+        if len(self.weights_kg)>1 and self.cargo_type!='PARCEL': raise ValueError('Multi-piece quoting requires Standard Parcel')
         if self.shipment_items:
             from backend.automation_freight_engine import Goods
             items=[Goods.model_validate(item) for item in self.shipment_items]
-            if sum((i.quantity*i.unit_weight_kg for i in items),Decimal(0))>self.weights_kg[0]:
-                raise ValueError('Total goods net weight cannot exceed packed shipment weight')
+            validate_goods_allocation(items,self.weights_kg)
             self.shipment_items=[item.model_dump(mode='json') for item in items]
         if self.cargo_type=='LETTER':
             if self.weights_kg[0]>=Decimal('.5'):
@@ -418,6 +431,8 @@ class WholesaleRate(StrictModel):
 
 
 class ClientRate(StrictModel):
+    package_count: int = Field(default=1, ge=1, le=100)
+    package_weight_summary: dict = Field(default_factory=dict)
     label_purchase_available: bool = True
     label_purchase_notice: str = ''
     execution_details: dict = Field(default_factory=dict)
@@ -943,7 +958,24 @@ class EasyPostStrategy(RateStrategy):
                      'origin_country':item['origin_country']} for item in doc['items']]}
         if self.account.upstream_account_id:
             shipment["carrier_accounts"] = [self.account.upstream_account_id]
-        body = await self.post("/shipments", {"shipment": shipment})
+        multipiece=len(request.weights_kg)>1
+        if multipiece:
+            pieces=[]
+            for index,(box,actual) in enumerate(zip(request.dimensions,request.weights_kg,strict=True),1):
+                from backend.automation_three_partners import easypost_parcel
+                piece={'parcel':easypost_parcel({'actual_weight_kg':actual,'length_cm':box.length_cm,'width_cm':box.width_cm,'height_cm':box.height_cm}), 'options':{'label_format':'PDF'}}
+                if shipment.get('customs_info'):
+                    document_items=request.customs_document['items']
+                    allocated=[entry for entry in document_items if entry.get('package_index')==index]
+                    if not allocated:raise ProviderFailure('MULTIPIECE_CUSTOMS_ALLOCATION_REQUIRED')
+                    piece['customs_info']={**shipment['customs_info'],'customs_items':[mapped for entry,mapped in zip(document_items,shipment['customs_info']['customs_items'],strict=True) if entry.get('package_index')==index]}
+                    piece['tax_identifiers']=shipment.get('tax_identifiers',[])
+                pieces.append(piece)
+            order={key:shipment[key] for key in ('from_address','to_address','is_return','carrier_accounts') if key in shipment}
+            order['shipments']=pieces
+            body=await self.post('/orders',{'order':order})
+        else:
+            body = await self.post("/shipments", {"shipment": shipment})
         if (not isinstance(body, dict) or not isinstance(body.get("id"), str)
                 or not isinstance(body.get("rates"), list)):
             raise ProviderFailure("INVALID_UPSTREAM_RESPONSE")
@@ -964,6 +996,8 @@ class EasyPostStrategy(RateStrategy):
                 carrier_code=raw["carrier"], service_code=raw["service"],
                 currency=raw["currency"], wholesale_cost=raw["rate"],
                 delivery_days=raw.get("delivery_days"),
+                execution_details={'package_count':len(request.weights_kg),'native_carrier':raw['carrier'],'native_service':raw['service'],
+                    'easypost_order':multipiece,'package_shipment_ids':[piece['id'] for piece in body.get('shipments',[])]} if multipiece else {},
             ))
         if not result:
             from backend.rate_diagnostics import RateCurrencyUnavailable
@@ -1043,6 +1077,8 @@ class RatingService:
         try:
             endpoint=getattr(account,'base_url','')
             known=bool(identify_aggregator(endpoint))
+            if len(request.weights_kg)>1 and (not known or endpoint.rstrip('/')=='https://panel.sendcloud.sc/api/v2'):
+                raise ProviderFailure('MULTIPIECE_ADAPTER_NOT_CONFIGURED')
             if known and request.cargo_type in {'PALLET','OVERLAND_FREIGHT'}:
                 raise ProviderFailure('FREIGHT_ADAPTER_CONTRACT_NOT_CONFIGURED')
             if known and request.cargo_type=='LETTER' and 'easypost.com' not in endpoint:
@@ -1093,7 +1129,12 @@ class RatingService:
         if Decimal(weight['billable_weight_kg'])>maximum:
             raise HTTPException(422,'Billable cargo weight exceeds service limits')
         physical_request = request
-        request = request.model_copy(update={"weights_kg": [Decimal(weight["billable_weight_kg"])]})
+        if request.cargo_type=='PARCEL':
+            charge=package_charge(request.dimensions,request.weights_kg)
+            charged=[Decimal(piece['billable_weight_kg']) for piece in charge['packages']]
+            if any(value>1000 for value in charged):raise HTTPException(422,'A box exceeds the supported parcel billing range')
+        else: charged=[Decimal(weight['billable_weight_kg'])]
+        request = request.model_copy(update={"weights_kg": charged})
         if return_of_shipment_id is not None:
             if not request.is_return or context.role not in {'OWNER','ADMIN','DISPATCHER'} or self.pool is None:
                 raise HTTPException(403,'Authenticated return preparation required')
@@ -1134,8 +1175,8 @@ class RatingService:
                 with calibrated_pricing_scope(
                     self.pool, currency=rate.currency, origin=request.origin.country_code,
                     carrier_account_id=rate.account_id, service_code=rate.service_code,
-                    weight_kg=request.weights_kg[0], quoted_at=quoted_at, cargo_type=request.cargo_type,
-                    volume_m3=(dimensions.length_cm*dimensions.width_cm*dimensions.height_cm/Decimal('1000000')) if dimensions else None,
+                    weight_kg=sum(request.weights_kg,Decimal(0)), quoted_at=quoted_at, cargo_type=request.cargo_type,
+                    volume_m3=sum((box.length_cm*box.width_cm*box.height_cm/Decimal('1000000') for box in physical_request.dimensions),Decimal(0)) if dimensions else None,
                 ):
                     client_price = await get_client_calibrated_rate(
                         context.tenant_id, rate.wholesale_cost, rate.carrier_code,
@@ -1148,6 +1189,8 @@ class RatingService:
                     carrier_code=rate.carrier_code, service_code=rate.service_code,
                     currency=rate.currency, client_price_ex_tax=client_price,
                     delivery_days=rate.delivery_days,
+                    package_count=len(physical_request.weights_kg),
+                    package_weight_summary=package_charge(physical_request.dimensions,physical_request.weights_kg) if physical_request.cargo_type=='PARCEL' else weight,
                     execution_details={**rate.execution_details,**identity},
                     fee_breakdown={
                         **({key: str(money(value)) for key, value in rate.fee_components.model_dump().items()}
@@ -2384,6 +2427,8 @@ from backend.admin_management import router as admin_management_router
 app.include_router(admin_management_router)
 from backend.platform_carriers import router as platform_carriers_router
 app.include_router(platform_carriers_router)
+from backend.credential_rotation import router as credential_rotation_router
+app.include_router(credential_rotation_router)
 from backend.identity import router as identity_router
 app.include_router(identity_router)
 app.include_router(sandbox_router(authenticate, RatingRequest))
