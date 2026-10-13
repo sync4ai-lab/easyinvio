@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "unit_contract_tests_passed": 299,
+  "browser_tests": "Reporting refresh, future-date rejection, wallet-failure isolation, country selectors and responsive layouts passed; checkout and settings regressions passed",
+  "database_tests": "Actual Supabase sandbox with signed controlled carrier events; all fixture writes rolled back. Date-scoped lanes and tracking coverage passed; a known two-day observed transit interval was verified.",
+  "calculation": "Current shipment outcomes for bookings in the selected UTC period. Average observed transit = mean((delivery time - first accepted in-transit update)/86400), excluding missing or inconsistent timestamps. Lane price = average recorded customer shipping price within each origin/destination/currency group.",
+  "warehouse_efficiency": "Removed misleading label; carrier APIs do not measure warehouse staff productivity. Card now displays Shipping lane costs.",
+  "integration_boundary": "Uses existing authenticated provider tracking ingestion. This test does not claim genuine provider-console webhook delivery; real transit data requires configured tracking webhooks and confirmed shipments.",
+  "migration": "028_reporting_transit_index.sql applied twice to configured SANDBOX; no record updates or external API calls in the migration.",
+  "provider_documentation": [
+    "https://docs.easypost.com/docs/trackers",
+    "https://sendcloud.dev/docs/tracking/tracking-parcels"
+  ]
+}

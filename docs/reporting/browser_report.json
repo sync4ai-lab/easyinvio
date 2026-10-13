@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "scope": "controlled browser API",
+  "checks": [
+    "Refresh uses selected dates and changes real report cards",
+    "Wallet failure cannot erase report",
+    "Empty booking period explicitly confirmed",
+    "Future dates blocked without requests; UTC bounds applied",
+    "Transit coverage and missing data shown",
+    "GB and Japan JP country selectors; invalid JN unavailable",
+    "375/768/1366px no horizontal overflow"
+  ],
+  "javascript_errors": []
+}

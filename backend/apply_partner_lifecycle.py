@@ -10,7 +10,7 @@ from main import Settings, database_tls_context
 
 
 async def run(migration="023_partner_lifecycle.sql"):
-    if migration not in {"023_partner_lifecycle.sql","024_native_partner_orders_and_webhooks.sql","026_support_review_activity.sql","027_workspace_invitations_and_disputes.sql"}:
+    if migration not in {"023_partner_lifecycle.sql","024_native_partner_orders_and_webhooks.sql","026_support_review_activity.sql","027_workspace_invitations_and_disputes.sql","028_reporting_transit_index.sql"}:
         raise ValueError("Unsupported migration")
     settings = Settings()
     if settings.database_environment != 'SANDBOX':
@@ -23,6 +23,7 @@ async def run(migration="023_partner_lifecycle.sql"):
         tables = ('partner_shipping_offers', 'partner_unbound_quotes', 'partner_cancellations') if migration.startswith('023') else ('partner_provider_options','partner_order_jobs')
         if migration.startswith('026'):tables=('support_ticket_activity',)
         if migration.startswith('027'):tables=('workspace_invitations','shipment_dispute_drafts')
+        if migration.startswith('028'):tables=('tracking_events',)
         for table in tables:
             assert await connection.fetchval('''SELECT relrowsecurity FROM pg_class
                 WHERE oid=$1::regclass''', 'public.' + table)
@@ -34,6 +35,7 @@ async def run(migration="023_partner_lifecycle.sql"):
         output = Path('docs/aggregator_lifecycle/migration_receipt.json' if migration.startswith('023') else 'docs/three_partners/migration_receipt.json')
         if migration.startswith('026'):output=Path('docs/support_workflow/migration_receipt.json')
         if migration.startswith('027'):output=Path('docs/workspace_settings/migration_receipt.json')
+        if migration.startswith('028'):output=Path('docs/reporting/migration_receipt.json')
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
         print('PASS: ' + migration + ' applied twice; private tables deny browser access.')

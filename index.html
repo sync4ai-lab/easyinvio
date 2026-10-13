@@ -179,10 +179,12 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <div class="period-control">
 <label for="report-start">Reporting period</label>
-<input id="report-start" type="date">
+<input id="report-start" type="date" required>
 <span>to</span>
-<input id="report-end" type="date">
+<input id="report-end" type="date" required>
 <button id="dashboard-refresh" class="secondary">Refresh report</button>
+<span id="report-refresh-status" class="subtle" role="status" aria-live="polite">
+</span>
 </div>
 <div id="dashboard-error" class="portal-error" role="status" hidden>
 </div>
@@ -192,7 +194,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <article class="chart-card">
 <div class="chart-head">
 <div>
-<h2 id="distribution-title">Warehouse efficiency</h2>
+<h2 id="distribution-title">Shipping lane costs</h2>
 <p id="distribution-subtitle">Transit time and cost by shipping lane.</p>
 </div>
 <span id="chart-source" class="tag">DEMO</span>
@@ -203,7 +205,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <article class="chart-card">
 <div class="chart-head">
 <div>
-<h2 id="secondary-chart-title">Dispatch performance</h2>
+<h2 id="secondary-chart-title">Shipment outcomes &amp; transit</h2>
 <p id="secondary-chart-subtitle">A little more visibility. A lot less guesswork.</p>
 </div>
 <span class="tag" id="trend-period">6 MONTH TREND</span>
@@ -1022,7 +1024,755 @@ const addressDefaults = {
   destination: ['Example Customer', '20 Sample Avenue', 'Paris', '75001', 'FR']
 };
 const addressNames = ['name', 'line1', 'city', 'postal_code', 'country_code'];
-$('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','ISO country'][i]}</label><input id="${prefix}-${field}" placeholder="${addressDefaults[prefix][i]}" maxlength="${i===4?2:200}" ${i===4?'pattern="[A-Z]{2}"':''} required></div>`).join('')).join('');
+const shippingCountries = [{
+  "code": "AF",
+  "name": "Afghanistan"
+}, {
+  "code": "AL",
+  "name": "Albania"
+}, {
+  "code": "DZ",
+  "name": "Algeria"
+}, {
+  "code": "AS",
+  "name": "American Samoa"
+}, {
+  "code": "AD",
+  "name": "Andorra"
+}, {
+  "code": "AO",
+  "name": "Angola"
+}, {
+  "code": "AI",
+  "name": "Anguilla"
+}, {
+  "code": "AQ",
+  "name": "Antarctica"
+}, {
+  "code": "AG",
+  "name": "Antigua and Barbuda"
+}, {
+  "code": "AR",
+  "name": "Argentina"
+}, {
+  "code": "AM",
+  "name": "Armenia"
+}, {
+  "code": "AW",
+  "name": "Aruba"
+}, {
+  "code": "AU",
+  "name": "Australia"
+}, {
+  "code": "AT",
+  "name": "Austria"
+}, {
+  "code": "AZ",
+  "name": "Azerbaijan"
+}, {
+  "code": "BS",
+  "name": "Bahamas"
+}, {
+  "code": "BH",
+  "name": "Bahrain"
+}, {
+  "code": "BD",
+  "name": "Bangladesh"
+}, {
+  "code": "BB",
+  "name": "Barbados"
+}, {
+  "code": "BY",
+  "name": "Belarus"
+}, {
+  "code": "BE",
+  "name": "Belgium"
+}, {
+  "code": "BZ",
+  "name": "Belize"
+}, {
+  "code": "BJ",
+  "name": "Benin"
+}, {
+  "code": "BM",
+  "name": "Bermuda"
+}, {
+  "code": "BT",
+  "name": "Bhutan"
+}, {
+  "code": "BO",
+  "name": "Bolivia, Plurinational State of"
+}, {
+  "code": "BQ",
+  "name": "Bonaire, Sint Eustatius and Saba"
+}, {
+  "code": "BA",
+  "name": "Bosnia and Herzegovina"
+}, {
+  "code": "BW",
+  "name": "Botswana"
+}, {
+  "code": "BV",
+  "name": "Bouvet Island"
+}, {
+  "code": "BR",
+  "name": "Brazil"
+}, {
+  "code": "IO",
+  "name": "British Indian Ocean Territory"
+}, {
+  "code": "BN",
+  "name": "Brunei Darussalam"
+}, {
+  "code": "BG",
+  "name": "Bulgaria"
+}, {
+  "code": "BF",
+  "name": "Burkina Faso"
+}, {
+  "code": "BI",
+  "name": "Burundi"
+}, {
+  "code": "CV",
+  "name": "Cabo Verde"
+}, {
+  "code": "KH",
+  "name": "Cambodia"
+}, {
+  "code": "CM",
+  "name": "Cameroon"
+}, {
+  "code": "CA",
+  "name": "Canada"
+}, {
+  "code": "KY",
+  "name": "Cayman Islands"
+}, {
+  "code": "CF",
+  "name": "Central African Republic"
+}, {
+  "code": "TD",
+  "name": "Chad"
+}, {
+  "code": "CL",
+  "name": "Chile"
+}, {
+  "code": "CN",
+  "name": "China"
+}, {
+  "code": "CX",
+  "name": "Christmas Island"
+}, {
+  "code": "CC",
+  "name": "Cocos (Keeling) Islands"
+}, {
+  "code": "CO",
+  "name": "Colombia"
+}, {
+  "code": "KM",
+  "name": "Comoros"
+}, {
+  "code": "CG",
+  "name": "Congo"
+}, {
+  "code": "CD",
+  "name": "Congo, The Democratic Republic of the"
+}, {
+  "code": "CK",
+  "name": "Cook Islands"
+}, {
+  "code": "CR",
+  "name": "Costa Rica"
+}, {
+  "code": "HR",
+  "name": "Croatia"
+}, {
+  "code": "CU",
+  "name": "Cuba"
+}, {
+  "code": "CW",
+  "name": "Cura\u00e7ao"
+}, {
+  "code": "CY",
+  "name": "Cyprus"
+}, {
+  "code": "CZ",
+  "name": "Czechia"
+}, {
+  "code": "CI",
+  "name": "C\u00f4te d'Ivoire"
+}, {
+  "code": "DK",
+  "name": "Denmark"
+}, {
+  "code": "DJ",
+  "name": "Djibouti"
+}, {
+  "code": "DM",
+  "name": "Dominica"
+}, {
+  "code": "DO",
+  "name": "Dominican Republic"
+}, {
+  "code": "EC",
+  "name": "Ecuador"
+}, {
+  "code": "EG",
+  "name": "Egypt"
+}, {
+  "code": "SV",
+  "name": "El Salvador"
+}, {
+  "code": "GQ",
+  "name": "Equatorial Guinea"
+}, {
+  "code": "ER",
+  "name": "Eritrea"
+}, {
+  "code": "EE",
+  "name": "Estonia"
+}, {
+  "code": "SZ",
+  "name": "Eswatini"
+}, {
+  "code": "ET",
+  "name": "Ethiopia"
+}, {
+  "code": "FK",
+  "name": "Falkland Islands (Malvinas)"
+}, {
+  "code": "FO",
+  "name": "Faroe Islands"
+}, {
+  "code": "FJ",
+  "name": "Fiji"
+}, {
+  "code": "FI",
+  "name": "Finland"
+}, {
+  "code": "FR",
+  "name": "France"
+}, {
+  "code": "GF",
+  "name": "French Guiana"
+}, {
+  "code": "PF",
+  "name": "French Polynesia"
+}, {
+  "code": "TF",
+  "name": "French Southern Territories"
+}, {
+  "code": "GA",
+  "name": "Gabon"
+}, {
+  "code": "GM",
+  "name": "Gambia"
+}, {
+  "code": "GE",
+  "name": "Georgia"
+}, {
+  "code": "DE",
+  "name": "Germany"
+}, {
+  "code": "GH",
+  "name": "Ghana"
+}, {
+  "code": "GI",
+  "name": "Gibraltar"
+}, {
+  "code": "GR",
+  "name": "Greece"
+}, {
+  "code": "GL",
+  "name": "Greenland"
+}, {
+  "code": "GD",
+  "name": "Grenada"
+}, {
+  "code": "GP",
+  "name": "Guadeloupe"
+}, {
+  "code": "GU",
+  "name": "Guam"
+}, {
+  "code": "GT",
+  "name": "Guatemala"
+}, {
+  "code": "GG",
+  "name": "Guernsey"
+}, {
+  "code": "GN",
+  "name": "Guinea"
+}, {
+  "code": "GW",
+  "name": "Guinea-Bissau"
+}, {
+  "code": "GY",
+  "name": "Guyana"
+}, {
+  "code": "HT",
+  "name": "Haiti"
+}, {
+  "code": "HM",
+  "name": "Heard Island and McDonald Islands"
+}, {
+  "code": "VA",
+  "name": "Holy See (Vatican City State)"
+}, {
+  "code": "HN",
+  "name": "Honduras"
+}, {
+  "code": "HK",
+  "name": "Hong Kong"
+}, {
+  "code": "HU",
+  "name": "Hungary"
+}, {
+  "code": "IS",
+  "name": "Iceland"
+}, {
+  "code": "IN",
+  "name": "India"
+}, {
+  "code": "ID",
+  "name": "Indonesia"
+}, {
+  "code": "IR",
+  "name": "Iran, Islamic Republic of"
+}, {
+  "code": "IQ",
+  "name": "Iraq"
+}, {
+  "code": "IE",
+  "name": "Ireland"
+}, {
+  "code": "IM",
+  "name": "Isle of Man"
+}, {
+  "code": "IL",
+  "name": "Israel"
+}, {
+  "code": "IT",
+  "name": "Italy"
+}, {
+  "code": "JM",
+  "name": "Jamaica"
+}, {
+  "code": "JP",
+  "name": "Japan"
+}, {
+  "code": "JE",
+  "name": "Jersey"
+}, {
+  "code": "JO",
+  "name": "Jordan"
+}, {
+  "code": "KZ",
+  "name": "Kazakhstan"
+}, {
+  "code": "KE",
+  "name": "Kenya"
+}, {
+  "code": "KI",
+  "name": "Kiribati"
+}, {
+  "code": "KP",
+  "name": "Korea, Democratic People's Republic of"
+}, {
+  "code": "KR",
+  "name": "Korea, Republic of"
+}, {
+  "code": "KW",
+  "name": "Kuwait"
+}, {
+  "code": "KG",
+  "name": "Kyrgyzstan"
+}, {
+  "code": "LA",
+  "name": "Lao People's Democratic Republic"
+}, {
+  "code": "LV",
+  "name": "Latvia"
+}, {
+  "code": "LB",
+  "name": "Lebanon"
+}, {
+  "code": "LS",
+  "name": "Lesotho"
+}, {
+  "code": "LR",
+  "name": "Liberia"
+}, {
+  "code": "LY",
+  "name": "Libya"
+}, {
+  "code": "LI",
+  "name": "Liechtenstein"
+}, {
+  "code": "LT",
+  "name": "Lithuania"
+}, {
+  "code": "LU",
+  "name": "Luxembourg"
+}, {
+  "code": "MO",
+  "name": "Macao"
+}, {
+  "code": "MG",
+  "name": "Madagascar"
+}, {
+  "code": "MW",
+  "name": "Malawi"
+}, {
+  "code": "MY",
+  "name": "Malaysia"
+}, {
+  "code": "MV",
+  "name": "Maldives"
+}, {
+  "code": "ML",
+  "name": "Mali"
+}, {
+  "code": "MT",
+  "name": "Malta"
+}, {
+  "code": "MH",
+  "name": "Marshall Islands"
+}, {
+  "code": "MQ",
+  "name": "Martinique"
+}, {
+  "code": "MR",
+  "name": "Mauritania"
+}, {
+  "code": "MU",
+  "name": "Mauritius"
+}, {
+  "code": "YT",
+  "name": "Mayotte"
+}, {
+  "code": "MX",
+  "name": "Mexico"
+}, {
+  "code": "FM",
+  "name": "Micronesia, Federated States of"
+}, {
+  "code": "MD",
+  "name": "Moldova, Republic of"
+}, {
+  "code": "MC",
+  "name": "Monaco"
+}, {
+  "code": "MN",
+  "name": "Mongolia"
+}, {
+  "code": "ME",
+  "name": "Montenegro"
+}, {
+  "code": "MS",
+  "name": "Montserrat"
+}, {
+  "code": "MA",
+  "name": "Morocco"
+}, {
+  "code": "MZ",
+  "name": "Mozambique"
+}, {
+  "code": "MM",
+  "name": "Myanmar"
+}, {
+  "code": "NA",
+  "name": "Namibia"
+}, {
+  "code": "NR",
+  "name": "Nauru"
+}, {
+  "code": "NP",
+  "name": "Nepal"
+}, {
+  "code": "NL",
+  "name": "Netherlands"
+}, {
+  "code": "NC",
+  "name": "New Caledonia"
+}, {
+  "code": "NZ",
+  "name": "New Zealand"
+}, {
+  "code": "NI",
+  "name": "Nicaragua"
+}, {
+  "code": "NE",
+  "name": "Niger"
+}, {
+  "code": "NG",
+  "name": "Nigeria"
+}, {
+  "code": "NU",
+  "name": "Niue"
+}, {
+  "code": "NF",
+  "name": "Norfolk Island"
+}, {
+  "code": "MK",
+  "name": "North Macedonia"
+}, {
+  "code": "MP",
+  "name": "Northern Mariana Islands"
+}, {
+  "code": "NO",
+  "name": "Norway"
+}, {
+  "code": "OM",
+  "name": "Oman"
+}, {
+  "code": "PK",
+  "name": "Pakistan"
+}, {
+  "code": "PW",
+  "name": "Palau"
+}, {
+  "code": "PS",
+  "name": "Palestine, State of"
+}, {
+  "code": "PA",
+  "name": "Panama"
+}, {
+  "code": "PG",
+  "name": "Papua New Guinea"
+}, {
+  "code": "PY",
+  "name": "Paraguay"
+}, {
+  "code": "PE",
+  "name": "Peru"
+}, {
+  "code": "PH",
+  "name": "Philippines"
+}, {
+  "code": "PN",
+  "name": "Pitcairn"
+}, {
+  "code": "PL",
+  "name": "Poland"
+}, {
+  "code": "PT",
+  "name": "Portugal"
+}, {
+  "code": "PR",
+  "name": "Puerto Rico"
+}, {
+  "code": "QA",
+  "name": "Qatar"
+}, {
+  "code": "RO",
+  "name": "Romania"
+}, {
+  "code": "RU",
+  "name": "Russian Federation"
+}, {
+  "code": "RW",
+  "name": "Rwanda"
+}, {
+  "code": "RE",
+  "name": "R\u00e9union"
+}, {
+  "code": "BL",
+  "name": "Saint Barth\u00e9lemy"
+}, {
+  "code": "SH",
+  "name": "Saint Helena, Ascension and Tristan da Cunha"
+}, {
+  "code": "KN",
+  "name": "Saint Kitts and Nevis"
+}, {
+  "code": "LC",
+  "name": "Saint Lucia"
+}, {
+  "code": "MF",
+  "name": "Saint Martin (French part)"
+}, {
+  "code": "PM",
+  "name": "Saint Pierre and Miquelon"
+}, {
+  "code": "VC",
+  "name": "Saint Vincent and the Grenadines"
+}, {
+  "code": "WS",
+  "name": "Samoa"
+}, {
+  "code": "SM",
+  "name": "San Marino"
+}, {
+  "code": "ST",
+  "name": "Sao Tome and Principe"
+}, {
+  "code": "SA",
+  "name": "Saudi Arabia"
+}, {
+  "code": "SN",
+  "name": "Senegal"
+}, {
+  "code": "RS",
+  "name": "Serbia"
+}, {
+  "code": "SC",
+  "name": "Seychelles"
+}, {
+  "code": "SL",
+  "name": "Sierra Leone"
+}, {
+  "code": "SG",
+  "name": "Singapore"
+}, {
+  "code": "SX",
+  "name": "Sint Maarten (Dutch part)"
+}, {
+  "code": "SK",
+  "name": "Slovakia"
+}, {
+  "code": "SI",
+  "name": "Slovenia"
+}, {
+  "code": "SB",
+  "name": "Solomon Islands"
+}, {
+  "code": "SO",
+  "name": "Somalia"
+}, {
+  "code": "ZA",
+  "name": "South Africa"
+}, {
+  "code": "GS",
+  "name": "South Georgia and the South Sandwich Islands"
+}, {
+  "code": "SS",
+  "name": "South Sudan"
+}, {
+  "code": "ES",
+  "name": "Spain"
+}, {
+  "code": "LK",
+  "name": "Sri Lanka"
+}, {
+  "code": "SD",
+  "name": "Sudan"
+}, {
+  "code": "SR",
+  "name": "Suriname"
+}, {
+  "code": "SJ",
+  "name": "Svalbard and Jan Mayen"
+}, {
+  "code": "SE",
+  "name": "Sweden"
+}, {
+  "code": "CH",
+  "name": "Switzerland"
+}, {
+  "code": "SY",
+  "name": "Syrian Arab Republic"
+}, {
+  "code": "TW",
+  "name": "Taiwan, Province of China"
+}, {
+  "code": "TJ",
+  "name": "Tajikistan"
+}, {
+  "code": "TZ",
+  "name": "Tanzania, United Republic of"
+}, {
+  "code": "TH",
+  "name": "Thailand"
+}, {
+  "code": "TL",
+  "name": "Timor-Leste"
+}, {
+  "code": "TG",
+  "name": "Togo"
+}, {
+  "code": "TK",
+  "name": "Tokelau"
+}, {
+  "code": "TO",
+  "name": "Tonga"
+}, {
+  "code": "TT",
+  "name": "Trinidad and Tobago"
+}, {
+  "code": "TN",
+  "name": "Tunisia"
+}, {
+  "code": "TM",
+  "name": "Turkmenistan"
+}, {
+  "code": "TC",
+  "name": "Turks and Caicos Islands"
+}, {
+  "code": "TV",
+  "name": "Tuvalu"
+}, {
+  "code": "TR",
+  "name": "T\u00fcrkiye"
+}, {
+  "code": "UG",
+  "name": "Uganda"
+}, {
+  "code": "UA",
+  "name": "Ukraine"
+}, {
+  "code": "AE",
+  "name": "United Arab Emirates"
+}, {
+  "code": "GB",
+  "name": "United Kingdom"
+}, {
+  "code": "US",
+  "name": "United States"
+}, {
+  "code": "UM",
+  "name": "United States Minor Outlying Islands"
+}, {
+  "code": "UY",
+  "name": "Uruguay"
+}, {
+  "code": "UZ",
+  "name": "Uzbekistan"
+}, {
+  "code": "VU",
+  "name": "Vanuatu"
+}, {
+  "code": "VE",
+  "name": "Venezuela, Bolivarian Republic of"
+}, {
+  "code": "VN",
+  "name": "Viet Nam"
+}, {
+  "code": "VG",
+  "name": "Virgin Islands, British"
+}, {
+  "code": "VI",
+  "name": "Virgin Islands, U.S."
+}, {
+  "code": "WF",
+  "name": "Wallis and Futuna"
+}, {
+  "code": "EH",
+  "name": "Western Sahara"
+}, {
+  "code": "YE",
+  "name": "Yemen"
+}, {
+  "code": "ZM",
+  "name": "Zambia"
+}, {
+  "code": "ZW",
+  "name": "Zimbabwe"
+}, {
+  "code": "AX",
+  "name": "\u00c5land Islands"
+}];
+$('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','country'][i]}</label>${i===4?`<select id="${prefix}-${field}" required><option value="">Choose country</option>${shippingCountries.map(c=>`<option value="${c.code}">${escapeHTML(c.name)} (${c.code})</option>`).join('')}</select>`:`<input id="${prefix}-${field}" placeholder="${addressDefaults[prefix][i]}" maxlength="200" required>`}</div>`).join('')).join('');
 
 function cents(value) {
   const text = String(value);
@@ -1756,9 +2506,9 @@ function renderPortal() {
   $('#dashboard-source').classList.toggle('real', !demo);
   $('#dashboard-note').textContent = demo ? 'Illustrative demo metrics and ticket histories. No live messages, map verification or carrier corrections are implied.' : 'Metrics come from authenticated backend reports. Stored markup is gross margin; net accounting profit is not available.';
   $('#chart-source').textContent = demo ? 'DEMO' : 'DATABASE';
-  $('#distribution-title').textContent = admin ? 'Carrier volume distribution' : 'Warehouse efficiency';
-  $('#distribution-subtitle').textContent = admin ? 'How shipping volume moves across your network.' : 'Compare local transit times and lane costs.';
-  $('#secondary-chart-title').textContent = admin ? 'Shipping volume trend' : 'Dispatch performance';
+  $('#distribution-title').textContent = admin ? 'Carrier volume distribution' : 'Shipping lane costs';
+  $('#distribution-subtitle').textContent = admin ? 'How shipping volume moves across your network.' : 'All confirmed bookings in the selected period, grouped by route and currency.';
+  $('#secondary-chart-title').textContent = admin ? 'Shipping volume trend' : 'Shipment outcomes & transit';
   $('#trend-period').textContent = demo ? '6 MONTH DEMO' : 'REPORTING PERIOD';
   if (demo) {
     $('#dashboard-metrics').innerHTML = admin ? metric('Consolidated Gross Revenue', '£759,000', 'Illustrative consolidated platform revenue', 'wallet') + metric('Net Platform Profit Margin', '£166,980', '22% average yield · illustrative net profit', 'chart') + metric('Active Tenant Count', '42', 'Onboarded SMEs · demo accounts', 'grid') : metric('Monthly Shipping Spend', '£4,320', 'This month · sample workspace spend', 'wallet') + metric('Active Wallet Credit Balance', '£342.10', 'Available credit · sample wallet', 'wallet') + metric('Printed Label Count This Month', '184', 'Labels · sample warehouse activity', 'list');
@@ -1806,13 +2556,13 @@ function renderCharts(admin, carriers = []) {
     }
   } else {
     renderLanes();
-    $('#secondary-chart').innerHTML = portalDemo() ? '<div class="trend-bars">' + [63, 77, 90, 84, 107, 127].map(h => `<div class="trend-column" style="height:${h}px;background:#177b66"></div>`).join('') + '</div><div class="trend-labels"><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span><span>SEP</span><span>OCT</span></div><div class="chart-foot"><span><b>184</b> sample labels this month</span><span><b>2.4 days</b> sample average transit</span></div>' : '<p class="subtle">Shipment counts and spending reflect your selected report. Delivery-time analytics require carrier dispatch and delivery timestamps.</p>'
+    $('#secondary-chart').innerHTML = portalDemo() ? '<div class="trend-bars">' + [63, 77, 90, 84, 107, 127].map(h => `<div class="trend-column" style="height:${h}px;background:#177b66"></div>`).join('') + '</div><div class="trend-labels"><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span><span>SEP</span><span>OCT</span></div><div class="chart-foot"><span><b>184</b> sample labels this month</span><span><b>2.4 days</b> sample average transit</span></div>' : `<div class="notice">${escapeHTML(portal.report?.performance?.basis||'Refresh to load outcomes for confirmed bookings in this period.')}</div>${portal.report?.performance?`<div class="status-pills"><span class="tag">${portal.report.performance.booked_shipments} confirmed shipments</span><span class="tag green">${portal.report.performance.delivered_shipments} delivered</span><span class="tag">${portal.report.performance.in_transit_shipments} in transit</span><span class="tag status-exception">${portal.report.performance.exception_shipments} exceptions</span><span class="tag">${portal.report.performance.awaiting_transit_shipments} awaiting transit</span></div><p class="subtle">Observed transit: <strong>${portal.report.performance.observed_transit_days===null?'Not available':escapeHTML(portal.report.performance.observed_transit_days)+' days'}</strong>. Timestamp coverage: ${portal.report.performance.measured_deliveries} of ${portal.report.performance.delivered_shipments} delivered shipments. Missing or inconsistent timestamps are excluded.</p>`:''}`
   }
 }
 
 function renderLanes() {
   const rows = portal.lanes;
-  $('#primary-chart').innerHTML = rows.length ? `<div class="warehouse-grid">${rows.map((r,i)=>`<button class="warehouse-lane" data-lane="${i}" aria-pressed="false"><strong>${escapeHTML(r.name)}</strong><span class="card-label">${escapeHTML(r.carrier||'Connected carrier')}</span><div class="lane-metrics"><span>Transit<b>${r.days===null?'Pending':escapeHTML(r.days)+'d'}</b></span><span>Avg. cost<b>${money(r.cost,r.currency||'GBP')}</b></span></div></button>`).join('')}</div><div id="lane-detail" class="lane-detail">Choose a shipping lane to inspect its performance.</div>` : '<div class="empty">No booked shipments available for warehouse analysis.</div>';
+  $('#primary-chart').innerHTML = rows.length ? `<div class="warehouse-grid">${rows.map((r,i)=>`<button class="warehouse-lane" data-lane="${i}" aria-pressed="false"><strong>${escapeHTML(r.name)}</strong><span class="card-label">${escapeHTML(r.carrier||'Connected carrier')}</span><div class="lane-metrics"><span>Shipments<b>${escapeHTML(r.count??'Sample')}</b></span><span>Avg. shipping price<b>${money(r.cost,r.currency||'GBP')}</b></span></div></button>`).join('')}</div><div id="lane-detail" class="lane-detail">Choose a shipping lane to inspect its performance.</div>` : '<div class="empty">No confirmed bookings in this reporting period. Quotes and failed preparation attempts are excluded.</div>';
   $('#primary-chart').querySelectorAll?.('[data-lane]').forEach(button => button.addEventListener('click', () => {
     const lane = portal.lanes[Number(button.dataset.lane)];
     $('#lane-detail').textContent = lane.note || 'Confirmed shipment data for this workspace.';
@@ -1903,16 +2653,47 @@ $('#intervention-form').addEventListener('submit', event => {
     renderTickets()
   })
 });
+
+function reportToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function validateReportDates() {
+  const start = $('#report-start').value,
+    end = $('#report-end').value,
+    today = reportToday();
+  if (!start || !end) throw Error('Choose both reporting dates.');
+  if (start > today || end > today) throw Error('Reporting dates cannot be in the future (UTC).');
+  if (end < start) throw Error('The end date must be on or after the start date.');
+  if ((Date.parse(end) - Date.parse(start)) / 86400000 > 366) throw Error('Choose at most 367 inclusive days.');
+}
+
+function reportDateBounds() {
+  const today = reportToday();
+  $('#report-start').max = $('#report-end').value && $('#report-end').value < today ? $('#report-end').value : today;
+  $('#report-end').max = today;
+  $('#report-end').min = $('#report-start').value || '';
+}
+for (const id of ['report-start', 'report-end']) $('#' + id).addEventListener('change', reportDateBounds);
 async function refreshPortal() {
   if (!state.session) {
     portal.report = null;
     renderPortal();
     return
   }
+  try {
+    validateReportDates();
+  } catch (error) {
+    $('#dashboard-error').textContent = error.message;
+    $('#dashboard-error').hidden = false;
+    $('#report-refresh-status').textContent = 'Choose valid dates; the previous report is retained.';
+    return;
+  }
   const generation = ++portal.epoch,
     active = state.session;
   $('#dashboard-error').hidden = true;
   try {
+    $('#report-refresh-status').textContent = 'Loading report...';
     const profile = await api('/api/v1/profile', {
       auth: true
     });
@@ -1962,53 +2743,48 @@ async function refreshPortal() {
       renderCharts(true, report.carriers)
     } else {
       if (!profile.tenant_id) throw Error('This owner account has no client workspace. Select Super-Admin View.');
-      const [report, wallet, tickets, manifest] = await Promise.all([api('/api/v1/analytics/reports?' + query, {
+      const report = await api('/api/v1/analytics/reports?' + query, {
         auth: true
-      }), api('/api/v1/wallet', {
+      });
+      if (generation !== portal.epoch || active !== state.session) return;
+      portal.report = report;
+      const [walletResult, ticketsResult] = await Promise.allSettled([api('/api/v1/wallet', {
         auth: true
       }), api('/api/v1/support/tickets', {
         auth: true
-      }), api('/api/v1/shipments/manifest', {
-        auth: true
       })]);
-      if (generation !== portal.epoch) return;
-      state.wallet = cents(wallet.balance);
-      state.reserved = cents(wallet.reserved_balance);
-      state.walletCurrency = wallet.currency;
-      state.manifest = manifest.shipments;
-      renderWallet();
-      renderManifest();
-      portal.report = report;
-      const currency = wallet.currency,
-        totals = report.totals_by_currency.find(r => r.currency === currency);
-      $('#dashboard-metrics').innerHTML = metric('Shipping Spend', money(totals?.shipping_spend || '0.00', currency), 'Selected period · ' + currency + ' only', 'wallet') + metric('Active Wallet Credit Balance', money(wallet.available, currency), 'Available after reservations', 'wallet') + metric('Confirmed Label Count', String(report.total_package_count ?? report.totals_by_currency.reduce((n, r) => n + r.package_count, 0)), 'Booked packages · selected period', 'list');
-      portal.tickets = tickets.tickets;
-      const groups = new Map();
-      for (const row of manifest.shipments) {
-        if (!['BOOKED', 'DISPATCHED', 'IN_TRANSIT', 'EXCEPTION', 'DELIVERED'].includes(row.status) || row.currency !== currency) continue;
-        const meta = row.metadata || {},
-          key = meta.destination || meta.ecommerce?.shipping_address?.country_code || 'Destination unreported';
-        const lane = groups.get(key) || {
-          name: 'Warehouse → ' + key,
-          carrier: meta.carrier || 'Not reported',
-          cents: 0n,
-          count: 0,
-          days: null,
-          currency,
-          note: 'Based on up to 200 current manifest records; carrier transit timestamps are not supplied.'
-        };
-        lane.cents += cents(row.price || '0.00');
-        lane.count++;
-        groups.set(key, lane)
+      if (generation !== portal.epoch || active !== state.session) return;
+      const wallet = walletResult.status === 'fulfilled' ? walletResult.value : null;
+      const currency = wallet?.currency || report.totals_by_currency[0]?.currency || state.walletCurrency || 'GBP';
+      if (wallet) {
+        state.wallet = cents(wallet.balance);
+        state.reserved = cents(wallet.reserved_balance);
+        state.walletCurrency = wallet.currency;
+        renderWallet();
       }
-      portal.lanes = [...groups.values()].map(l => ({
-        ...l,
-        cost: decimalCents(l.cents / BigInt(l.count))
+      if (ticketsResult.status === 'fulfilled') portal.tickets = ticketsResult.value.tickets;
+      const totals = report.totals_by_currency.find(r => r.currency === currency);
+      $('#dashboard-metrics').innerHTML = metric('Shipping spend (' + currency + ')', money(totals?.shipping_spend || '0.00', currency), 'Confirmed bookings in selected UTC period', 'wallet') +
+        metric('Available wallet credit', wallet ? money(wallet.available, currency) : 'Unavailable', 'Current balance, independent of reporting period', 'wallet') +
+        metric('Confirmed packages', String(report.total_package_count), 'Quotes and failed preparation excluded', 'list');
+      portal.lanes = (report.lanes || []).map(r => ({
+        name: r.origin_country + ' -> ' + r.destination_country,
+        carrier: 'Confirmed bookings',
+        count: r.shipment_count,
+        cost: r.average_price,
+        currency: r.currency,
+        note: r.shipment_count + ' confirmed shipments; ' + r.package_count + ' packages. Average recorded customer shipping price in ' + r.currency + '. All records in the selected booking period; no manifest-page sampling.'
       }));
+      if (walletResult.status === 'rejected' || ticketsResult.status === 'rejected') {
+        $('#dashboard-error').hidden = false;
+        $('#dashboard-error').textContent = 'Report loaded. ' + (walletResult.status === 'rejected' ? 'Current wallet could not be loaded. ' : '') + (ticketsResult.status === 'rejected' ? 'Support tickets could not be loaded.' : '');
+      }
       renderCharts(false)
     }
+    $('#report-refresh-status').textContent = 'Updated: ' + portal.report.start_date + ' to ' + portal.report.end_date + ' UTC' + (portal.report.total_package_count === 0 ? ' - no confirmed bookings.' : '');
     renderTickets()
   } catch (error) {
+    $('#report-refresh-status').textContent = 'Report could not be refreshed.';
     if (generation !== portal.epoch) return;
     portal.report = null;
     portal.tickets = [];
@@ -2020,7 +2796,7 @@ async function refreshPortal() {
 }
 $('#role-admin').addEventListener('click', () => setPortalRole('SUPER_ADMIN'));
 $('#role-client').addEventListener('click', () => setPortalRole('CLIENT'));
-$('#dashboard-refresh').addEventListener('click', () => refreshPortal());
+$('#dashboard-refresh').addEventListener('click', () => busy($('#dashboard-refresh'), refreshPortal));
 
 function boxStorageKey() {
   return 'veloce.box-profiles.v1.' + (portal.profile?.tenant_id || portal.profile?.user_id || 'demo')
@@ -2129,7 +2905,8 @@ const now = new Date(),
   start = new Date(now.getFullYear(), now.getMonth(), 1);
 const isoDay = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 $('#report-start').value = isoDay(start);
-$('#report-end').value = isoDay(now);
+$('#report-end').value = reportToday();
+reportDateBounds();
 loadBoxes();
 renderPortal();
 setView('dashboard');

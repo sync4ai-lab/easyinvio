@@ -368,6 +368,11 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
     async def owner_manifest(request: Request,owner: Any=Depends(authenticate_platform_owner)):
         return await read_manifest(request,None)
 
+    @router.get('/countries')
+    async def countries():
+        import pycountry
+        return {'countries':sorted([{'code':c.alpha_2,'name':c.name} for c in pycountry.countries],key=lambda c:c['name'])}
+
     @router.get("/wallet")
     async def wallet(request: Request, context: Any = Depends(authenticate)):
         if context.role not in {"OWNER", "ADMIN", "ACCOUNTANT"}:

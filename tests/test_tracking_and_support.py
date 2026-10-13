@@ -131,6 +131,14 @@ class TrackingTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(HTTPException):
                 await self.service.report(context, start, end, 1, 100)
 
+    async def test_future_reporting_date_rejected_before_database_access(self):
+        future=datetime.now(timezone.utc).date()+timedelta(days=1)
+        context=SimpleNamespace(tenant_id=self.db.tenant,role='OWNER')
+        with self.assertRaises(HTTPException) as error:
+            await self.service.report(context,future,future,1,100)
+        self.assertEqual(error.exception.status_code,422)
+        self.assertFalse(self.db.calls)
+
     async def test_signed_http_and_invalid_signature_does_not_access_database(self):
         app = FastAPI()
         app.state.tracking_support = self.service

@@ -65,7 +65,7 @@ class DashboardTests(unittest.TestCase):
         async def owner():
             return SimpleNamespace(user_id=uuid4())
         self.app.dependency_overrides[authenticate_platform_owner]=owner
-        response=self.client.get('/api/v1/admin/analytics/dashboard?start_date=2026-10-01&end_date=2026-10-31')
+        response=self.client.get('/api/v1/admin/analytics/dashboard?start_date=2026-09-01&end_date=2026-09-30')
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.json()['totals_by_currency'][0]['revenue'],'1234.50')
         self.assertEqual(response.json()['totals_by_currency'][0]['margin'],'246.90')
@@ -75,7 +75,7 @@ class DashboardTests(unittest.TestCase):
         async def denied():
             raise HTTPException(403,'Owner required')
         self.app.dependency_overrides[authenticate_platform_owner]=denied
-        response=self.client.get('/api/v1/admin/analytics/dashboard?start_date=2026-10-01&end_date=2026-10-31')
+        response=self.client.get('/api/v1/admin/analytics/dashboard?start_date=2026-09-01&end_date=2026-09-30')
         self.assertEqual(response.status_code,403)
         self.assertFalse(self.db.calls)
     def test_client_tickets_and_intervention_scope(self):

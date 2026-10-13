@@ -233,6 +233,8 @@ class TrackingSupportService:
     async def report(self, context, start: date, end: date, page: int, page_size: int):
         if context.role not in {"OWNER", "ADMIN", "ACCOUNTANT"}:
             raise HTTPException(403, "Financial reporting permission required")
+        if end > datetime.now(timezone.utc).date():
+            raise HTTPException(422,'Reporting dates cannot be in the future (UTC)')
         if end < start or end == date.max or (end - start).days > 366:
             raise HTTPException(422, "Date range must be ordered and at most 367 inclusive days")
         begin = datetime.combine(start, datetime.min.time(), timezone.utc)
@@ -243,12 +245,41 @@ class TrackingSupportService:
                     coalesce(sum(final_client_price),0)::numeric AS spend,coalesce(sum(profit_markup),0)::numeric AS margin
                     FROM public.shipments WHERE tenant_id=$1 AND booked_at >= $2 AND booked_at < $3
                     AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY currency ORDER BY currency""", context.tenant_id, begin, finish)
+                lanes = await connection.fetch("""SELECT s.origin_country,s.destination_country,s.currency,
+                    count(*)::bigint AS shipment_count,sum(s.parcel_count)::bigint AS package_count,
+                    round(avg(s.final_client_price),2) AS average_price
+                    FROM public.shipments s WHERE s.tenant_id=$1 AND s.booked_at >= $2 AND s.booked_at < $3
+                    AND s.status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
+                    GROUP BY s.origin_country,s.destination_country,s.currency
+                    ORDER BY shipment_count DESC,s.origin_country,s.destination_country,s.currency""",context.tenant_id,begin,finish)
+                outcomes = await connection.fetch("""WITH cohort AS (
+                    SELECT s.*, (SELECT min(e.occurred_at) FROM public.tracking_events e
+                        WHERE e.tenant_id=s.tenant_id AND e.shipment_id=s.id AND e.status='IN_TRANSIT'
+                        AND e.response->>'applied'='true') AS first_observed_transit
+                    FROM public.shipments s WHERE s.tenant_id=$1 AND s.booked_at >= $2 AND s.booked_at < $3
+                    AND s.status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'))
+                    SELECT count(*)::bigint AS booked_shipments,
+                    count(*) FILTER(WHERE status='DELIVERED')::bigint AS delivered_shipments,
+                    count(*) FILTER(WHERE status='IN_TRANSIT')::bigint AS in_transit_shipments,
+                    count(*) FILTER(WHERE status='EXCEPTION')::bigint AS exception_shipments,
+                    count(*) FILTER(WHERE status IN ('BOOKED','DISPATCHED'))::bigint AS awaiting_transit_shipments,
+                    count(*) FILTER(WHERE status='DELIVERED' AND first_observed_transit IS NOT NULL
+                        AND delivered_at>=first_observed_transit AND first_observed_transit>=booked_at AND delivered_at<=now())::bigint AS measured_deliveries,
+                    round(avg(extract(epoch FROM (delivered_at-first_observed_transit))/86400.0)
+                        FILTER(WHERE status='DELIVERED' AND first_observed_transit IS NOT NULL
+                        AND delivered_at>=first_observed_transit AND first_observed_transit>=booked_at AND delivered_at<=now()),2) AS observed_transit_days
+                    FROM cohort""",context.tenant_id,begin,finish)
                 payments = await connection.fetch("""SELECT id,status,currency,amount,created_at,credited_at,is_sandbox
                     FROM public.wallet_topups WHERE tenant_id=$1 AND created_at >= $2 AND created_at < $3
                     ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5""", context.tenant_id, begin, finish, page_size + 1, (page - 1) * page_size)
         return {"start_date": start.isoformat(), "end_date": end.isoformat(), "timezone": "UTC",
                 "total_package_count": sum(r["package_count"] for r in totals),
                 "totals_by_currency": [{"currency": r["currency"], "package_count": r["package_count"], "shipping_spend": money(r["spend"]), "platform_margin": money(r["margin"])} for r in totals],
+                "lanes":[{**dict(r),'average_price':money(r['average_price'])} for r in lanes],
+                "performance":{**(dict(outcomes[0]) if outcomes else {'booked_shipments':0,'delivered_shipments':0,
+                    'in_transit_shipments':0,'exception_shipments':0,'awaiting_transit_shipments':0,'measured_deliveries':0}),
+                    'observed_transit_days':money(outcomes[0]['observed_transit_days']) if outcomes and outcomes[0]['observed_transit_days'] is not None else None,
+                    'basis':'Current outcomes for shipments booked in this UTC period. Observed transit is the average time from the first accepted carrier in-transit update to delivery. Only deliveries with both timestamps count; this does not measure warehouse productivity or guarantee delivery speed.'},
                 "wallet_payments": [{"id": str(r["id"]), "status": r["status"], "currency": r["currency"], "amount": money(r["amount"]),
                                      "created_at": r["created_at"].isoformat(), "credited_at": r["credited_at"].isoformat() if r["credited_at"] else None,
                                      "is_sandbox": r["is_sandbox"]} for r in payments[:page_size]],

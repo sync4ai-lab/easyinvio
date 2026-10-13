@@ -98,6 +98,7 @@ def build_router(authenticate):
     async def platform_report(request: Request, start_date: date, end_date: date,
                               environment: Literal['PRODUCTION','SANDBOX']='PRODUCTION',
                               owner: Any = Depends(authenticate_platform_owner)):
+        if end_date > datetime.now(timezone.utc).date():raise HTTPException(422,'Reporting dates cannot be in the future (UTC)')
         if end_date < start_date or end_date == date.max or (end_date-start_date).days > 366:
             raise HTTPException(422, "Use an ordered date range of at most 367 days")
         start = datetime.combine(start_date, datetime.min.time(), timezone.utc)
