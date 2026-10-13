@@ -1830,7 +1830,7 @@ async def lifespan(application: FastAPI):
                 for table in ("tenants", "users", "carrier_accounts", "margin_rules", "shipments",
                               "wallets", "wallet_topups", "wallet_reservations", "wallet_ledger",
                               "whatsapp_bindings", "whatsapp_routes", "whatsapp_quote_choices", "whatsapp_receipts",
-                              "admin_configuration_events", "ecommerce_stores", "ecommerce_tracking_outbox",
+                              "admin_configuration_events", "ecommerce_stores", "ecommerce_tracking_outbox", "workspace_store_connections",
                               "tracking_events", "support_tickets", "support_message_outbox"):
                     if await connection.fetchval("SELECT to_regclass($1)", f"public.{table}") is None:
                         raise RuntimeError(f"Required migration table is missing: public.{table}")
@@ -1865,7 +1865,7 @@ async def lifespan(application: FastAPI):
                 application.state.csv_orders=CSVOrderService(pool,application.state.automation_freight)
                 from backend.ecommerce_connectors import StoreConnectorSettings
                 application.state.ecommerce = EcommerceService(pool,client=http_client,
-                    connectors=StoreConnectorSettings().ecommerce_connectors)
+                    connectors=StoreConnectorSettings().ecommerce_connectors, credential_keys=settings.credential_keys)
                 from backend.tracking_and_support import load_tracking_settings
                 application.state.tracking_support = TrackingSupportService(pool, load_tracking_settings())
                 application.state.support_delivery = SupportDelivery(pool,http_client,settings,DeliverySettings())
@@ -2319,6 +2319,8 @@ app.include_router(customer_checkout_router(authenticate))
 from backend.automation_three_partners import build_native_router
 app.include_router(build_native_router(authenticate))
 app.include_router(dispatch_workspace_router(authenticate))
+from backend.store_connections import build_router as store_connections_router
+app.include_router(store_connections_router(authenticate))
 
 
 def verify_local_logic() -> None:

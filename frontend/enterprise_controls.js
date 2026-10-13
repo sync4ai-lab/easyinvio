@@ -380,10 +380,12 @@ $('#store-admin-form').addEventListener('submit', event => {
     event.preventDefault(); busy(event.target.querySelector('button'), async () => {
         if (!allowedEnterpriseViews().includes('stores')) throw Error('Store configuration permission required.');
         const body = Object.fromEntries(new FormData(event.target));
-        if (state.session) await api('/api/v1/workspace/stores', { method: 'POST', body, auth: true });
+        let registeredStore;
+        if (state.session) registeredStore = await api('/api/v1/workspace/stores', { method: 'POST', body, auth: true });
         else enterprise.stores.push({ id: crypto.randomUUID(), ...body, is_active: true });
         $('#store-admin-dialog').close(); if (state.session) await loadEnterpriseView('stores'); else renderEnterpriseStores();
-        notify('Workspace store registered. Remote app installation is separate.');
+        notify('Store registered. Complete connection settings to import orders.');
+        if (registeredStore) document.querySelector('[data-store-settings="'+registeredStore.id+'"]')?.click();
     });
 });
 $('#store-list').addEventListener('click', event => {

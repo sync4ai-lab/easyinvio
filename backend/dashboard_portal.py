@@ -38,19 +38,21 @@ def build_router(authenticate):
     async def stores(request: Request, context: Any=Depends(authenticate)):
         if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Workspace financial or administrator role required')
         async with request.app.state.finance.pool.acquire() as c:
-            rows=await c.fetch('SELECT id,platform,display_name,is_active FROM public.ecommerce_stores WHERE tenant_id=$1 ORDER BY display_name LIMIT 200',context.tenant_id)
-        return {'stores':[{'id':str(r['id']),'platform':r['platform'],'display_name':r['display_name'],'is_active':r['is_active']} for r in rows], 'mode':'SIMULATED_IMPORT_AND_TRACKING'}
+            rows=await c.fetch('''SELECT s.id,s.platform,s.display_name,s.is_active,(c.store_id IS NOT NULL) AS connection_saved
+                FROM public.ecommerce_stores s LEFT JOIN public.workspace_store_connections c
+                ON c.tenant_id=s.tenant_id AND c.store_id=s.id WHERE s.tenant_id=$1 ORDER BY s.display_name LIMIT 200''',context.tenant_id)
+        return {'stores':[{'id':str(r['id']),'platform':r['platform'],'display_name':r['display_name'],'is_active':r['is_active'],'connection_saved':bool(r.get('connection_saved',False))} for r in rows], 'mode':'WORKSPACE_STORE_REGISTRY'}
 
     @router.post('/workspace/stores',status_code=201)
     async def create_store(body: StoreConfiguration, request: Request, context: Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Workspace configuration permission required')
+        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace administrator permission required')
         async with request.app.state.finance.pool.acquire() as c:
             row=await c.fetchrow('INSERT INTO public.ecommerce_stores(tenant_id,platform,display_name) VALUES($1,$2,$3) RETURNING id',context.tenant_id,body.platform,body.display_name)
         return {'id':str(row['id']),'platform':body.platform,'display_name':body.display_name,'is_active':True}
 
     @router.patch('/workspace/stores/{store_id}')
     async def store_state(store_id: UUID, body: StoreState, request: Request, context: Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Workspace configuration permission required')
+        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace administrator permission required')
         async with request.app.state.finance.pool.acquire() as c:
             row=await c.fetchrow('UPDATE public.ecommerce_stores SET is_active=$3 WHERE tenant_id=$1 AND id=$2 RETURNING id',context.tenant_id,store_id,body.is_active)
         if not row:raise HTTPException(404,'Workspace store not found')

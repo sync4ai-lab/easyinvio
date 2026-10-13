@@ -138,10 +138,11 @@ def tracking_link(carrier: str, number: str) -> str | None:
 
 
 class EcommerceService:
-    def __init__(self, pool, *, connectors=None, client=None):
+    def __init__(self, pool, *, connectors=None, client=None, credential_keys=None):
         self.pool = pool
         self.connectors = connectors or {}
         self.client = client
+        self.credential_keys = credential_keys or {}
 
     async def push_live(self, tenant_id, store_order_id, tracking_number, carrier_name):
         """Commit a send fence before the remote mutation; crashes cannot resend."""
@@ -150,7 +151,8 @@ class EcommerceService:
                 JOIN public.ecommerce_stores s ON s.tenant_id=o.tenant_id AND s.id=o.store_id
                 WHERE o.tenant_id=$1 AND o.store_order_id=$2 AND o.status='PENDING' AND s.is_active''', tenant_id,store_order_id)
         for row in rows:
-            config = self.connectors.get(row['store_id'])
+            from backend.store_connections import resolve_connector
+            config = await resolve_connector(self, row['store_id'])
             if not config or not config.live_delivery or config.tenant_id != tenant_id:
                 continue
             body = json.loads(row['payload']) if isinstance(row['payload'], str) else row['payload']
@@ -354,7 +356,8 @@ def build_router(authenticate):
                 JOIN public.ecommerce_stores s ON s.tenant_id=o.tenant_id AND s.id=o.store_id
                 WHERE o.tenant_id=$1 AND o.id=$2 AND o.status='RECONCILIATION_REQUIRED' AND s.is_active''',context.tenant_id,event_id)
         if not row: raise HTTPException(404,'Pending reconciliation not found')
-        config=service.connectors.get(row['store_id'])
+        from backend.store_connections import resolve_connector
+        config=await resolve_connector(service, row['store_id'])
         if not config or not config.live_delivery or config.tenant_id!=context.tenant_id or service.client is None:
             raise HTTPException(503,'Store delivery not configured')
         from backend.ecommerce_connectors import ShopifyFulfillment

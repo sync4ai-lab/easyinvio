@@ -32,6 +32,8 @@ class StoreConnector(BaseModel):
     webhook_secret: SecretStr
     shop_domain: str | None = None
     access_token: SecretStr | None = None
+    client_id: str | None = None
+    client_secret: SecretStr | None = None
     api_version: str = Field(default='2026-10', pattern=r'^20\d{2}-(01|04|07|10)$')
     live_delivery: bool = Field(default=False, strict=True)
     live_import: bool = Field(default=False, strict=True)
@@ -58,7 +60,9 @@ class StoreConnector(BaseModel):
             raise ValueError('Shopify requires shop_domain for webhook identity verification')
         if self.live_delivery and (self.platform != 'SHOPIFY' or not self.access_token or not self.access_token.get_secret_value().strip()):
             raise ValueError('Live delivery currently requires a Shopify access token')
-        if self.live_import and (self.platform != 'SHOPIFY' or not self.access_token or not self.access_token.get_secret_value().strip()):
+        if bool(self.client_id) != bool(self.client_secret):
+            raise ValueError('Supply both Shopify client credentials')
+        if self.live_import and (self.platform != 'SHOPIFY' or not (self.access_token and self.access_token.get_secret_value().strip() or self.client_id and self.client_secret)):
             raise ValueError('Live polling currently requires a Shopify access token')
         if any(not weight.is_finite() or weight <= 0 or weight > 1000000 for weight in self.sku_unit_grams.values()):
             raise ValueError('SKU weights must be positive finite grams')
@@ -79,7 +83,8 @@ def single_header(request: Request, name: str) -> str:
 
 async def receive_store_webhook(request: Request, store_id: UUID):
     service = request.app.state.ecommerce
-    config = service.connectors.get(store_id)
+    from backend.store_connections import resolve_connector
+    config = await resolve_connector(service, store_id)
     if config is None:
         raise HTTPException(401, 'Unconfigured storefront webhook')
     if request.headers.get('content-type','').split(';')[0].lower() != 'application/json':
@@ -147,6 +152,25 @@ def normalize_woocommerce(data: dict, config: StoreConnector) -> dict:
                 'province':shipping.get('state','')},'line_items':items}
 
 
+async def shopify_access_token(client, config):
+    """Renew short-lived own-organization tokens; never store or log responses."""
+    if config.client_id and config.client_secret:
+        try:
+            response = await client.post(f'https://{config.shop_domain}/admin/oauth/access_token',
+                data={'grant_type': 'client_credentials', 'client_id': config.client_id,
+                      'client_secret': config.client_secret.get_secret_value()},
+                timeout=20, follow_redirects=False)
+            token = response.json().get('access_token') if response.status_code == 200 else None
+            if not isinstance(token, str) or not token.strip():
+                raise ValueError()
+            return token
+        except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+            raise HTTPException(503, 'Shopify authorization failed. Check installation and app ownership, or contact support.') from None
+    if not config.access_token:
+        raise HTTPException(409, 'Connect a Shopify Admin API account first')
+    return config.access_token.get_secret_value()
+
+
 class ShopifyFulfillment:
     """Whole-order/single-location fulfillment; never invent item allocation."""
     def __init__(self, client: httpx.AsyncClient, config: StoreConnector):
@@ -155,7 +179,7 @@ class ShopifyFulfillment:
     async def graphql(self, query, variables):
         response = await self.client.post(
             f'https://{self.config.shop_domain}/admin/api/{self.config.api_version}/graphql.json',
-            headers={'X-Shopify-Access-Token':self.config.access_token.get_secret_value()},
+            headers={'X-Shopify-Access-Token':await shopify_access_token(self.client, self.config)},
             json={'query':query,'variables':variables},timeout=20,follow_redirects=False)
         if response.status_code != 200:
             raise HTTPException(503, 'Store fulfillment requires reconciliation')

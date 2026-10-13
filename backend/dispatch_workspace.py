@@ -57,11 +57,13 @@ async def poll_shopify(service, context, store_id, config, *, after=None):
         raise HTTPException(503, 'Marketplace client unavailable')
     results, cursor, seen = [], after, set()
     more = False
+    from backend.ecommerce_connectors import shopify_access_token
+    token = await shopify_access_token(service.client, config)
     for _ in range(10):
         try:
             response = await service.client.post(
                 f'https://{config.shop_domain}/admin/api/{config.api_version}/graphql.json',
-                headers={'X-Shopify-Access-Token': config.access_token.get_secret_value()},
+                headers={'X-Shopify-Access-Token': token},
                 json={'query': SHOPIFY_ORDERS, 'variables': {'after': cursor}}, timeout=30,
                 follow_redirects=False)
             if response.status_code != 200:
@@ -165,8 +167,10 @@ def build_router(authenticate):
                 FROM public.shipments s JOIN public.ecommerce_stores e ON e.tenant_id=s.tenant_id AND e.id=s.ecommerce_store_id
                 LEFT JOIN public.ecommerce_tracking_outbox o ON o.tenant_id=s.tenant_id AND o.shipment_id=s.id
                 WHERE s.tenant_id=$1 AND e.is_active ORDER BY s.created_at DESC,s.id DESC LIMIT 101 OFFSET $2''', context.tenant_id, offset)
+        from backend.store_connections import resolve_connector
+        configs = {s['id']: await resolve_connector(service, s['id']) for s in stores}
         return {'stores': [{'id': str(s['id']), 'display_name': s['display_name'], 'platform': s['platform'],
-                           'polling_enabled': bool((service.connectors.get(s['id'])) and service.connectors[s['id']].live_import)} for s in stores],
+                           'polling_enabled': bool(configs[s['id']] and configs[s['id']].tenant_id == context.tenant_id and configs[s['id']].live_import)} for s in stores],
                 'orders': [dict(row) for row in rows[:100]], 'more_available': len(rows) > 100, 'offset': offset}
 
     @router.post('/sync/{store_id}')
@@ -179,7 +183,8 @@ def build_router(authenticate):
             store = await connection.fetchrow('SELECT platform FROM public.ecommerce_stores WHERE tenant_id=$1 AND id=$2 AND is_active', context.tenant_id, store_id)
         if not store:
             raise HTTPException(404, 'Store not found')
-        config = service.connectors.get(store_id)
+        from backend.store_connections import resolve_connector
+        config = await resolve_connector(service, store_id)
         if not config or not config.live_import:
             return {'source': 'WEBHOOK_INBOX', 'results': [], 'more_available': False,
                     'notice': 'Inbox refreshed. Remote polling is not configured; signed webhooks import orders independently.'}

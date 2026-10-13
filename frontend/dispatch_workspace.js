@@ -4,7 +4,7 @@ document.querySelector('main').insertAdjacentHTML('beforeend', `
 <section id="workspace" hidden>
  <div class="pagehead"><div><div class="eyebrow">Warehouse operations</div><h1>Marketplace Workspace</h1><p>Import, pack, review customs, quote, then dispatch confirmed orders.</p></div></div>
  <article class="card"><div class="toolbar"><select id="workspace-store" aria-label="Marketplace store"></select><button id="workspace-sync" class="primary">Sync Marketplace Orders</button><button id="workspace-refresh" class="secondary">Refresh inbox</button></div>
- <p id="workspace-notice" class="notice">Signed store webhooks feed this inbox. Live polling requires an enabled server connector. No sample orders are presented as live shipments.</p>
+ <p id="workspace-notice" class="notice">Signed store webhooks feed this inbox. Connect Shopify under Store Integrations to retrieve orders. No sample orders are presented as live shipments.</p>
  <div class="toolbar"><button id="workspace-quote" class="secondary">Quote selected orders</button><button id="workspace-buy" class="primary">Buy selected labels</button><button id="workspace-pdf" class="secondary">Download unified print PDF</button></div>
  <p class="subtle">Up to 100 selected orders per dispatch run. Review packing and customs for each order first. Supported provider TEST labels can be booked; LIVE purchases and unsupported test facilities remain guarded. The PDF can be opened and printed locally; downloading does not prove physical printing.</p>
  <div class="scrolltable"><table><thead><tr><th>Select</th><th>Order / store</th><th>Stage</th><th>Tracking push-back</th><th>Preparation</th></tr></thead><tbody id="workspace-rows"></tbody></table></div>
