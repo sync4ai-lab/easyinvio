@@ -6021,7 +6021,7 @@ function bulkTotals() {
 
 function renderBulkCheckout() {
   const rows = bulkDispatch.orders;
-  $('#bulk-checkout-body').innerHTML = `<div class="actions"><button id="bulk-fetch-rates" class="secondary">Fetch fresh rates for unbooked orders</button><span id="bulk-selected-count" class="subtle"></span></div><div class="scrolltable"><table><thead><tr><th>Include</th><th>Order / stage</th><th>Shipping service &amp; price</th></tr></thead><tbody>${rows.map(row=>`<tr><td><input type="checkbox" aria-label="Include ${escapeHTML(row.reference)}" data-bulk-include="${row.shipment_id}" ${row.rates.length&&row.customs_ready?'checked':'disabled'}></td><td><b>${escapeHTML(row.reference)}</b><br><span class="tag">${escapeHTML(row.status)}</span></td><td>${row.rates.length&&row.customs_ready?`<label class="subtle" for="bulk-service-${row.shipment_id}">Compare ${row.rates.length} available services</label><select id="bulk-service-${row.shipment_id}" data-bulk-service>${row.rates.map(rate=>`<option value="${escapeHTML(rate.offer_id)}">${escapeHTML(carrierDisplay(rate.carrier_code))} - ${escapeHTML(carrierDisplay(rate.service_code))} - ${escapeHTML(money(rate.client_price_ex_tax,rate.currency))} - ${rate.delivery_days==null?'No delivery estimate':Number(rate.delivery_days)+' estimated days'}</option>`).join('')}</select>`:`<p>${escapeHTML(row.notice)}</p>${row.batch_import&&['PENDING_IMPORT','DRAFT','QUOTED'].includes(row.status)?`<button class="secondary" data-bulk-customs="${row.shipment_id}">Review uploaded order</button>`:''}`}</td></tr>`).join('')}</tbody></table></div><div class="card" style="margin-top:16px"><h3>Selected shipping total: <span id="bulk-checkout-total"></span></h3><p class="subtle">Prices include EasyInvio's service charge and exclude tax. Each confirmed order has its own wallet transaction and label. Successful bookings remain booked if another order fails.</p><button id="bulk-checkout-buy" class="primary full">Confirm total &amp; create selected labels</button></div>`;
+  $('#bulk-checkout-body').innerHTML = `<div class="actions"><button id="bulk-fetch-rates" class="secondary">Fetch fresh rates for unbooked orders</button><span id="bulk-selected-count" class="subtle"></span></div><div class="scrolltable"><table><thead><tr><th>Include</th><th>Order / stage</th><th>Shipping service &amp; price</th></tr></thead><tbody>${rows.map(row=>`<tr><td><input type="checkbox" aria-label="Include ${escapeHTML(row.reference)}" data-bulk-include="${row.shipment_id}" ${row.rates.length&&row.customs_ready?'checked':'disabled'}></td><td><b>${escapeHTML(row.reference)}</b><br><span class="tag">${escapeHTML(row.status)}</span></td><td>${row.rates.length&&row.customs_ready?`<label class="subtle" for="bulk-service-${row.shipment_id}">Compare ${row.rates.length} available services</label><select id="bulk-service-${row.shipment_id}" data-bulk-service>${row.rates.map(rate=>`<option value="${escapeHTML(rate.offer_id)}">${escapeHTML(carrierDisplay(rate.carrier_code))} - ${escapeHTML(carrierDisplay(rate.service_code))} - ${escapeHTML(money(rate.client_price_ex_tax,rate.currency))} - ${rate.delivery_days==null?'No delivery estimate':Number(rate.delivery_days)+' estimated days'}</option>`).join('')}</select>`:`<p>${escapeHTML(row.notice)}</p>${row.batch_import&&['PENDING_IMPORT','UNFULFILLED','DRAFT','QUOTED'].includes(row.status)?`<button class="secondary" data-bulk-customs="${row.shipment_id}">Review uploaded order</button>`:''}`}</td></tr>`).join('')}</tbody></table></div><div class="card" style="margin-top:16px"><h3>Selected shipping total: <span id="bulk-checkout-total"></span></h3><p class="subtle">Prices include EasyInvio's service charge and exclude tax. Each confirmed order has its own wallet transaction and label. Successful bookings remain booked if another order fails.</p><button id="bulk-checkout-buy" class="primary full">Confirm total &amp; create selected labels</button></div>`;
   bulkDispatch.selected = new Set(rows.filter(r => r.rates.length && r.customs_ready).map(r => r.shipment_id));
   $('#bulk-checkout-body').querySelectorAll('[data-bulk-include]').forEach(input => input.addEventListener('change', () => {
     input.checked ? bulkDispatch.selected.add(input.dataset.bulkInclude) : bulkDispatch.selected.delete(input.dataset.bulkInclude);
@@ -6036,7 +6036,7 @@ function renderBulkCheckout() {
     openCSVReview(result);
   })));
   $('#bulk-fetch-rates').addEventListener('click', () => busy($('#bulk-fetch-rates'), async () => {
-    const ids = rows.filter(r => ['PENDING_IMPORT', 'DRAFT', 'QUOTED'].includes(r.status)).map(r => r.shipment_id);
+    const ids = rows.filter(r => ['PENDING_IMPORT', 'UNFULFILLED', 'DRAFT', 'QUOTED'].includes(r.status)).map(r => r.shipment_id);
     if (!ids.length) throw Error('No unbooked orders to quote.');
     const outcome = await api('/api/v1/shipments/bulk/quote', {
       method: 'POST',
@@ -6196,7 +6196,7 @@ renderManifest = function() {
       print.textContent = 'Download carrier label PDF';
       print.disabled = !row.booked_at || !row.tracking_number || portal.profile?.workspace_role === 'ACCOUNTANT';
     }
-    if (!state.session || !['PENDING_IMPORT', 'DRAFT', 'QUOTED'].includes(row.status) || !['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role)) continue;
+    if (!state.session || !['PENDING_IMPORT', 'UNFULFILLED', 'DRAFT', 'QUOTED'].includes(row.status) || !['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role)) continue;
     const label = document.createElement('label');
     label.className = 'check';
     label.innerHTML = `<input type="checkbox" data-bulk-manifest="${row.id}" ${manifestBulkSelected.has(row.id)?'checked':''}>Select for booking`;
@@ -6242,8 +6242,7 @@ setInterval(async () => {
   try {
     await refreshManifestRecords();
   } catch {
-    /* Keep the last confirmed view during a transient network failure. */
-  } finally {
+    /* Keep the last confirmed view during a transient network failure. */ } finally {
     manifestAutoRefreshing = false;
   }
 }, 15000);
@@ -6498,9 +6497,9 @@ const storePlatforms = [{
   name: 'Amazon',
   mark: 'a',
   color: '#ff9900',
-  mode: 'Assisted setup',
+  mode: 'AWS order intake',
   url: 'https://developer-docs.amazon.com/sp-api/docs/onboarding-overview',
-  steps: ['Amazon requires a registered Selling Partner API application and seller authorization.', 'Contact support with your marketplace region and fulfillment workflow. Do not email access tokens.', 'The existing signed adapter gateway accepts normalized orders; direct Amazon SP-API polling and seller OAuth onboarding are not implemented. Registering a store alone does not import Amazon orders.']
+  steps: ['Authorize your Amazon Selling Partner API app for Orders API access and shipping-address permissions. Save the seller ID, marketplace IDs, app credentials and refresh token in encrypted connection settings.', 'Subscribe to ORDER_CHANGE notifications with an Amazon SQS destination. Use EventBridge Pipes with SQS batch size 1 and an input transformer forwarding the original notification body to an API destination. Configure it to POST the original notification JSON to /api/v1/integrations/ecommerce/orders-sync?store_id=<store UUID>, using a public HTTPS EasyInvio origin.', 'Configure the AWS API destination API-key header x-easyinvio-amazon-key using the same strong key saved as the webhook secret here. The receiver durably queues notifications and retrieves current authorized order details through Orders API v2026-01-01. Only merchant-fulfilled, wholly unshipped orders with verified SKU weights are imported.']
 }, {
   code: 'EBAY',
   name: 'eBay',
@@ -6536,7 +6535,7 @@ document.body.insertAdjacentHTML('beforeend', `<dialog id="store-guide"><button 
 <dialog id="store-connection"><button class="close" aria-label="Close connection setup">×</button><h2 id="store-connection-title">Connect store</h2><p class="notice">Credentials are encrypted on the server and never displayed after saving. Blank secret fields retain existing credentials.</p><form id="store-connection-form">
 <label data-shopify>Shopify store hostname<input name="shop_domain" placeholder="your-store.myshopify.com" maxlength="200"></label>
 <fieldset data-shopify><legend>Authorization</legend><label>Connection method<select name="authorization_mode"><option value="TOKEN">Authorized Admin API access token</option><option value="CLIENT_CREDENTIALS">App credentials ? own Shopify organization</option></select></label><p class="subtle">Use an authorized Admin API access token, or app credentials for a store in your own Shopify organization.</p><label>Admin API access token<input type="password" name="access_token" autocomplete="new-password"></label><label>App Client ID<input name="client_id" maxlength="200"></label><label>App Client secret<input type="password" name="client_secret" autocomplete="new-password"></label></fieldset>
-<label>Webhook signing secret (optional for Shopify retrieval)<input name="webhook_secret" type="password" autocomplete="new-password" minlength="32"></label>
+<fieldset data-amazon hidden><legend>Amazon seller authorization</legend><label>SP-API region<select name="amazon_region"><option value="eu">Europe / UK</option><option value="na">North America</option><option value="fe">Far East</option></select></label><label>Seller ID<input name="amazon_seller_id" maxlength="100"></label><label>Marketplace IDs ? comma separated<input name="amazon_marketplace_ids" maxlength="1000"></label><label>App Client ID<input name="amazon_client_id" maxlength="200"></label><label>App Client secret<input type="password" name="amazon_client_secret" autocomplete="new-password"></label><label>Seller refresh token<input type="password" name="amazon_refresh_token" autocomplete="new-password"></label></fieldset><label>Webhook signing secret / AWS API-destination key (optional for Shopify retrieval)<input name="webhook_secret" type="password" autocomplete="new-password" minlength="32"></label>
 <label>Verified product weights · SKU = unit grams<textarea name="weights" rows="5" placeholder="TEE-BLUE = 200&#10;MUG-WHITE = 350"></textarea></label><p class="subtle">Use measured unit weights, not package dimensions. Missing SKU weights are flagged for review; no weight is invented.</p>
 <label class="check" data-shopify><input type="checkbox" name="live_import" checked>Enable read-only order retrieval</label><p id="store-webhook-path" class="notice"></p><button class="primary full">Save encrypted connection</button></form></dialog>
 <dialog id="store-help"><button class="close" aria-label="Close support form">×</button><h2>Contact EasyInvio support</h2><p>support@easyinvio.com</p><form id="store-help-form"><label>Support topic<select name="topic"><option>Store connection</option><option>Order import</option><option>Labels and tracking</option><option>Wallet and billing</option><option>Account access</option><option>Other</option></select></label><label>Platform or order reference (optional)<input name="reference" maxlength="200"></label><label>How can we help?<textarea name="message" required minlength="10" maxlength="3000" rows="5" placeholder="Describe what you expected and what happened. Do not include passwords, API keys or payment details."></textarea></label><button class="primary full">Open email draft</button><p class="footnote">This opens your email app. Review and send the email there; EasyInvio does not send it automatically.</p></form></dialog>`);
@@ -6544,7 +6543,7 @@ storePanel.insertAdjacentHTML('beforeend', '<article class="card" style="margin-
 
 function renderStoreCatalogue() {
   const search = $('#store-search').value.trim().toLowerCase();
-  $('#store-catalogue').innerHTML = storePlatforms.filter(p => p.name.toLowerCase().includes(search)).map(p => `<article class="card"><div class="toolbar"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:54px;height:54px;border-radius:14px;background:${p.color};color:#101827;font-size:24px;font-weight:900">${p.mark}</span><h2>${p.name}</h2></div><span class="tag">${p.mode}</span><p class="subtle">${p.code==='SHOPIFY'?'Retrieve unfulfilled orders through the Shopify API.':p.code==='WOOCOMMERCE'?'Import orders through authenticated WooCommerce webhooks.':'Talk to us about connecting your store.'}</p><div class="toolbar"><button class="primary" data-store-connect="${p.code}">${['SHOPIFY','WOOCOMMERCE'].includes(p.code)?'Connect store':'Request integration'}</button><button class="secondary" data-store-guide="${p.code}">How to connect</button></div><button class="secondary" data-store-help="${p.name}" style="margin-top:12px">Support</button></article>`).join('') || '<p class="notice">No matching platform. Contact support for another sales channel.</p>';
+  $('#store-catalogue').innerHTML = storePlatforms.filter(p => p.name.toLowerCase().includes(search)).map(p => `<article class="card"><div class="toolbar"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:54px;height:54px;border-radius:14px;background:${p.color};color:#101827;font-size:24px;font-weight:900">${p.mark}</span><h2>${p.name}</h2></div><span class="tag">${p.mode}</span><p class="subtle">${p.code==='SHOPIFY'?'Retrieve unfulfilled orders through the Shopify API.':p.code==='WOOCOMMERCE'?'Import orders through authenticated WooCommerce webhooks.':p.code==='AMAZON'?'Receive authorized AWS order notifications and retrieve order details.':'Talk to us about connecting your store.'}</p><div class="toolbar"><button class="primary" data-store-connect="${p.code}">${['SHOPIFY','WOOCOMMERCE','AMAZON'].includes(p.code)?'Connect store':'Request integration'}</button><button class="secondary" data-store-guide="${p.code}">How to connect</button></div><button class="secondary" data-store-help="${p.name}" style="margin-top:12px">Support</button></article>`).join('') || '<p class="notice">No matching platform. Contact support for another sales channel.</p>';
 }
 $('#store-search').addEventListener('input', renderStoreCatalogue);
 renderStoreCatalogue();
@@ -6555,7 +6554,7 @@ function storeCanManage() {
 }
 renderEnterpriseStores = function() {
   $('#store-new').hidden = !storeCanManage();
-  $('#store-list').innerHTML = enterprise.stores.map(s => `<article class="card"><span class="tag">${escapeHTML(s.platform)}</span><h2>${escapeHTML(s.display_name)}</h2><p class="subtle">${s.is_active?'Registered · connection required for imports':'Disabled · new imports stopped'}</p><div class="toolbar">${storeCanManage()&&['SHOPIFY','WOOCOMMERCE'].includes(s.platform)?`<button class="primary" data-store-settings="${escapeHTML(s.id)}">Connection settings</button>`:''}${s.is_active&&s.platform==='SHOPIFY'&&storeCanManage()?`<button class="secondary" data-store-sync="${escapeHTML(s.id)}">Retrieve orders</button>`:''}<button class="secondary" data-open-marketplace>Open order inbox</button></div>${storeCanManage()?`<button class="secondary full" data-store-state="${escapeHTML(s.id)}" style="margin-top:12px">${s.is_active?'Disable':'Enable'} store</button>`:''}</article>`).join('') || '<p class="notice">No stores registered yet. Choose a platform above to get started.</p>';
+  $('#store-list').innerHTML = enterprise.stores.map(s => `<article class="card"><span class="tag">${escapeHTML(s.platform)}</span><h2>${escapeHTML(s.display_name)}</h2><p class="subtle">${s.is_active?'Registered · connection required for imports':'Disabled · new imports stopped'}</p><div class="toolbar">${storeCanManage()&&['SHOPIFY','WOOCOMMERCE','AMAZON'].includes(s.platform)?`<button class="primary" data-store-settings="${escapeHTML(s.id)}">Connection settings</button>`:''}${s.is_active&&s.platform==='SHOPIFY'&&storeCanManage()?`<button class="secondary" data-store-sync="${escapeHTML(s.id)}">Retrieve orders</button>`:''}${s.platform==='AMAZON'&&storeCanManage()?`<button class="secondary" data-store-notifications="${escapeHTML(s.id)}">Import activity</button>`:''}<button class="secondary" data-open-marketplace>Open order inbox</button></div>${storeCanManage()?`<button class="secondary full" data-store-state="${escapeHTML(s.id)}" style="margin-top:12px">${s.is_active?'Disable':'Enable'} store</button>`:''}</article>`).join('') || '<p class="notice">No stores registered yet. Choose a platform above to get started.</p>';
 };
 document.addEventListener('click', event => {
   const button = event.target.closest('[data-store-guide],[data-store-help],[data-store-connect],[data-store-settings],[data-store-sync],[data-open-marketplace]');
@@ -6576,7 +6575,7 @@ document.addEventListener('click', event => {
     $('#store-guide').showModal();
     return;
   }
-  if (button.hasAttribute('data-store-help') || button.hasAttribute('data-store-connect') && !['SHOPIFY', 'WOOCOMMERCE'].includes(button.dataset.storeConnect)) {
+  if (button.hasAttribute('data-store-help') || button.hasAttribute('data-store-connect') && !['SHOPIFY', 'WOOCOMMERCE', 'AMAZON'].includes(button.dataset.storeConnect)) {
     $('#store-help-form').reset();
     $('#store-help-form').elements.reference.value = button.dataset.storeHelp || button.dataset.storeConnect || '';
     $('#store-help').showModal();
@@ -6608,11 +6607,16 @@ document.addEventListener('click', event => {
       form.elements.authorization_mode.value = c.has_client_credentials ? 'CLIENT_CREDENTIALS' : 'TOKEN';
       form.elements.live_import.checked = c.configured ? c.live_import : true;
       form.elements.weights.value = Object.entries(c.sku_unit_grams || {}).map(([sku, g]) => sku + ' = ' + g).join('\n');
+      form.querySelectorAll('[data-amazon]').forEach(n => {
+        n.hidden = s.platform !== 'AMAZON';
+      });
+      for (const name of ['amazon_region', 'amazon_seller_id', 'amazon_client_id']) form.elements[name].value = c[name] || (name === 'amazon_region' ? 'eu' : '');
+      form.elements.amazon_marketplace_ids.value = (c.amazon_marketplace_ids || []).join(',');
       form.querySelectorAll('[data-shopify]').forEach(n => {
         n.hidden = s.platform !== 'SHOPIFY';
       });
       form.elements.shop_domain.required = s.platform === 'SHOPIFY';
-      form.elements.webhook_secret.required = s.platform === 'WOOCOMMERCE' && !c.has_webhook_secret;
+      form.elements.webhook_secret.required = ['WOOCOMMERCE', 'AMAZON'].includes(s.platform) && !c.has_webhook_secret;
       $('#store-connection-title').textContent = 'Connect ' + s.display_name;
       $('#store-webhook-path').textContent = 'Webhook path: /api/v1/integration/webhooks/' + id + ' — use your public HTTPS backend origin, not localhost.';
       $('#store-connection').showModal();
@@ -6651,6 +6655,14 @@ $('#store-connection-form').addEventListener('submit', event => {
       for (const n of ['access_token', 'client_id', 'client_secret'])
         if (form.elements[n].value.trim()) body[n] = form.elements[n].value.trim();
     }
+    if (store.platform === 'AMAZON') {
+      body.amazon_region = form.elements.amazon_region.value;
+      body.amazon_seller_id = form.elements.amazon_seller_id.value.trim();
+      body.amazon_client_id = form.elements.amazon_client_id.value.trim();
+      body.amazon_marketplace_ids = form.elements.amazon_marketplace_ids.value.split(',').map(v => v.trim()).filter(Boolean);
+      for (const name of ['amazon_client_secret', 'amazon_refresh_token'])
+        if (form.elements[name].value.trim()) body[name] = form.elements[name].value.trim();
+    }
     if (form.elements.webhook_secret.value.trim()) body.webhook_secret = form.elements.webhook_secret.value.trim();
     await api('/api/v1/workspace/stores/' + storeConnectionId + '/connection', {
       method: 'PUT',
@@ -6660,7 +6672,7 @@ $('#store-connection-form').addEventListener('submit', event => {
     form.reset();
     $('#store-connection').close();
     await loadEnterpriseView('stores');
-    notify('Connection saved. Retrieve Shopify orders or activate your WooCommerce webhook.');
+    notify('Connection saved. Retrieve Shopify orders or activate your signed WooCommerce/AWS notification delivery.');
   });
 });
 $('#store-help-form').addEventListener('submit', event => {
@@ -6691,6 +6703,158 @@ refreshEnterpriseNavigation = function(...args) {
   }
   return result;
 };
+
+document.body.insertAdjacentHTML('beforeend', '<dialog id="store-notifications"><button class="close" aria-label="Close import activity">?</button><h2>Amazon import activity</h2><p class="subtle">Correct connection permissions, SKU weights or addresses before retrying a review item. Existing orders are not imported twice.</p><div id="store-notifications-list"></div></dialog>');
+async function loadStoreNotifications(id) {
+  const data = await api('/api/v1/workspace/stores/' + id + '/notifications', {
+    auth: true
+  });
+  $('#store-notifications-list').innerHTML = (data.notifications || []).map(row => `<article class="notice"><b>${escapeHTML(row.order_id)} ? ${escapeHTML(row.status)}</b><p>Attempts: ${Number(row.attempts)} ${escapeHTML(row.last_error_code||'')}</p>${row.status==='REVIEW_REQUIRED'?`<button class="secondary" data-notification-retry="${escapeHTML(row.id)}" data-notification-store="${escapeHTML(id)}">Retry after correcting details</button>`:''}</article>`).join('') || '<p class="notice">No Amazon notifications have reached this store. Check your AWS destination delivery logs.</p>';
+}
+$('#store-notifications .close').addEventListener('click', () => $('#store-notifications').close());
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-store-notifications],[data-notification-retry]');
+  if (!button) return;
+  busy(button, async () => {
+    const id = button.dataset.storeNotifications || button.dataset.notificationStore;
+    if (button.dataset.notificationRetry) await api('/api/v1/workspace/stores/' + id + '/notifications/' + button.dataset.notificationRetry + '/retry', {
+      auth: true,
+      method: 'POST'
+    });
+    await loadStoreNotifications(id);
+    if (!$('#store-notifications').open) $('#store-notifications').showModal();
+  });
+});
+const notificationNavigationBase = refreshEnterpriseNavigation;
+refreshEnterpriseNavigation = function(...args) {
+  const result = notificationNavigationBase(...args);
+  if (!state.session) {
+    $('#store-notifications').close();
+    $('#store-notifications-list').replaceChildren();
+  }
+  return result;
+};
+</script>
+<script>
+// Embedded in index.html: authenticated live dispatch updates and statement audits.
+const dispatchLive = {
+  socket: null,
+  session: null,
+  retry: null,
+  refresh: null
+};
+
+function connectDispatchUpdates() {
+  if (!state.session || !portal.profile?.tenant_id) return;
+  if (dispatchLive.session === state.session && dispatchLive.socket && dispatchLive.socket.readyState < 2) return;
+  clearTimeout(dispatchLive.retry);
+  dispatchLive.socket?.close();
+  dispatchLive.session = state.session;
+  const session = state.session;
+  const origin = new URL(API || location.origin, location.origin);
+  origin.protocol = origin.protocol === 'https:' ? 'wss:' : 'ws:';
+  origin.pathname = '/api/v1/dispatch-workspace/live';
+  origin.search = '';
+  origin.hash = '';
+  const socket = new WebSocket(origin.href);
+  dispatchLive.socket = socket;
+  socket.onopen = () => {
+    if (session === state.session) socket.send(JSON.stringify({
+      access_token: session.access_token
+    }));
+    else socket.close();
+  };
+  socket.onmessage = event => {
+    if (session !== state.session) return;
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+    if (!['shipment_changed', 'refresh_required'].includes(message.type)) return;
+    clearTimeout(dispatchLive.refresh);
+    dispatchLive.refresh = setTimeout(async () => {
+      if (session !== state.session) return;
+      try {
+        if (enterprise.currentView === 'workspace') await loadDispatchWorkspace();
+        if (enterprise.currentView === 'manifest') {
+          $('#manifest-refresh').click();
+        }
+        if (enterprise.currentView === 'wallet') await refreshBookingWallet();
+      } catch {
+        notify('Dispatch update received. Use Refresh to retry loading your records.', true);
+      }
+    }, 400);
+  };
+  socket.onclose = () => {
+    if (dispatchLive.socket !== socket) return;
+    dispatchLive.socket = null;
+    if (session === state.session) dispatchLive.retry = setTimeout(connectDispatchUpdates, 5000);
+  };
+  socket.onerror = () => socket.close();
+}
+window.addEventListener('easyinvio-session-ready', connectDispatchUpdates);
+const liveNavigationBase = refreshEnterpriseNavigation;
+refreshEnterpriseNavigation = function(...args) {
+  const result = liveNavigationBase(...args);
+  if (!state.session) {
+    clearTimeout(dispatchLive.retry);
+    clearTimeout(dispatchLive.refresh);
+    dispatchLive.session = null;
+    dispatchLive.socket?.close();
+    dispatchLive.socket = null;
+  } else connectDispatchUpdates();
+  return result;
+};
+$('#wallet').insertAdjacentHTML('beforeend', `<article class="card" id="invoice-audit-panel" style="margin-top:24px"><h2>Audit a carrier statement</h2><p class="subtle">Compare invoice weights and wholesale charges with confirmed booking snapshots. Commercial-address checks require stored verification evidence.</p><form id="invoice-upload-form"><label>Statement reference<input name="invoice_reference" required maxlength="100" placeholder="INV-2026-10-001"></label><label>CSV or XLSX statement<input name="file" type="file" accept=".csv,.xlsx" required></label><p class="subtle">One worksheet, at most 1,000 rows and 5 MB. Use kg and tax-exclusive wholesale totals. Consolidate split rows by carrier reference; formulas are not accepted.</p><button class="secondary" type="button" id="invoice-template">Download column template</button><button class="primary" type="submit">Audit &amp; save findings</button></form><div id="invoice-audit-result" role="status" style="margin-top:16px"></div><button class="secondary" id="invoice-disputes-refresh">View saved disputes</button></article>`);
+$('#invoice-template').addEventListener('click', () => download('easyinvio-statement-template.csv', 'upstream_shipment_id,currency,invoice_weight_kg,wholesale_cost,residential_fee\n', 'text/csv'));
+$('#invoice-upload-form').addEventListener('submit', event => {
+  event.preventDefault();
+  busy(event.target.querySelector('[type=submit]'), async () => {
+    if (!state.session || !['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal.profile?.workspace_role)) throw Error('Financial permission required.');
+    const session = state.session;
+    const body = new FormData(event.target);
+    const file = body.get('file');
+    if (file.size > 5 * 1024 * 1024) throw Error('Upload a statement smaller than 5 MB.');
+    const response = await fetch(API + '/api/v1/finance/audit-invoice-upload', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + session.access_token
+      },
+      body
+    });
+    const result = await response.json();
+    if (session !== state.session) return;
+    if (!response.ok) throw Error(typeof result.detail === 'string' ? result.detail : 'Statement could not be audited. Check the template and try again.');
+    $('#invoice-audit-result').innerHTML = (result.results || []).map(row => `<article class="notice"><b>${escapeHTML(row.upstream_shipment_id)} · ${escapeHTML(row.status)}</b>${row.reason?`<p>${escapeHTML(row.reason)}</p>`:`<p>Estimated monetary difference: ${escapeHTML(row.estimated_overcharge)} ${escapeHTML(row.currency)}. Comparison confidence: ${row.confidence_level}% against stored evidence.</p>`}${row.email_draft?`<details><summary>Saved complaint draft · not sent</summary><pre style="white-space:pre-wrap">${escapeHTML(row.email_draft)}</pre></details>`:''}</article>`).join('');
+    event.target.reset();
+  });
+});
+$('#invoice-disputes-refresh').addEventListener('click', event => busy(event.target, async () => {
+  const data = await api('/api/v1/finance/billing-disputes', {
+    auth: true
+  });
+  $('#invoice-audit-result').innerHTML = (data.disputes || []).map(row => `<article class="notice"><b>${escapeHTML(row.invoice_reference)} · ${escapeHTML(row.status)}</b><p>${escapeHTML(row.estimated_overcharge)} ${escapeHTML(row.currency)}</p><details><summary>Saved draft · no email sent</summary><pre style="white-space:pre-wrap">${escapeHTML(row.email_draft)}</pre></details></article>`).join('') || '<p class="notice">No saved disputes in this workspace.</p>';
+}));
+const auditNavigationBase = refreshEnterpriseNavigation;
+refreshEnterpriseNavigation = function(...args) {
+  const result = auditNavigationBase(...args);
+  $('#invoice-audit-panel').hidden = !state.session || !['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal.profile?.workspace_role);
+  if (!state.session) {
+    $('#invoice-upload-form').reset();
+    $('#invoice-audit-result').replaceChildren();
+  }
+  return result;
+};
+
+window.addEventListener('easyinvio-session-ready', () => {
+  const parameters = new URLSearchParams(location.search);
+  if (parameters.get('view') === 'manifest' && /^[0-9a-f-]{36}$/i.test(parameters.get('shipment_id') || '')) {
+    setView('manifest');
+    history.replaceState(null, '', location.pathname + location.hash);
+  }
+});
 </script>
 </body>
 </html>

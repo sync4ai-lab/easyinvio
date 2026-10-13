@@ -96,6 +96,7 @@ class ImportPayload(BaseModel):
     store_id: UUID
     platform: Literal["SHOPIFY", "WOOCOMMERCE", "AMAZON"] = "SHOPIFY"
     topic: Literal["orders/create", "orders/paid"] = "orders/create"
+    cargo_type: Literal["LETTER", "PARCEL", "PALLET", "OVERLAND_FREIGHT"] = "PARCEL"
     order: StoreOrder
 
 
@@ -177,13 +178,17 @@ class EcommerceService:
                     delivered_at=now(),response=$3::jsonb WHERE tenant_id=$1 AND id=$2 AND status='RECONCILIATION_REQUIRED' ''',
                     tenant_id,row['id'],json.dumps(response))
 
-    async def import_order(self, context, payload: ImportPayload) -> dict:
+    async def import_order(self, context, payload: ImportPayload, *, initial_status="PENDING_IMPORT") -> dict:
+        if initial_status not in {"PENDING_IMPORT", "UNFULFILLED"}:
+            raise ValueError("Invalid internal import status")
         if context.role not in {"OWNER", "ADMIN", "DISPATCHER"}:
             raise HTTPException(403, "Dispatch permission required")
         try:
             metadata = parsed_order(payload.order)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
+        if payload.cargo_type != "PARCEL":
+            metadata["cargo_type"] = payload.cargo_type
         digest = hashlib.sha256(json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         async with self.pool.acquire() as connection:
             async with connection.transaction():
@@ -228,15 +233,15 @@ class EcommerceService:
                        (id,tenant_id,status,currency,quote_expires_at,ecommerce_store_id,store_order_id,store_import_hash,logistics_metadata,
                         created_by_user_id,idempotency_key,customer_reference,origin_country,destination_country,
                         sender_address,recipient_address,parcel_weight_kg,wholesale_cost,profit_markup,
-                        pricing_snapshot,quoted_at,customs_required)
-                       VALUES ($1,$2,'PENDING_IMPORT',$3,now(),$4,$5,$6,$7::jsonb,$8,$1,$9,$10,$11,
+                        pricing_snapshot,quoted_at,customs_required,cargo_type)
+                       VALUES ($1,$2,$15,$3,now(),$4,$5,$6,$7::jsonb,$8,$1,$9,$10,$11,
                          $12::jsonb,$13::jsonb,$14,0,0,jsonb_build_object('markup_type','MANUAL','markup_value','0.00','currency',$3::text),
-                         now()-interval '1 second',$10::text<>$11::text)""",
+                         now()-interval '1 second',$10::text<>$11::text,$16)""",
                     shipment_id, context.tenant_id, payload.order.currency, payload.store_id,
                     str(payload.order.id), digest, json.dumps({"ecommerce": metadata, "import_topic": payload.topic}),
                     member['id'],payload.order.name,sender['country_code'],address.country_code,
-                    json.dumps(sender),json.dumps(recipient),Decimal(metadata['total_weight_kg']).quantize(Decimal('.001'),rounding=ROUND_CEILING))
-                return {"shipment_id": str(shipment_id), "status": "PENDING_IMPORT", "replayed": False, **metadata}
+                    json.dumps(sender),json.dumps(recipient),Decimal(metadata['total_weight_kg']).quantize(Decimal('.001'),rounding=ROUND_CEILING), initial_status, payload.cargo_type)
+                return {"shipment_id": str(shipment_id), "status": initial_status, "replayed": False, **metadata}
 
     async def queue_confirmed_tracking(self, connection, tenant_id, shipment_id, tracking_number, carrier_name):
         """Called in the label settlement transaction; no network inside the lock."""

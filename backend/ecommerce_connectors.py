@@ -22,10 +22,11 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, m
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend.ecommerce_sync import ImportPayload
+from backend.ai_engine import strict_decimal
 
 
 class StoreConnector(BaseModel):
-    model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False, hide_input_in_errors=True)
     tenant_id: UUID
     auth_user_id: UUID
     platform: Literal['SHOPIFY','WOOCOMMERCE','AMAZON']
@@ -39,6 +40,13 @@ class StoreConnector(BaseModel):
     live_import: bool = Field(default=False, strict=True)
     # Woo/Amazon order payloads often omit physical weights; use verified SKU data.
     sku_unit_grams: dict[str, Decimal] = Field(default_factory=dict)
+    cargo_type: Literal['LETTER', 'PARCEL', 'PALLET', 'OVERLAND_FREIGHT'] = 'PARCEL'
+    amazon_region: Literal['na', 'eu', 'fe'] = 'eu'
+    amazon_seller_id: str | None = Field(default=None, max_length=100)
+    amazon_marketplace_ids: list[str] = Field(default_factory=list, max_length=50)
+    amazon_client_id: str | None = None
+    amazon_client_secret: SecretStr | None = None
+    amazon_refresh_token: SecretStr | None = None
 
     @field_validator('webhook_secret')
     @classmethod
@@ -64,13 +72,15 @@ class StoreConnector(BaseModel):
             raise ValueError('Supply both Shopify client credentials')
         if self.live_import and (self.platform != 'SHOPIFY' or not (self.access_token and self.access_token.get_secret_value().strip() or self.client_id and self.client_secret)):
             raise ValueError('Live polling currently requires a Shopify access token')
+        if self.platform == 'AMAZON' and self.amazon_seller_id and not all((self.amazon_marketplace_ids,self.amazon_client_id,self.amazon_client_secret,self.amazon_refresh_token)):
+            raise ValueError('Native Amazon intake requires complete seller authorization')
         if any(not weight.is_finite() or weight <= 0 or weight > 1000000 for weight in self.sku_unit_grams.values()):
             raise ValueError('SKU weights must be positive finite grams')
         return self
 
 
 class StoreConnectorSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file='.env', extra='ignore')
+    model_config = SettingsConfigDict(env_file='.env', extra='ignore', hide_input_in_errors=True)
     ecommerce_connectors: dict[UUID, StoreConnector] = Field(default_factory=dict)
 
 
@@ -81,7 +91,7 @@ def single_header(request: Request, name: str) -> str:
     return values[0]
 
 
-async def receive_store_webhook(request: Request, store_id: UUID):
+async def receive_store_webhook(request: Request, store_id: UUID, *, initial_status='PENDING_IMPORT'):
     service = request.app.state.ecommerce
     from backend.store_connections import resolve_connector
     config = await resolve_connector(service, store_id)
@@ -125,14 +135,40 @@ async def receive_store_webhook(request: Request, store_id: UUID):
         data = json.loads(raw, parse_float=Decimal)
         if not isinstance(data, dict):
             raise ValueError('Object required')
-        if config.platform == 'WOOCOMMERCE':
+        if config.platform == 'SHOPIFY':
+            data = normalize_shopify(data, config)
+        elif config.platform == 'WOOCOMMERCE':
             data = normalize_woocommerce(data, config)
         # Amazon's trusted SP-API adapter sends the normalized StoreOrder shape.
-        payload = ImportPayload.model_validate({'store_id':store_id,'platform':config.platform,'topic':topic,'order':data})
+        payload = ImportPayload.model_validate({'store_id':store_id,'platform':config.platform,'topic':topic,'order':data,'cargo_type':data.get('cargo_type',config.cargo_type)})
     except (ValueError, TypeError, KeyError):
         raise HTTPException(422, 'Invalid order or missing verified item weights') from None
     context = SimpleNamespace(tenant_id=config.tenant_id,user_id=config.auth_user_id,role='DISPATCHER')
-    return await service.import_order(context, payload)
+    if initial_status == "PENDING_IMPORT":
+        return await service.import_order(context, payload)
+    return await service.import_order(context, payload, initial_status=initial_status)
+
+
+def normalize_shopify(data: dict, config: StoreConnector) -> dict:
+    """Current native orders: nullable address fields and verified SKU weights."""
+    shipping = data['shipping_address']
+    items = []
+    for line in data['line_items']:
+        if line.get('requires_shipping') is False:
+            continue
+        grams = line.get('grams')
+        if grams is None or strict_decimal(str(grams)) <= 0:
+            grams = config.sku_unit_grams.get(str(line.get('sku', '')))
+        if grams is None:
+            raise ValueError('Configure verified SKU weight')
+        item = {**line, 'grams': str(grams)}
+        if item.get('unit_value') is None and line.get('price') is not None:
+            item['unit_value'] = str(line['price'])
+        items.append(item)
+    normalized = {**data, 'line_items': items, 'shipping_address': {**shipping,
+        'address2': shipping.get('address2') or '', 'phone': shipping.get('phone') or '',
+        'province': shipping.get('province_code') or shipping.get('province') or ''}}
+    return normalized
 
 
 def normalize_woocommerce(data: dict, config: StoreConnector) -> dict:

@@ -26,7 +26,7 @@ from uuid import UUID, uuid5, NAMESPACE_URL
 from urllib.parse import quote, urlsplit
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict
 
 from backend.automation_freight_engine import PurchaseRejected, PurchaseUncertain, Order
@@ -441,6 +441,16 @@ class NativePartnerService:
         return await self.tracking.ingest('native:'+str(source_id),key,event,hashlib.sha256(canonical).hexdigest())
 
 
+async def wake_exception_delivery(application):
+    try:
+        await application.state.tracking_support.stage_tickets()
+        for attempt in range(10):
+            if not await application.state.support_delivery.drain():
+                break
+    except (asyncpg.PostgresError, httpx.HTTPError, ValueError, TypeError):
+        logging.getLogger(__name__).warning('Exception alert deferred; durable ticket and notification jobs retained')
+
+
 def build_native_router(authenticate):
     from backend.admin_portal import authenticate_platform_owner
     router=APIRouter(tags=['Native partner orders and tracking'])
@@ -457,12 +467,15 @@ def build_native_router(authenticate):
         return await service.sync_one(body.tenant_id,body.shipment_id,account_id,body.remote_object_id)
 
     @router.post('/api/v1/shipping/tracking-webhooks')
-    async def tracking_webhooks(request:Request):
+    async def tracking_webhooks(request:Request, background_tasks:BackgroundTasks):
         service=getattr(request.app.state,'native_partners',None)
         if service is None:
             raise HTTPException(503,'Tracking engine unavailable')
         try:
-            return await service.receive_tracking(request)
+            result = await service.receive_tracking(request)
+            if result.get('support_queued') and result.get('applied'):
+                background_tasks.add_task(wake_exception_delivery, request.app)
+            return result
         except asyncpg.PostgresError:
             raise HTTPException(503,'Tracking database unavailable; event not acknowledged') from None
 
@@ -1417,7 +1430,7 @@ class PartnerLifecycleService:
     def public_result(self, shipment_id, label, customs=None, replayed=False):
         root = '/api/v1/shipping/' + str(shipment_id) + '/documents/'
         return {'shipment_id': str(shipment_id), 'status': 'BOOKED', 'label_status': 'LABEL_CREATED', 'replayed': replayed,
-                'label': {'tracking_number': label['tracking_number'], 'label_url': root + 'label',
+                'label': {'tracking_number': label['tracking_number'], 'tracking_url': '/?view=manifest&shipment_id=' + str(shipment_id), 'label_url': root + 'label',
                           'carrier_forms': [{'document_type': f['document_type'], 'url': root + str(i)}
                                             for i, f in enumerate(label.get('carrier_forms', []))]},
                 'customs': customs}
@@ -1806,6 +1819,8 @@ def build_router(authenticate):
         if result.get('status') == 'SYNC_PENDING':
             from fastapi.responses import JSONResponse
             return JSONResponse(result, status_code=202)
+        if request.headers.get('accept', '').split(';')[0].strip() == 'application/pdf':
+            return await carrier_document(UUID(result['shipment_id']), 'label', request.app.state.partner_lifecycle, context)
         return result
 
     @router.post('/request-void')

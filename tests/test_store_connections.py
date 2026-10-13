@@ -17,7 +17,7 @@ class StoreConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.tenant, self.store, self.actor = uuid4(), uuid4(), uuid4()
         self.context = SimpleNamespace(tenant_id=self.tenant, user_id=self.actor, role='OWNER')
-        self.rows = {}
+        self.rows = {}; self.platform = 'SHOPIFY'
         self.key = Fernet.generate_key()
         test = self
         class Pool:
@@ -27,7 +27,7 @@ class StoreConnectionTests(unittest.IsolatedAsyncioTestCase):
             async def transaction(self): yield self
             async def fetchrow(self, sql, *args):
                 if 'FROM public.ecommerce_stores' in sql:
-                    return {'platform': 'SHOPIFY', 'is_active': True} if args == (test.tenant, test.store) else None
+                    return {'platform': test.platform, 'is_active': True} if args == (test.tenant, test.store) else None
                 return test.rows.get(test.store) if args[-1] == test.store else None
             async def execute(self, sql, *args):
                 if sql.startswith('INSERT'):
@@ -95,3 +95,20 @@ class StoreConnectionTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(await shopify_access_token(client, config), 'renewed-test-token')
         self.assertEqual(str(calls[0].url), 'https://test-shop.myshopify.com/admin/oauth/access_token')
         self.assertIn(b'grant_type=client_credentials', calls[0].content)
+
+    async def test_native_amazon_keys_encrypted_and_never_returned(self):
+        self.platform='AMAZON'
+        body={'live_import':False,'webhook_secret':'synthetic-amazon-destination-key-long',
+            'amazon_region':'eu','amazon_seller_id':'synthetic-seller','amazon_marketplace_ids':['market-test'],
+            'amazon_client_id':'synthetic-client','amazon_client_secret':'private-amazon-client-secret',
+            'amazon_refresh_token':'private-amazon-refresh-token','sku_unit_grams':{'TEE':'200'}}
+        result=await self.client.put(self.url,json=body)
+        self.assertEqual(result.status_code,200,result.text)
+        for secret in ('private-amazon-client-secret','private-amazon-refresh-token'):
+            self.assertNotIn(secret,result.text)
+            self.assertNotIn(secret.encode(),self.rows[self.store]['credentials_ciphertext'])
+        config=await resolve_connector(self.service,self.store)
+        self.assertEqual(config.amazon_refresh_token.get_secret_value(),'private-amazon-refresh-token')
+        result=await self.client.get(self.url)
+        self.assertEqual(result.json()['amazon_seller_id'],'synthetic-seller')
+        self.assertNotIn('private-amazon-refresh-token',result.text)

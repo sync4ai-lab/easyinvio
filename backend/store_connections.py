@@ -21,6 +21,13 @@ class ConnectionSetup(BaseModel):
     webhook_secret: SecretStr | None = Field(default=None, max_length=4096)
     live_import: bool = True
     sku_unit_grams: dict[str, str] = Field(default_factory=dict, max_length=1000)
+    cargo_type: Literal['LETTER','PARCEL','PALLET','OVERLAND_FREIGHT'] = 'PARCEL'
+    amazon_region: Literal['na','eu','fe'] = 'eu'
+    amazon_seller_id: str | None = Field(default=None,max_length=100)
+    amazon_marketplace_ids: list[str] = Field(default_factory=list,max_length=50)
+    amazon_client_id: str | None = Field(default=None,max_length=200)
+    amazon_client_secret: SecretStr | None = Field(default=None,max_length=4096)
+    amazon_refresh_token: SecretStr | None = Field(default=None,max_length=4096)
 
 
 async def resolve_connector(service, store_id):
@@ -46,7 +53,13 @@ def public_settings(config):
             'sku_unit_grams': {k: str(v) for k, v in config.sku_unit_grams.items()} if config else {},
             'has_access_token': bool(config and config.access_token),
             'has_client_credentials': bool(config and config.client_secret), 'client_id': config.client_id if config else '',
-            'has_webhook_secret': bool(config and config.webhook_secret)}
+            'has_webhook_secret': bool(config and config.webhook_secret),
+            'cargo_type': config.cargo_type if config else 'PARCEL',
+            'amazon_region': config.amazon_region if config else 'eu',
+            'amazon_seller_id': config.amazon_seller_id if config else '',
+            'amazon_marketplace_ids': config.amazon_marketplace_ids if config else [],
+            'amazon_client_id': config.amazon_client_id if config else '',
+            'has_amazon_credentials': bool(config and config.amazon_refresh_token)}
 
 
 def build_router(authenticate):
@@ -72,7 +85,7 @@ def build_router(authenticate):
     @router.put('/{store_id}/connection')
     async def save(store_id: UUID, body: ConnectionSetup, request: Request, context: Any = Depends(authenticate)):
         store = await scoped_store(request, context, store_id)
-        if store['platform'] not in {'SHOPIFY', 'WOOCOMMERCE'}:
+        if store['platform'] not in {'SHOPIFY', 'WOOCOMMERCE', 'AMAZON'}:
             raise HTTPException(422, 'This platform requires assisted integration')
         service = request.app.state.ecommerce
         if not getattr(service, 'credential_keys', None):
@@ -87,7 +100,7 @@ def build_router(authenticate):
                     if legacy.tenant_id != context.tenant_id or legacy.platform != store['platform']:
                         raise HTTPException(409, 'Store configuration identity mismatch')
                     previous = legacy.model_dump(mode='json')
-                    for name in ('access_token', 'client_secret', 'webhook_secret'):
+                    for name in ('access_token', 'client_secret', 'webhook_secret', 'amazon_client_secret', 'amazon_refresh_token'):
                         secret = getattr(legacy, name)
                         previous[name] = secret.get_secret_value() if secret else None
                 if row:
@@ -98,10 +111,13 @@ def build_router(authenticate):
                             raise ValueError()
                     except (KeyError, ValueError, InvalidToken):
                         raise HTTPException(503, 'Existing store credentials unavailable') from None
-                values = body.model_dump(exclude={'access_token', 'client_secret', 'webhook_secret', 'authorization_mode'})
+                values = body.model_dump(exclude={'access_token', 'client_secret', 'webhook_secret', 'amazon_client_secret', 'amazon_refresh_token', 'authorization_mode'})
+                for field in ('cargo_type','amazon_region','amazon_seller_id','amazon_marketplace_ids','amazon_client_id'):
+                    if field not in body.model_fields_set and field in previous:
+                        values[field] = previous[field]
                 if body.client_id is None:
                     values['client_id'] = previous.get('client_id')
-                for name in ('access_token', 'client_secret', 'webhook_secret'):
+                for name in ('access_token', 'client_secret', 'webhook_secret', 'amazon_client_secret', 'amazon_refresh_token'):
                     supplied = getattr(body, name)
                     values[name] = supplied.get_secret_value() if supplied and supplied.get_secret_value().strip() else previous.get(name)
                 if body.authorization_mode == 'TOKEN':
@@ -109,18 +125,18 @@ def build_router(authenticate):
                 elif body.authorization_mode == 'CLIENT_CREDENTIALS':
                     values['access_token'] = None
                 if not values['webhook_secret']:
-                    if store['platform'] == 'WOOCOMMERCE':
-                        raise HTTPException(422, 'Save the same webhook signing secret configured in WooCommerce')
+                    if store['platform'] in {'WOOCOMMERCE','AMAZON'}:
+                        raise HTTPException(422, 'Save the same signing secret or AWS API-destination key configured at the platform')
                     values['webhook_secret'] = secrets.token_urlsafe(32)
                 try:
                     config = StoreConnector.model_validate({**values, 'tenant_id': context.tenant_id,
                         'auth_user_id': context.user_id, 'platform': store['platform'], 'live_delivery': previous.get('live_delivery', False)})
                 except ValueError:
-                    raise HTTPException(422, 'Use a canonical Shopify hostname and valid token or app credentials. Supply positive SKU weights in grams. WooCommerce supports signed webhooks only.') from None
+                    raise HTTPException(422, 'Use a canonical Shopify hostname and valid token or app credentials. Supply positive SKU weights in grams. WooCommerce uses signed webhooks. Amazon requires seller app credentials, marketplaces and an AWS destination key.') from None
                 key_id = sorted(service.credential_keys)[0]
                 key = service.credential_keys[key_id].get_secret_value().encode()
                 envelope = config.model_dump(mode='json')
-                for name in ('webhook_secret', 'access_token', 'client_secret'):
+                for name in ('webhook_secret', 'access_token', 'client_secret', 'amazon_client_secret', 'amazon_refresh_token'):
                     secret = getattr(config, name)
                     envelope[name] = secret.get_secret_value() if secret else None
                 envelope['store_id'] = str(store_id)
@@ -130,5 +146,27 @@ def build_router(authenticate):
                     credentials_ciphertext=excluded.credentials_ciphertext,credential_key_id=excluded.credential_key_id,
                     updated_by=excluded.updated_by,updated_at=now()''', context.tenant_id, store_id, cipher, key_id, context.user_id)
         return public_settings(config)
+
+    @router.get('/{store_id}/notifications')
+    async def notifications(store_id: UUID, request: Request, context: Any = Depends(authenticate)):
+        await scoped_store(request, context, store_id)
+        async with request.app.state.ecommerce.pool.acquire() as connection:
+            rows = await connection.fetch('''SELECT id,order_id,status,attempts,last_error_code,created_at
+                FROM public.amazon_order_notifications WHERE tenant_id=$1 AND store_id=$2
+                ORDER BY created_at DESC LIMIT 100''', context.tenant_id, store_id)
+        return {'notifications': [dict(row) for row in rows]}
+
+    @router.post('/{store_id}/notifications/{notification_id}/retry')
+    async def retry(store_id: UUID, notification_id: UUID, request: Request, context: Any = Depends(authenticate)):
+        store = await scoped_store(request, context, store_id)
+        if not store['is_active']:
+            raise HTTPException(409, 'Enable the store before retrying its notification')
+        async with request.app.state.ecommerce.pool.acquire() as connection:
+            row = await connection.fetchrow('''UPDATE public.amazon_order_notifications SET status='RECEIVED',
+                attempts=0,next_attempt_at=now(),last_error_code=NULL WHERE tenant_id=$1 AND store_id=$2 AND id=$3
+                AND status='REVIEW_REQUIRED' RETURNING id''', context.tenant_id, store_id, notification_id)
+        if row is None:
+            raise HTTPException(409, 'Only a notification requiring review can be retried')
+        return {'id': str(row['id']), 'status': 'RECEIVED'}
 
     return router

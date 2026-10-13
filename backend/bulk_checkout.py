@@ -126,7 +126,7 @@ def build_router(authenticate):
         rows=await order_rows(service,context,body.shipment_ids)
         async def run(row):
             order=decoded(row['logistics_metadata']).get('automation_order')
-            if not order or row['status'] not in {'PENDING_IMPORT','DRAFT','QUOTED'}:
+            if not order or row['status'] not in {'PENDING_IMPORT','UNFULFILLED','DRAFT','QUOTED'}:
                 return {'shipment_id':str(row['id']),'status':'REVIEW_REQUIRED','error':'Complete preparation or use the existing booking'}
             async with service.automation.order_limiter:
                 return await service.automation.process(context,order,'QUOTE_ONLY')

@@ -12,3 +12,7 @@ twilio>=9,<10
 pycountry>=24.6,<25
 reportlab>=5.0.1,<6
 pypdf>=6.20.0,<7
+
+openpyxl>=3.1.5,<4
+python-multipart>=0.0.20,<1
+defusedxml>=0.7.1,<1

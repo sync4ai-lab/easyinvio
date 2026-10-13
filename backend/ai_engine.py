@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Annotated, Any, Callable, Literal
 from uuid import UUID
 
@@ -25,7 +25,10 @@ CENT = Decimal("0.01")
 def strict_decimal(value: Any) -> Decimal:
     if isinstance(value, (float, bool)):
         raise ValueError("Use decimal strings, not floating-point numbers")
-    result = Decimal(str(value))
+    try:
+        result = Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        raise ValueError('A valid finite decimal is required') from None
     if not result.is_finite():
         raise ValueError("A finite decimal is required")
     return result

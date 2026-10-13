@@ -1813,7 +1813,8 @@ async def lifespan(application: FastAPI):
     ) as http_client:
         pool = await asyncpg.create_pool(
             dsn=settings.database_url.get_secret_value(), ssl=tls,
-            min_size=1, max_size=settings.db_pool_max_size, command_timeout=15,
+            # Reserve a connection for the shared commit-time dispatch listener.
+            min_size=1, max_size=max(2, settings.db_pool_max_size - 1), command_timeout=15,
             server_settings={"application_name": "veloce-main", "statement_timeout": "15000",
                              "lock_timeout": "5000", "idle_in_transaction_session_timeout": "15000"},
         )
@@ -1830,7 +1831,7 @@ async def lifespan(application: FastAPI):
                 for table in ("tenants", "users", "carrier_accounts", "margin_rules", "shipments",
                               "wallets", "wallet_topups", "wallet_reservations", "wallet_ledger",
                               "whatsapp_bindings", "whatsapp_routes", "whatsapp_quote_choices", "whatsapp_receipts",
-                              "admin_configuration_events", "ecommerce_stores", "ecommerce_tracking_outbox", "workspace_store_connections",
+                              "admin_configuration_events", "ecommerce_stores", "ecommerce_tracking_outbox", "workspace_store_connections", "workspace_dispatch_events", "billing_disputes", "amazon_order_notifications",
                               "tracking_events", "support_tickets", "support_message_outbox"):
                     if await connection.fetchval("SELECT to_regclass($1)", f"public.{table}") is None:
                         raise RuntimeError(f"Required migration table is missing: public.{table}")
@@ -1884,6 +1885,12 @@ async def lifespan(application: FastAPI):
                 application.state.automation_freight.native_orders = application.state.native_partners
                 native_order_task = asyncio.create_task(application.state.native_partners.worker())
                 partner_task = asyncio.create_task(application.state.partner_lifecycle.worker())
+                from backend.dispatch_realtime import DispatchUpdates
+                application.state.dispatch_updates = DispatchUpdates(settings, tls)
+                dispatch_updates_task = asyncio.create_task(application.state.dispatch_updates.worker())
+                from backend.ecommerce_inbound import AmazonInbound
+                application.state.amazon_inbound = AmazonInbound(application.state.ecommerce)
+                amazon_inbound_task = asyncio.create_task(application.state.amazon_inbound.worker())
                 support_task = asyncio.create_task(application.state.tracking_support.worker())
                 notification_task = asyncio.create_task(application.state.support_delivery.worker())
                 from backend.payment_gateway import SnapshotWebhookService
@@ -1904,6 +1911,13 @@ async def lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    dispatch_updates_task.cancel()
+                    amazon_inbound_task.cancel()
+                    for integration_task in (dispatch_updates_task, amazon_inbound_task):
+                        try:
+                            await integration_task
+                        except asyncio.CancelledError:
+                            pass
                     native_order_task.cancel()
                     try:
                         await native_order_task
@@ -2396,3 +2410,10 @@ if __name__ == "__main__":
         # Loopback is appropriate for local VS Code development. Deploy
         # behind an HTTPS reverse proxy with explicit hosting configuration.
         uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8000")), access_log=False, proxy_headers=False)
+
+from backend.invoice_upload import build_router as invoice_upload_router
+app.include_router(invoice_upload_router(authenticate))
+from backend.ecommerce_inbound import build_router as ecommerce_inbound_router
+app.include_router(ecommerce_inbound_router())
+from backend.dispatch_realtime import build_router as realtime_router
+app.include_router(realtime_router(authenticate, lambda: _frontend_origins))

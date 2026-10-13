@@ -1,0 +1,21 @@
+{
+  "unit_tests_passed": 343,
+  "browser_checks": [
+    "Authenticated WebSocket contract and live inbox refresh",
+    "Statement multipart upload and saved dispute view",
+    "Store settings and administrator boundaries",
+    "343 unit tests include payment snapshot and capture idempotence"
+  ],
+  "actual_sandbox_checks": [
+    "Shopify authenticated UNFULFILLED intake with cargo, duplicate and forged-signature rejection",
+    "Amazon authenticated durable receipt, duplicate protection, native Orders API normalization and UNFULFILLED import",
+    "Commit-time PostgreSQL notifications",
+    "Three exact invoice comparisons and one replay-safe saved dispute",
+    "All three partners tracking exception, delivery and approved POD processing",
+    "Wallet and card settlement, one capture per booking and replay"
+  ],
+  "provider_http": "Controlled responses; genuine provider delivery not executed",
+  "fixture_writes_rolled_back": true,
+  "live_purchases": 0,
+  "messages_sent": 0
+}

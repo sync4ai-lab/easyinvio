@@ -341,7 +341,7 @@ class AutomationService:
                     existing=await lock.fetchrow('SELECT id,status,logistics_metadata,tracking_number,label_storage_path,ecommerce_store_id,store_order_id FROM public.shipments WHERE tenant_id=$1 AND idempotency_key=$2',context.tenant_id,order.idempotency_key)
                     if existing:
                         shipment_id=existing['id'];metadata=json.loads(existing['logistics_metadata']) if isinstance(existing['logistics_metadata'],str) else existing['logistics_metadata']
-                        imported=existing['status']=='PENDING_IMPORT'
+                        imported=existing['status'] in {'PENDING_IMPORT','UNFULFILLED'}
                         if imported and (existing['ecommerce_store_id']!=order.store_id or existing['store_order_id']!=order.store_order_id):
                             raise HTTPException(409,'IMPORTED_STORE_IDENTITY_MISMATCH')
                         if not imported and metadata.get('automation_fingerprint')!=fingerprint:
@@ -359,7 +359,7 @@ class AutomationService:
                                         'shipment_status':'BOOKING','replayed':True,'labels':[],
                                         'message':'Label generation is pending; credit remains reserved.'}
                             raise HTTPException(409,'BOOKING_RECONCILIATION_REQUIRED')
-                        if existing['status'] not in {'DRAFT','QUOTED','PENDING_IMPORT'}:
+                        if existing['status'] not in {'DRAFT','QUOTED','PENDING_IMPORT','UNFULFILLED'}:
                             raise HTTPException(409,'ORDER_REQUIRES_MANUAL_RECONCILIATION')
                     tenant=await lock.fetchrow('SELECT * FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
                     if tenant is None or tenant['workspace_status']!='ACTIVE' or tenant['billing_status']!='ACTIVE':
@@ -421,7 +421,7 @@ class AutomationService:
                           cargo_type=EXCLUDED.cargo_type,customs_content_type=EXCLUDED.customs_content_type,
                           customs_incoterm=EXCLUDED.customs_incoterm,customs_reviewed_by_user_id=EXCLUDED.customs_reviewed_by_user_id,
                           customs_reviewed_at=EXCLUDED.customs_reviewed_at,ai_hs_status=EXCLUDED.ai_hs_status
-                        WHERE public.shipments.status='PENDING_IMPORT'""",shipment_id,context.tenant_id,user_id,accounts[0].id,order.idempotency_key,reference,
+                        WHERE public.shipments.status IN ('PENDING_IMPORT','UNFULFILLED')""",shipment_id,context.tenant_id,user_id,accounts[0].id,order.idempotency_key,reference,
                         request.origin.country_code,request.destination.country_code,request.origin.model_dump_json(),request.destination.model_dump_json(),order.cargo.actual_weight_kg,
                         dims.length_cm if dims else None,dims.width_cm if dims else None,dims.height_cm if dims else None,order.currency,json.dumps(metadata),declaration['required'],json.dumps(declaration.get('items',[])),order.store_id,order.store_order_id,order.cargo.cargo_type,order.incoterm)
                     quote_result=private_quote if private_quote is not None else (await self.rating.quote(context,request,return_of_shipment_id=order.return_of_shipment_id) if order.is_return else await self.rating.quote(context,request))

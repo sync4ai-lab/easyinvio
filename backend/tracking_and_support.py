@@ -182,6 +182,11 @@ class TrackingSupportService:
                                 'active_exception',$3='EXCEPTION')),
                         updated_at=now() WHERE tenant_id=$1 AND id=$2""", key.tenant_id, shipment["id"], event.status, event.occurred_at, pod)
                     if event.status == "DELIVERED":
+                        await connection.execute("""INSERT INTO public.support_ticket_activity
+                            (tenant_id,ticket_id,actor_name,activity_type,note)
+                            SELECT tenant_id,id,'Carrier tracking','RESOLVED','Verified carrier event confirmed delivery.'
+                            FROM public.support_tickets WHERE tenant_id=$1 AND shipment_id=$2
+                            AND status IN ('OPEN','IN_REVIEW')""", key.tenant_id, shipment['id'])
                         await connection.execute("UPDATE public.support_tickets SET status='CLOSED',archived_at=now() WHERE tenant_id=$1 AND shipment_id=$2 AND status IN ('OPEN','IN_REVIEW')", key.tenant_id, shipment["id"])
                         await connection.execute("""UPDATE public.support_message_outbox SET status='CANCELLED'
                             WHERE tenant_id=$1 AND status='STAGED' AND ticket_id IN
@@ -206,12 +211,12 @@ class TrackingSupportService:
                     summary = draft_remedy(event["raw_error"])
                     await connection.execute("""INSERT INTO public.support_tickets
                         (id,tenant_id,shipment_id,tracking_event_id,status,ai_summary,ai_method,prompt_version,archived_at)
-                        VALUES($1,$2,$3,$4,$5,$6,'DETERMINISTIC_MOCK','logistics-support-v1',CASE WHEN $5='CLOSED' THEN now() END)""",
+                        VALUES($1,$2,$3,$4,$5,$6,'DETERMINISTIC_RULES','logistics-support-v1',CASE WHEN $5='CLOSED' THEN now() END)""",
                         ticket_id, event["tenant_id"], event["shipment_id"], event["id"], "CLOSED" if resolved else "OPEN", summary)
                     if not resolved:
                         bindings = await connection.fetch("""SELECT DISTINCT b.sender_e164 FROM public.whatsapp_bindings b
                             JOIN public.users u ON u.id=b.user_id AND u.tenant_id=b.tenant_id
-                            WHERE b.tenant_id=$1 AND b.is_active AND u.is_active AND u.role IN ('OWNER','ADMIN')
+                            WHERE b.tenant_id=$1 AND b.is_active AND b.notification_opt_in AND u.is_active AND u.role IN ('OWNER','ADMIN')
                             ORDER BY b.sender_e164 LIMIT 10""", event["tenant_id"])
                         # Durable hand-off for the outbound Twilio adapter.
                         for binding in bindings:
