@@ -106,6 +106,11 @@ $('#workspace-pack-form').addEventListener('submit', event => {
         if (!confirm('Purchase this prepared shipping offer? Wallet credit will be reserved and captured only after label confirmation.')) return;
         const booked = await api('/api/v1/shipping/confirm-booking', {method:'POST', auth:true,
           body:{offer_id:offerSelect.value,tenant_id:portal.profile.tenant_id}});
+        if (booked.status === 'SYNC_PENDING') {
+          $('#workspace-pack-result').textContent = 'Label preparation is in progress. Wallet credit is reserved. Refresh the manifest to see the confirmed label; no second purchase is needed.';
+          await loadDispatchWorkspace();
+          return;
+        }
         $('#workspace-pack-result').textContent = 'Label confirmed. Tracking: ' + booked.label.tracking_number;
         const downloadButton = document.createElement('button');
         downloadButton.type='button';downloadButton.className='secondary';downloadButton.textContent='Download shipping label PDF';

@@ -128,6 +128,10 @@ class Order(StrictInput):
     postal_form: Literal['CN22','CN23'] | None = None
     customs_required_override: bool = False
     incoterm: Literal['DAP','DDP','FCA','EXW'] = 'DAP'
+    invoice_reference: str | None = Field(default=None,min_length=1,max_length=100)
+    customs_currency: Literal['GBP','EUR','USD'] | None = None
+    customs_category: Literal['SALE','GIFT','RETURN','SAMPLE','OTHER'] = 'SALE'
+    customs_category_other: str | None = Field(default=None,min_length=3,max_length=200)
     is_return: bool = False
     return_of_shipment_id: UUID | None = None
     original_invoice_number: str | None = Field(default=None, max_length=40)
@@ -135,6 +139,8 @@ class Order(StrictInput):
 
     @model_validator(mode='after')
     def store_pair(self):
+        if self.customs_category == 'OTHER' and not self.customs_category_other:
+            raise ValueError('Describe the OTHER export category')
         if bool(self.is_return)!=bool(self.return_of_shipment_id):
             raise ValueError('Returns require an original shipment reference')
         for party in [self.origin,self.destination]:
@@ -167,11 +173,14 @@ def customs_matrix(shipment_id: UUID, order: Order, tenant: dict) -> dict:
         if weight>order.cargo.actual_weight_kg:
             raise HTTPException(422,'Goods net weight exceeds cargo gross weight')
     return {'required':True,'shipment_id':str(shipment_id),'document_type':'COMMERCIAL_INVOICE',
-            'invoice_number':order.original_invoice_number or str(shipment_id),
+            'created_at':datetime.now(timezone.utc).isoformat(),
+            'invoice_number':order.invoice_reference or order.original_invoice_number or str(shipment_id),
+            'invoice_reference':order.invoice_reference or order.original_invoice_number or str(shipment_id),
+            'category':order.customs_category,'category_other':order.customs_category_other,
             'export_reason':'returned_goods' if order.is_return else 'commercial_goods',
             'return_data':order.return_data,
             'postal_form':order.postal_form,'status':'prepared' if ready else 'requires_customs_data',
-            'ready_for_provider':ready,'currency':order.currency,'incoterm':order.incoterm,
+            'ready_for_provider':ready,'currency':order.customs_currency or order.currency,'incoterm':order.incoterm,
             'sender':{**order.origin,'eori':order.sender_eori or (None if order.is_return else tenant.get('eori_number')),
                       'vat_registration':order.sender_vat or (None if order.is_return else tenant.get('vat_registration_number'))},
             'recipient':{**order.destination,'eori':order.recipient_eori,'vat_registration':order.recipient_vat},
@@ -336,12 +345,19 @@ class AutomationService:
                         if imported and (existing['ecommerce_store_id']!=order.store_id or existing['store_order_id']!=order.store_order_id):
                             raise HTTPException(409,'IMPORTED_STORE_IDENTITY_MISMATCH')
                         if not imported and metadata.get('automation_fingerprint')!=fingerprint:
-                            raise HTTPException(409,'IDEMPOTENCY_CONFLICT')
+                            stored_order=metadata.get('automation_order')
+                            normalized=hashlib.sha256(Order.model_validate(stored_order).model_dump_json().encode()).hexdigest() if stored_order else None
+                            if normalized!=fingerprint:
+                                raise HTTPException(409,'IDEMPOTENCY_CONFLICT')
                         if existing['status']=='BOOKED':
                             label=metadata.get('automation_label') or {'tracking_number':existing['tracking_number'],'label_url':existing['label_storage_path']}
                             return {'order_reference':reference,'shipment_id':str(shipment_id),'status':'BOOKED','replayed':True,'label':label,'customs':metadata.get('automation_customs'),
                                     'print_bundle':{'shipping_label':label['label_url'],'carrier_documents':label.get('carrier_forms',[]),'customs_metadata':metadata.get('automation_customs'),'printer_broadcast':False}}
                         if existing['status']=='BOOKING':
+                            if metadata.get('label_lifecycle_status')=='SYNC_PENDING':
+                                return {'order_reference':reference,'shipment_id':str(shipment_id),'status':'SYNC_PENDING',
+                                        'shipment_status':'BOOKING','replayed':True,'labels':[],
+                                        'message':'Label generation is pending; credit remains reserved.'}
                             raise HTTPException(409,'BOOKING_RECONCILIATION_REQUIRED')
                         if existing['status'] not in {'DRAFT','QUOTED','PENDING_IMPORT'}:
                             raise HTTPException(409,'ORDER_REQUIRES_MANUAL_RECONCILIATION')
@@ -370,7 +386,7 @@ class AutomationService:
                     declaration=customs_matrix(shipment_id,order,dict(tenant))
                     if declaration['required']:
                         if not declaration['ready_for_provider']: raise HTTPException(422,'CUSTOMS_DATA_REQUIRES_REVIEW')
-                        if order.currency!='USD' and any(a.provider=='EASYPOST' for a in accounts):
+                        if declaration['currency']!='USD' and any(a.provider=='EASYPOST' for a in accounts):
                             # EasyPost CustomsItem values are USD. Never pretend
                             # GBP/EUR are USD; regional providers retain currency.
                             accounts=[a for a in accounts if a.provider!='EASYPOST']
@@ -451,6 +467,14 @@ class AutomationService:
                     except PurchaseRejected:
                         await self.finance.finish_booking(permit,'DEFINITIVE_FAILURE');submitted=False;permit=None
                         raise HTTPException(502,'PROVIDER_REJECTED_PURCHASE') from None
+                    except PurchaseUncertain:
+                        pending = await lock.fetchval('''SELECT logistics_metadata->>'label_lifecycle_status'
+                            FROM public.shipments WHERE tenant_id=$1 AND id=$2''', context.tenant_id, shipment_id)
+                        if pending == 'SYNC_PENDING':
+                            return {'order_reference':reference,'shipment_id':str(shipment_id),'status':'SYNC_PENDING',
+                                    'shipment_status':'BOOKING','labels':[],
+                                    'message':'Label generation is pending; credit remains reserved.'}
+                        raise
                     await self.finance.finish_booking(permit,'SUCCESS',tracking_number=label['tracking_number'],label_storage_path=label['label_url'],carrier_name=rate.carrier_code,label_documents=label)
                     return {'order_reference':reference,'shipment_id':str(shipment_id),'status':'BOOKED','label':label,'customs':declaration,
                             'print_bundle':{'shipping_label':label['label_url'],'carrier_documents':label.get('carrier_forms',[]),'customs_metadata':declaration,'printer_broadcast':False}}

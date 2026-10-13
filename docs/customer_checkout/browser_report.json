@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "provider_boundary": "controlled API responses",
+  "javascript_errors": [],
+  "checks": [
+    "Customer price excludes wholesale and markup disclosures",
+    "No pre-booking customs preview or JSON downloads",
+    "Empty product fields, stable invoice reference, shipping cost and explicit goods currency",
+    "Official tariff selection and stale-HS invalidation",
+    "OTHER category requires free text",
+    "375/768/1366px responsive checkout",
+    "Changed price requires confirmation before one purchase",
+    "Booking completion, label/invoice downloads and next-shipment reset"
+  ]
+}

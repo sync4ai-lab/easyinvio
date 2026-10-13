@@ -176,11 +176,15 @@ def verify_native_signature(request, raw, provider, auth_method, secret, now=Non
         name='sendcloud-signature'
         expected=hmac.new(secret.encode(),raw,hashlib.sha256).hexdigest()
     elif provider=='SHIPPO' and auth_method=='URL_TOKEN':
+        from backend.webhook_security import enforce_shippo_source_ip
+        enforce_shippo_source_ip(request)
         tokens=request.query_params.getlist('token')
         if len(tokens)!=1 or not hmac.compare_digest(secret.encode(),tokens[0].encode()):
             raise HTTPException(401,'Invalid tracking authentication')
         return
     elif provider=='SHIPPO':
+        from backend.webhook_security import enforce_shippo_source_ip
+        enforce_shippo_source_ip(request)
         name='shippo-auth-signature'
         values=request.headers.getlist(name)
         if len(values)!=1:
@@ -582,6 +586,7 @@ def native_order_key(snapshot):
 
 
 def easypost_parcel(cargo):
+    validate_native_cargo(cargo, 'EASYPOST')
     parcel = {'weight': str(Decimal(str(cargo['actual_weight_kg'])) * Decimal('35.27396195'))}
     if cargo.get('cargo_type') == 'LETTER':
         parcel['predefined_package'] = 'Letter'
@@ -589,6 +594,28 @@ def easypost_parcel(cargo):
         for source, target in [('length_cm','length'),('width_cm','width'),('height_cm','height')]:
             parcel[target] = str(Decimal(str(cargo[source])) / Decimal('2.54'))
     return parcel
+
+
+def validate_native_cargo(cargo, provider):
+    """Fail closed before network mutations; parcel schemas are not LTL schemas."""
+    kind = cargo.get('cargo_type', 'PARCEL')
+    if kind in {'PALLET', 'OVERLAND_FREIGHT'}:
+        raise PurchaseRejected(provider + '_NATIVE_FREIGHT_CONTRACT_REQUIRED')
+    if kind not in {'LETTER', 'PARCEL'}:
+        raise PurchaseRejected('INVALID_CARGO_TYPE')
+    weight = Decimal(str(cargo['actual_weight_kg']))
+    if not weight.is_finite() or weight <= 0:
+        raise PurchaseRejected('INVALID_CARGO_WEIGHT')
+    if kind == 'LETTER':
+        if weight >= Decimal('0.5'):
+            raise PurchaseRejected('LETTER_WEIGHT_MUST_BE_BELOW_0_5_KG')
+        if provider != 'EASYPOST':
+            raise PurchaseRejected(provider + '_VERIFIED_LETTER_SERVICE_REQUIRED')
+    else:
+        for key in ('length_cm', 'width_cm', 'height_cm'):
+            value = Decimal(str(cargo.get(key, '0')))
+            if not value.is_finite() or value <= 0:
+                raise PurchaseRejected('INVALID_CARGO_DIMENSIONS')
 
 
 def easypost_tax_identifiers(document):
@@ -670,6 +697,7 @@ class BaseAggregatorAdapter:
         self.pending_void_id = None
         self.last_order_id = None
         self.last_order_kind = None
+        self.last_http_status = None
 
     def authentication(self):
         return {}
@@ -683,6 +711,7 @@ class BaseAggregatorAdapter:
                                           content=decimal_json(body) if body is not None else None, headers=headers,
                                           timeout=30, follow_redirects=False,
                                           **authentication) as response:
+                self.last_http_status = response.status_code
                 raw = bytearray()
                 async for chunk in response.aiter_bytes():
                     raw.extend(chunk)
@@ -719,6 +748,8 @@ class EasyPostAdapter(BaseAggregatorAdapter):
 
     async def sync_order(self, snapshot):
         packages = snapshot.get('packages') or [snapshot['cargo']]
+        for cargo in packages:
+            validate_native_cargo(cargo, 'EASYPOST')
         prepared = await self.inject_customs(snapshot)
         if len(packages) == 1 and snapshot.get('upstream_shipment_id'):
             # EasyPost Orders are multi-package shipping objects, not sales orders.
@@ -788,6 +819,8 @@ class EasyPostAdapter(BaseAggregatorAdapter):
                                    'url': secure_link(f['form_url'])} for f in body.get('forms', [])]}
 
     async def purchase_label(self, rate_snapshot):
+        if rate_snapshot.get('cargo'):
+            validate_native_cargo(rate_snapshot['cargo'], 'EASYPOST')
         shipment_id = identifier(rate_snapshot['upstream_shipment_id'])
         # Confirm the key's actual remote mode before any charge-producing call.
         remote = await self.request('GET', '/shipments/' + shipment_id)
@@ -810,7 +843,8 @@ class EasyPostAdapter(BaseAggregatorAdapter):
             if document['currency'] != 'USD':
                 raise PurchaseRejected('CUSTOMS_USD_VALUES_REQUIRED')
             result['customs_info'] = {'customs_certify': True, 'customs_signer': document['signer'],
-                'contents_type': 'merchandise', 'restriction_type': 'none',
+                'contents_type': {'SALE':'merchandise','GIFT':'gift','SAMPLE':'sample','RETURN':'returned_goods','OTHER':'other'}.get(document.get('category'),'merchandise'),
+                'contents_explanation':document.get('category_other') or '', 'restriction_type': 'none',
                 'customs_items': [{'description': i['description'], 'quantity': i['quantity'],
                     'value': str(Decimal(str(i['unit_value'])) * i['quantity']),
                     'weight': str(Decimal(str(i['unit_weight_kg'])) * i['quantity'] * Decimal('35.27396195')),
@@ -851,6 +885,7 @@ class ShippoAdapter(BaseAggregatorAdapter):
         return await ShippoRateStrategy(self.client, account, rate_model, self.environment).rates(request)
 
     async def sync_order(self, snapshot):
+        validate_native_cargo(snapshot['cargo'], 'SHIPPO')
         line_items = []
         for item in snapshot.get('items', []):
             line_items.append({'title': item['description'], 'quantity': item['quantity'],
@@ -899,6 +934,8 @@ class ShippoAdapter(BaseAggregatorAdapter):
                 'carrier_forms': forms}
 
     async def purchase_label(self, rate_snapshot):
+        if rate_snapshot.get('cargo'):
+            validate_native_cargo(rate_snapshot['cargo'], 'SHIPPO')
         body = await self.request('POST', '/transactions/',
             {'rate': rate_snapshot['upstream_rate_id'], 'label_file_type': 'PDF', 'async': False,
              **({'order': rate_snapshot['native_order_id']} if rate_snapshot.get('native_order_id') else {})})
@@ -922,7 +959,8 @@ class ShippoAdapter(BaseAggregatorAdapter):
                     'value_currency': document['currency'], 'origin_country': i['origin_country'],
                     'tariff_number': i['hs_code']})
                 items.append(item['object_id'])
-            customs_payload = {'contents_type': 'RETURN_MERCHANDISE' if result.get('is_return') else 'MERCHANDISE',
+            customs_payload = {'contents_type': 'RETURN_MERCHANDISE' if result.get('is_return') else {'SALE':'MERCHANDISE','GIFT':'GIFT','SAMPLE':'SAMPLE','RETURN':'RETURN_MERCHANDISE','OTHER':'OTHER'}.get(document.get('category'),'MERCHANDISE'),
+                'contents_explanation':document.get('category_other') or '',
                 'non_delivery_option': 'RETURN', 'certify': True, 'certify_signer': document['signer'], 'items': items,
                 'invoice': document.get('invoice_number',document.get('shipment_id'))}
             if document.get('incoterm')=='EXW':
@@ -1029,8 +1067,11 @@ class SendcloudAdapter(BaseAggregatorAdapter):
         result = copy.deepcopy(parcel_data)
         document = declaration(result)
         if document:
+            category=document.get('category','SALE')
+            if category=='OTHER':
+                raise PurchaseRejected('SENDCLOUD_EXPORT_CATEGORY_NOT_SUPPORTED')
             result['customs_information'] = {'invoice_number': document.get('invoice_number') or document['shipment_id'],
-                'export_reason': 'returned_goods' if result.get('is_return') else 'commercial_goods',
+                'export_reason': 'returned_goods' if result.get('is_return') else {'SALE':'commercial_goods','GIFT':'gift','SAMPLE':'commercial_sample','RETURN':'returned_goods'}.get(category,'commercial_goods'),
                 'incoterm': document['incoterm']}
             taxes = {}
             for source, target in (('sender', 'sender'), ('recipient', 'receiver')):
@@ -1050,6 +1091,7 @@ class SendcloudAdapter(BaseAggregatorAdapter):
 
     def payload(self, snapshot):
         cargo = snapshot['cargo']
+        validate_native_cargo(cargo, 'SENDCLOUD')
         parcel = {'weight': {'value': str(cargo['actual_weight_kg']), 'unit': 'kg'},
                   'dimensions': {**{key: str(cargo[key + '_cm']) for key in ('length', 'width', 'height')}, 'unit': 'cm'}}
         if snapshot.get('parcel_items'):
@@ -1074,6 +1116,9 @@ class SendcloudAdapter(BaseAggregatorAdapter):
         if data.get('errors') or len(parcels) != 1:
             raise PurchaseUncertain('ANNOUNCEMENT_NOT_CONFIRMED')
         parcel = parcels[0]
+        state = (parcel.get('status') or {}).get('code')
+        if state in {'ANNOUNCING', 'ANNOUNCEMENT_FAILED', 'CANCELLED', 'CANCELLATION_REQUEST'}:
+            raise PurchaseUncertain('ANNOUNCEMENT_NOT_CONFIRMED')
         documents = parcel.get('documents') or []
         labels = [d for d in documents if d.get('document_type', d.get('type')) == 'label']
         if not labels or not parcel.get('tracking_number'):
@@ -1085,6 +1130,7 @@ class SendcloudAdapter(BaseAggregatorAdapter):
                               for d in documents if d.get('document_type', d.get('type')) != 'label']}
 
     async def sync_order(self, snapshot):
+        validate_native_cargo(snapshot['cargo'], 'SENDCLOUD')
         integration_id = snapshot.get('sendcloud_integration_id')
         if type(integration_id) is not int or integration_id < 1:
             raise PurchaseRejected('SENDCLOUD_INTEGRATION_ID_REQUIRED')
@@ -1142,7 +1188,14 @@ class SendcloudAdapter(BaseAggregatorAdapter):
     async def purchase_label(self, rate_snapshot):
         self.purchase_allowed()
         snapshot = await self.inject_customs(rate_snapshot)
-        return self.normalize(await self.request('POST', '/shipments/announce', self.payload(snapshot)))
+        body = await self.request('POST', '/shipments', self.payload(snapshot))
+        data = body.get('data', body)
+        self.last_remote_id = str(data['id']) if data.get('id') is not None else None
+        # Both the documented 201 ANNOUNCING and 202 are pending purchases.
+        # An accepted announcement never authorizes financial capture.
+        if self.last_http_status == 202:
+            raise PurchaseUncertain('SENDCLOUD_LABEL_SYNC_PENDING')
+        return self.normalize(body)
 
     def normalize_return(self, data):
         label = (data.get('label') or {}).get('label_printer') or data.get('label_url')
@@ -1155,7 +1208,10 @@ class SendcloudAdapter(BaseAggregatorAdapter):
         if rate_snapshot.get('is_return') or getattr(self, 'is_return', False):
             self.last_remote_id = str(upstream_shipment_id)
             return self.normalize_return(await self.request('GET', '/returns/' + identifier(upstream_shipment_id)))
-        return self.normalize(await self.request('GET', '/shipments/' + identifier(upstream_shipment_id)))
+        body = await self.request('GET', '/shipments/' + identifier(upstream_shipment_id))
+        if str(body.get('data', body).get('id')) != str(upstream_shipment_id):
+            raise PurchaseUncertain('SENDCLOUD_SHIPMENT_IDENTITY_MISMATCH')
+        return self.normalize(body)
 
     async def void_label(self, upstream_shipment_id):
         self.purchase_allowed()
@@ -1270,10 +1326,12 @@ class FactoryPurchaseBridge:
                 try:
                     async with self.pool.acquire() as connection:
                         await connection.execute('''UPDATE public.shipments SET logistics_metadata=
-                            logistics_metadata||jsonb_build_object('partner_pending_remote_id',$4::text)
+                            logistics_metadata||jsonb_build_object('partner_pending_remote_id',$4::text,
+                                'label_lifecycle_status',$5::text,'label_poll_attempts',0,'label_poll_after',now()::text)
                             WHERE tenant_id=$1 AND carrier_account_id=$2
                             AND pricing_snapshot->'selected_rate'->>'offer_id'=$3 AND status='BOOKING' ''',
-                            account.tenant_id, account.id, str(rate.offer_id), str(adapter.last_remote_id))
+                            account.tenant_id, account.id, str(rate.offer_id), str(adapter.last_remote_id),
+                            'SYNC_PENDING' if isinstance(adapter, SendcloudAdapter) else 'RECONCILIATION_REQUIRED')
                 except Exception:
                     pass
             raise
@@ -1356,7 +1414,7 @@ class PartnerLifecycleService:
 
     def public_result(self, shipment_id, label, customs=None, replayed=False):
         root = '/api/v1/shipping/' + str(shipment_id) + '/documents/'
-        return {'shipment_id': str(shipment_id), 'status': 'BOOKED', 'replayed': replayed,
+        return {'shipment_id': str(shipment_id), 'status': 'BOOKED', 'label_status': 'LABEL_CREATED', 'replayed': replayed,
                 'label': {'tracking_number': label['tracking_number'], 'label_url': root + 'label',
                           'carrier_forms': [{'document_type': f['document_type'], 'url': root + str(i)}
                                             for i, f in enumerate(label.get('carrier_forms', []))]},
@@ -1507,6 +1565,12 @@ class PartnerLifecycleService:
                         await self.ticket(context, row['id'], 'NATIVE_PURCHASE_REJECTED')
                         raise HTTPException(502, 'Shipping service rejected the purchase; reserved credit released') from None
                     except Exception:
+                        pending = await lock.fetchval('''SELECT logistics_metadata->>'label_lifecycle_status'
+                            FROM public.shipments WHERE tenant_id=$1 AND id=$2''', context.tenant_id, row['id'])
+                        if pending == 'SYNC_PENDING':
+                            return {'shipment_id': str(row['id']), 'status': 'SYNC_PENDING',
+                                    'shipment_status': 'BOOKING', 'label_status': 'SYNC_PENDING',
+                                    'message': 'Announcement accepted; credit remains reserved until the label is confirmed.'}
                         await self.ticket(context, row['id'], 'PURCHASE_RECONCILIATION_REQUIRED')
                         raise HTTPException(502, 'Shipping outcome is uncertain; credit remains reserved pending reconciliation') from None
                 try:
@@ -1582,12 +1646,85 @@ class PartnerLifecycleService:
             finally:
                 await lock.execute('SELECT pg_advisory_unlock(hashtextextended($1,0))', key)
 
+    async def poll_and_finalize_sendcloud_label(self, shipment_id: UUID):
+        """Poll one durable announcement under the same lock as booking/replay.
+
+        No POST, no re-rating, and no reservation release before atomic capture.
+        Credentials and the financial snapshot must still match the accepted offer.
+        """
+        from main import BookingPermit, ClientRate, TenantContext
+        async with self.pool.acquire() as lock:
+            row = await lock.fetchrow('SELECT * FROM public.shipments WHERE id=$1', shipment_id)
+            if row is None:
+                return False
+            key = 'automation:' + str(row['tenant_id']) + ':' + str(row['idempotency_key'])
+            if not await lock.fetchval('SELECT pg_try_advisory_lock(hashtextextended($1,0))', key):
+                return False
+            attempts = 0
+            context = TenantContext(row['tenant_id'], UUID(int=0), 'OWNER', '')
+            try:
+                row = await lock.fetchrow('SELECT * FROM public.shipments WHERE tenant_id=$1 AND id=$2', row['tenant_id'], shipment_id)
+                metadata = decode_json(row['logistics_metadata'])
+                if row['status'] != 'BOOKING' or metadata.get('label_lifecycle_status') != 'SYNC_PENDING':
+                    return False
+                attempts = int(metadata.get('label_poll_attempts', 0))
+                if attempts >= 30:
+                    return False
+                await lock.execute('''UPDATE public.shipments SET logistics_metadata=logistics_metadata||
+                    jsonb_build_object('label_poll_attempts',$3::int,'label_poll_after',
+                        (now()+make_interval(secs=>$4))::text) WHERE tenant_id=$1 AND id=$2''',
+                    row['tenant_id'], shipment_id, attempts + 1, min(3600, 20 * 2 ** min(attempts, 7)))
+                selected = decode_json(row['pricing_snapshot'])['selected_rate']
+                rate = ClientRate.model_validate(selected)
+                accounts = await self.automation.repository.accounts(context, historical_account_id=row['carrier_account_id'])
+                account = next((item for item in accounts if item.id == rate.account_id), None)
+                if account is None or account.base_url != SendcloudAdapter.endpoint:
+                    raise PurchaseUncertain('PENDING_CONNECTION_UNAVAILABLE')
+                verify_quote_connection(account, rate)
+                tenant = await lock.fetchrow('SELECT is_sandbox FROM public.tenants WHERE tenant_id=$1', row['tenant_id'])
+                environment = self.environment(tenant)
+                reservation = await lock.fetchrow('''SELECT * FROM public.wallet_reservations
+                    WHERE tenant_id=$1 AND shipment_id=$2''', row['tenant_id'], shipment_id)
+                if not reservation or reservation['status'] != 'SUBMITTED':
+                    raise PurchaseUncertain('PENDING_RESERVATION_RECONCILIATION_REQUIRED')
+                adapter = SendcloudAdapter(self.client, account.api_key, environment=environment)
+                label = metadata.get('automation_label')
+                if not label:
+                    remote_id = metadata.get('partner_pending_remote_id')
+                    if not remote_id:
+                        raise PurchaseUncertain('PENDING_NATIVE_REFERENCE_MISSING')
+                    label = await adapter.retrieve_label(remote_id, {'is_return': False})
+                    await lock.execute('''UPDATE public.shipments SET logistics_metadata=logistics_metadata||
+                        jsonb_build_object('automation_label',$3::jsonb) WHERE tenant_id=$1 AND id=$2
+                        AND status='BOOKING' ''', row['tenant_id'], shipment_id, json.dumps(label))
+                permit = BookingPermit(row['tenant_id'], shipment_id, reservation['id'], reservation['amount'],
+                                       reservation['currency'], reservation['billing_plan'])
+                await self.finance.finish_booking(permit, 'SUCCESS', tracking_number=label['tracking_number'],
+                    label_storage_path=label['label_url'], carrier_name=rate.carrier_code,
+                    label_documents=label, verified_test_environment=environment == 'TEST')
+                return True
+            except Exception:
+                logging.getLogger(__name__).warning('Label poll deferred; held credit retained; shipment=%s', shipment_id)
+                if attempts == 29:
+                    await self.ticket(context, shipment_id, 'LABEL_POLL_RECONCILIATION_REQUIRED')
+                return False
+            finally:
+                await lock.execute('SELECT pg_advisory_unlock(hashtextextended($1,0))', key)
+
     async def worker(self):
-        """Read-only provider polling settles explicitly requested cancellations."""
+        """Poll pending labels and cancellations without repeating mutations."""
         import logging
         from main import TenantContext
         while True:
             try:
+                async with self.pool.acquire() as connection:
+                    labels = await connection.fetch('''SELECT id FROM public.shipments WHERE status='BOOKING'
+                        AND logistics_metadata->>'label_lifecycle_status'='SYNC_PENDING'
+                        AND coalesce((logistics_metadata->>'label_poll_attempts')::int,0)<30
+                        AND (logistics_metadata->>'label_poll_after')::timestamptz<=now()
+                        ORDER BY updated_at,id LIMIT 10''')
+                for label_job in labels:
+                    await self.poll_and_finalize_sendcloud_label(label_job['id'])
                 async with self.pool.acquire() as connection:
                     jobs = await connection.fetch('''SELECT p.tenant_id,p.shipment_id,p.attempts,
                         member.auth_user_id,member.role FROM public.partner_cancellations p
@@ -1616,7 +1753,11 @@ def build_router(authenticate):
 
     @router.post('/confirm-booking')
     async def confirm(body: BookingRequest, request: Request, context=Depends(authenticate)):
-        return await request.app.state.partner_lifecycle.confirm(context, body)
+        result = await request.app.state.partner_lifecycle.confirm(context, body)
+        if result.get('status') == 'SYNC_PENDING':
+            from fastapi.responses import JSONResponse
+            return JSONResponse(result, status_code=202)
+        return result
 
     @router.post('/request-void')
     async def void(body: VoidRequest, request: Request, context=Depends(authenticate)):

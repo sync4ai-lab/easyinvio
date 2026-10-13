@@ -6,6 +6,7 @@ Only exact operator-approved HTTPS hosts are fetched, without redirects.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from io import BytesIO
 from urllib.parse import urlsplit
 from xml.sax.saxutils import escape
@@ -52,7 +53,14 @@ def invoice_pdf(reference, declaration):
     def paragraph(text, style='BodyText'):
         return Paragraph(escape(str(text or 'Not supplied')), styles[style])
     output = BytesIO()
-    story = [paragraph('COMMERCIAL INVOICE', 'Title'), paragraph('Order: ' + reference), Spacer(1, 14)]
+    styles['Title'].textColor = colors.HexColor('#064e3b')
+    styles['BodyText'].fontSize = 9
+    styles['BodyText'].leading = 13
+    story = [paragraph('EasyInvio.com', 'Title'), paragraph('SHIPPING INTELLIGENCE PLATFORM'), Spacer(1, 12),
+             paragraph('COMMERCIAL INVOICE', 'Heading1'),
+             paragraph('Invoice reference: ' + str(declaration.get('invoice_reference') or declaration.get('invoice_number') or reference)),
+             paragraph('Shipment / order: ' + reference),
+             paragraph('Invoice date (UTC): ' + str(declaration.get('created_at') or datetime.now(timezone.utc).isoformat()).split('T')[0]), Spacer(1, 14)]
     parties = []
     for key in ('sender', 'recipient'):
         party = declaration[key]
@@ -75,6 +83,8 @@ def invoice_pdf(reference, declaration):
     story += [table, Spacer(1, 14)]
     totals = declaration['totals']
     story += [paragraph(f"Goods value: {totals['goods_value']} {declaration['currency']} | Net weight: {totals['net_weight_kg']} kg | Gross weight: {totals['gross_weight_kg']} kg"),
+              paragraph('Shipping cost: ' + str(declaration.get('shipping_cost', totals.get('shipping_cost', 'Not supplied'))) + ' ' + str(declaration.get('shipping_currency', declaration['currency']))),
+              paragraph('Export category: ' + str(declaration.get('category','SALE')) + (' - '+str(declaration['category_other']) if declaration.get('category_other') else '')),
               Spacer(1, 12), paragraph(declaration['declaration_statement']), Spacer(1, 12),
               paragraph('Declared by: ' + declaration['signer']),
               paragraph('Signature: ____________________________________   Date: __________________'), Spacer(1, 10),

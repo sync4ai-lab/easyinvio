@@ -1,0 +1,13 @@
+{
+  "executed_at": "2026-10-11T20:52:15.333570+00:00",
+  "database": "actual Supabase SANDBOX",
+  "provider_responses": "controlled MockTransport",
+  "external_api_calls": 0,
+  "checks": [
+    "PASS: accepted announcement persists native ID, holds exact Decimal reservation and creates no final label/tracking",
+    "PASS: unfinished GET poll does not debit or release credit",
+    "PASS: disabled provider finishes accepted label; atomic capture, reservation release and replay produce exactly one debit and one POST"
+  ],
+  "status": "PASS",
+  "database_writes_rolled_back": true
+}

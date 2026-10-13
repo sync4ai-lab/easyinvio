@@ -913,7 +913,9 @@ class EasyPostStrategy(RateStrategy):
                 raise ProviderFailure('CUSTOMS_DATA_NOT_PROVIDER_READY')
             from backend.automation_three_partners import easypost_tax_identifiers
             shipment['tax_identifiers']=easypost_tax_identifiers(doc)
-            shipment['customs_info']={'customs_certify':True,'customs_signer':doc['signer'],'contents_type':'merchandise',
+            shipment['customs_info']={'customs_certify':True,'customs_signer':doc['signer'],
+                'contents_type':{'SALE':'merchandise','GIFT':'gift','SAMPLE':'sample','RETURN':'returned_goods','OTHER':'other'}.get(doc.get('category'),'merchandise'),
+                'contents_explanation':doc.get('category_other') or '',
                 'non_delivery_option':'return','restriction_type':'none','customs_items':[
                     {'description':item['description'],'quantity':item['quantity'],'value':item['line_value'],
                      'weight':str(Decimal(item['line_weight_kg'])/KG_PER_OUNCE),'hs_tariff_number':item['hs_code'],
@@ -1053,7 +1055,7 @@ class RatingService:
             accounts=await self.repository.accounts(context,historical_account_id=return_account_id)
         else:
             accounts = await self.repository.accounts(context)
-        if request.cargo_type in {'PALLET','OVERLAND_FREIGHT'} or (request.customs_document and request.customs_document.get('required') and request.currency!='USD'):
+        if request.cargo_type in {'PALLET','OVERLAND_FREIGHT'} or (request.customs_document and request.customs_document.get('required') and request.customs_document.get('currency')!='USD'):
             accounts=[account for account in accounts if account.provider=='REGIONAL']
         if not accounts:
             raise HTTPException(503, "No active carrier accounts configured")
@@ -1370,7 +1372,7 @@ class FinanceEngine:
                            tracking_number=$3,label_storage_path=$4,
                            logistics_metadata=logistics_metadata || $5::jsonb WHERE tenant_id=$1 AND id=$2""",
                         permit.tenant_id, permit.shipment_id, tracking_number, label_storage_path,
-                        json.dumps({'automation_label':label_documents} if label_documents is not None else {}),
+                        json.dumps({'automation_label':label_documents, 'label_lifecycle_status':'LABEL_CREATED'} if label_documents is not None else {}),
                     )
                     imported_order_id = await EcommerceService(self.pool).queue_confirmed_tracking(
                         connection, permit.tenant_id, permit.shipment_id, tracking_number, carrier_name)
@@ -1758,6 +1760,8 @@ class WhatsAppService:
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    from backend.webhook_security import install_webhook_log_redaction
+    install_webhook_log_redaction()
     if "--local-preview" in sys.argv:
         logger.warning("Local preview: database and external integrations are disabled")
         application.state.local_preview = True
@@ -1826,7 +1830,8 @@ async def lifespan(application: FastAPI):
                 from backend.ecommerce_connectors import StoreConnectorSettings
                 application.state.ecommerce = EcommerceService(pool,client=http_client,
                     connectors=StoreConnectorSettings().ecommerce_connectors)
-                application.state.tracking_support = TrackingSupportService(pool, TrackingSettings())
+                from backend.tracking_and_support import load_tracking_settings
+                application.state.tracking_support = TrackingSupportService(pool, load_tracking_settings())
                 application.state.support_delivery = SupportDelivery(pool,http_client,settings,DeliverySettings())
                 application.state.sandbox_billing = SandboxBillingService(application.state.finance, settings) if settings.stripe_enabled else None
                 application.state.admin_portal = AdminService(pool)
@@ -2267,6 +2272,8 @@ app.include_router(dashboard_router(authenticate))
 app.include_router(automation_router(authenticate))
 from backend.automation_three_partners import build_router as partner_lifecycle_router
 app.include_router(partner_lifecycle_router(authenticate))
+from backend.customer_checkout import build_router as customer_checkout_router
+app.include_router(customer_checkout_router(authenticate))
 from backend.automation_three_partners import build_native_router
 app.include_router(build_native_router(authenticate))
 app.include_router(dispatch_workspace_router(authenticate))
@@ -2338,4 +2345,4 @@ if __name__ == "__main__":
         import uvicorn
         # Loopback is appropriate for local VS Code development. Deploy
         # behind an HTTPS reverse proxy with explicit hosting configuration.
-        uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8000")), access_log=False)
+        uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8000")), access_log=False, proxy_headers=False)

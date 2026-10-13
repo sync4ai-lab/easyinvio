@@ -302,21 +302,21 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div id="cargo-dimensions" class="fields three">
 <div>
 <label for="length_cm">Length · cm</label>
-<input id="length_cm" type="number" min="0.01" max="1000" step="0.01" value="40" required>
+<input id="length_cm" type="number" min="0.01" max="1000" step="0.01" placeholder="e.g. 40" required>
 </div>
 <div>
 <label for="width_cm">Width · cm</label>
-<input id="width_cm" type="number" min="0.01" max="1000" step="0.01" value="30" required>
+<input id="width_cm" type="number" min="0.01" max="1000" step="0.01" placeholder="e.g. 30" required>
 </div>
 <div>
 <label for="height_cm">Height · cm</label>
-<input id="height_cm" type="number" min="0.01" max="1000" step="0.01" value="20" required>
+<input id="height_cm" type="number" min="0.01" max="1000" step="0.01" placeholder="e.g. 20" required>
 </div>
 </div>
 <div class="fields" style="margin-top:12px">
 <div>
 <label for="weight_kg">Actual weight · kg</label>
-<input id="weight_kg" type="number" min="0.001" max="1000" step="0.001" value="2.500" required>
+<input id="weight_kg" type="number" min="0.001" max="1000" step="0.001" placeholder="e.g. 2.500" required>
 </div>
 <div>
 <label for="currency">Quote currency</label>
@@ -357,31 +357,31 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <div>
 <label for="qc-reference">Invoice reference</label>
-<input id="qc-reference" value="VEL-CUSTOMS-001" maxlength="100">
+<input id="qc-reference" placeholder="e.g. VEL-CUSTOMS-001" maxlength="100">
 </div>
 </div>
 <div class="field">
 <label for="qc-description">Goods description</label>
-<input id="qc-description" value="Cotton knitted T-shirt" maxlength="500">
+<input id="qc-description" placeholder="e.g. Cotton knitted T-shirt" maxlength="500">
 </div>
 <div class="fields three">
 <div>
 <label for="qc-hs">Reviewed HS code</label>
-<input id="qc-hs" value="610910" inputmode="numeric" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?">
+<input id="qc-hs" placeholder="e.g. 610910" inputmode="numeric" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?">
 </div>
 <div>
 <label for="qc-quantity">Quantity</label>
-<input id="qc-quantity" type="number" min="1" step="1" value="1">
+<input id="qc-quantity" type="number" min="1" step="1" placeholder="e.g. 1">
 </div>
 <div>
 <label for="qc-value">Unit value</label>
-<input id="qc-value" inputmode="decimal" value="25.00">
+<input id="qc-value" inputmode="decimal" placeholder="e.g. 25.00">
 </div>
 </div>
 <div class="fields">
 <div>
 <label for="qc-weight">Unit net weight · kg</label>
-<input id="qc-weight" type="number" min="0.001" step="0.001" value="0.200">
+<input id="qc-weight" type="number" min="0.001" step="0.001" placeholder="e.g. 0.200">
 </div>
 <div>
 <label for="qc-origin">Goods origin · ISO</label>
@@ -682,7 +682,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <h1>From warehouse text to clear declarations.</h1>
 <p>Explainable suggestions and structured cross-border paperwork.</p>
 </div>
-<span class="tag orange">MOCK ML · HUMAN REVIEW</span>
+<span class="tag orange">OFFICIAL TARIFF · HUMAN REVIEW</span>
 </div>
 <div class="grid">
 <div class="card">
@@ -695,12 +695,13 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <form id="harmonizer-form">
 <label for="item-description">Unstructured item description</label>
-<textarea id="item-description" minlength="3" maxlength="500" required>Silk running sneakers leather trim</textarea>
+<textarea id="item-description" minlength="3" maxlength="500" required>
+</textarea>
 <button class="primary full" id="harmonize-btn" style="margin-top:14px">Predict HS commodity code ✦</button>
 </form>
 <div id="hs-results" aria-live="polite">
 </div>
-<div class="notice">Curated rule-based mock model. Confidence is simulated. Review national tariff extensions before declaring goods.</div>
+<div class="notice">Official tariff candidates require human review. Review national tariff extensions before declaring goods.</div>
 <a href="https://www.gov.uk/trade-tariff" target="_blank" rel="noopener">Check the official UK Trade Tariff ↗</a>
 </div>
 <div class="card">
@@ -710,7 +711,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div class="fields">
 <div>
 <label for="decl-reference">Invoice reference</label>
-<input id="decl-reference" value="VE-CI-1043" maxlength="100" required>
+<input id="decl-reference" placeholder="e.g. VE-CI-1043" maxlength="100" required>
 </div>
 <div>
 <label for="decl-form">Postal declaration form</label>
@@ -724,32 +725,32 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <p class="footnote">Uses current dispatch addresses. Select the form required by your postal operator.</p>
 <div class="field" style="margin-top:13px">
 <label for="decl-description">Reviewed goods description</label>
-<input id="decl-description" value="Cotton knitted T-shirt" minlength="3" maxlength="500" required>
+<input id="decl-description" placeholder="e.g. Cotton knitted T-shirt" minlength="3" maxlength="500" required>
 </div>
 <div class="fields three">
 <div>
 <label for="decl-hs">Reviewed HS code</label>
-<input id="decl-hs" value="610910" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required>
+<input id="decl-hs" placeholder="e.g. 610910" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required>
 </div>
 <div>
 <label for="decl-quantity">Quantity</label>
-<input id="decl-quantity" type="number" min="1" max="100000" step="1" value="1" required>
+<input id="decl-quantity" type="number" min="1" max="100000" step="1" placeholder="e.g. 1" required>
 </div>
 <div>
 <label for="decl-origin">Goods origin</label>
-<input id="decl-origin" value="GB" pattern="[A-Z]{2}" required>
+<input id="decl-origin" placeholder="e.g. GB" pattern="[A-Z]{2}" required>
 </div>
 <div>
 <label for="decl-value">Unit value</label>
-<input id="decl-value" value="25.00" inputmode="decimal" pattern="[0-9]+(\.[0-9]{1,2})?" required>
+<input id="decl-value" placeholder="e.g. 25.00" inputmode="decimal" pattern="[0-9]+(\.[0-9]{1,2})?" required>
 </div>
 <div>
 <label for="decl-weight">Unit net weight · kg</label>
-<input id="decl-weight" type="number" min="0.001" max="1000" step="0.001" value="0.250" required>
+<input id="decl-weight" type="number" min="0.001" max="1000" step="0.001" placeholder="e.g. 0.250" required>
 </div>
 <div>
 <label for="decl-shipping">Shipping cost</label>
-<input id="decl-shipping" value="0.00" inputmode="decimal" pattern="[0-9]+(\.[0-9]{1,2})?" required>
+<input id="decl-shipping" placeholder="e.g. 0.00" inputmode="decimal" pattern="[0-9]+(\.[0-9]{1,2})?" required>
 </div>
 </div>
 <div class="fields" style="margin-top:13px">
@@ -775,7 +776,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <label style="display:flex;align-items:center;gap:10px;margin:16px 0">
 <input type="checkbox" id="decl-reviewed" required style="width:20px;min-height:20px">I have reviewed the HS code and goods details.</label>
-<button id="declaration-btn" class="primary full">Generate declaration metadata</button>
+<button id="declaration-btn" class="primary full">Prepare linked declaration</button>
 </form>
 <div id="declaration-result">
 </div>
@@ -983,7 +984,7 @@ const addressDefaults = {
   destination: ['Example Customer', '20 Sample Avenue', 'Paris', '75001', 'FR']
 };
 const addressNames = ['name', 'line1', 'city', 'postal_code', 'country_code'];
-$('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','ISO country'][i]}</label><input id="${prefix}-${field}" value="${addressDefaults[prefix][i]}" maxlength="${i===4?2:200}" ${i===4?'pattern="[A-Z]{2}"':''} required></div>`).join('')).join('');
+$('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','ISO country'][i]}</label><input id="${prefix}-${field}" placeholder="${addressDefaults[prefix][i]}" maxlength="${i===4?2:200}" ${i===4?'pattern="[A-Z]{2}"':''} required></div>`).join('')).join('');
 
 function cents(value) {
   const text = String(value);
@@ -1065,7 +1066,7 @@ async function api(path, {
       clearSession()
     }
     const detail = data.detail;
-    throw Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.code || `Request failed (${response.status})`)
+    throw Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.message ? detail.message + (detail.reason ? ': ' + detail.reason : '') : detail?.code || `Request failed (${response.status})`)
   }
   return data
 }
@@ -1288,15 +1289,15 @@ async function bookLive(index) {
   summary.className = 'notice';
   summary.textContent = 'Label confirmed. Tracking: ' + result.label.tracking_number;
   $('#review-content').append(summary);
-  for (const document of [{
+  for (const shippingDocument of [{
       document_type: 'Shipping label',
       url: result.label.label_url
     }, ...(result.label.carrier_forms || [])]) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'primary';
-    button.textContent = 'Download ' + document.document_type;
-    button.addEventListener('click', () => busy(button, () => downloadPartnerDocument(document.url)));
+    button.textContent = 'Download ' + shippingDocument.document_type;
+    button.addEventListener('click', () => busy(button, () => downloadPartnerDocument(shippingDocument.url)));
     $('#review-content').append(button);
   }
   rate.booked = true;
@@ -1355,14 +1356,17 @@ $('#routing-btn').addEventListener('click', () => busy($('#routing-btn'), async 
 $('#harmonizer-form').addEventListener('submit', event => {
   event.preventDefault();
   busy($('#harmonize-btn'), async () => {
-    const result = await api('/api/v1/customs/harmonize', {
+    if (!state.session) throw Error('Sign in to search the official tariff.');
+    const description = $('#item-description').value.trim();
+    const result = await api('/api/v1/checkout/hs-search', {
       method: 'POST',
+      auth: true,
       body: {
-        item_description: $('#item-description').value
+        description
       }
     });
-    $('#hs-results').innerHTML = result.candidates.length ? result.candidates.map(candidate => `<div class="hs-card"><div style="display:flex;justify-content:space-between"><span class="hs-code">${escapeHTML(candidate.hs_code)}</span><span class="tag orange">${Math.round(Number(candidate.confidence)*100)}% MOCK CONFIDENCE</span></div><h3 style="margin-top:8px">${escapeHTML(candidate.title)}</h3><div class="confidence"><span style="width:${Math.round(Number(candidate.confidence)*100)}%"></span></div><p class="subtle">${escapeHTML(candidate.assumptions)}</p><p class="footnote">Matched: ${escapeHTML(candidate.matched_terms.join(', ')||'product category only')}</p><button class="secondary" data-use-hs="${escapeHTML(candidate.hs_code)}">Inject Code to Label Payload</button></div>`).join('') : '<div class="notice">Insufficient information. Include material, construction and intended use; no code was invented.</div>'
-  })
+    $('#hs-results').innerHTML = result.candidates.length ? result.candidates.map(candidate => `<div class="hs-card"><span class="hs-code">${escapeHTML(candidate.hs_code)}</span><h3>${escapeHTML(candidate.title)}</h3><p class="footnote">UK Integrated Online Tariff - review before declaring.</p><button class="secondary" data-use-hs="${escapeHTML(candidate.hs_code)}">Use reviewed candidate</button></div>`).join('') : `<div class="notice">${escapeHTML(result.question || 'No specific match found. Add the material and intended use, or check the official tariff.')}</div>`;
+  });
 });
 $('#hs-results').addEventListener('click', event => {
   const button = event.target.closest('[data-use-hs]');
@@ -2154,21 +2158,7 @@ function configureCargo(useDefaults = true) {
   $('#height_cm').max = freight ? '400' : '1000';
   $('#weight_kg').max = letter ? '0.499' : freight ? '30000' : '1000';
   if (useDefaults) {
-    if (letter) {
-      $('#weight_kg').value = '0.100'
-    } else if (freight) {
-      $('#length_cm').value = kind === 'PALLET' ? '120' : '200';
-      $('#width_cm').value = kind === 'PALLET' ? '80' : '120';
-      $('#height_cm').value = '100';
-      $('#weight_kg').value = kind === 'PALLET' ? '100.000' : '900.000';
-      $('#cargo-stackable').checked = false;
-      $('#qc-form').value = 'COMMERCIAL_INVOICE'
-    } else {
-      $('#length_cm').value = '40';
-      $('#width_cm').value = '30';
-      $('#height_cm').value = '20';
-      $('#weight_kg').value = '2.500'
-    }
+    for (const id of ['length_cm', 'width_cm', 'height_cm', 'weight_kg']) $('#' + id).value = '';
   }
   state.quotes = [];
   state.quoteRequest = null;
@@ -2339,13 +2329,15 @@ function safeHTTPS(value) {
 
 function displayedStatus(row) {
   if (['EXCEPTION', 'DELIVERED', 'FAILED'].includes(row.status)) return row.status;
+  if (row.status === 'BOOKING' && row.label_status === 'SYNC_PENDING') return 'SYNC_PENDING';
+  if (row.status === 'BOOKED' && row.label_status === 'LABEL_CREATED') return 'LABEL_CREATED';
   return row.metadata?.tracking?.milestone === 'OUT_FOR_DELIVERY' ? 'OUT_FOR_DELIVERY' : row.status
 }
 
 function pipeline(row) {
   const status = displayedStatus(row),
     stages = ['BOOKED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'],
-    active = stages.indexOf(status);
+    active = stages.indexOf(status === 'LABEL_CREATED' ? 'BOOKED' : status);
   return '<div class="pipeline" aria-label="Shipment lifecycle">' + stages.map((s, i) => `<span class="${i<active?'done':i===active?'active':''}">${({BOOKED:'Booked',IN_TRANSIT:'In transit',OUT_FOR_DELIVERY:'Out for delivery',DELIVERED:'Delivered'})[s]}</span>${i<3?'<i class="'+(i<active?'done':'')+'"></i>':''}`).join('') + (status === 'EXCEPTION' ? '<span class="pipeline-alert">· Exception</span>' : '') + '</div>'
 }
 renderManifest = function() {
@@ -2360,7 +2352,7 @@ renderManifest = function() {
     const status = displayedStatus(row),
       carrier = row.metadata?.carrier || row.carrier_code || 'Not recorded',
       type = row.cargo_type || row.metadata?.cargo_type || 'PARCEL';
-    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
+    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
   }).join('') : '<tr><td colspan="5"><div class="empty"><h3>No Active Shipments</h3><p>No shipments match this view. Create a quote or change the filter.</p><button class="secondary" data-manifest-create="true">Open Speed Quote Matrix</button></div></td></tr>';
   refreshIcons()
 };
@@ -2471,23 +2463,6 @@ $('#quick-audit-form').addEventListener('submit', event => {
     if (audited.dispute_draft) $('#dispute-draft').value = audited.dispute_draft;
     else notify('No supported overcharge draft could be established. Review the audit result.')
   })
-});
-$('#rates').addEventListener('click', event => {
-  if (!event.target.closest('[data-review]') || !state.quoteRequest || state.quoteRequest.origin.country_code === state.quoteRequest.destination.country_code) return;
-  $('#review-content').insertAdjacentHTML('beforeend', `<div class="document-preview"><h3>Commercial customs document preview</h3><p class="subtle">${customsDocument?'Reviewed draft ready. Signature and carrier eligibility remain required.':'Prepare CN22/CN23 or a commercial invoice before international checkout.'}</p><div class="actions" style="margin-top:10px"><button class="secondary" data-review-customs="open">Review customs</button><button class="secondary" data-review-customs="json" ${customsDocument?'':'disabled'}>Download JSON</button><button class="secondary" data-review-customs="print" ${customsDocument?'':'disabled'}>Download printable documents</button></div></div>`)
-});
-$('#review-content').addEventListener('click', e => {
-  const b = e.target.closest('[data-review-customs]');
-  if (!b) return;
-  if (b.dataset.reviewCustoms === 'open') {
-    $('#review-dialog').close();
-    setView('dispatch');
-    $('#checkout-customs').open = true;
-    $('#checkout-customs').scrollIntoView?.({
-      behavior: 'smooth',
-      block: 'start'
-    })
-  } else exportCustoms(customsDocument, b.dataset.reviewCustoms)
 });
 const modernSetViewBase = setView;
 setView = function(view) {
@@ -3870,6 +3845,11 @@ $('#workspace-pack-form').addEventListener('submit', event => {
             tenant_id: portal.profile.tenant_id
           }
         });
+        if (booked.status === 'SYNC_PENDING') {
+          $('#workspace-pack-result').textContent = 'Label preparation is in progress. Wallet credit is reserved. Refresh the manifest to see the confirmed label; no second purchase is needed.';
+          await loadDispatchWorkspace();
+          return;
+        }
         $('#workspace-pack-result').textContent = 'Label confirmed. Tracking: ' + booked.label.tracking_number;
         const downloadButton = document.createElement('button');
         downloadButton.type = 'button';
@@ -4569,6 +4549,289 @@ window.addEventListener('hashchange', () => {
   clearSession();
   identityRecoveryView('reset');
 });
+</script>
+<script>
+// Embedded customer checkout: private offer -> reviewed customs -> confirmed booking.
+const customerCheckout = {
+  index: null,
+  context: null,
+  prepared: null,
+  generation: 0
+};
+document.head.insertAdjacentHTML('beforeend', `<style>
+#review-dialog.checkout-wide{width:min(1120px,calc(100vw - 28px));font-family:system-ui,sans-serif}.checkout-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;clear:both}.checkout-layout>*{min-width:0}.checkout-layout>div:first-child{position:sticky;top:0;align-self:start;background:#020617}.checkout-products{display:grid;gap:12px}.checkout-product{padding:14px;border:1px solid #334155;border-radius:12px;background:#0b1527}.checkout-error{padding:12px;border:1px solid #ef4444;color:#fecaca;border-radius:10px;margin:12px 0}.checkout-choices{display:grid;gap:10px;margin-top:16px}.checkout-tariffs button{width:100%;text-align:left;margin-top:8px}.status-label_created{color:#6ee7b7;background:#064e3b}.status-sync_pending{color:#fde68a;background:#451a03}@media(max-width:767px){.checkout-layout{grid-template-columns:minmax(0,1fr)}.checkout-layout>div:first-child{position:static}#review-dialog.checkout-wide{padding:16px}}
+</style>`);
+
+feeRows = function(rate) {
+  const total = cents(rate.client_price_ex_tax),
+    supplied = rate.fee_breakdown?.fuel_surcharge;
+  let fuel = null;
+  if (supplied != null) {
+    const value = cents(supplied);
+    if (value >= 0n && value <= total) fuel = value;
+  }
+  const rows = [
+    ['Label cost', money(decimalCents(total - (fuel || 0n)), rate.currency)],
+    ['Shipment protection', 'Not added'],
+    ['Fuel surcharge', fuel === null ? 'Included in label cost' : money(decimalCents(fuel), rate.currency)],
+    ['Subtotal price (excl. tax)', money(rate.client_price_ex_tax, rate.currency)]
+  ];
+  return rows.map(([label, value], i) => `<div class="fee ${i===3?'total':''}"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join('');
+};
+
+function checkoutError(error) {
+  const target = $('#checkout-booking-error');
+  if (target) {
+    target.hidden = false;
+    target.textContent = error.message || 'Booking could not be completed. No confirmed label is available.';
+  }
+}
+
+function checkoutProduct(item = {}) {
+  const value = name => escapeHTML(item[name] ?? '');
+  return `<div class="checkout-product"><label>Product description</label><textarea name="description" minlength="3" maxlength="500" placeholder="e.g. Electric steam iron for household clothing" required>${value('description')}</textarea>
+  <button type="button" class="secondary" data-checkout-hs>Find HS code in official tariff</button><div class="checkout-tariffs" aria-live="polite"></div>
+  <div class="fields"><div><label>Reviewed HS code</label><input name="hs_code" value="${value('hs_code')}" placeholder="6, 8 or 10 digits" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></div><div><label>Country of manufacture</label><input name="origin_country" value="${value('origin_country')}" placeholder="e.g. GB" pattern="[A-Za-z]{2}" required></div>
+  <div><label>Quantity</label><input name="quantity" value="${value('quantity')}" type="number" min="1" max="10000" step="1" placeholder="e.g. 2" required></div><div><label>Value per item</label><input name="unit_value" value="${value('unit_value')}" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" placeholder="e.g. 25.00" required></div>
+  <div><label>Net weight per item (kg)</label><input name="unit_weight_kg" value="${value('unit_weight_kg')}" type="number" min="0.001" step="0.001" placeholder="e.g. 0.250" required></div></div><button class="secondary" type="button" data-checkout-remove>Remove product</button></div>`;
+}
+
+function renderCheckoutCustoms() {
+  const context = customerCheckout.context;
+  $('#checkout-next').innerHTML = `<h2>Customs details &amp; HS finder</h2><p class="subtle">Enter the real goods in this shipment. Review tariff suggestions before declaring them.</p>
+    <form id="customer-customs-form"><label>Invoice reference - linked to this booking</label><input name="invoice_reference" readonly value="${escapeHTML(context.invoice_reference)}">
+    <div class="fields"><div><label>Shipping cost</label><input readonly value="${escapeHTML(money(context.shipping_cost,context.shipping_currency))}"></div><div><label>Goods value currency</label><select name="currency"><option ${context.goods_value_currency==='GBP'?'selected':''}>GBP</option><option ${context.goods_value_currency==='EUR'?'selected':''}>EUR</option><option ${context.goods_value_currency==='USD'?'selected':''}>USD</option></select></div></div>
+    <p class="footnote">Enter goods values in the selected currency. Some services require USD customs values; no automatic currency conversion is assumed.</p>
+    <div class="checkout-products">${checkoutProduct()}</div><button class="secondary" type="button" id="checkout-add-product">Add another product</button>
+    <label>Export category</label><select name="category"><option value="SALE">Sale of goods</option><option value="GIFT">Gift</option><option value="RETURN">Returned goods</option><option value="SAMPLE">Commercial sample</option><option value="OTHER">Other</option></select>
+    <div id="checkout-other-field" hidden><label>Describe the export reason</label><input name="category_other" minlength="3" maxlength="200" placeholder="e.g. Exhibition goods being sent temporarily"></div>
+    <label>Import duties and taxes</label><select name="incoterm"><option value="DAP">Recipient pays import duties and taxes (DAP)</option></select>
+    <p class="footnote">DAP states who pays import charges; it is recorded on the invoice. Sender-paid duties require a supported carrier contract and are not assumed here.</p>
+    <div class="fields"><div><label>Sender EORI (if applicable)</label><input name="sender_eori" maxlength="40" placeholder="e.g. GB followed by your registered number"></div><div><label>Recipient EORI (if applicable)</label><input name="recipient_eori" maxlength="40" placeholder="Recipient's registered EORI"></div></div>
+    <label>Declaration signed by</label><input name="signer" maxlength="200" placeholder="Full name of the responsible shipper" required>
+    <label class="check"><input name="reviewed" type="checkbox" required>I confirm the HS codes, origin, values and weights describe my goods accurately.</label>
+    <button id="checkout-prepare-btn" class="primary full">Review final booking price</button></form>`;
+  const form = $('#customer-customs-form');
+  form.elements.category.addEventListener('change', () => {
+    const other = form.elements.category.value === 'OTHER';
+    $('#checkout-other-field').hidden = !other;
+    form.elements.category_other.required = other;
+    if (!other) form.elements.category_other.value = '';
+  });
+  $('#checkout-add-product').addEventListener('click', () => {
+    if (form.querySelectorAll('.checkout-product').length >= 100) return;
+    form.querySelector('.checkout-products').insertAdjacentHTML('beforeend', checkoutProduct());
+  });
+  form.addEventListener('click', event => {
+    const remove = event.target.closest('[data-checkout-remove]');
+    if (remove && form.querySelectorAll('.checkout-product').length > 1) remove.closest('.checkout-product').remove();
+    const search = event.target.closest('[data-checkout-hs]');
+    if (!search) return;
+    busy(search, async () => {
+      const product = search.closest('.checkout-product'),
+        generation = customerCheckout.generation;
+      const description = product.querySelector('[name=description]').value.trim();
+      if (description.length < 3) throw Error('Describe the product before finding an HS code.');
+      product.querySelector('[name=hs_code]').value = '';
+      form.elements.reviewed.checked = false;
+      const result = await api('/api/v1/checkout/hs-search', {
+        method: 'POST',
+        auth: true,
+        body: {
+          description
+        }
+      });
+      if (generation !== customerCheckout.generation) return;
+      const target = product.querySelector('.checkout-tariffs');
+      target.innerHTML = result.candidates.length ? `<p class="footnote">Official UK tariff matches. Select only a description that applies to your goods.</p>` + result.candidates.map(candidate => `<button type="button" class="secondary" data-tariff-code="${escapeHTML(candidate.hs_code)}"><b>${escapeHTML(candidate.hs_code)}</b> &middot; ${escapeHTML(candidate.title)}</button>`).join('') : `<p class="notice">${escapeHTML(result.question||'No specific match found. Add material, function and construction, or check the official tariff.')}</p>`;
+      target.querySelectorAll('[data-tariff-code]').forEach(button => button.addEventListener('click', () => {
+        product.querySelector('[name=hs_code]').value = button.dataset.tariffCode;
+        form.elements.reviewed.checked = false;
+      }));
+    });
+  });
+  form.addEventListener('input', event => {
+    if (event.target.name === 'description') {
+      const product = event.target.closest('.checkout-product');
+      product.querySelector('[name=hs_code]').value = '';
+      product.querySelector('.checkout-tariffs').replaceChildren();
+    }
+    if (event.target.name !== 'reviewed') form.elements.reviewed.checked = false;
+  });
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    busy($('#checkout-prepare-btn'), async () => {
+      try {
+        const items = [...form.querySelectorAll('.checkout-product')].map(product => Object.fromEntries(['description', 'hs_code', 'origin_country', 'quantity', 'unit_value', 'unit_weight_kg'].map(name => [name, name === 'quantity' ? Number(product.querySelector(`[name=${name}]`).value) : product.querySelector(`[name=${name}]`).value.trim()])));
+        await prepareCustomerCheckout({
+          items,
+          signer: form.elements.signer.value.trim(),
+          reviewed: form.elements.reviewed.checked,
+          currency: form.elements.currency.value,
+          category: form.elements.category.value,
+          category_other: form.elements.category.value === 'OTHER' ? form.elements.category_other.value.trim() : null,
+          incoterm: 'DAP',
+          sender_eori: form.elements.sender_eori.value.trim() || null,
+          recipient_eori: form.elements.recipient_eori.value.trim() || null
+        });
+      } catch (error) {
+        checkoutError(error);
+        throw error;
+      }
+    });
+  });
+}
+
+async function prepareCustomerCheckout(customs = null) {
+  const generation = customerCheckout.generation;
+  const rate = state.quotes[customerCheckout.index];
+  const prepared = await api('/api/v1/checkout/prepare', {
+    method: 'POST',
+    auth: true,
+    body: {
+      offer_id: rate.offer_id,
+      customs
+    }
+  });
+  if (generation !== customerCheckout.generation) return;
+  customerCheckout.prepared = prepared;
+  $('#checkout-price').innerHTML = feeRows(prepared.offer);
+  $('#checkout-next').innerHTML = `<h2>Confirm your booking</h2><p class="notice">${prepared.price_changed?'The price changed after the carrier evaluated your customs details. Review this final price before purchasing.':'Your shipment is prepared. Confirm the price shown to create the shipping label.'}</p><p class="subtle">${escapeHTML(prepared.invoice_reference)} &middot; ${escapeHTML(money(prepared.offer.client_price_ex_tax,prepared.offer.currency))}</p><button id="checkout-purchase" class="primary full">Confirm &amp; create shipping label</button><p class="footnote">Wallet credit is captured only after label confirmation. ${prepared.customs_required?'Your commercial invoice PDF will be available with the confirmed booking.':''}</p>`;
+  $('#checkout-purchase').addEventListener('click', () => busy($('#checkout-purchase'), async () => {
+    try {
+      const result = await api('/api/v1/shipping/confirm-booking', {
+        method: 'POST',
+        auth: true,
+        body: {
+          offer_id: prepared.offer.offer_id,
+          tenant_id: portal.profile.tenant_id
+        }
+      });
+      if (generation !== customerCheckout.generation) return;
+      showCustomerBooking(result, prepared);
+    } catch (error) {
+      checkoutError(error);
+      throw error;
+    }
+  }));
+}
+
+function showCustomerBooking(result, prepared) {
+  const pending = result.status === 'SYNC_PENDING';
+  $('#review-content').innerHTML = `<h2>${pending?'Your label is being prepared':'Shipment booked successfully'}</h2><p class="notice">${pending?'Your carrier has accepted the request. Credit remains reserved while the label is prepared. Do not place a second booking.':'Tracking: '+escapeHTML(result.label.tracking_number)}</p><p class="subtle">Booking / invoice reference: ${escapeHTML(prepared.invoice_reference)}</p><div id="checkout-downloads" class="actions"></div><button class="secondary" id="checkout-open-manifest">Open Manifest &amp; Labels</button><button class="secondary" id="checkout-new-shipment">Start a new shipment</button>`;
+  if (!pending) {
+    const documents = [{
+      document_type: 'Shipping label PDF',
+      url: result.label.label_url
+    }, ...(result.label.carrier_forms || [])];
+    if (prepared.customs_required) documents.push({
+      document_type: 'Commercial invoice PDF',
+      url: '/api/v1/checkout/' + result.shipment_id + '/commercial-invoice.pdf'
+    });
+    for (const shippingDocument of documents) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'primary';
+      button.textContent = 'Download ' + shippingDocument.document_type;
+      button.addEventListener('click', () => busy(button, () => downloadPartnerDocument(shippingDocument.url)));
+      $('#checkout-downloads').append(button);
+    }
+    state.quotes[customerCheckout.index].booked = true;
+  }
+  $('#checkout-open-manifest').addEventListener('click', () => {
+    $('#review-dialog').close();
+    setView('manifest');
+  });
+  $('#checkout-new-shipment').addEventListener('click', () => {
+    $('#review-dialog').close();
+    resetQuoteForm();
+    resetCustomerCheckout();
+    setView('dispatch');
+  });
+  notify(pending ? 'Label preparation is pending. Check the manifest for completion.' : 'Shipping label created. Your booking is complete.');
+}
+
+bookLive = async function(index) {
+  if (!state.session || !portal.profile?.tenant_id) throw Error('Sign in to a client workspace before booking.');
+  customerCheckout.index = index;
+  customerCheckout.prepared = null;
+  const generation = ++customerCheckout.generation;
+  try {
+    const context = await api('/api/v1/checkout/context?offer_id=' + encodeURIComponent(state.quotes[index].offer_id), {
+      auth: true
+    });
+    if (generation !== customerCheckout.generation) return;
+    customerCheckout.context = context;
+    $('#review-dialog').classList.add('checkout-wide');
+    $('#review-content').innerHTML = `<div class="checkout-layout"><div><span class="tag green">YOUR SELECTED SERVICE</span><h2>${escapeHTML(carrierDisplay(state.quotes[index].carrier_code))} ${escapeHTML(carrierDisplay(state.quotes[index].service_code))}</h2><p>${escapeHTML(context.origin.country_code)} &rarr; ${escapeHTML(context.destination.country_code)}</p><div id="checkout-price">${feeRows(state.quotes[index])}</div><div id="checkout-booking-error" class="checkout-error" role="alert" hidden></div></div><aside id="checkout-next"><h2>Do you need customs documentation?</h2><p class="subtle">${context.customs_required?'International goods need reviewed customs details before a label can be created. You can prepare an invoice here, or supply the goods details from your existing invoice.':'This route does not require an export customs declaration.'}</p><div class="checkout-choices"><button id="checkout-customs-yes" class="primary">${context.customs_required?'Yes, prepare my customs documents':'Continue without export documents'}</button>${context.customs_required?'<button id="checkout-customs-own" class="secondary">I have my own invoice - enter carrier customs details</button>':''}</div></aside></div>`;
+    $('#checkout-customs-yes').addEventListener('click', () => context.customs_required ? renderCheckoutCustoms() : busy($('#checkout-customs-yes'), () => prepareCustomerCheckout()));
+    $('#checkout-customs-own')?.addEventListener('click', renderCheckoutCustoms);
+  } catch (error) {
+    $('#review-content').insertAdjacentHTML('beforeend', `<div class="checkout-error" role="alert">${escapeHTML(error.message)}</div>`);
+    throw error;
+  }
+};
+
+function resetCustomerCheckout() {
+  customerCheckout.generation++;
+  customerCheckout.index = null;
+  customerCheckout.context = null;
+  customerCheckout.prepared = null;
+  $('#review-dialog').classList.remove('checkout-wide');
+}
+$('#review-dialog').addEventListener('close', resetCustomerCheckout);
+const checkoutClearSessionBase = clearSession;
+clearSession = function() {
+  resetCustomerCheckout();
+  $('#review-dialog').close();
+  checkoutClearSessionBase.apply(this, arguments);
+  for (const prefix of ['origin', 'destination'])
+    for (const field of addressNames) {
+      const input = $('#' + prefix + '-' + field);
+      if (input) input.value = '';
+    }
+  $('#item-description').value = '';
+  $('#hs-results').replaceChildren();
+};
+
+// Standalone HS exploration is permitted; linked declaration editing happens in checkout.
+$('#declaration-form').hidden = true;
+$('#declaration-result').innerHTML = '<div class="notice">Start with a shipping quote and select Book shipping label to prepare a declaration linked to your shipment. Final invoice PDFs are available after the booking is confirmed.</div>';
+$('#declaration-form').closest('.card').querySelector('.subtle').textContent = 'Customs details and invoice references belong to a booking.';
+$('#checkout-customs').hidden = true;
+syncCustomsPanel = function() {
+  $('#checkout-customs').hidden = true;
+};
+
+for (const id of ['item-description', 'decl-reference', 'decl-description', 'decl-hs', 'decl-quantity', 'decl-origin', 'decl-value', 'decl-weight', 'decl-shipping', 'qc-description', 'qc-hs', 'qc-reference', 'qc-value', 'qc-weight', 'qc-quantity']) {
+  const input = $('#' + id);
+  if (!input) continue;
+  input.value = '';
+  if (input.tagName === 'TEXTAREA') input.defaultValue = '';
+  else input.defaultValue = '';
+}
+$('#item-description').placeholder = 'e.g. Knitted cotton T-shirt for adults';
+$('#item-description').addEventListener('input', () => {
+  $('#hs-results').replaceChildren();
+  $('#decl-hs').value = '';
+  $('#qc-hs').value = '';
+  $('#decl-reviewed').checked = false;
+});
+let checkoutManifestInvoiceId = null;
+$('#shipment-doc-json').hidden = true;
+$('#shipment-doc-print').textContent = 'Download commercial invoice PDF';
+$('#manifest-body').addEventListener('click', event => {
+  const button = event.target.closest('[data-manifest-detail]');
+  if (!button) return;
+  const row = manifestRecords().find(item => item.id === button.dataset.manifestDetail);
+  checkoutManifestInvoiceId = row?.id || null;
+  $('#shipment-doc-print').disabled = !state.session || !row?.customs_required || !['BOOKED', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'].includes(row.status);
+});
+$('#shipment-doc-print').addEventListener('click', event => {
+  event.stopImmediatePropagation();
+  if (!checkoutManifestInvoiceId) return;
+  busy($('#shipment-doc-print'), () => downloadPartnerDocument('/api/v1/checkout/' + encodeURIComponent(checkoutManifestInvoiceId) + '/commercial-invoice.pdf'));
+}, true);
 </script>
 </body>
 </html>

@@ -1,0 +1,42 @@
+{
+  "status": "PASS_FOR_EXECUTED_CHECKS",
+  "scope": "Customer-facing Speed Quote review, linked customs checkout, booking completion and confirmed invoice PDF",
+  "changes": [
+    "Label cost includes the EasyInvio margin and carrier charges; no wholesale or markup disclosure",
+    "Fuel is split only when reported; otherwise included in label cost. Protection is Not added, without unsupported tax-exempt claims",
+    "Removed quote-review customs preview and JSON download actions",
+    "Book action opens a responsive customs choice and adjacent editable goods form, then explicit final-price confirmation",
+    "Fixed document-variable shadowing that stopped successful booking download controls from rendering",
+    "Server-owned stable EI invoice reference stored in automation_order and automation_customs, linked to the shipment and final PDF",
+    "Product, HS, value and address fields start empty with placeholders; product edits clear stale HS selections",
+    "Official UK tariff search is integrated in checkout and the standalone HS finder; no mock confidence percentages",
+    "OTHER export category requires a written reason; standard checkout explains recipient-paid duties under DAP",
+    "Actual shipping price is carried separately from customs goods values, including EasyPost-required USD goods values",
+    "Final EasyInvio commercial invoice PDF requires a confirmed label and CAPTURED reservation; tenant isolation enforced",
+    "Sendcloud pending acceptance holds credit; read-only durable polling finalizes once and preserves disabled-provider recovery",
+    "Invalid optional legacy webhook map fails closed rather than taking down the app; .env secrets were not changed"
+  ],
+  "verification": {
+    "python_suite": "284 passed",
+    "browser": "Customer checkout and existing admin/client responsive navigation passed; controlled API responses",
+    "database": "Actual Supabase sandbox rollback-only checkout probe passed; controlled carrier HTTP, zero real carrier purchases",
+    "official_tariff": "Genuine public API search for electric smoothing irons returned HS 851640 among candidates",
+    "pdf": "Sample PDF rendered and visually reviewed; brand, invoice reference, goods, freight, currencies, category and signature visible",
+    "server": "Configured backend running at http://127.0.0.1:8000/ with all four checkout endpoints registered"
+  },
+  "database_updates": "No required migration for checkout. Invoice linkage uses existing shipment metadata. Optional migration 025 adds only the pending-label worker performance index; not applied remotely.",
+  "limits": [
+    "A real external carrier must accept the lane, addresses, service and customs data; the controlled database probe is not a genuine international label-purchase pass",
+    "Tariff results are UK national entries with common six-digit HS prefixes; shipper review and destination requirements remain necessary",
+    "Ambiguous iron box requires clarification; no code is guessed",
+    "DDP and other Incoterms are not enabled in standard checkout without a verified carrier contract; no artificial insurance product or currency conversion is offered",
+    "Commercial invoices require shipper review and signature; carrier-issued CN22/CN23 forms are not replaced by a branded PDF",
+    "TRACKING_WEBHOOK_KEYS is currently malformed JSON. Legacy tracking stays disabled until corrected; native provider webhooks use encrypted database configuration",
+    "Sendcloud official export-reason enum does not include OTHER. Unsupported categories are rejected before purchase; supported reasons are mapped to its native schema."
+  ],
+  "evidence": [
+    "browser_report.json",
+    "database_probe.json",
+    "../dispatch_safety/database_probe.json"
+  ]
+}

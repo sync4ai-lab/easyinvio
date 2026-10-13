@@ -110,6 +110,8 @@ async def quote_sendcloud_v3(client, account, request):
         raise ValueError('Use the canonical Sendcloud v3 endpoint')
     if request.cargo_type != 'PARCEL':
         raise ValueError('Sendcloud parcel adapter does not certify letters or industrial freight')
+    if (request.customs_document or {}).get('category')=='OTHER':
+        raise ValueError('Sendcloud does not support the OTHER customs export reason')
     def address(value):
         result = {'country_code':value.country_code,'postal_code':value.postal_code,
                   'city':value.city,'address_line_1':value.line1}

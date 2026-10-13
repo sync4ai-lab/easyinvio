@@ -11,6 +11,8 @@ async def run():
         page=await browser.new_page(viewport={'width':1366,'height':900})
         page.set_default_timeout(7000)
         page.on('pageerror',lambda e:errors.append(str(e)))
+        await page.route('**/api/v1/checkout/hs-search',lambda route:route.fulfill(json={'candidates':[
+            {'hs_code':'851640','title':'Electric smoothing irons','source':'UK Integrated Online Tariff'}]}))
         await page.goto('http://127.0.0.1:8000',wait_until='domcontentloaded',timeout=30000)
         await page.wait_for_function("state.mode!=='checking'")
         # Explicitly inspect isolated sample renderers; the real unauthenticated UI remains gated.
@@ -108,12 +110,15 @@ async def run():
         nav=await page.locator('.sidebar').inner_text()
         assert 'Client Accounts Node' not in nav and 'Margin Rule Matrix' not in nav
         await page.evaluate("setView('customs')")
+        await page.evaluate("state.session={access_token:'controlled-tariff-browser'}")
+        await page.locator('#item-description').fill('Electric smoothing iron for clothing')
         await page.locator('#harmonize-btn').click()
         await expect(page.locator('[data-use-hs]').first).to_be_visible()
         code=await page.locator('[data-use-hs]').first.get_attribute('data-use-hs')
         await page.locator('[data-use-hs]').first.click()
         assert await page.locator('#qc-hs').input_value()==code
         assert not await page.locator('#qc-reviewed').is_checked()
+        await page.evaluate("state.session=null")
         checks.append('Client hides all admin tabs; HS suggestions inject a draft code and require review.')
         await page.evaluate("setView('manifest')")
         await page.locator('[data-exception-sheet]').click()

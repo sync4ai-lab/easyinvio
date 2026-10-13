@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import logging
 import re
 import time
 import unicodedata
@@ -47,8 +48,21 @@ class TrackingKey(BaseModel):
 
 
 class TrackingSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True, env_ignore_empty=True)
     tracking_webhook_keys: dict[str, TrackingKey] = Field(default_factory=dict)
+
+
+def load_tracking_settings():
+    """An invalid optional legacy key map disables that receiver, never auth."""
+    from pydantic import ValidationError
+    from pydantic_settings.exceptions import SettingsError
+    try:
+        return TrackingSettings()
+    except (SettingsError, ValidationError):
+        logging.getLogger(__name__).warning(
+            'Invalid TRACKING_WEBHOOK_KEYS JSON: legacy tracking receiver disabled; '
+            'configure a valid tenant-bound key map. Native encrypted provider settings remain available.')
+        return TrackingSettings.model_construct(tracking_webhook_keys={})
 
 
 class TrackingEvent(BaseModel):
