@@ -1458,7 +1458,7 @@ class FinanceEngine:
                 return {"shipment_id": str(shipment_id), "zpl": zpl, "simulated": True,
                         "charged": False, "printer_broadcast": False}
 
-    async def create_checkout(self, context: TenantContext, body: TopupRequest, *, return_urls: tuple[str,str] | None = None) -> TopupResponse:
+    async def create_checkout(self, context: TenantContext, body: TopupRequest, *, return_urls: tuple[str,str] | None = None, payment_label: str = 'EasyInvio.com wallet top-up') -> TopupResponse:
         if self.stripe is None:
             raise HTTPException(503, "Stripe integration is disabled")
         async with self.pool.acquire() as connection:
@@ -1514,7 +1514,7 @@ class FinanceEngine:
                              "topup_id": str(body.request_id)},
                 "line_items": [{"quantity": 1, "price_data": {
                     "currency": currency.lower(), "unit_amount": to_minor_units(body.amount, currency),
-                    "product_data": {"name": "EasyInvio.com wallet top-up"},
+                    "product_data": {"name": payment_label},
                 }}],
             }, options={"idempotency_key": f"wallet-topup:{body.request_id}"})
         except stripe.StripeError:
@@ -1834,6 +1834,8 @@ async def lifespan(application: FastAPI):
                               "tracking_events", "support_tickets", "support_message_outbox"):
                     if await connection.fetchval("SELECT to_regclass($1)", f"public.{table}") is None:
                         raise RuntimeError(f"Required migration table is missing: public.{table}")
+                if settings.stripe_enabled and await connection.fetchval("SELECT to_regclass('public.payment_carts')") is None:
+                    raise RuntimeError('Apply migration 030_card_checkout.sql before enabling card checkout')
                 await connection.execute("SELECT is_sandbox FROM public.tenants LIMIT 0")
                 await connection.execute("SELECT is_sandbox,sandbox_test_token,stripe_payment_intent_id FROM public.wallet_topups LIMIT 0")
                 await connection.execute("SELECT stripe_payment_intent_id FROM public.wallet_ledger LIMIT 0")
@@ -1887,6 +1889,8 @@ async def lifespan(application: FastAPI):
                 from backend.payment_gateway import SnapshotWebhookService
                 application.state.payment_snapshots = SnapshotWebhookService(application.state.finance)
                 payment_task = asyncio.create_task(application.state.payment_snapshots.worker()) if settings.stripe_enabled else None
+                from backend.card_checkout import cart_worker
+                card_task=asyncio.create_task(cart_worker(application.state.partner_lifecycle)) if settings.stripe_enabled else None
                 crm_task = None
                 application.state.hubspot = None
                 try:
@@ -1910,6 +1914,10 @@ async def lifespan(application: FastAPI):
                         await partner_task
                     except asyncio.CancelledError:
                         pass
+                    if card_task is not None:
+                        card_task.cancel()
+                        try:await card_task
+                        except asyncio.CancelledError:pass
                     if payment_task is not None:
                         payment_task.cancel()
                         try:
@@ -2371,6 +2379,8 @@ def verify_local_logic() -> None:
 
 from backend.bulk_checkout import build_router as bulk_checkout_router
 app.include_router(bulk_checkout_router(authenticate))
+from backend.card_checkout import build_router as card_checkout_router
+app.include_router(card_checkout_router(authenticate))
 
 
 if __name__ == "__main__":

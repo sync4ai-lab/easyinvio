@@ -1,4 +1,4 @@
-"""Test-mode Checkout gateway over the shared, atomic wallet ledger service."""
+"""Environment-validated Checkout gateway over the shared, atomic wallet ledger service."""
 import asyncio
 import hashlib
 import json
@@ -222,6 +222,7 @@ class CheckoutInput(BaseModel):
     tenant_id: UUID
     topup_amount: Decimal = Field(ge=1, le=10000, decimal_places=2)
     request_id: UUID = Field(default_factory=uuid4)
+    return_origin: str | None = Field(default=None,max_length=200)
 
     @field_validator('topup_amount', mode='before')
     @classmethod
@@ -237,6 +238,50 @@ def checkout_redirect(base: str, outcome: str, topup_id: UUID) -> str:
     return urlunsplit((parts.scheme, parts.netloc, parts.path or '/', urlencode(query), ''))
 
 
+def checkout_return_base(settings,origin,outcome):
+    base=settings.checkout_success_url if outcome=='success' else settings.checkout_cancel_url
+    if not origin:return base
+    if any(ord(c)<32 for c in origin):raise HTTPException(422,'Invalid return origin')
+    parts=urlsplit(origin)
+    if parts.path not in ('','/') or parts.query or parts.fragment or parts.username or parts.password:
+        raise HTTPException(422,'Supply an approved application origin')
+    canonical=parts.scheme+'://'+parts.netloc
+    from main import _frontend_origins
+    approved=set(getattr(settings,'allowed_origins',_frontend_origins))|{urlsplit(u).scheme+'://'+urlsplit(u).netloc for u in (settings.checkout_success_url,settings.checkout_cancel_url)}
+    local_test=not settings.stripe_livemode and parts.scheme=='http' and parts.hostname in {'127.0.0.1','localhost'}
+    if canonical not in approved and not local_test:raise HTTPException(403,'Payment return origin is not approved')
+    if settings.stripe_livemode and parts.scheme!='https':raise HTTPException(403,'Live payment returns require HTTPS')
+    return canonical+(urlsplit(base).path or '/')
+
+async def reconcile_topup(finance,context,topup_id):
+    if context.role not in FINANCE_ROLES:raise HTTPException(403,'Financial permission required')
+    async with finance.pool.acquire() as c:
+        row=await c.fetchrow('SELECT * FROM public.wallet_topups WHERE tenant_id=$1 AND id=$2',context.tenant_id,topup_id)
+    if not row:raise HTTPException(404,'Top-up not found')
+    if row['status']=='CREDITED':return {'status':'CREDITED','already_credited':True}
+    if row['status']!='PENDING' or not row['stripe_session_id'] or row['is_sandbox']:
+        return {'status':row['status'],'verified':False}
+    if not finance.stripe:raise HTTPException(503,'Stripe verification is unavailable')
+    try:
+        session=await finance.stripe.v1.checkout.sessions.retrieve_async(row['stripe_session_id'],{'expand':['payment_intent.latest_charge']})
+        obj=dict(session)
+    except stripe.StripeError:raise HTTPException(503,'Stripe payment verification is temporarily unavailable; do not repeat a completed payment') from None
+    metadata=obj.get('metadata') or {}
+    if (obj.get('id')!=row['stripe_session_id'] or metadata.get('tenant_id')!=str(context.tenant_id)
+        or metadata.get('topup_id')!=str(topup_id) or metadata.get('purpose')!='wallet_topup' or obj.get('customer')!=row['stripe_customer_id']):
+        raise HTTPException(409,'Payment identity requires reconciliation')
+    if obj.get('status')=='expired' and obj.get('payment_status')!='paid':return {'status':'EXPIRED','verified':False,'payment_status':'unpaid'}
+    if obj.get('payment_status')!='paid':return {'status':row['status'],'verified':False,'payment_status':obj.get('payment_status','unknown')}
+    intent=obj.get('payment_intent')
+    charge=intent.get('latest_charge') if isinstance(intent,dict) else None
+    if not isinstance(charge,dict) or intent.get('status')!='succeeded' or charge.get('paid') is not True or charge.get('amount_refunded',0)!=0:
+        raise HTTPException(409,'Payment charge requires reconciliation; no new credit was applied')
+    try:
+        credited=await finance.credit_session('stripe_api:'+obj['id'],obj,snapshot_reconciliation=True)
+    except (ValueError,KeyError,TypeError):raise HTTPException(409,'Payment amount or account identity requires reconciliation') from None
+    return {'status':'CREDITED','credited':credited,'verification_source':'STRIPE_API'}
+
+
 def safe_checkout_url(value: str) -> str:
     try:
         parts = urlsplit(value)
@@ -247,6 +292,14 @@ def safe_checkout_url(value: str) -> str:
     if not valid:
         raise HTTPException(503, 'Unexpected Stripe Checkout destination')
     return value
+
+
+def require_payment_gateway(settings):
+    if not settings.stripe_enabled:raise HTTPException(503,'Stripe integration is disabled')
+    prefix=('sk_live_','rk_live_') if settings.stripe_livemode else ('sk_test_','rk_test_')
+    environment='LIVE' if settings.stripe_livemode else 'SANDBOX'
+    if not settings.stripe_secret_key.get_secret_value().startswith(prefix) or settings.database_environment!=environment:
+        raise HTTPException(403,'Stripe key, payment mode and database environment must match')
 
 
 def require_test_gateway(settings):
@@ -283,7 +336,7 @@ async def ensure_customer(finance, context):
                     options={'idempotency_key':key})
             except stripe.StripeError:
                 raise HTTPException(503, 'Stripe customer creation needs retry or reconciliation') from None
-            if not customer.id or not str(customer.id).startswith('cus_') or customer.livemode is not False:
+            if not customer.id or not str(customer.id).startswith('cus_') or customer.livemode is not finance.settings.stripe_livemode:
                 raise HTTPException(503, 'Invalid Stripe customer response')
             async with c.transaction():
                 tenant = await finance.lock_tenant(c,context.tenant_id,context,FINANCE_ROLES)
@@ -305,19 +358,35 @@ def build_router(authenticate, topup_model, webhook_handler):
         if context.role not in FINANCE_ROLES:
             raise HTTPException(403, 'Financial permission required')
         settings = request.app.state.settings
-        require_test_gateway(settings)
+        require_payment_gateway(settings)
         finance = getattr(request.app.state,'finance',None)
         if finance is None or finance.stripe is None:
             raise HTTPException(503, 'Configured payment backend required')
         try:
             await ensure_customer(finance,context)
             result = await finance.create_checkout(context,topup_model(request_id=body.request_id,amount=body.topup_amount),
-                return_urls=(checkout_redirect(settings.checkout_success_url,'success',body.request_id),
-                             checkout_redirect(settings.checkout_cancel_url,'cancel',body.request_id)))
+                return_urls=(checkout_redirect(checkout_return_base(settings,body.return_origin,'success'),'success',body.request_id),
+                             checkout_redirect(checkout_return_base(settings,body.return_origin,'cancel'),'cancel',body.request_id)))
         except asyncpg.PostgresError:
             raise HTTPException(503, 'Payment database temporarily unavailable') from None
         return {'url':safe_checkout_url(result.checkout_url),'topup_id':str(result.topup_id),
-                'checkout_session_id':result.checkout_session_id,'mode':'TEST'}
+                'checkout_session_id':result.checkout_session_id,'mode':'LIVE' if settings.stripe_livemode else 'TEST'}
+
+    @router.get('/wallet-activity')
+    async def activity(request:Request,context:Any=Depends(authenticate)):
+        if context.role not in FINANCE_ROLES:raise HTTPException(403,'Financial permission required')
+        async with request.app.state.finance.pool.acquire() as c:
+            rows=await c.fetch('''SELECT l.id,l.entry_type,l.balance_delta,l.reserved_delta,l.currency,l.created_at,
+                s.customer_reference FROM public.wallet_ledger l LEFT JOIN public.wallet_reservations r
+                ON r.tenant_id=l.tenant_id AND r.id=l.reservation_id LEFT JOIN public.shipments s
+                ON s.tenant_id=r.tenant_id AND s.id=r.shipment_id WHERE l.tenant_id=$1 ORDER BY l.created_at DESC,l.id DESC LIMIT 100''',context.tenant_id)
+        return {'entries':[{'id':str(r['id']),'entry_type':r['entry_type'],'balance_delta':format(r['balance_delta'],'.2f'),
+            'reserved_delta':format(r['reserved_delta'],'.2f'),'currency':r['currency'],'created_at':r['created_at'].isoformat(),
+            'reference':r['customer_reference']} for r in rows]}
+
+    @router.post('/topups/{topup_id}/reconcile')
+    async def reconcile(topup_id:UUID,request:Request,context:Any=Depends(authenticate)):
+        return await reconcile_topup(request.app.state.finance,context,topup_id)
 
     @router.get('/topups/{topup_id}')
     async def topup_status(topup_id: UUID, request: Request, context: Any = Depends(authenticate)):

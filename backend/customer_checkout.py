@@ -189,7 +189,7 @@ def build_router(authenticate):
         if user.role=='DISPATCHER':raise HTTPException(403,'Financial documents require an owner or accountant role')
         async with request.app.state.partner_lifecycle.pool.acquire() as c:
             row=await c.fetchrow("""SELECT s.customer_reference,s.currency,s.final_client_price,s.tax_amount,s.tracking_number,
-                s.origin_country,s.destination_country,s.booked_at,s.status,t.company_name,t.is_sandbox,t.billing_plan,
+                s.origin_country,s.destination_country,s.booked_at,s.status,s.logistics_metadata->>'payment_cart_id' AS payment_cart_id,t.company_name,t.is_sandbox,t.billing_plan,
                 r.status AS reservation_status FROM public.shipments s JOIN public.tenants t USING(tenant_id)
                 LEFT JOIN public.wallet_reservations r ON r.tenant_id=s.tenant_id AND r.shipment_id=s.id
                 WHERE s.tenant_id=$1 AND s.id=$2""",user.tenant_id,shipment_id)

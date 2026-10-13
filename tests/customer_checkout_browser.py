@@ -95,6 +95,7 @@ async def run():
         await page.screenshot(path=str(output/'customs-checkout.png'),full_page=True)
         await page.locator('#checkout-prepare-btn').click()
         await expect(page.locator('#checkout-purchase')).to_be_visible()
+        await expect(page.locator('#checkout-pay-card')).to_be_visible()
         await expect(page.locator('#checkout-next')).to_contain_text('price changed')
         await expect(page.locator('#checkout-price')).to_contain_text('£64.20')
         assert not any(kind=='purchase' for kind,_ in calls)

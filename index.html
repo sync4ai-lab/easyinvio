@@ -1883,7 +1883,9 @@ async function api(path, {
       clearSession()
     }
     const detail = data.detail;
-    throw Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.message ? detail.message + (detail.reason ? ': ' + detail.reason : '') : detail?.code || `Request failed (${response.status})`)
+    const error = Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.message ? detail.message + (detail.reason ? ': ' + detail.reason : '') : detail?.code || `Request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
   }
   return data
 }
@@ -2279,7 +2281,7 @@ function renderWallet() {
   $('#wallet-balance').textContent = money(decimalCents(available), state.walletCurrency);
   $('#wallet-reserved').textContent = 'Reserved: ' + money(decimalCents(state.reserved), state.walletCurrency);
   $('#wallet-tag').textContent = state.mode === 'local-preview' ? 'PREVIEW FUNDS' : 'CONNECTED WALLET';
-  $('#wallet-history').innerHTML = state.history.length ? state.history.slice().reverse().map(row => `<div class="fee"><span>${escapeHTML(row.label)}</span><b>${row.delta>0n?'+':''}${money(decimalCents(row.delta),state.walletCurrency)}</b></div>`).join('') : '<p class="subtle">No activity in this browser session.</p>'
+  $('#wallet-history').innerHTML = state.history.length ? state.history.slice().reverse().map(row => `<div class="fee"><span>${escapeHTML(row.label)}</span><b>${row.delta>0n?'+':''}${money(decimalCents(row.delta),state.walletCurrency)}</b></div>`).join('') : '<p class="subtle">No wallet transactions recorded.</p>'
 }
 $('#wallet-refresh').addEventListener('click', () => busy($('#wallet-refresh'), async () => {
   if (state.mode !== 'local-preview') {
@@ -5049,7 +5051,7 @@ renderPortal = function() {
 <dialog id="stripePaymentModal" class="bg-slate-950 border border-slate-800 text-slate-100 rounded-2xl" aria-labelledby="stripe-payment-title">
 <button type="button" id="stripe-payment-close" class="close" aria-label="Close payment dialog">&#215;</button>
 <h2 id="stripe-payment-title">Top Up Wallet Credit</h2>
-<p class="subtle">EasyInvio.com ? Stripe hosted card payment ? Test Mode</p>
+<p id="stripe-payment-environment" class="subtle">EasyInvio.com &middot; Secure Stripe card payment</p>
 <p class="text-emerald-400 font-bold" id="stripe-selected-amount" style="margin-top:16px">&#163;100.00</p>
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:18px">
 <button type="button" class="secondary" data-stripe-amount="100.00" aria-pressed="true">+ Add &#163;100</button>
@@ -5100,7 +5102,7 @@ function selectStripeAmount(amount) {
 function openStripePaymentModal() {
   selectStripeAmount(stripePayment.amount);
   $('#stripe-payment-proceed').disabled = !stripeFinancialUser();
-  stripeMessage(stripeFinancialUser() ? 'Stripe Test Mode. Wallet credit appears only after the signed payment webhook.' : 'Sign in with a financial workspace role to use Stripe. Sample credit is separate from card payments.');
+  stripeMessage(stripeFinancialUser() ? 'Wallet credit appears after server verification of your Stripe payment.' : 'Sign in with a financial workspace role to use Stripe. Sample credit is separate from card payments.');
   stripeModal.showModal();
 }
 $('#stripe-topup-open').addEventListener('click', openStripePaymentModal);
@@ -5113,6 +5115,19 @@ async function verifyStripeCredit(topupId, session) {
   try {
     for (let attempt = 0; attempt < 120; attempt++) {
       if (state.session !== session || !stripeFinancialUser()) return;
+      if (attempt % 4 === 0) {
+        const verified = await api('/api/v1/billing/topups/' + encodeURIComponent(topupId) + '/reconcile', {
+          method: 'POST',
+          auth: true
+        });
+        if (verified.status === 'EXPIRED') {
+          stripePayment.requestId = null;
+          stripePayment.topupId = null;
+          sessionStorage.removeItem(stripeStorageKey());
+          stripeMessage('This unpaid checkout expired. Start a new payment; no wallet credit was added.');
+          return;
+        }
+      }
       const result = await api('/api/v1/billing/topups/' + encodeURIComponent(topupId), {
         auth: true
       });
@@ -5124,11 +5139,7 @@ async function verifyStripeCredit(topupId, session) {
         state.wallet = cents(wallet.balance);
         state.reserved = cents(wallet.reserved_balance);
         state.walletCurrency = wallet.currency;
-        if (!state.history.some(row => row.topupId === topupId)) state.history.push({
-          label: 'Verified Stripe top-up',
-          delta: cents(result.amount),
-          topupId
-        });
+        if (typeof refreshBookingWallet === 'function') await refreshBookingWallet();
         renderWallet();
         sessionStorage.removeItem(stripeStorageKey());
         stripePayment.requestId = null;
@@ -5145,7 +5156,7 @@ async function verifyStripeCredit(topupId, session) {
         stripeMessage('Payment was not credited: ' + result.status + '. You can start another checkout.');
         return;
       }
-      stripeMessage('Awaiting the signed Stripe webhook. Your wallet has not been credited yet.');
+      stripeMessage('Verifying payment with Stripe. Your wallet will refresh after payment is confirmed.');
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
     stripeMessage('Payment confirmation is still pending. Refresh the wallet later; do not repeat a completed card payment.');
@@ -5181,12 +5192,14 @@ $('#stripe-payment-proceed').addEventListener('click', async () => {
       body: {
         tenant_id: portal.profile.tenant_id,
         topup_amount: stripePayment.amount,
-        request_id: stripePayment.requestId
+        request_id: stripePayment.requestId,
+        return_origin: location.origin
       }
     });
     if (state.session !== session) throw Error('Workspace session changed. Sign in again.');
     const url = new URL(result.url);
     if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || url.username || url.password || (url.port && url.port !== '443')) throw Error('Unexpected checkout destination.');
+    $('#stripe-payment-environment').textContent = 'Stripe hosted card payment - ' + result.mode + ' Mode';
     stripePayment.topupId = result.topup_id;
     stripePayment.session = session;
     stripePayment.paymentWindow = paymentWindow;
@@ -5217,10 +5230,11 @@ async function resumeStripePayment() {
   try {
     stored = JSON.parse(sessionStorage.getItem(stripeStorageKey()) || 'null');
   } catch {}
+  if (params.has('cart_id')) return;
   const id = params.get('topup_id') || stored?.topupId;
   if (params.has('payment')) {
     if (params.get('payment') === 'cancel') notify('Checkout cancelled. No wallet credit has been confirmed.');
-    else if (params.get('payment') === 'success') notify('Checkout returned. Verifying the signed payment receipt...');
+    else if (params.get('payment') === 'success') notify('Checkout returned. Verifying your payment with Stripe...');
     params.delete('payment');
     params.delete('topup_id');
     history.replaceState(null, '', location.pathname + (params.size ? '?' + params : '') + location.hash);
@@ -5236,6 +5250,7 @@ async function resumeStripePayment() {
   }
 }
 window.addEventListener('focus', () => void resumeStripePayment());
+window.addEventListener('easyinvio-session-ready', () => void resumeStripePayment());
 const paymentRefreshPortal = refreshPortal;
 refreshPortal = async function(...args) {
   const result = await paymentRefreshPortal(...args);
@@ -5324,6 +5339,7 @@ async function process_user_login(email = $('#identity-email').value, password =
     renderAccount();
     renderPortal();
     setView(portal.profile.workspace_role === 'DISPATCHER' && portal.profile.portal_role !== 'SUPER_ADMIN' ? 'workspace' : 'dashboard');
+    window.dispatchEvent(new Event('easyinvio-session-ready'));
     $('#account-dialog').close();
     $('#identity-login-status').textContent = '';
   } catch (error) {
@@ -5415,8 +5431,15 @@ async function restoreIdentitySession() {
     renderAccount();
     renderPortal();
     setView(portal.profile.workspace_role === 'DISPATCHER' && portal.profile.portal_role !== 'SUPER_ADMIN' ? 'workspace' : 'dashboard');
-  } catch {
-    clearSession();
+    window.dispatchEvent(new Event('easyinvio-session-ready'));
+  } catch (error) {
+    if (!state.session) return;
+    if (error.status === 403) {
+      clearSession();
+      return;
+    }
+    showIdentityGate();
+    $('#identity-login-status').textContent = 'Unable to restore the workspace right now. Your saved session is retained. Reload to retry.';
   }
 }
 // Recovery links carry a one-use token hash in the fragment, never an app JWT.
@@ -6100,6 +6123,14 @@ function renderBulkOutcome(result) {
       label: 'Booking receipt PDF',
       url: '/api/v1/checkout/' + row.shipment_id + '/receipt.pdf'
     });
+    if (row.customs?.required) docs.push({
+      label: 'Commercial invoice PDF',
+      url: '/api/v1/checkout/' + row.shipment_id + '/commercial-invoice.pdf'
+    });
+    for (const form of row.label?.carrier_forms || []) docs.push({
+      label: form.document_type,
+      url: form.url
+    });
     for (const doc of docs) {
       const b = document.createElement('button');
       b.className = 'secondary';
@@ -6209,7 +6240,8 @@ setInterval(async () => {
   try {
     await refreshManifestRecords();
   } catch {
-    /* Keep the last confirmed view during a transient network failure. */ } finally {
+    /* Keep the last confirmed view during a transient network failure. */
+  } finally {
     manifestAutoRefreshing = false;
   }
 }, 15000);
@@ -6218,6 +6250,228 @@ document.addEventListener('click', event => {
   const button = event.target.closest('[data-bulk-order]');
   if (button) busy(button, () => openBulkCheckout([button.dataset.bulkOrder]));
 });
+</script>
+<script>
+// Card-funded label carts. Card details are entered exclusively at Stripe.
+const labelCardPayment = {
+  cartId: null,
+  polling: false,
+  requestKey: null,
+  requestId: null,
+  generation: 0
+};
+
+function labelCardStorageKey() {
+  return 'easyinvio.label-cart.' + (portal.profile?.tenant_id || 'unsigned');
+}
+async function refreshBookingWallet() {
+  if (!state.session || !['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal.profile?.workspace_role)) return;
+  const session = state.session;
+  const wallet = await api('/api/v1/wallet', {
+    auth: true
+  });
+  if (state.session !== session) return;
+  state.wallet = cents(wallet.balance);
+  state.reserved = cents(wallet.reserved_balance);
+  state.walletCurrency = wallet.currency;
+  try {
+    const activity = await api('/api/v1/billing/wallet-activity', {
+      auth: true
+    });
+    if (state.session !== session) return;
+    state.history = (activity.entries || []).slice().reverse().map(row => ({
+      label: (({
+        TOPUP: 'Verified card credit',
+        RESERVE: 'Credit reserved',
+        CAPTURE: 'Label purchased',
+        RELEASE: 'Reservation released',
+        SHIPMENT_REFUND: 'Carrier refund',
+        REFUND_DEBIT: 'Card refund'
+      })[row.entry_type] || row.entry_type.replaceAll('_', ' ')) + ' ' + (row.reference || '') + ' ' + new Date(row.created_at).toLocaleString(),
+      delta: cents(row.balance_delta)
+    }));
+  } catch {
+    if (state.session !== session) return;
+    notify('Balance updated; transaction history is temporarily unavailable.', true);
+  }
+  renderWallet();
+}
+async function startLabelCardPayment(offers) {
+  if (!state.session || !['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) throw Error('Workspace owner or administrator permission required for card checkout.');
+  const paymentWindow = window.open('about:blank', '_blank', 'popup,width=520,height=760');
+  if (paymentWindow) {
+    paymentWindow.opener = null;
+    paymentWindow.document.body.textContent = 'Preparing secure card checkout...';
+  }
+  try {
+    const key = JSON.stringify(offers);
+    if (labelCardPayment.requestKey !== key) {
+      labelCardPayment.requestKey = key;
+      labelCardPayment.requestId = crypto.randomUUID();
+    }
+    const session = state.session;
+    const result = await api('/api/v1/billing/carts', {
+      method: 'POST',
+      auth: true,
+      body: {
+        offers,
+        request_id: labelCardPayment.requestId,
+        return_origin: location.origin
+      }
+    });
+    if (state.session !== session) throw Error('Session changed.');
+    const url = new URL(result.url);
+    if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || url.username || url.password) throw Error('Unexpected payment destination.');
+    labelCardPayment.cartId = result.cart_id;
+    localStorage.setItem(labelCardStorageKey(), JSON.stringify({
+      cartId: result.cart_id
+    }));
+    $('#bulk-checkout-body').innerHTML = `<h3>Pay selected labels by card</h3><p class="subtle">${escapeHTML(result.mode||'TEST')} payment mode</p><p>Selected total: ${escapeHTML(money(result.amount,result.currency))}</p><p class="notice">${escapeHTML(result.notice)}</p><a class="primary" href="${escapeHTML(url.href)}" target="_blank" rel="noopener noreferrer">Open secure Stripe payment</a><p id="label-card-status" role="status">Awaiting your card payment.</p>`;
+    $('#bulk-checkout-dialog').showModal();
+    if (paymentWindow) paymentWindow.location.replace(url.href);
+    void verifyLabelCardPayment(result.cart_id, session);
+  } catch (error) {
+    paymentWindow?.close();
+    throw error;
+  }
+}
+async function verifyLabelCardPayment(id, session) {
+  if (labelCardPayment.polling) return;
+  labelCardPayment.polling = true;
+  const generation = labelCardPayment.generation;
+  try {
+    for (let attempt = 0; attempt < 120; attempt++) {
+      if (state.session !== session || generation !== labelCardPayment.generation) return;
+      const result = await api('/api/v1/billing/carts/' + id + '/complete', {
+        method: 'POST',
+        auth: true
+      });
+      if (state.session !== session || generation !== labelCardPayment.generation) return;
+      if (['COMPLETED', 'REVIEW_REQUIRED'].includes(result.status)) {
+        localStorage.removeItem(labelCardStorageKey());
+        labelCardPayment.cartId = null;
+        labelCardPayment.requestId = null;
+        labelCardPayment.requestKey = null;
+        $('#review-dialog').close();
+        renderBulkOutcome(result.outcome);
+        $('#bulk-checkout-dialog').showModal();
+        await refreshBookingWallet();
+        await refreshManifestRecords();
+        return;
+      }
+      if ($('#label-card-status')) $('#label-card-status').textContent = result.status === 'BOOKING' ? 'Payment verified. Carrier label preparation is in progress; do not pay again.' : 'Checking your payment with Stripe...';
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    notify('Card confirmation is still pending. Refresh the manifest; do not repeat a completed payment.', true);
+  } catch (error) {
+    notify(error.message, true);
+    if ($('#label-card-status')) $('#label-card-status').textContent = error.message;
+  } finally {
+    if (generation === labelCardPayment.generation) labelCardPayment.polling = false;
+  }
+}
+async function resumeLabelCardPayment() {
+  if (!state.session || !['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) return;
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem(labelCardStorageKey()) || 'null');
+  } catch {}
+  const params = new URLSearchParams(location.search),
+    id = params.get('cart_id') || saved?.cartId;
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
+  params.delete('cart_id');
+  params.delete('topup_id');
+  params.delete('payment');
+  history.replaceState(null, '', location.pathname + (params.size ? '?' + params : '') + location.hash);
+  labelCardPayment.cartId = id;
+  void verifyLabelCardPayment(id, state.session);
+}
+const cardPrepareBase = prepareCustomerCheckout;
+prepareCustomerCheckout = async function(...args) {
+  const result = await cardPrepareBase(...args);
+  const prepared = customerCheckout.prepared;
+  if (!prepared || !$('#checkout-purchase')) return result;
+  $('#checkout-purchase').textContent = 'Pay from wallet & create label';
+  if (['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) {
+    const b = document.createElement('button');
+    b.id = 'checkout-pay-card';
+    b.className = 'secondary full';
+    b.textContent = 'Pay by card with Stripe';
+    b.addEventListener('click', () => busy(b, () => startLabelCardPayment([{
+      shipment_id: prepared.shipment_id,
+      offer_id: prepared.offer.offer_id,
+      expected_price: prepared.offer.client_price_ex_tax,
+      currency: prepared.offer.currency
+    }])));
+    $('#checkout-purchase').after(b);
+  }
+  return result;
+};
+const cardBulkRenderBase = renderBulkCheckout;
+renderBulkCheckout = function() {
+  cardBulkRenderBase();
+  $('#bulk-checkout-buy').textContent = 'Pay from wallet & create selected labels';
+  if (['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) {
+    const b = document.createElement('button');
+    b.id = 'bulk-pay-card';
+    b.className = 'secondary full';
+    b.textContent = 'Pay selected labels by card with Stripe';
+    b.addEventListener('click', () => busy(b, () => {
+      const offers = bulkOffers().map(({
+        row,
+        rate
+      }) => ({
+        shipment_id: row.shipment_id,
+        offer_id: rate.offer_id,
+        expected_price: rate.client_price_ex_tax,
+        currency: rate.currency
+      }));
+      if (!offers.length) throw Error('Select an available service first.');
+      return startLabelCardPayment(offers);
+    }));
+    $('#bulk-checkout-buy').after(b);
+  }
+};
+const cardBookingBase = showCustomerBooking;
+showCustomerBooking = function(...args) {
+  cardBookingBase(...args);
+  void refreshBookingWallet().catch(() => notify('Booking recorded. Refresh Wallet to see its latest balance.', true));
+};
+const cardBulkOutcomeBase = renderBulkOutcome;
+renderBulkOutcome = function(...args) {
+  cardBulkOutcomeBase(...args);
+  void refreshBookingWallet().catch(() => notify('Booking result recorded. Refresh Wallet for the latest balance.', true));
+};
+window.addEventListener('focus', () => void resumeLabelCardPayment());
+window.addEventListener('easyinvio-session-ready', () => void resumeLabelCardPayment());
+const cardClearBase = clearSession;
+clearSession = function() {
+  labelCardPayment.cartId = null;
+  labelCardPayment.polling = false;
+  labelCardPayment.generation++;
+  labelCardPayment.requestId = null;
+  labelCardPayment.requestKey = null;
+  return cardClearBase.apply(this, arguments);
+};
+void resumeLabelCardPayment();
+
+$('#wallet-refresh').addEventListener('click', event => {
+  if (!state.session) return;
+  event.stopImmediatePropagation();
+  busy($('#wallet-refresh'), refreshBookingWallet);
+}, true);
+const paymentSetViewBase = setView;
+setView = function(view) {
+  const result = paymentSetViewBase.apply(this, arguments);
+  if (view === 'wallet' && state.session) void refreshBookingWallet().catch(error => notify(error.message, true));
+  return result;
+};
+
+const cardCheckoutErrorBase = checkoutError;
+checkoutError = function(...args) {
+  cardCheckoutErrorBase(...args);
+  void refreshBookingWallet().catch(() => {});
+};
 </script>
 </body>
 </html>

@@ -1392,6 +1392,7 @@ class PartnerLifecycleService:
     def __init__(self, automation, client):
         self.automation, self.client = automation, client
         self.pool, self.finance = automation.pool, automation.finance
+        self.card_limiter=asyncio.Semaphore(1)
 
     def environment(self, tenant):
         settings = self.automation.settings
@@ -1451,7 +1452,6 @@ class PartnerLifecycleService:
 
     async def confirm(self, context, body):
         authorize(context, body.tenant_id)
-        from main import ClientRate, BookingPermit
         async with self.pool.acquire() as connection:
             prepared = await connection.fetchval('SELECT EXISTS(SELECT 1 FROM public.partner_shipping_offers WHERE tenant_id=$1 AND offer_id=$2)', context.tenant_id, body.offer_id)
         if not prepared:
@@ -1459,6 +1459,12 @@ class PartnerLifecycleService:
                 await self.bind_direct_quote(context, body.offer_id)
             except (ValueError, KeyError, TypeError):
                 raise HTTPException(422, 'This quote needs complete packing and customs review before booking') from None
+        limiter=getattr(self.automation,'order_limiter',None) or asyncio.Semaphore(1)
+        async with limiter:
+            return await self._confirm(context,body)
+
+    async def _confirm(self,context,body):
+        from main import ClientRate, BookingPermit
         async with self.pool.acquire() as lock:
             offer = await lock.fetchrow('''SELECT o.shipment_id,o.rate_snapshot,o.expires_at,s.idempotency_key
                 FROM public.partner_shipping_offers o JOIN public.shipments s

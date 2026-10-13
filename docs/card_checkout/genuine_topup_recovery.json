@@ -1,0 +1,7 @@
+{
+  "scope": "Existing TEST Checkout sessions retrieved from Stripe; no new payments",
+  "provider_verified_paid_sessions_recovered": 3,
+  "unpaid_sessions_not_credited": 1,
+  "verification_source": "STRIPE_API",
+  "customer_identifiers_and_amounts_omitted": true
+}

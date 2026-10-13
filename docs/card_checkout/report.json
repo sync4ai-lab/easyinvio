@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "unit_contract_tests": 328,
+  "browser_checks": [
+    "Top-up popup, pending/credited balance and responsive layouts",
+    "Single booking exposes wallet/card options",
+    "Bulk booking exposes wallet/card options",
+    "Return preserves authenticated session; transient profile errors retain saved login",
+    "Stored ledger activity and balance refresh after booking"
+  ],
+  "database": "Actual SANDBOX tables with controlled Stripe and carrier responses; all fixture writes rolled back",
+  "booking_checks": [
+    "Wallet reservation then one capture on confirmed label",
+    "Card-funded booking works from zero starting wallet credit",
+    "Unpaid and expired checkouts never credit",
+    "Wrong customer, wrong amount and refunded charge never credit",
+    "Paid expired quote buys nothing and retains unused funds",
+    "Paid card and wallet replays never buy or debit twice; replay remains safe after tracking advances"
+  ],
+  "genuine_evidence": "Three existing paid, unrefunded Stripe TEST sessions recovered and each ledger credit confirmed exactly once; one unpaid session left uncredited. Identifiers and amounts excluded from evidence files.",
+  "production_modes": "TEST configuration retained. LIVE requires matching keys, LIVE database/tenant/carrier environment and approved HTTPS return origins. No LIVE payments or purchases were executed.",
+  "migration": "030 applied twice in configured SANDBOX; private browser access denied",
+  "runtime": "App HTTP 200; payment routes loaded; unauthenticated financial access rejected",
+  "no_new_real_card_charges_or_messages": true
+}

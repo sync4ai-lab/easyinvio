@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "boundary": "controlled browser API; no real payments",
+  "checks": [
+    "Wallet and Stripe card buttons visible for owner",
+    "Exact selected amount and current return origin sent",
+    "Payment return restores authenticated session and completes label basket",
+    "Card-funded label keeps previous wallet balance",
+    "Transient profile failure retains saved session for retry"
+  ],
+  "javascript_errors": []
+}

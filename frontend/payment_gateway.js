@@ -18,7 +18,7 @@ function selectStripeAmount(amount) {
 function openStripePaymentModal() {
   selectStripeAmount(stripePayment.amount);
   $('#stripe-payment-proceed').disabled = !stripeFinancialUser();
-  stripeMessage(stripeFinancialUser() ? 'Stripe Test Mode. Wallet credit appears only after the signed payment webhook.' : 'Sign in with a financial workspace role to use Stripe. Sample credit is separate from card payments.');
+  stripeMessage(stripeFinancialUser() ? 'Wallet credit appears after server verification of your Stripe payment.' : 'Sign in with a financial workspace role to use Stripe. Sample credit is separate from card payments.');
   stripeModal.showModal();
 }
 $('#stripe-topup-open').addEventListener('click',openStripePaymentModal);
@@ -31,12 +31,13 @@ async function verifyStripeCredit(topupId, session) {
   try {
     for (let attempt=0; attempt<120; attempt++) {
       if (state.session !== session || !stripeFinancialUser()) return;
+      if(attempt%4===0){const verified=await api('/api/v1/billing/topups/'+encodeURIComponent(topupId)+'/reconcile',{method:'POST',auth:true});if(verified.status==='EXPIRED'){stripePayment.requestId=null;stripePayment.topupId=null;sessionStorage.removeItem(stripeStorageKey());stripeMessage('This unpaid checkout expired. Start a new payment; no wallet credit was added.');return;}}
       const result = await api('/api/v1/billing/topups/' + encodeURIComponent(topupId), {auth:true});
       if (result.status === 'CREDITED') {
         const wallet = await api('/api/v1/wallet',{auth:true});
         if (state.session !== session) return;
         state.wallet=cents(wallet.balance);state.reserved=cents(wallet.reserved_balance);state.walletCurrency=wallet.currency;
-        if (!state.history.some(row=>row.topupId===topupId)) state.history.push({label:'Verified Stripe top-up',delta:cents(result.amount),topupId});
+        if(typeof refreshBookingWallet==='function')await refreshBookingWallet();
         renderWallet();sessionStorage.removeItem(stripeStorageKey());
         stripePayment.requestId=null;stripePayment.topupId=null;
         try { stripePayment.paymentWindow?.close(); } catch {}
@@ -48,7 +49,7 @@ async function verifyStripeCredit(topupId, session) {
       if (['FAILED','CANCELLED','EXPIRED'].includes(result.status)) {
         stripeMessage('Payment was not credited: '+result.status+'. You can start another checkout.');return;
       }
-      stripeMessage('Awaiting the signed Stripe webhook. Your wallet has not been credited yet.');
+      stripeMessage('Verifying payment with Stripe. Your wallet will refresh after payment is confirmed.');
       await new Promise(resolve=>setTimeout(resolve,3000));
     }
     stripeMessage('Payment confirmation is still pending. Refresh the wallet later; do not repeat a completed card payment.');
@@ -68,10 +69,11 @@ $('#stripe-payment-proceed').addEventListener('click',async()=>{
   try {
     stripePayment.requestId ||= crypto.randomUUID();
     const result=await api('/api/v1/billing/create-checkout',{method:'POST',auth:true,body:{
-      tenant_id:portal.profile.tenant_id,topup_amount:stripePayment.amount,request_id:stripePayment.requestId}});
+      tenant_id:portal.profile.tenant_id,topup_amount:stripePayment.amount,request_id:stripePayment.requestId,return_origin:location.origin}});
     if (state.session !== session) throw Error('Workspace session changed. Sign in again.');
     const url=new URL(result.url);
     if (url.protocol!=='https:' || url.hostname!=='checkout.stripe.com' || url.username || url.password || (url.port && url.port!=='443')) throw Error('Unexpected checkout destination.');
+    $('#stripe-payment-environment').textContent='Stripe hosted card payment - '+result.mode+' Mode';
     stripePayment.topupId=result.topup_id;stripePayment.session=session;
     stripePayment.paymentWindow=paymentWindow;
     sessionStorage.setItem(stripeStorageKey(),JSON.stringify({topupId:result.topup_id,requestId:stripePayment.requestId,amount:stripePayment.amount}));
@@ -89,10 +91,11 @@ async function resumeStripePayment() {
   const params=new URLSearchParams(location.search);
   let stored=null;
   try {stored=JSON.parse(sessionStorage.getItem(stripeStorageKey()) || 'null');} catch {}
+  if(params.has('cart_id'))return;
   const id=params.get('topup_id') || stored?.topupId;
   if (params.has('payment')) {
     if (params.get('payment')==='cancel') notify('Checkout cancelled. No wallet credit has been confirmed.');
-    else if (params.get('payment')==='success') notify('Checkout returned. Verifying the signed payment receipt...');
+    else if (params.get('payment')==='success') notify('Checkout returned. Verifying your payment with Stripe...');
     params.delete('payment');params.delete('topup_id');
     history.replaceState(null,'',location.pathname+(params.size?'?'+params:'')+location.hash);
     setView('wallet');
@@ -104,6 +107,7 @@ async function resumeStripePayment() {
   }
 }
 window.addEventListener('focus',()=>void resumeStripePayment());
+window.addEventListener('easyinvio-session-ready',()=>void resumeStripePayment());
 const paymentRefreshPortal=refreshPortal;
 refreshPortal=async function(...args) {const result=await paymentRefreshPortal(...args);await resumeStripePayment();return result;};
 void resumeStripePayment();

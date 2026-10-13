@@ -32,6 +32,7 @@ async def run():
                 if r.request.url.endswith('/api/v1/billing/create-checkout'):
                     calls.append(r.request.post_data_json)
                     return await r.fulfill(json={'url':'https://checkout.stripe.com/c/pay/cs_test_browser','topup_id':topup_id,'mode':'TEST'})
+                if r.request.url.endswith('/reconcile'):return await r.fulfill(json={'status':'PENDING'})
                 if '/api/v1/billing/topups/' in r.request.url:
                     status_reads+=1
                     return await r.fulfill(json={'status':'PENDING' if status_reads==1 else 'CREDITED','amount':'250.00','currency':'GBP'})
@@ -40,7 +41,7 @@ async def run():
                 await r.continue_()
             await page.route('**/api/v1/**',route)
             await page.goto('http://127.0.0.1:8007',wait_until='domcontentloaded');await page.wait_for_function("state.mode!=='checking'")
-            await page.locator('#role-client').click();await page.evaluate("setView('wallet')")
+            await page.evaluate("document.body.classList.remove('auth-locked');$('#loginContainer').hidden=true");await page.locator('#role-client').click();await page.evaluate("setView('wallet')")
             await page.locator('#stripe-topup-open').click()
             await expect(page.locator('#stripe-payment-proceed')).to_be_disabled()
             await page.locator('#stripe-payment-close').click()
@@ -52,7 +53,7 @@ async def run():
             }''',tenant_id)
             await page.locator('#stripe-topup-open').click();await page.locator('[data-stripe-amount="250.00"]').click()
             await page.locator('#stripe-payment-proceed').click()
-            await expect(page.locator('#stripe-payment-status')).to_contain_text('Awaiting the signed Stripe webhook')
+            await expect(page.locator('#stripe-payment-status')).to_contain_text('Verifying payment with Stripe')
             await expect(page.locator('#wallet-balance')).to_contain_text('100.00')
             await expect(page.locator('#stripe-payment-status')).to_contain_text('Payment verified',timeout=10000)
             await expect(page.locator('#wallet-balance')).to_contain_text('350.00')

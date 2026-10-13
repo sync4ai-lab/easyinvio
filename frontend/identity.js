@@ -63,7 +63,7 @@ async function process_user_login(email = $('#identity-email').value, password =
     portal.role = portal.profile.portal_role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLIENT';
     await loadIdentityProfile();
     localStorage.setItem(identityStorageKey, JSON.stringify(session));
-    armSessionExpiry();renderAccount();renderPortal();setView(portal.profile.workspace_role === 'DISPATCHER' && portal.profile.portal_role !== 'SUPER_ADMIN' ? 'workspace' : 'dashboard');
+    armSessionExpiry();renderAccount();renderPortal();setView(portal.profile.workspace_role === 'DISPATCHER' && portal.profile.portal_role !== 'SUPER_ADMIN' ? 'workspace' : 'dashboard');window.dispatchEvent(new Event('easyinvio-session-ready'));
     $('#account-dialog').close();
     $('#identity-login-status').textContent = '';
   } catch(error) {
@@ -113,7 +113,8 @@ async function restoreIdentitySession() {
     portal.role=portal.profile.portal_role==='SUPER_ADMIN'?'SUPER_ADMIN':'CLIENT';
     await loadIdentityProfile();armSessionExpiry();renderAccount();renderPortal();
     setView(portal.profile.workspace_role==='DISPATCHER' && portal.profile.portal_role!=='SUPER_ADMIN'?'workspace':'dashboard');
-  } catch {clearSession();}
+    window.dispatchEvent(new Event('easyinvio-session-ready'));
+  } catch(error) {if(!state.session)return;if(error.status===403){clearSession();return;}showIdentityGate();$('#identity-login-status').textContent='Unable to restore the workspace right now. Your saved session is retained. Reload to retry.';}
 }
 // Recovery links carry a one-use token hash in the fragment, never an app JWT.
 // Remove it before rendering or restoring any saved workspace session.

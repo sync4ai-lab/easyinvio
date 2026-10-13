@@ -60,7 +60,7 @@ async def review_orders(service,context,ids):
                 'Complete packing/customs and fetch fresh rates. Uploading an order does not purchase a label.'})
     return public_payload({'orders':result},financial=context.role!='DISPATCHER')
 
-async def checkout_orders(service,context,selection):
+async def validate_checkout(service,context,selection,*,check_wallet=True):
     rows=await order_rows(service,context,[x.shipment_id for x in selection.offers])
     async with service.pool.acquire() as c:
         offers=await c.fetch('SELECT * FROM public.partner_shipping_offers WHERE tenant_id=$1 AND offer_id=ANY($2::uuid[])',context.tenant_id,[x.offer_id for x in selection.offers])
@@ -72,7 +72,7 @@ async def checkout_orders(service,context,selection):
         if Decimal(rate['client_price_ex_tax'])!=selected.expected_price or rate['currency']!=selected.currency:
             raise HTTPException(409,'A selected price changed. Review rates again; no labels were purchased.')
         snapshot=decoded(row['pricing_snapshot']).get('selected_rate',{})
-        already_submitted=row['status'] in {'BOOKED','BOOKING','IN_TRANSIT','DELIVERED','EXCEPTION'}
+        already_submitted=row['status'] in {'BOOKED','BOOKING','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}
         if already_submitted:
             if snapshot.get('offer_id')!=str(selected.offer_id):raise HTTPException(409,'This order already has another booking in progress or confirmed')
         else:
@@ -88,13 +88,23 @@ async def checkout_orders(service,context,selection):
         if tenant['billing_plan']=='PREPAID_WALLET' and total:
             wallet=await c.fetchrow('SELECT balance,reserved_balance,currency FROM public.wallets WHERE tenant_id=$1',context.tenant_id)
             if not wallet or currencies!={wallet['currency']}:raise HTTPException(409,'Select rates in the wallet currency')
-            if wallet['balance']-wallet['reserved_balance']<total:raise HTTPException(402,'Insufficient available wallet funds for the selected total; no labels were purchased')
+            if check_wallet and wallet['balance']-wallet['reserved_balance']<total:raise HTTPException(402,'Insufficient available wallet funds for the selected total; no labels were purchased')
+    return rows,total,currencies
+
+async def checkout_orders(service,context,selection):
+    rows,_,_=await validate_checkout(service,context,selection)
     # Each native confirmation retains the existing transaction locks, reservation,
     # idempotency and uncertain-outcome protections. External purchases are not atomic.
     limiter=asyncio.Semaphore(3)
     async def buy(selected,row):
         async with limiter:
             try:
+                if row.get('booked_at') and row['status'] in {'BOOKED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}:
+                    async with service.pool.acquire() as c:
+                        captured=await c.fetchval("SELECT status='CAPTURED' FROM public.wallet_reservations WHERE tenant_id=$1 AND shipment_id=$2",context.tenant_id,selected.shipment_id)
+                    metadata=decoded(row['logistics_metadata']);label=metadata.get('automation_label')
+                    if captured and label:
+                        return {'reference':row['customer_reference'],**service.public_result(row['id'],label,metadata.get('automation_customs'),replayed=True)}
                 result=await service.confirm(context,BookingRequest(tenant_id=context.tenant_id,offer_id=selected.offer_id))
                 return {'reference':row['customer_reference'],**result}
             except HTTPException as exc:

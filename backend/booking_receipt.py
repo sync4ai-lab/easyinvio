@@ -14,6 +14,7 @@ def receipt_pdf(row):
     if row.get('is_sandbox'):story.extend([text('SANDBOX / TEST BOOKING'),Spacer(1,10)])
     row=dict(row)
     if hasattr(row['booked_at'],'strftime'):row['booked_at']=row['booked_at'].strftime('%d %b %Y, %H:%M UTC')
+    if row.get('payment_cart_id'):row['billing_plan']='Card payment through Stripe'
     row['billing_plan']={'PREPAID_WALLET':'Prepaid wallet','POSTPAID_30_DAY':'Postpaid - 30 days'}.get(row['billing_plan'],row['billing_plan'])
     for label,key in [('Booking / invoice reference','customer_reference'),('Client','company_name'),('Tracking number','tracking_number'),('Booked at (UTC)','booked_at'),('Billing plan','billing_plan')]:
         story.append(text(label+': '+str(row[key])))
