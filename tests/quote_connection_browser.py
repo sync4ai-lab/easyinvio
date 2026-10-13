@@ -13,7 +13,7 @@ async def run():
    document.body.classList.remove('auth-locked');document.querySelector('#loginContainer').hidden=true;
    portal.role='CLIENT';portal.profile={portal_role:'CLIENT',workspace_role:'OWNER'};renderPortal();setView('dispatch');
    state.session={access_token:'controlled-no-network-token'};state.quotes=[{carrier_code:'STALE'}];state.lastRateResult={rates:state.quotes};
-   quotePayload=()=>({origin:{city:'Leeds',country_code:'GB'},destination:{city:'Paris',country_code:'IT'}});api=async()=>{const error=Error('Carrier quotes were returned in GBP, but none matched EUR.');error.status=503;throw error;};
+   quotePayload=()=>({origin:{city:'Leeds',country_code:'GB'},destination:{city:'Paris',country_code:'IT'},weights_kg:['10'],dimensions:[{length_cm:'40',width_cm:'30',height_cm:'20'}]});api=async(path)=>{if(path.endsWith('package-check'))return {blocking:false,messages:[],measurement_help:'Measure the packed shipment'};const error=Error('Carrier quotes were returned in GBP, but none matched EUR.');error.status=503;throw error;};
    document.querySelector('#quote-form').dispatchEvent(new Event('submit',{cancelable:true}));
   }""")
   await page.wait_for_function("document.querySelector('#rates-badge').textContent==='NO QUOTE AVAILABLE'")

@@ -2021,6 +2021,7 @@ async def branded_carrier_transport(request: Request, call_next):
 @app.middleware("http")
 async def preview_guard(request: Request, call_next):
     public_tools = {"/api/v1/config", "/api/v1/customs/harmonize", "/api/v1/customs/declaration",
+                    "/api/v1/logistics/package-guidance",
                     "/api/v1/logistics/weight", "/api/v1/logistics/cargo-weight", "/api/v1/rates/sample", "/api/v1/routing/sample", "/api/v1/rates/preview", "/api/v1/routing/preview",
                     "/api/v1/shipments/batch-preview", "/api/v1/shipments/batch-template",
                     "/api/v1/shipments/batch-review-preview", "/api/v1/audit/preview"}
@@ -2344,6 +2345,8 @@ from backend.ai_engine import build_router as ai_router
 from backend.advanced_logistics import build_router as logistics_router
 app.include_router(ai_router(authenticate))
 app.include_router(logistics_router(authenticate, RatingRequest))
+from backend.package_guidance import build_router as package_guidance_router
+app.include_router(package_guidance_router(authenticate))
 app.include_router(admin_router)
 from backend.admin_management import router as admin_management_router
 app.include_router(admin_management_router)

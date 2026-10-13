@@ -47,6 +47,7 @@ async function run(root) {
     if(path==='/health')data={mode:'local-preview'};
     else if(path==='/api/v1/config')data={supabase_url:null,publishable_key:null};
     else if(path==='/api/v1/logistics/weight')data={actual_weight_kg:'2.500',volumetric_weight_kg:'4.800',billable_weight_kg:'4.800',basis:'volumetric'};
+    else if(path==='/api/v1/logistics/package-guidance')data={blocking:false,messages:[],measurement_help:'Measure the sealed package'};
     else if(path==='/api/v1/rates/preview')data={simulated:true,currency:'GBP',rates:[{simulated:true,provider:'EASYPOST',carrier_code:'DHL',service_code:'Express',currency:'GBP',delivery_days:2,client_price_ex_tax:'23.00',fee_breakdown:{source:'simulation',base_cost:'16.00',fuel_surcharge:'1.92',residential_fee:'1.50',remote_area_fee:'0.00',wholesale_total:'19.42',platform_markup:'3.58'}}],issues:[],partial:false};
     else if(path==='/api/v1/customs/harmonize')data={candidates:[{hs_code:'640411',confidence:'0.70',title:'Textile trainers',matched_terms:['silk'],assumptions:'Review upper and sole'}]};
     else throw Error('Unexpected request '+path);

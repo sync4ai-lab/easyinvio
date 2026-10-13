@@ -1,0 +1,30 @@
+Package guidance ? 13 October 2026
+
+Customers now receive a package check before the Speed Quote Matrix sends live rate requests.
+The review dialog explains a verified service-specific restriction and offers Edit package
+ details, Check other carriers (warnings only), and an email support action. Guidance never
+changes weights or dimensions, changes parcel type, splits a shipment, or purchases a label.
+
+Reference coverage: DPD UK-origin international parcel, excluding British Isles destinations.
+Published limits: packed weight <=31 kg, longest side <175 cm, combined length/girth <300 cm.
+Source checked on 13 October 2026: https://myportal.drivers.dpd.co.uk/terms
+These are service reference limits, not proof that DPD is connected or that all carriers reject
+an item. Other origins, destination-specific exceptions, customs/prohibited goods, postcodes,
+account contracts and currency eligibility require live provider checks. Additional verified
+service rules can be added to PARCEL_RULES independently of quote orchestration.
+
+Known application/configuration failures block the futile request: invalid supported cargo
+range, goods net weight exceeding packed weight, letter weight >=0.5 kg, no enabled connection,
+and native-only freight or unsupported native document configurations. Unknown regional
+contracts are not inferred to lack freight or document services.
+
+POST /api/v1/logistics/package-guidance provides public reference guidance without addresses,
+credentials, database writes or upstream calls. POST /api/v1/shipping/package-check is authenticated
+and loads only the current workspace's active connections. Neither response exposes connection
+IDs, keys or provider account details. Existing booking validation remains enforced separately.
+
+358 unit tests passed. Browser coverage: 370 cm warning before rates, edit/cancel without rate
+requests or changed input, explicit continue for other carriers, blocked continue for errors,
+normal package direct progression, repeated dialog opening, and 375/768/1366px layouts.
+The running public endpoint also returned the expected 370 cm service warning for 80x60x90 cm,
+10 kg, GB->FR. No database changes, provider purchases, payments or customer messages were sent.

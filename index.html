@@ -356,6 +356,9 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 </div>
 <div id="weight-result" class="weight" aria-live="polite">Calculating billable weight…</div>
+<p class="subtle">Measure the outside of the sealed package, including packaging. Enter its total packed weight. We check packaging guidance before comparing rates.</p>
+<div id="package-guidance-result" aria-live="polite" hidden>
+</div>
 <button id="quote-btn" class="primary full" type="submit">Fetch Parallel Live Rates →</button>
 <p id="quote-mode-note" class="footnote">Provider pricing uses the greater of actual and volumetric weight.</p>
 </form>
@@ -1022,6 +1025,17 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </dialog>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden>
 </div>
+<dialog id="package-guidance-dialog" aria-labelledby="package-guidance-title">
+<button class="close" id="package-guidance-close" aria-label="Close package guidance">?</button>
+<h2 id="package-guidance-title">Check your packaging before comparing rates</h2>
+<div id="package-guidance-dialog-body">
+</div>
+<div class="actions">
+<button class="secondary" id="package-guidance-edit">Edit package details</button>
+<button class="primary" id="package-guidance-continue">Check other carriers</button>
+<a class="secondary" href="mailto:support@easyinvio.com?subject=Package%20eligibility%20help">Ask support</a>
+</div>
+</dialog>
 <script>
 'use strict';
 const $ = s => document.querySelector(s),
@@ -1996,6 +2010,76 @@ $('#quote-form').addEventListener('input', () => {
   clearTimeout(weightTimer);
   weightTimer = setTimeout(updateWeight, 250)
 });
+let packageReview = null;
+
+function finishPackageReview(proceed) {
+  const pending = packageReview;
+  packageReview = null;
+  if ($('#package-guidance-dialog').open) $('#package-guidance-dialog').close();
+  if (pending) pending.resolve(Boolean(proceed && !pending.blocking));
+}
+
+function packageGuidanceHTML(check) {
+  return `<p>${escapeHTML(check.measurement_help)}</p>` + check.messages.map(message => `<div class="notice"><b>${escapeHTML(message.text)}</b><p>${escapeHTML(message.suggestion)}</p>${message.source && /^https:\/\//.test(message.source)?`<a href="${escapeHTML(message.source)}" target="_blank" rel="noopener noreferrer">Carrier size guidance</a>`:''}</div>`).join('') + '<p class="subtle">These are reference checks for specific services. Live quotes check the enabled accounts and route; passing a reference check does not guarantee availability.</p>';
+}
+async function checkPackageBeforeRates(body) {
+  const check = await api(state.session && state.mode !== 'local-preview' ? '/api/v1/shipping/package-check' : '/api/v1/logistics/package-guidance', {
+    method: 'POST',
+    auth: Boolean(state.session && state.mode !== 'local-preview'),
+    body: {
+      origin_country: body.origin.country_code,
+      destination_country: body.destination.country_code,
+      cargo_type: body.cargo_type || 'PARCEL',
+      actual_weight_kg: body.weights_kg[0],
+      dimensions: body.cargo_type === 'LETTER' ? null : body.dimensions[0],
+      shipment_items: body.shipment_items || []
+    }
+  });
+  return check;
+}
+
+function reviewPackageGuidance(check) {
+  $('#package-guidance-result').hidden = false;
+  $('#package-guidance-result').innerHTML = check.messages.length ? packageGuidanceHTML(check) : '<p class="subtle">Packaging reference check complete. Checking live carrier eligibility next.</p>';
+  if (!check.messages.length) return Promise.resolve(true);
+  $('#package-guidance-dialog-body').innerHTML = packageGuidanceHTML(check);
+  $('#package-guidance-continue').hidden = check.blocking;
+  $('#rates-badge').textContent = 'PACKAGE REVIEW';
+  $('#rates-summary').textContent = 'Review package guidance before continuing';
+  return new Promise(resolve => {
+    packageReview = {
+      resolve,
+      blocking: check.blocking
+    };
+    $('#package-guidance-dialog').showModal();
+    $('#package-guidance-edit').focus();
+  });
+}
+$('#package-guidance-close').addEventListener('click', () => finishPackageReview(false));
+$('#package-guidance-edit').addEventListener('click', () => {
+  finishPackageReview(false);
+  $('#weight_kg').focus();
+});
+$('#package-guidance-continue').addEventListener('click', () => finishPackageReview(true));
+$('#package-guidance-dialog').addEventListener('cancel', event => {
+  event.preventDefault();
+  finishPackageReview(false);
+});
+$('#package-guidance-dialog').addEventListener('close', () => {
+  // A queued close event from a previous review must not cancel a reopened one.
+  if (!$('#package-guidance-dialog').open) finishPackageReview(false);
+});
+$('#quote-form').addEventListener('input', () => {
+  finishPackageReview(false);
+  $('#package-guidance-result').hidden = true;
+});
+const packageGuidanceClearSessionBase = clearSession;
+clearSession = function() {
+  finishPackageReview(false);
+  $('#package-guidance-result').hidden = true;
+  return packageGuidanceClearSessionBase.apply(this, arguments);
+};
+
 $('#quote-form').addEventListener('submit', event => {
   event.preventDefault();
   busy($('#quote-btn'), async () => {
@@ -2012,6 +2096,18 @@ $('#quote-form').addEventListener('submit', event => {
     $('#rates-summary').textContent = 'Checking available services';
     $('#rates').innerHTML = '<div class="empty"><h3>Comparing provider strategies…</h3><p>EasyInvio checks available carrier services in parallel.</p></div>';
     try {
+      const check = await checkPackageBeforeRates(body);
+      if (generation !== state.generation) return;
+      const proceed = await reviewPackageGuidance(check);
+      if (generation !== state.generation) return;
+      if (!proceed) {
+        $('#rates-badge').textContent = 'REVIEW PACKAGE';
+        $('#rates-summary').textContent = 'Package guidance needs your review';
+        $('#rates').innerHTML = '<div class="empty"><h3>Review your packed shipment</h3><p>Use accurate measurements, update the packaging if possible, or contact support for a suitable service.</p></div>';
+        return;
+      }
+      $('#rates-badge').textContent = 'COMPARING RATES';
+      $('#rates-summary').textContent = 'Checking available services';
       const result = await api(state.mode === 'local-preview' ? '/api/v1/rates/preview' : !state.session ? '/api/v1/rates/sample' : '/v1/rates', {
         method: 'POST',
         body,
