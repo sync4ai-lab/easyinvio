@@ -17,8 +17,8 @@ class PackageGuidanceTests(unittest.IsolatedAsyncioTestCase):
         result = evaluate_package(self.body())
         self.assertFalse(result['blocking'])
         self.assertEqual(result['measurements']['combined_length_girth_cm'], '370')
-        self.assertIn('below 300 cm', result['messages'][0]['text'])
-        self.assertIn('physically repack', result['messages'][0]['suggestion'])
+        self.assertIn('below 300 cm', result['messages'][0]['suggestion'])
+        self.assertIn('repack or split', result['messages'][0]['suggestion'])
         self.assertIn('coverage is partial', result['scope'])
 
     def test_small_parcel_and_rotation_have_same_combined_measure(self):

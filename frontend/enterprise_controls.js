@@ -82,7 +82,7 @@ function refreshEnterpriseNavigation() {
     const key = allowed.join('|');
     if (key !== enterpriseNavKey) {
         enterpriseNavKey = key;
-        const buttons = allowed.map(view => {
+        const buttons = allowed.filter(view => view !== 'boxes').map(view => {
             const [label, icon] = enterpriseNavItems[view];
             const fallback=({dashboard:'grid','admin-clients':'grid','admin-carriers':'truck','admin-margins':'chart',dispatch:'truck',boxes:'box',manifest:'list',wallet:'wallet',customs:'globe',stores:'box',workspace:'box'})[view];
             return `<button id="tab-${view}" role="tab" data-enterprise-view="${view}" aria-selected="${enterprise.currentView === view}"><span class="nav-symbol"><i data-lucide="${icon}"></i><svg class="icon-fallback" fill="none" stroke="currentColor" stroke-width="1.6"><use href="#i-${fallback}"></use></svg></span><span>${label}</span></button>`;

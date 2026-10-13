@@ -26,7 +26,14 @@ class RateDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
             'dimensions': [{'length_cm': '80', 'width_cm': '60', 'height_cm': '90'}]})
         _, issue = await service.run_provider(strategy, request, 5)
         self.assertEqual(issue.code, 'NO_ELIGIBLE_PRICED_SERVICES')
-        self.assertIn('370 cm', no_rates_message(request, [issue]))
+        self.assertIn('Open Packaging sizes', no_rates_message(request, [issue]))
+        self.assertIn('some carriers', no_rates_message(request, [issue]))
+        self.assertNotIn('girth', no_rates_message(request, [issue]))
+
+    def test_small_package_missing_rates_does_not_claim_size_failure(self):
+        message = no_rates_message(main.RatingRequest.model_validate(payload()), [])
+        self.assertIn('No shipping options', message)
+        self.assertNotIn('larger or heavier', message)
 
     async def test_unsuccessful_quote_is_saved_for_support_without_an_offer(self):
         connection = SimpleNamespace(execute=AsyncMock())

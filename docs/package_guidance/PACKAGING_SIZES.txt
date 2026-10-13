@@ -1,0 +1,32 @@
+Packaging sizes UX - 13 October 2026
+
+The picker now sits beside Cargo & measurements and under Choose cargo in
+Dispatch readiness. The separate sidebar/mobile navigation entry is removed.
+Existing boxes links still open the picker. Saved browser/workspace cartons
+remain optional within the modal.
+
+The four choices match the actual cargo selector: LETTER, PARCEL, PALLET and
+OVERLAND_FREIGHT. Three parcel examples fill dimensions and classification.
+Pallet examples fill the footprint but require measured height. Road freight
+requires measured dimensions. Packed weight, goods and addresses are retained;
+every choice invalidates existing rates and customs checkout snapshots.
+
+Examples are not universal size classes or guaranteed eligible services.
+No common minimum/maximum is invented. UK-origin international parcel guidance
+uses the DPD International Parcel definition: up to 31 kg, longest side below
+175 cm and length + 2*width + 2*height below 300 cm.
+Source verified: https://myportal.drivers.dpd.co.uk/terms (definition 1.1(m)).
+Freight requires a configured freight adapter/contract; document-letter weight
+below 0.5 kg is EasyInvio's classification rule, not a universal postal format.
+
+Size warnings lead with plain language and show detailed checks on demand.
+Empty rates do not claim all carriers rejected the dimensions. Authentication,
+configuration, currency and timeout diagnoses retain their distinct messages.
+
+Validation: 380 unit tests passed. Controlled Playwright checks passed for
+375/768/1440px layouts, matching classifications, prefill, retained data,
+quote invalidation, missing pallet height, letter weight validation, Escape
+and legacy navigation. Existing package preflight browser checks also passed.
+No label purchases, external provider requests or database mutations occurred.
+This change improves package selection; it does not certify label purchase
+or enable unconfigured freight contracts.

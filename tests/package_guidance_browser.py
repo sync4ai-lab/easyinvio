@@ -22,7 +22,7 @@ async def run():
    document.querySelector('#quote-form').dispatchEvent(new Event('submit',{cancelable:true}));
   }''',warning)
   await page.wait_for_function("document.querySelector('#package-guidance-dialog').open")
-  assert '370 cm' in await page.locator('#package-guidance-dialog-body').inner_text()
+  assert '370 cm' in await page.locator('#package-guidance-dialog-body').text_content()
   assert await page.evaluate('quoteCalls')==0
   for width in [375,768,1366]:
    await page.set_viewport_size({'width':width,'height':950});assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')

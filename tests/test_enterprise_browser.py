@@ -132,7 +132,7 @@ async def run():
         checks.append({'native_control_contrast':controls})
         await page.evaluate("portal.profile={workspace_role:'DISPATCHER',portal_role:'CLIENT'};renderPortal()")
         nav=await page.locator('.sidebar [data-enterprise-view]').evaluate_all('(nodes)=>nodes.map(n=>n.dataset.enterpriseView)')
-        assert nav==['workspace','dispatch','boxes','manifest','profile'],nav
+        assert nav==['workspace','dispatch','manifest','profile'],nav
         await page.evaluate("setView('wallet')")
         assert not await page.locator('#wallet').is_visible() and not await page.locator('#dashboard').is_visible()
         checks.append('Dispatcher navigation contains marketplace workspace, quote, box profiles and manifest; financial views denied.')

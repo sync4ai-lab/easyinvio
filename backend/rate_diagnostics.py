@@ -29,12 +29,22 @@ def no_rates_message(request, issues):
         return 'A rate connection needs platform configuration. No eligible quotes were returned by the other connections. Platform support should check the configured rate adapter and enabled carrier contracts.'
     if codes & {'UPSTREAM_TIMEOUT', 'UPSTREAM_UNAVAILABLE'}:
         return 'A provider could not be reached or timed out. Retry the quote; platform support can verify the affected connection if this continues.'
-    size = ''
+    # A missing rate does not prove the package exceeds every carrier's limits.
+    from backend.package_guidance import PARCEL_RULES
     if request.dimensions:
-        dimensions = request.dimensions[0]
-        sides = sorted([dimensions.length_cm, dimensions.width_cm, dimensions.height_cm], reverse=True)
-        combined = sides[0] + 2 * (sides[1] + sides[2])
-        size = (f' Package dimensions: {dimensions.length_cm} × {dimensions.width_cm} × {dimensions.height_cm} cm; '
-                f'combined length and girth: {combined} cm. Carrier-specific size limits may apply.')
-    return ('The connected accounts returned no eligible priced services for this package and route.' + size +
-            ' Check the packed weight and destination country/address. Platform support can check enabled carrier contracts.')
+        for dimensions, weight in zip(request.dimensions, request.weights_kg):
+            longest, middle, shortest = sorted(
+                [dimensions.length_cm, dimensions.width_cm, dimensions.height_cm], reverse=True)
+            for rule in PARCEL_RULES:
+                if (request.origin.country_code in rule['origin_countries']
+                        and request.destination.country_code not in rule['excluded_destinations']
+                        and (longest >= rule['max_longest_cm_exclusive']
+                             or longest + 2 * (middle + shortest) >= rule['max_combined_cm_exclusive']
+                             or weight > rule['max_weight_kg'])):
+                    return ('Your package is larger or heavier than the standard limits of some carriers. '
+                            'Open Packaging sizes for guidance, then check your actual packed measurements. '
+                            'If they are correct, contact support for a suitable large-package service. '
+                            'No rates are available from your connected services for this request.')
+    return ('No shipping options are available for these details. Open Packaging sizes to check your '
+            'package, and check the delivery address. If everything is correct, contact support to '
+            'check available services for this route.')

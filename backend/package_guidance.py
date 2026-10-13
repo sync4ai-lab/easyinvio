@@ -105,8 +105,9 @@ def evaluate_package(body, accounts=None):
                 if body.actual_weight_kg > rule['max_weight_kg']:
                     exceeded.append(f"packed weight is {body.actual_weight_kg} kg; this service allows up to {rule['max_weight_kg']} kg")
                 if exceeded:
-                    add(rule['id'], 'WARNING', rule['service'] + ': ' + '; '.join(exceeded) + '.',
-                        'Measure the outside of the sealed package. If the contents permit, physically repack or split into smaller parcels and weigh each separately. Otherwise ask support for an oversized or freight service. You can still check other carriers with these accurate measurements.', rule['source'])
+                    add(rule['id'], 'WARNING', 'Your package is larger or heavier than this standard parcel service allows.',
+                        'Open Packaging sizes for guidance. Check the sealed package measurements; repack or split the goods if practical. If the measurements are correct, you can check other carriers or contact support for a suitable service. '
+                        + rule['service'] + ' reference: ' + '; '.join(exceeded) + '.', rule['source'])
     if accounts is not None:
         if not accounts:
             add('NO_ACTIVE_CONNECTIONS', 'ERROR', 'No rate connections are enabled for this workspace.',

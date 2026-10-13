@@ -51,7 +51,7 @@ async def run():
             await page.wait_for_function("state.mode==='local-preview'")
             await page.evaluate("state.session={access_token:'controlled-browser-fixture'};state.mode='configured';portal.profile={workspace_role:'DISPATCHER',portal_role:'CLIENT'};portal.role='CLIENT';renderPortal();setView('workspace')")
             await expect(page.locator('#workspace-rows')).to_contain_text('#1024')
-            assert await page.locator('.sidebar [data-enterprise-view]').evaluate_all('(nodes)=>nodes.map(n=>n.dataset.enterpriseView)')==['workspace','dispatch','boxes','manifest']
+            assert await page.locator('.sidebar [data-enterprise-view]').evaluate_all('(nodes)=>nodes.map(n=>n.dataset.enterpriseView)')==['workspace','dispatch','manifest']
             await page.locator('#workspace-sync').click();await expect(page.locator('#workspace-notice')).to_contain_text('signed webhooks')
             await page.locator('[data-workspace-pack]').click();await expect(page.locator('#workspace-pack-dialog')).to_be_visible()
             for name,value in {'actual_weight_kg':'2.500','length_cm':'40','width_cm':'30','height_cm':'20','customs_signer':'Reviewed Operator'}.items():
