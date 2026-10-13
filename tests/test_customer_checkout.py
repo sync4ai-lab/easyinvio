@@ -79,10 +79,13 @@ class CheckoutTests(unittest.IsolatedAsyncioTestCase):
         class Pool:
             @asynccontextmanager
             async def acquire(self):yield self
+            transaction=acquire
+            async def execute(self,*args):return None
+            async def fetchval(self,*args):return 'EINVIO-00000001'
             async def fetchrow(self,sql,*args):
                 queries.append((sql,args));return {'request_id':request_id,'request_payload':json.dumps(quote),'quote_payload':rates.model_dump_json()}
         data=await offer_context(SimpleNamespace(pool=Pool()),SimpleNamespace(tenant_id=tenant,role='OWNER'),offer)
-        self.assertEqual(data[-2],'EI-'+request_id.hex.upper());self.assertTrue(data[-1])
+        self.assertEqual(data[-2],'EINVIO-00000001');self.assertTrue(data[-1])
         self.assertEqual(queries[0][1],(tenant,str(offer)))
         with self.assertRaises(HTTPException):await offer_context(None,SimpleNamespace(role='ACCOUNTANT'),offer)
 

@@ -41,7 +41,7 @@ class HistoryScopeTests(unittest.IsolatedAsyncioTestCase):
    @asynccontextmanager
    async def acquire(self):yield Connection()
   self.assertEqual(await route_history(Pool(),tenant,'US'),{})
-  self.assertEqual(calls[0][1],(tenant,'US'));self.assertIn('tenant_id=$1',calls[0][0]);self.assertIn('fixture_batch',calls[0][0]);self.assertIn("'90 days'",calls[0][0])
+  self.assertEqual(calls[0][1],(tenant,'US',None));self.assertIn('tenant_id=$1',calls[0][0]);self.assertIn('fixture_batch',calls[0][0]);self.assertIn("'90 days'",calls[0][0])
 if __name__=='__main__':unittest.main()
 
 class PublicQuoteTransportTests(unittest.TestCase):

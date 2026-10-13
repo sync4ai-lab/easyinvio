@@ -1,0 +1,57 @@
+{
+  "scope": "user-authorized genuine TEST parcel rate requests; no purchases or messages",
+  "results": [
+    {
+      "integration": "SHIPPO",
+      "endpoint": "https://api.goshippo.com",
+      "currency": "GBP",
+      "returned_rate_count": 3,
+      "carriers": [
+        "DPD UK"
+      ],
+      "error_code": null
+    },
+    {
+      "integration": "SHIPPO",
+      "endpoint": "https://api.goshippo.com",
+      "currency": "USD",
+      "returned_rate_count": 0,
+      "carriers": [],
+      "error_code": "NO_RATES_IN_REQUESTED_CURRENCY"
+    },
+    {
+      "integration": "EASYPOST",
+      "endpoint": "https://api.easypost.com/v2",
+      "currency": "GBP",
+      "returned_rate_count": 0,
+      "carriers": [],
+      "error_code": "NO_SERVICES_FOR_ROUTE_OR_ACCOUNT"
+    },
+    {
+      "integration": "EASYPOST",
+      "endpoint": "https://api.easypost.com/v2",
+      "currency": "USD",
+      "returned_rate_count": 0,
+      "carriers": [],
+      "error_code": "NO_SERVICES_FOR_ROUTE_OR_ACCOUNT"
+    },
+    {
+      "integration": "SENDCLOUD_V2",
+      "endpoint": "https://panel.sendcloud.sc/api/v2",
+      "currency": "GBP",
+      "returned_rate_count": 0,
+      "carriers": [],
+      "error_code": "SENDCLOUD_METHODS_NOT_CONFIGURED",
+      "external_quote_request_sent": false
+    },
+    {
+      "integration": "SENDCLOUD_V2",
+      "endpoint": "https://panel.sendcloud.sc/api/v2",
+      "currency": "USD",
+      "returned_rate_count": 0,
+      "carriers": [],
+      "error_code": "SENDCLOUD_METHODS_NOT_CONFIGURED",
+      "external_quote_request_sent": false
+    }
+  ]
+}

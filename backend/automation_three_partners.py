@@ -1023,6 +1023,7 @@ class ShippoRateStrategy:
         if body.get('test') is not (self.adapter.environment == 'TEST'):
             raise ValueError('Native quote environment does not match the connection')
         results = []
+        if not body.get('rates'):raise PurchaseRejected('NO_SERVICES_FOR_ROUTE_OR_ACCOUNT')
         for rate in body.get('rates', []):
             if request.is_return and str(rate.get('provider', '')).upper() not in {'USPS', 'UPS', 'FEDEX'}:
                 continue

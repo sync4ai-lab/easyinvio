@@ -1,0 +1,32 @@
+{
+  "status": "PASS_WITH_CAPABILITY_LIMITATIONS",
+  "unit_contract_tests": 307,
+  "customer_checkout_browser": "PASS at 375, 768 and 1366 px; controlled API responses",
+  "owner_diagnostics_browser": "PASS; controlled API; logout clears contents",
+  "database_probe": "PASS; actual SANDBOX database, rollback-only fixture writes, controlled carrier HTTP",
+  "receipt_pdf": "Rendered and visually checked; one page; synthetic data",
+  "genuine_test_requests": [
+    "Shippo GBP: three rates, DPD UK only",
+    "EasyPost parcel GBP/USD: no services returned",
+    "EasyPost letter: HTTP 422 ADDRESS.VERIFY.FAILURE",
+    "Saved Sendcloud v2: zero configured method limits, no external rate request sent",
+    "Temporary Sendcloud v3 with saved credentials: HTTP 200, one DPD_GB quote; saved connection unchanged"
+  ],
+  "remaining_setup": [
+    "Create a Sendcloud v3 connection through its Set Up card and disable the legacy v2 connection. Its credentials were proven to return a v3 quote. Do not alter historical connection endpoints.",
+    "Confirm activated UK-origin carrier accounts and document-service eligibility with EasyPost; resolve its address-verification rejection.",
+    "Register authenticated tracking webhooks under Orders & Webhooks. Route metrics require verified delivered shipments, not quote responses.",
+    "Industrial freight has no verified native booking adapter/contract in the three current integrations. It is reported as a capability gap, not carrier-wide cargo rejection."
+  ],
+  "changes": [
+    "Fresh quotes reset stale carrier filters; unique carrier/service options are preserved",
+    "New goods inputs start blank; saved quantity, value, net weight and origin are read-only in checkout and enforced on the server",
+    "References are stable EINVIO sequence values across checkout, booking, commercial invoice and receipt; historical references are preserved",
+    "Commercial customs preview removed from standalone workflow; linked customs form stays beside selected offer",
+    "Tenant-scoped receipt after confirmed booking, with prepaid capture checks and dispatcher financial access denied",
+    "Route history uses origin and destination; measured transit starts at dispatch or first accepted in-transit event, never booking"
+  ],
+  "reference_numbering": "Global database sequence; abandoned checkouts and rolled-back tests can leave gaps. References are not reused.",
+  "migration": "029 applied and rerun idempotently on configured SANDBOX; private browser access denied",
+  "no_live_purchases_or_messages": true
+}

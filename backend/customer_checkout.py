@@ -68,6 +68,25 @@ async def search_tariff(client,description):
         raise HTTPException(503,'Official tariff lookup is unavailable. Try again or check the UK Trade Tariff directly; no code was guessed.') from None
 
 
+async def booking_reference(pool,tenant,request_id):
+    async with pool.acquire() as c:
+        async with c.transaction():
+            await c.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,0))','invoice:'+str(tenant)+':'+str(request_id))
+            reference=await c.fetchval('SELECT invoice_reference FROM public.booking_references WHERE tenant_id=$1 AND request_id=$2',tenant,request_id)
+            if reference:return reference
+            key=uuid5(NAMESPACE_URL,'checkout:'+str(tenant)+':'+str(request_id))
+            reference=await c.fetchval('SELECT customer_reference FROM public.shipments WHERE tenant_id=$1 AND idempotency_key=$2',tenant,key)
+            if not reference:
+                number=await c.fetchval("SELECT nextval('public.easyinvio_booking_reference_sequence')")
+                reference='EINVIO-'+str(number).zfill(8)
+            await c.execute('INSERT INTO public.booking_references(tenant_id,request_id,invoice_reference) VALUES($1,$2,$3)',tenant,request_id,reference)
+            return reference
+
+
+def quoted_goods(quote):
+    source=quote.shipment_items or (quote.customs_document or {}).get('items',[])
+    return [{k:item[k] for k in ['description','quantity','unit_value','unit_weight_kg','origin_country','hs_code'] if k in item} for item in source]
+
 async def offer_context(service,context,offer_id):
     from main import RatingRequest,RatingResponse
     if context.role not in {'OWNER','ADMIN','DISPATCHER'}:
@@ -85,7 +104,7 @@ async def offer_context(service,context,offer_id):
         raise HTTPException(404,'Service not found in this quote')
     if len(request.weights_kg)!=1 or len(request.dimensions)>1:
         raise HTTPException(422,'Use the packed-order workspace for multiple parcels')
-    reference='EI-'+str(row['request_id']).replace('-','').upper()
+    reference=await booking_reference(service.pool,context.tenant_id,row['request_id'])
     required=request.origin.country_code!=request.destination.country_code and not {
         request.origin.country_code,request.destination.country_code}<=EU_CUSTOMS_AREA
     return row,request,result,selected,reference,required
@@ -103,11 +122,12 @@ def build_router(authenticate):
         service=request.app.state.partner_lifecycle
         row,quote,_,rate,reference,required=await offer_context(service,user,offer_id)
         from backend.automation_three_partners import EasyPostAdapter
-        currency='USD' if rate.execution_details.get('account_endpoint')==EasyPostAdapter.endpoint else quote.currency
+        currency=quote.goods_currency or ('USD' if rate.execution_details.get('account_endpoint')==EasyPostAdapter.endpoint else quote.currency)
         return {'invoice_reference':reference,'customs_required':required,'goods_value_currency':currency,
                 'shipping_currency':rate.currency,'shipping_cost':str(rate.client_price_ex_tax),
                 'origin':quote.origin.model_dump(mode='json'),'destination':quote.destination.model_dump(mode='json'),
-                'gross_weight_kg':str(quote.weights_kg[0]),'invoice_download_after_booking':True}
+                'gross_weight_kg':str(quote.weights_kg[0]),'total_goods_net_weight_kg':str(sum((Decimal(str(i['unit_weight_kg']))*int(i['quantity']) for i in quoted_goods(quote)),Decimal(0))),'items':quoted_goods(quote),
+                'goods_locked':bool(quoted_goods(quote)),'invoice_download_after_booking':True}
 
     @router.post('/prepare')
     async def prepare(body:CheckoutPrepare,request:Request,user=Depends(authenticate)):
@@ -115,6 +135,17 @@ def build_router(authenticate):
         row,quote,quoted,selected,reference,required=await offer_context(service,user,body.offer_id)
         if required and body.customs is None:
             raise HTTPException(422,'International goods require customs details before a carrier can issue the label')
+        if body.customs:
+            original=quoted_goods(quote)
+            if not original:raise HTTPException(409,'This quote has no goods snapshot. Enter the goods in Create shipment and request fresh rates.')
+            if len(original)!=len(body.customs.items):raise HTTPException(409,'Goods changed; request a new quote')
+            for saved,submitted in zip(original,body.customs.items,strict=True):
+                for key in ('quantity','unit_value','unit_weight_kg','origin_country'):
+                    expected=saved[key];actual=getattr(submitted,key)
+                    equal=(str(expected).upper()==str(actual).upper()) if key=='origin_country' else Decimal(str(expected))==Decimal(str(actual))
+                    if not equal:raise HTTPException(409,'Quoted goods values are immutable. Change the shipment and request fresh rates.')
+            if body.customs.currency!=(quote.goods_currency or ('USD' if selected.execution_details.get('account_endpoint')=='https://api.easypost.com/v2' else quote.currency)):
+                raise HTTPException(409,'Goods currency changed; request a new quote')
         if body.customs and (not body.customs.reviewed or any(not item.hs_code for item in body.customs.items)):
             raise HTTPException(422,'Select and review an HS code for each product')
         if body.customs and body.customs.category=='OTHER' and selected.execution_details.get('account_endpoint')=='https://panel.sendcloud.sc/api/v3':
@@ -152,6 +183,23 @@ def build_router(authenticate):
         return public_payload({'shipment_id':result['shipment_id'],'invoice_reference':reference,
             'offer':match,'price_changed':Decimal(match['client_price_ex_tax'])!=selected.client_price_ex_tax,
             'customs_required':required},financial=user.role!='DISPATCHER')
+
+    @router.get('/{shipment_id}/receipt.pdf')
+    async def receipt(shipment_id:UUID,request:Request,user=Depends(authenticate)):
+        if user.role=='DISPATCHER':raise HTTPException(403,'Financial documents require an owner or accountant role')
+        async with request.app.state.partner_lifecycle.pool.acquire() as c:
+            row=await c.fetchrow("""SELECT s.customer_reference,s.currency,s.final_client_price,s.tax_amount,s.tracking_number,
+                s.origin_country,s.destination_country,s.booked_at,s.status,t.company_name,t.is_sandbox,t.billing_plan,
+                r.status AS reservation_status FROM public.shipments s JOIN public.tenants t USING(tenant_id)
+                LEFT JOIN public.wallet_reservations r ON r.tenant_id=s.tenant_id AND r.shipment_id=s.id
+                WHERE s.tenant_id=$1 AND s.id=$2""",user.tenant_id,shipment_id)
+        if not row:raise HTTPException(404,'Shipment not found in this workspace')
+        if not row['booked_at'] or not row['tracking_number'] or row['status'] not in {'BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'}:
+            raise HTTPException(409,'Receipt is available after confirmed booking')
+        if row['billing_plan']=='PREPAID_WALLET' and row['reservation_status']!='CAPTURED':raise HTTPException(409,'Booking payment requires reconciliation')
+        from backend.booking_receipt import receipt_pdf
+        data=await asyncio.to_thread(receipt_pdf,dict(row))
+        return Response(data,media_type='application/pdf',headers={'Cache-Control':'no-store','Content-Disposition':'attachment; filename="easyinvio-booking-receipt.pdf"'})
 
     @router.get('/{shipment_id}/commercial-invoice.pdf')
     async def invoice(shipment_id:UUID,request:Request,user=Depends(authenticate)):

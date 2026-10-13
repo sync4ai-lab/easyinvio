@@ -283,10 +283,36 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <form id="quote-form">
 <div class="sectionlabel">01 · Pickup & delivery</div>
+<details open class="card" style="margin-bottom:16px">
+<summary>Goods in this shipment</summary>
+<p class="subtle">Enter these before requesting international goods rates. Customs documents use this saved snapshot; changing it requires a fresh quote.</p>
+<label>Goods description<input id="shipment-description" maxlength="500" placeholder="e.g. Electric steam iron">
+</label>
+<div class="fields">
+<label>Quantity<input id="shipment-quantity" type="number" min="1" max="10000" step="1">
+</label>
+<label>Value per item<input id="shipment-unit-value" type="number" min="0.01" step="0.01">
+</label>
+<label>Net weight per item (kg)<input id="shipment-unit-weight" type="number" min="0.001" step="0.001">
+</label>
+<label>Country of manufacture<select id="shipment-goods-origin">
+<option value="">Choose country</option>
+</select>
+</label>
+<label>Goods value currency<select id="shipment-goods-currency">
+<option>GBP</option>
+<option>EUR</option>
+<option>USD</option>
+</select>
+</label>
+</div>
+</details>
 <div class="fields" id="address-fields">
 </div>
 <div class="sectionlabel">02 · Cargo & measurements</div>
 <div class="field">
+<p id="cargo-capability-notice" class="notice" hidden>
+</p>
 <label for="cargo-type">Cargo classification</label>
 <select id="cargo-type" value="PARCEL">
 <option value="LETTER">Business Letter · below 0.5 kg</option>
@@ -359,7 +385,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <div>
 <label for="qc-reference">Invoice reference</label>
-<input id="qc-reference" placeholder="e.g. VEL-CUSTOMS-001" maxlength="100">
+<input id="qc-reference" placeholder="Assigned at booking" maxlength="100">
 </div>
 </div>
 <div class="field">
@@ -454,7 +480,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div class="card">
 <div class="cardhead">
 <div>
-<h2>Predictive route intelligence</h2>
+<h2>Recorded route history</h2>
 <p class="subtle">Recorded carrier delivery trends and route exceptions.</p>
 </div>
 <button id="routing-btn" class="secondary">Evaluate route</button>
@@ -713,7 +739,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div class="fields">
 <div>
 <label for="decl-reference">Invoice reference</label>
-<input id="decl-reference" placeholder="e.g. VE-CI-1043" maxlength="100" required>
+<input id="decl-reference" placeholder="e.g. EINVIO-00000001" maxlength="100" required>
 </div>
 <div>
 <label for="decl-form">Postal declaration form</label>
@@ -2018,7 +2044,8 @@ function historyRibbon(rate) {
 function renderRates(result) {
   result.rates.sort((a, b) => cents(a.client_price_ex_tax) < cents(b.client_price_ex_tax) ? -1 : cents(a.client_price_ex_tax) > cents(b.client_price_ex_tax) ? 1 : 0);
   const filter = $('#carrier-filter'),
-    selected = filter.value;
+    selected = state.renderedQuoteResult === result ? filter.value : '';
+  state.renderedQuoteResult = result;
   filter.innerHTML = '<option value="">All carriers</option>' + [...new Set(result.rates.map(r => r.carrier_code))].map(c => `<option value="${escapeHTML(c)}">${escapeHTML(carrierDisplay(c))}</option>`).join('');
   filter.value = selected;
   $('#rates-summary').textContent = `${result.rates.length} carrier services \u00b7 ${result.partial?'some options unavailable':'sorted by customer price'}`;
@@ -2052,6 +2079,8 @@ $('#rates').addEventListener('click', event => {
 });
 
 function resetQuoteForm() {
+  for (const id of ['shipment-description', 'shipment-quantity', 'shipment-unit-value', 'shipment-unit-weight', 'shipment-goods-origin']) $('#' + id).value = '';
+  $('#shipment-goods-currency').value = $('#currency').value;
   for (const id of ['length_cm', 'width_cm', 'height_cm', 'weight_kg']) $('#' + id).value = '';
   state.quotes = [];
   state.quoteRequest = null;
@@ -2139,7 +2168,11 @@ $('#routing-btn').addEventListener('click', () => busy($('#routing-btn'), async 
     auth: state.mode !== 'local-preview' && !!state.session
   });
   const carriers = result.carriers || [];
-  $('#routing-result').innerHTML = '<span class="tag green">YOUR RECORDED CARRIER HISTORY</span>' + carriers.map(carrier => `<div class="riskrow"><div><b>${escapeHTML(carrierDisplay(carrier.carrier_code))}</b><p class="subtle">${Number(carrier.history_samples || 0)} samples</p></div><div><span class="tag ${carrier.route_risk_level==='HIGH_DELAY_ALERT'?'orange':'green'}">${escapeHTML(carrier.route_risk_level || 'UNKNOWN')}</span></div></div>`).join('') + `<p class="footnote">${escapeHTML(result.notice || 'More shipment history is needed. No performance percentages are fabricated.')}</p>`;
+  if (!carriers.length) {
+    $('#routing-result').innerHTML = '<div class="notice">No recorded history for this origin and destination in your workspace. Quote attempts do not count. Booked shipments and authenticated tracking updates are required; no prediction is invented.</div>';
+    return;
+  }
+  $('#routing-result').innerHTML = '<span class="tag green">YOUR RECORDED CARRIER HISTORY</span>' + carriers.map(carrier => `<div class="riskrow"><div><b>${escapeHTML(carrierDisplay(carrier.carrier_code))}</b><p class="subtle">${Number(carrier.history_samples || 0)} recorded shipments; ${Number(carrier.delivery_samples||0)} measured deliveries; transit ${carrier.avg_transit_days==null?'not available':escapeHTML(carrier.avg_transit_days)+' days'}; on-time ${carrier.on_time_rate==null?'not available':escapeHTML(carrier.on_time_rate)+'%'}</p></div><div><span class="tag ${carrier.route_risk_level==='HIGH_DELAY_ALERT'?'orange':'green'}">${escapeHTML(carrier.route_risk_level || 'UNKNOWN')}</span></div></div>`).join('') + `<p class="footnote">${escapeHTML(result.notice || 'More shipment history is needed. No performance percentages are fabricated.')}</p>`;
 }));
 $('#harmonizer-form').addEventListener('submit', event => {
   event.preventDefault();
@@ -2951,12 +2984,33 @@ function cargoPayload() {
     ...(kind === 'LETTER' ? {} : Object.fromEntries(['length_cm', 'width_cm', 'height_cm'].map(k => [k, $('#' + k).value])))
   }
 }
+$('#shipment-goods-origin').innerHTML = '<option value="">Choose country</option>' + shippingCountries.map(c => `<option value="${c.code}">${escapeHTML(c.name)} (${c.code})</option>`).join('');
+
+function cargoCapabilityNotice() {
+  const kind = $('#cargo-type').value;
+  $('#cargo-capability-notice').hidden = kind === 'PARCEL';
+  $('#cargo-capability-notice').textContent = kind === 'LETTER' ? 'Letter rates require an activated document service and successful address verification. No parcel service is relabelled as a letter.' : 'Industrial freight needs a verified freight booking adapter and carrier contract. The weight calculation alone does not establish carrier availability.';
+}
+$('#cargo-type').addEventListener('change', cargoCapabilityNotice);
+cargoCapabilityNotice();
 quotePayload = function() {
   const cargo = cargoPayload();
+  const values = ['description', 'quantity', 'unit-value', 'unit-weight', 'goods-origin'].map(k => $('#shipment-' + k).value.trim());
+  const needsGoods = cargo.cargo_type !== 'LETTER' && $('#origin-country_code').value !== $('#destination-country_code').value;
+  if ((needsGoods || values.some(Boolean)) && values.some(v => !v)) throw Error('Complete the shipment goods description, quantity, value, net weight and origin before requesting rates.');
+  const items = values.every(Boolean) ? [{
+    description: values[0],
+    quantity: Number(values[1]),
+    unit_value: values[2],
+    unit_weight_kg: values[3],
+    origin_country: values[4]
+  }] : [];
   return {
     origin: address('origin'),
     destination: address('destination'),
     cargo_type: cargo.cargo_type,
+    shipment_items: items,
+    goods_currency: $('#shipment-goods-currency').value,
     stackable: cargo.stackable,
     dimensions: cargo.cargo_type === 'LETTER' ? [] : [Object.fromEntries(['length_cm', 'width_cm', 'height_cm'].map(k => [k, $('#' + k).value]))],
     weights_kg: [$('#weight_kg').value],
@@ -3757,7 +3811,7 @@ function renderEnterpriseTables() {
   const filter = $('#margin-tenant-filter').value;
   $('#margin-tenant-filter').innerHTML = tenantOptions(true);
   $('#margin-tenant-filter').value = filter;
-  $('#carrier-rows').innerHTML = enterprise.carriers.filter(c => (!c.retired_at || $('#carrier-show-removed').checked) && (!state.session || c.platform_owned || $('#carrier-show-legacy').checked)).map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(providerDisplayName(c))}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions">${c.platform_owned ? `<button class="secondary" data-carrier-verify="${escapeHTML(c.id)}">Verify Connection</button>${enterprise.providerProfiles.some(p=>p.endpoint===c.api_base_url&&p.label_purchase)?`<button class="secondary" data-native-settings="${escapeHTML(c.id)}">Orders &amp; Webhooks</button>`:""}` : ""}<button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Edit Settings</button><button class="secondary" data-carrier-disable="${escapeHTML(c.id)}" ${!c.is_active?'disabled':''}>Disable</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
+  $('#carrier-rows').innerHTML = enterprise.carriers.filter(c => (!c.retired_at || $('#carrier-show-removed').checked) && (!state.session || c.platform_owned || $('#carrier-show-legacy').checked)).map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(providerDisplayName(c))}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions">${c.platform_owned ? `<button class="secondary" data-carrier-verify="${escapeHTML(c.id)}">Verify Connection</button><button class="secondary" data-quote-diagnostics="${escapeHTML(c.id)}">Capabilities &amp; quote diagnostics</button>${enterprise.providerProfiles.some(p=>p.endpoint===c.api_base_url&&p.label_purchase)?`<button class="secondary" data-native-settings="${escapeHTML(c.id)}">Orders &amp; Webhooks</button>`:""}` : ""}<button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Edit Settings</button><button class="secondary" data-carrier-disable="${escapeHTML(c.id)}" ${!c.is_active?'disabled':''}>Disable</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
   $('#margin-rows').innerHTML = enterprise.margins.filter(m => !filter || m.tenant_id === filter).map(m => `<tr><td><b>${escapeHTML(m.company_name || enterprise.tenants.find(t => t.tenant_id === m.tenant_id)?.company_name || m.tenant_id)}</b><p class="subtle">${escapeHTML(m.rule_name || m.id)}</p></td><td>${escapeHTML(m.origin_country || 'ANY')} → ${escapeHTML(m.destination_country || 'ANY')}<br><span class="subtle">${escapeHTML(m.carrier_code || 'Any carrier')} ? ${escapeHTML(m.cargo_type || 'Any cargo')} ? ${escapeHTML(m.billing_plan || 'Any tier')}<br>Volume: ${escapeHTML(m.min_volume_m3 ?? '0')}?${escapeHTML(m.max_volume_m3 ?? 'unlimited')} m?</span></td><td class="finance-value">${escapeHTML(m.markup_value)} ${m.markup_type === 'PERCENTAGE' ? '%' : escapeHTML(m.currency)}</td><td>${m.priority}</td><td><span class="tag ${m.is_active ? 'green' : ''}">${m.is_active ? 'ACTIVE' : 'RETIRED'}</span></td><td><div class="actions"><button class="secondary" data-margin-edit="${escapeHTML(m.id)}">Edit</button><button class="secondary" data-margin-retire="${escapeHTML(m.id)}">Delete</button></div></td></tr>`).join('') || '<tr><td colspan="6">No pricing rules for this selection.</td></tr>';
   $('#transaction-rows').innerHTML = enterprise.transactions.map(t => `<tr><td>${escapeHTML(t.company_name)}</td><td><span class="tag">${escapeHTML(t.entry_type)}</span></td><td class="finance-value">${money(t.balance_delta, t.currency)}</td><td>${money(t.reserved_delta, t.currency)}</td><td>${escapeHTML(new Date(t.created_at).toLocaleString())}</td></tr>`).join('') || '<tr><td colspan="5">No ledger entries available in this view.</td></tr>';
 }
@@ -4300,6 +4354,30 @@ clearSession = function() {
   delete form.dataset.connectionId;
   $('#native-provider-dialog').close();
   return nativeClearSessionBase.apply(this, arguments);
+};
+
+document.body.insertAdjacentHTML('beforeend', '<dialog id="quote-diagnostics-dialog"><button class="close" data-enterprise-close="quote-diagnostics-dialog">Close</button><h2>Connection capabilities and recent quote coverage</h2><div id="quote-diagnostics-body"></div></dialog>');
+document.addEventListener('click', event => {
+  const b = event.target.closest('[data-quote-diagnostics]');
+  if (!b) return;
+  busy(b, async () => {
+    enterpriseAdminGuard();
+    const session = state.session;
+    if (!session) throw Error('Sign in as the platform owner.');
+    const r = await api('/api/v1/admin/platform-carriers/' + b.dataset.quoteDiagnostics + '/quote-diagnostics', {
+      auth: true
+    });
+    if (state.session !== session) throw Error('Session changed. Sign in again.');
+    $('#quote-diagnostics-body').innerHTML = `<h3>${escapeHTML(r.account_name)}</h3><p>${escapeHTML(r.environment)} - ${r.is_active?'Enabled for future quotes':'Disabled for future quotes'}</p><p><b>Parcels:</b> ${escapeHTML(r.parcel)}</p><p><b>Letters:</b> ${escapeHTML(r.letter)}</p><p><b>Freight:</b> ${escapeHTML(r.freight)}</p><p>Saved offers: ${r.recent_saved_offer_count}; carriers: ${escapeHTML(r.carriers.join(', ')||'none recorded')}</p><p>Recorded failure codes: ${escapeHTML(r.failure_codes.join(', ')||'none in saved quotes')}</p><p class="notice">${escapeHTML(r.scope)}</p>`;
+    $('#quote-diagnostics-dialog').showModal();
+  });
+});
+
+const diagnosticsClearSessionBase = clearSession;
+clearSession = function() {
+  $('#quote-diagnostics-dialog').close();
+  $('#quote-diagnostics-body').replaceChildren();
+  return diagnosticsClearSessionBase.apply(this, arguments);
 };
 </script>
 <script>
@@ -5498,18 +5576,22 @@ function checkoutProduct(item = {}) {
   const value = name => escapeHTML(item[name] ?? '');
   return `<div class="checkout-product"><label>Product description</label><textarea name="description" minlength="3" maxlength="500" placeholder="e.g. Electric steam iron for household clothing" required>${value('description')}</textarea>
   <button type="button" class="secondary" data-checkout-hs>Find HS code in official tariff</button><div class="checkout-tariffs" aria-live="polite"></div>
-  <div class="fields"><div><label>Reviewed HS code</label><input name="hs_code" value="${value('hs_code')}" placeholder="6, 8 or 10 digits" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></div><div><label>Country of manufacture</label><input name="origin_country" value="${value('origin_country')}" placeholder="e.g. GB" pattern="[A-Za-z]{2}" required></div>
-  <div><label>Quantity</label><input name="quantity" value="${value('quantity')}" type="number" min="1" max="10000" step="1" placeholder="e.g. 2" required></div><div><label>Value per item</label><input name="unit_value" value="${value('unit_value')}" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" placeholder="e.g. 25.00" required></div>
-  <div><label>Net weight per item (kg)</label><input name="unit_weight_kg" value="${value('unit_weight_kg')}" type="number" min="0.001" step="0.001" placeholder="e.g. 0.250" required></div></div><button class="secondary" type="button" data-checkout-remove>Remove product</button></div>`;
+  <div class="fields"><div><label>Reviewed HS code</label><input name="hs_code" value="${value('hs_code')}" placeholder="6, 8 or 10 digits" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></div><div><label>Country of manufacture</label><input readonly name="origin_country" value="${value('origin_country')}" placeholder="e.g. GB" pattern="[A-Za-z]{2}" required></div>
+  <div><label>Quantity</label><input readonly name="quantity" value="${value('quantity')}" type="number" min="1" max="10000" step="1" placeholder="e.g. 2" required></div><div><label>Value per item</label><input readonly name="unit_value" value="${value('unit_value')}" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" placeholder="e.g. 25.00" required></div>
+  <div><label>Net weight per item (kg)</label><input readonly name="unit_weight_kg" value="${value('unit_weight_kg')}" type="number" min="0.001" step="0.001" placeholder="e.g. 0.250" required></div></div></div>`;
 }
 
 function renderCheckoutCustoms() {
   const context = customerCheckout.context;
+  if (!context.items?.length) {
+    $('#checkout-next').innerHTML = '<div class="notice">This older quote has no saved goods details. Close checkout, enter goods in Create shipment and fetch a fresh quote.</div>';
+    return;
+  }
   $('#checkout-next').innerHTML = `<h2>Customs details &amp; HS finder</h2><p class="subtle">Enter the real goods in this shipment. Review tariff suggestions before declaring them.</p>
-    <form id="customer-customs-form"><label>Invoice reference - linked to this booking</label><input name="invoice_reference" readonly value="${escapeHTML(context.invoice_reference)}">
+    <p class="subtle">Packed weight: ${escapeHTML(context.gross_weight_kg)} kg; total goods net weight: ${escapeHTML(context.total_goods_net_weight_kg||'Not recorded')} kg.</p><form id="customer-customs-form"><label>Invoice reference - linked to this booking</label><input name="invoice_reference" readonly value="${escapeHTML(context.invoice_reference)}">
     <div class="fields"><div><label>Shipping cost</label><input readonly value="${escapeHTML(money(context.shipping_cost,context.shipping_currency))}"></div><div><label>Goods value currency</label><select name="currency"><option ${context.goods_value_currency==='GBP'?'selected':''}>GBP</option><option ${context.goods_value_currency==='EUR'?'selected':''}>EUR</option><option ${context.goods_value_currency==='USD'?'selected':''}>USD</option></select></div></div>
-    <p class="footnote">Enter goods values in the selected currency. Some services require USD customs values; no automatic currency conversion is assumed.</p>
-    <div class="checkout-products">${checkoutProduct()}</div><button class="secondary" type="button" id="checkout-add-product">Add another product</button>
+    <p class="footnote">Review goods values in the selected currency. Some services require USD customs values; no automatic currency conversion is assumed.</p>
+    <p class="notice">Quantity, value, goods origin and net weight come from your saved shipment quote. To change these values, close this checkout, edit Create shipment and request fresh rates.</p><div class="checkout-products">${(context.items||[]).map(item=>checkoutProduct(item)).join('')}</div><button class="secondary" type="button" id="checkout-add-product" hidden disabled>Add another product</button>
     <label>Export category</label><select name="category"><option value="SALE">Sale of goods</option><option value="GIFT">Gift</option><option value="RETURN">Returned goods</option><option value="SAMPLE">Commercial sample</option><option value="OTHER">Other</option></select>
     <div id="checkout-other-field" hidden><label>Describe the export reason</label><input name="category_other" minlength="3" maxlength="200" placeholder="e.g. Exhibition goods being sent temporarily"></div>
     <label>Import duties and taxes</label><select name="incoterm"><option value="DAP">Recipient pays import duties and taxes (DAP)</option></select>
@@ -5519,6 +5601,7 @@ function renderCheckoutCustoms() {
     <label class="check"><input name="reviewed" type="checkbox" required>I confirm the HS codes, origin, values and weights describe my goods accurately.</label>
     <button id="checkout-prepare-btn" class="primary full">Review final booking price</button></form>`;
   const form = $('#customer-customs-form');
+  form.elements.currency.disabled = true;
   form.elements.category.addEventListener('change', () => {
     const other = form.elements.category.value === 'OTHER';
     $('#checkout-other-field').hidden = !other;
@@ -5628,6 +5711,9 @@ function showCustomerBooking(result, prepared) {
   $('#review-content').innerHTML = `<h2>${pending?'Your label is being prepared':'Shipment booked successfully'}</h2><p class="notice">${pending?'Your carrier has accepted the request. Credit remains reserved while the label is prepared. Do not place a second booking.':'Tracking: '+escapeHTML(result.label.tracking_number)}</p><p class="subtle">Booking / invoice reference: ${escapeHTML(prepared.invoice_reference)}</p><div id="checkout-downloads" class="actions"></div><button class="secondary" id="checkout-open-manifest">Open Manifest &amp; Labels</button><button class="secondary" id="checkout-new-shipment">Start a new shipment</button>`;
   if (!pending) {
     const documents = [{
+      document_type: 'Booking receipt PDF',
+      url: '/api/v1/checkout/' + result.shipment_id + '/receipt.pdf'
+    }, {
       document_type: 'Shipping label PDF',
       url: result.label.label_url
     }, ...(result.label.carrier_forms || [])];
@@ -5689,6 +5775,8 @@ function resetCustomerCheckout() {
 $('#review-dialog').addEventListener('close', resetCustomerCheckout);
 const checkoutClearSessionBase = clearSession;
 clearSession = function() {
+  checkoutManifestInvoiceId = null;
+  $('#shipment-receipt').disabled = true;
   resetCustomerCheckout();
   $('#review-dialog').close();
   checkoutClearSessionBase.apply(this, arguments);
@@ -5703,6 +5791,7 @@ clearSession = function() {
 
 // Standalone HS exploration is permitted; linked declaration editing happens in checkout.
 $('#declaration-form').hidden = true;
+$('#declaration-form').closest('.card').hidden = true;
 $('#declaration-result').innerHTML = '<div class="notice">Start with a shipping quote and select Book shipping label to prepare a declaration linked to your shipment. Final invoice PDFs are available after the booking is confirmed.</div>';
 $('#declaration-form').closest('.card').querySelector('.subtle').textContent = 'Customs details and invoice references belong to a booking.';
 $('#checkout-customs').hidden = true;
@@ -5727,11 +5816,16 @@ $('#item-description').addEventListener('input', () => {
 let checkoutManifestInvoiceId = null;
 $('#shipment-doc-json').hidden = true;
 $('#shipment-doc-print').textContent = 'Download commercial invoice PDF';
+$('#shipment-doc-print').insertAdjacentHTML('afterend', '<button id="shipment-receipt" class="secondary" disabled>Download booking receipt PDF</button>');
+$('#shipment-receipt').addEventListener('click', () => {
+  if (checkoutManifestInvoiceId) busy($('#shipment-receipt'), () => downloadPartnerDocument('/api/v1/checkout/' + checkoutManifestInvoiceId + '/receipt.pdf'));
+});
 $('#manifest-body').addEventListener('click', event => {
   const button = event.target.closest('[data-manifest-detail]');
   if (!button) return;
   const row = manifestRecords().find(item => item.id === button.dataset.manifestDetail);
   checkoutManifestInvoiceId = row?.id || null;
+  $('#shipment-receipt').disabled = portal.profile?.workspace_role === 'DISPATCHER' || !state.session || !row || !['BOOKED', 'DISPATCHED', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'].includes(row.status);
   $('#shipment-doc-print').disabled = !state.session || !row?.customs_required || !['BOOKED', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'].includes(row.status);
 });
 $('#shipment-doc-print').addEventListener('click', event => {

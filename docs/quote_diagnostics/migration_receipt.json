@@ -1,0 +1,8 @@
+{
+  "migration": "029_booking_references.sql",
+  "environment": "SANDBOX",
+  "applied_at": "2026-10-13T01:33:14.900501+00:00",
+  "idempotent_rerun": true,
+  "private_tables_browser_access_denied": true,
+  "external_api_calls": 0
+}

@@ -3,9 +3,10 @@
   "provider_boundary": "controlled API responses",
   "javascript_errors": [],
   "checks": [
+    "New quotes reset stale carrier filters; three distinct carriers remain visible",
     "Customer price excludes wholesale and markup disclosures",
     "No pre-booking customs preview or JSON downloads",
-    "Empty product fields, stable invoice reference, shipping cost and explicit goods currency",
+    "Saved goods snapshot with read-only quantity, value, net weight and origin; stable invoice reference and shipping cost",
     "Official tariff selection and stale-HS invalidation",
     "OTHER category requires free text",
     "375/768/1366px responsive checkout",

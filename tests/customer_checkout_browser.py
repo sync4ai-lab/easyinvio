@@ -12,7 +12,7 @@ os.environ['PLAYWRIGHT_BROWSERS_PATH']=str(Path('.playwright').resolve())
 
 async def run():
     output=Path('docs/customer_checkout');output.mkdir(parents=True,exist_ok=True)
-    errors=[];calls=[];tenant=str(uuid4());offer=str(uuid4());sid=str(uuid4());invoice='EI-BROWSER-CHECKOUT'
+    errors=[];calls=[];tenant=str(uuid4());offer=str(uuid4());sid=str(uuid4());invoice='EINVIO-00000001'
     rate={'offer_id':offer,'carrier_code':'DHL','service_code':'Express','currency':'GBP','client_price_ex_tax':'62.70',
           'delivery_days':2,'fee_breakdown':{'wholesale_total':'55.49','platform_markup':'7.21','fuel_surcharge':None}}
     async with async_playwright() as pw:
@@ -23,7 +23,7 @@ async def run():
             path=route.request.url.split('/api/v1/',1)[1]
             if path.startswith('checkout/context'):
                 data={'invoice_reference':invoice,'customs_required':True,'goods_value_currency':'USD','shipping_currency':'GBP',
-                      'shipping_cost':'62.70','origin':address,'destination':{**address,'country_code':'US'},'gross_weight_kg':'2'}
+                      'shipping_cost':'62.70','origin':address,'destination':{**address,'country_code':'US'},'gross_weight_kg':'2','items':[{'description':'Electric steam iron','quantity':1,'unit_value':'25.00','unit_weight_kg':'1.000','origin_country':'GB'}]}
             elif path=='checkout/hs-search':
                 calls.append(('hs',route.request.post_data_json))
                 data={'candidates':[{'hs_code':'851640','title':'Electric smoothing irons','source':'UK Integrated Online Tariff'}]}
@@ -51,6 +51,15 @@ async def run():
           setView('dispatch');state.quotes=[rate];state.quoteRequest={origin:address,destination:{...address,country_code:'US'},currency:'GBP'};
           renderRates({rates:state.quotes,issues:[],partial:false});
         }''',{'tenant':tenant,'rate':rate,'address':address})
+        await page.evaluate('''()=>{
+          const varied=['DHL','DPD UK','UPS'].map((carrier,i)=>({...state.quotes[0],offer_id:'controlled-'+i,carrier_code:carrier}));
+          state.quotes=varied;renderRates({rates:varied,issues:[],partial:false});
+          document.querySelector('#carrier-filter').value='DPD UK';
+          renderRates({rates:varied,issues:[],partial:false});
+        }''')
+        await expect(page.locator('#carrier-filter')).to_have_value('')
+        assert await page.locator('[data-review]').count()==3
+        await page.evaluate('''(rate)=>{state.quotes=[rate];renderRates({rates:[rate],issues:[],partial:false});}''',rate)
         await page.locator('[data-review]').click()
         await expect(page.locator('#review-dialog')).to_be_visible()
         review=await page.locator('#review-content').inner_text()
@@ -61,7 +70,7 @@ async def run():
         await expect(page.locator('#checkout-customs-yes')).to_be_visible()
         await page.locator('#checkout-customs-yes').click()
         form=page.locator('#customer-customs-form')
-        await expect(form.locator('[name=description]')).to_have_value('')
+        await expect(form.locator('[name=description]')).to_have_value('Electric steam iron')
         await expect(form.locator('[name=hs_code]')).to_have_value('')
         await expect(form.locator('[name=invoice_reference]')).to_have_value(invoice)
         await expect(form.locator('[name=currency]')).to_have_value('USD')
@@ -73,8 +82,8 @@ async def run():
         await form.locator('[name=description]').fill('Electric steam iron for clothing')
         await expect(form.locator('[name=hs_code]')).to_have_value('')
         await form.locator('[data-checkout-hs]').click();await form.locator('[data-tariff-code]').click()
-        await form.locator('[name=origin_country]').fill('GB');await form.locator('[name=quantity]').fill('1')
-        await form.locator('[name=unit_value]').fill('25.00');await form.locator('[name=unit_weight_kg]').fill('1.000')
+        for field in ['origin_country','quantity','unit_value','unit_weight_kg']:assert await form.locator('[name='+field+']').get_attribute('readonly') is not None
+        await expect(form.locator('[name=unit_weight_kg]')).to_have_value('1.000')
         await form.locator('[name=category]').select_option('OTHER');await expect(page.locator('#checkout-other-field')).to_be_visible()
         await form.locator('[name=category_other]').fill('Exhibition demonstration')
         await form.locator('[name=signer]').fill('Test Shipper');await form.locator('[name=reviewed]').check()
@@ -92,6 +101,7 @@ async def run():
         await page.locator('#checkout-purchase').click()
         await expect(page.locator('#review-content')).to_contain_text('Shipment booked successfully')
         await expect(page.locator('#checkout-downloads')).to_contain_text('Commercial invoice PDF')
+        await expect(page.locator('#checkout-downloads')).to_contain_text('Booking receipt PDF')
         assert sum(kind=='purchase' for kind,_ in calls)==1
         saved=next(body for kind,body in calls if kind=='prepare')['customs']
         assert saved['items'][0]['hs_code']=='851640' and saved['category_other']=='Exhibition demonstration'
@@ -102,8 +112,8 @@ async def run():
         assert not errors,errors
         await browser.close()
     report={'status':'PASS','provider_boundary':'controlled API responses','javascript_errors':errors,
-            'checks':['Customer price excludes wholesale and markup disclosures','No pre-booking customs preview or JSON downloads',
-                'Empty product fields, stable invoice reference, shipping cost and explicit goods currency',
+            'checks':['New quotes reset stale carrier filters; three distinct carriers remain visible','Customer price excludes wholesale and markup disclosures','No pre-booking customs preview or JSON downloads',
+                'Saved goods snapshot with read-only quantity, value, net weight and origin; stable invoice reference and shipping cost',
                 'Official tariff selection and stale-HS invalidation','OTHER category requires free text',
                 '375/768/1366px responsive checkout','Changed price requires confirmation before one purchase',
                 'Booking completion, label/invoice downloads and next-shipment reset']}

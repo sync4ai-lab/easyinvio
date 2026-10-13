@@ -31,6 +31,7 @@ wire contract; use an adapter matching the selected regional provider's API.
 """
 
 from __future__ import annotations
+from backend.automation_freight_engine import PurchaseRejected
 
 import asyncio
 import json
@@ -332,6 +333,8 @@ class RatingRequest(StrictModel):
     cargo_type: Literal['LETTER','PARCEL','PALLET','OVERLAND_FREIGHT'] = 'PARCEL'
     stackable: bool = True
     customs_document: dict | None = None
+    shipment_items: list[dict] = Field(default_factory=list,max_length=100)
+    goods_currency: Currency | None = None
     is_return: bool = False
 
     @model_validator(mode='before')
@@ -351,6 +354,12 @@ class RatingRequest(StrictModel):
 
     @model_validator(mode="after")
     def matching_arrays(self) -> RatingRequest:
+        if self.shipment_items:
+            from backend.automation_freight_engine import Goods
+            items=[Goods.model_validate(item) for item in self.shipment_items]
+            if sum((i.quantity*i.unit_weight_kg for i in items),Decimal(0))>self.weights_kg[0]:
+                raise ValueError('Total goods net weight cannot exceed packed shipment weight')
+            self.shipment_items=[item.model_dump(mode='json') for item in items]
         if self.cargo_type=='LETTER':
             if self.weights_kg[0]>=Decimal('.5'):
                 raise ValueError('LETTER must weigh below 0.5 kg')
@@ -854,8 +863,15 @@ class RateStrategy(ABC):
             "POST", f"{self.account.base_url}{path}", **kwargs
         ) as response:
             if response.status_code >= 400:
+                code='UPSTREAM_AUTHENTICATION_REJECTED' if response.status_code in {401,403} else 'UPSTREAM_HTTP_ERROR'
+                if self.account.provider=='EASYPOST' and response.status_code==422:
+                    try:
+                        error=(await streamed_json(response)).get('error',{})
+                        if isinstance(error,dict) and str(error.get('code','')).startswith('ADDRESS.VERIFY.'):
+                            code='LETTER_ADDRESS_VERIFICATION_REQUIRED' if payload.get('shipment',{}).get('parcel',{}).get('predefined_package')=='Letter' else 'ADDRESS_VERIFICATION_FAILED'
+                    except (ValueError,AttributeError,TypeError):pass
                 raise ProviderFailure(
-                    "UPSTREAM_HTTP_ERROR",
+                    code,
                     response.status_code in {408, 429} or response.status_code >= 500,
                 )
             try:
@@ -904,6 +920,7 @@ class EasyPostStrategy(RateStrategy):
             shipment['to_address'] = self.address(request.origin)
             shipment['is_return'] = True
         if request.cargo_type=='LETTER':
+            shipment['parcel']['predefined_package']='Letter'
             # EasyPost creates these embedded addresses with strict AVS enabled.
             shipment['from_address']['verify_strict']=True
             shipment['to_address']['verify_strict']=True
@@ -930,6 +947,7 @@ class EasyPostStrategy(RateStrategy):
             body.get(party,{}).get('verifications',{}).get('delivery',{}).get('success') is not True
             for party in ('from_address','to_address')):
             raise ProviderFailure('LETTER_ADDRESS_VERIFICATION_REQUIRED')
+        if not body["rates"]:raise ProviderFailure("NO_SERVICES_FOR_ROUTE_OR_ACCOUNT")
         result = []
         for raw in body["rates"]:
             if not isinstance(raw, dict):
@@ -991,6 +1009,8 @@ class SendcloudStrategy(RateStrategy):
         self.methods=methods
 
     async def rates(self,request):
+        if self.account.base_url == 'https://panel.sendcloud.sc/api/v2' and not self.methods:
+            raise ProviderFailure('SENDCLOUD_METHODS_NOT_CONFIGURED')
         try:
             rows = (await quote_sendcloud_v3(self.client,self.account,request)
                     if self.account.base_url == 'https://panel.sendcloud.sc/api/v3'
@@ -1012,6 +1032,12 @@ class RatingService:
                            deadline: int) -> tuple[list[WholesaleRate], ProviderIssue | None]:
         account = strategy.account
         try:
+            endpoint=getattr(account,'base_url','')
+            known=bool(identify_aggregator(endpoint))
+            if known and request.cargo_type in {'PALLET','OVERLAND_FREIGHT'}:
+                raise ProviderFailure('FREIGHT_ADAPTER_CONTRACT_NOT_CONFIGURED')
+            if known and request.cargo_type=='LETTER' and 'easypost.com' not in endpoint:
+                raise ProviderFailure('LETTER_SERVICE_NOT_CONFIGURED')
             async with asyncio.timeout(deadline):
                 async with self.semaphore:
                     rates = await strategy.rates(request)
@@ -1020,6 +1046,12 @@ class RatingService:
             return rates, None
         except ProviderFailure as exc:
             code, retryable = exc.code, exc.retryable
+        except PurchaseRejected as exc:
+            text=str(exc)
+            code=('UPSTREAM_AUTHENTICATION_REJECTED' if 'HTTP_401' in text or 'HTTP_403' in text else
+                'UPSTREAM_REQUEST_REJECTED' if 'HTTP_400' in text or 'HTTP_422' in text else
+                'CARGO_SERVICE_NOT_CONFIGURED' if 'FREIGHT' in text or 'LETTER' in text else 'NO_SERVICES_FOR_ROUTE_OR_ACCOUNT' if 'NO_SERVICES_FOR_ROUTE_OR_ACCOUNT' in text else 'UPSTREAM_REJECTED')
+            retryable=False
         except (TimeoutError, httpx.TimeoutException):
             code, retryable = "UPSTREAM_TIMEOUT", True
         except httpx.RequestError:
@@ -1055,8 +1087,7 @@ class RatingService:
             accounts=await self.repository.accounts(context,historical_account_id=return_account_id)
         else:
             accounts = await self.repository.accounts(context)
-        if request.cargo_type in {'PALLET','OVERLAND_FREIGHT'} or (request.customs_document and request.customs_document.get('required') and request.customs_document.get('currency')!='USD'):
-            accounts=[account for account in accounts if account.provider=='REGIONAL']
+        # Every configured connection is accounted for; unsupported cargo is an explicit issue.
         if not accounts:
             raise HTTPException(503, "No active carrier accounts configured")
         strategies = []
@@ -1113,12 +1144,15 @@ class RatingService:
         if not rates:
             raise HTTPException(503, {
                 "code": "NO_CARRIER_RATES_AVAILABLE",
+                "message": ('Freight booking is not configured for these integrations. A verified freight adapter and carrier contract are required; this does not mean all carriers reject your cargo.' if request.cargo_type in {'PALLET','OVERLAND_FREIGHT'} else
+                    'No eligible letter service returned a rate. Check document-service availability and address verification with platform support.' if request.cargo_type=='LETTER' else
+                    'No matching rates were returned for this route and currency. Platform support can distinguish account configuration, currency and carrier eligibility.'),
                 "issues": [i.model_dump(mode="json") for i in issues],
             })
         from backend.carrier_consolidation import consolidate_rates,route_history,carrier_identity,unknown_history
         rates=consolidate_rates(rates)
         try:
-            history=await route_history(self.pool,context.tenant_id,request.destination.country_code)
+            history=await route_history(self.pool,context.tenant_id,request.destination.country_code,request.origin.country_code)
             unavailable=False
         except (asyncpg.PostgresError,ValueError,KeyError,TypeError):
             logger.warning('Carrier performance history unavailable; no statistics fabricated')

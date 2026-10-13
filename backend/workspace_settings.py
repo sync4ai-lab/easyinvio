@@ -175,6 +175,27 @@ def build_router(authenticate):
         return {'saved':True,'sent_to_carrier':False}
     from backend.admin_portal import authenticate_platform_owner
     from types import SimpleNamespace
+    @router.get('/admin/platform-carriers/{connection_id}/quote-diagnostics')
+    async def diagnostics(connection_id:UUID,request:Request,admin:Any=Depends(authenticate_platform_owner)):
+        async with request.app.state.finance.pool.acquire() as c:
+            row=await c.fetchrow('SELECT account_name,api_base_url,is_active,environment FROM public.platform_carrier_connections WHERE id=$1',connection_id)
+            if not row:raise HTTPException(404,'Connection not found')
+            accounts=await c.fetch('SELECT id FROM public.carrier_accounts WHERE platform_connection_id=$1',connection_id)
+            quotes=await c.fetch('SELECT quote_payload FROM public.partner_unbound_quotes ORDER BY expires_at DESC LIMIT 100')
+        import json
+        ids={str(a['id']) for a in accounts};count=0;carriers=set();codes=set()
+        for q in quotes:
+            payload=json.loads(q['quote_payload']) if isinstance(q['quote_payload'],str) else q['quote_payload']
+            for rate in payload.get('rates',[]):
+                if str(rate.get('account_id')) in ids:count+=1;carriers.add(rate.get('carrier_code',''))
+            for issue in payload.get('issues',[]):
+                if str(issue.get('account_id')) in ids:codes.add(issue.get('code','UNKNOWN'))
+        endpoint=row['api_base_url'];letter='easypost.com' in endpoint
+        return {**dict(row),'parcel':'Implemented; route, currency and enabled carrier accounts determine availability',
+            'letter':'Implemented with Letter packaging and strict address verification' if letter else 'No verified letter service implemented in this adapter',
+            'freight':'No verified industrial freight booking contract/adapter implemented for the three native providers',
+            'recent_saved_offer_count':count,'carriers':sorted(carriers),'failure_codes':sorted(codes),
+            'scope':'Last 100 saved quotes across platform workspaces; this read-only check makes no external API requests. Failed requests without a saved quote are not included.'}
     @router.get('/admin/shipments/{shipment_id}/dispute-draft')
     async def admin_get_draft(shipment_id:UUID,tenant_id:UUID,request:Request,admin:Any=Depends(authenticate_platform_owner)):
         return await get_draft(shipment_id,request,SimpleNamespace(tenant_id=tenant_id,user_id=admin.user_id,role='OWNER'))

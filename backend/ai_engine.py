@@ -249,11 +249,11 @@ def build_router(authenticate: Callable) -> APIRouter:
             raise HTTPException(422, str(exc)) from None
         from backend.carrier_consolidation import route_history
         try:
-            history=await route_history(request.app.state.finance.pool,context.tenant_id,destination)
+            history=await route_history(request.app.state.finance.pool,context.tenant_id,destination,origin)
         except (asyncpg.PostgresError,ValueError):
             raise HTTPException(503,'Carrier route history unavailable') from None
         return {'carriers':[{'carrier_code':carrier,**{key:str(value) if isinstance(value,Decimal) else value for key,value in stats.items()}} for carrier,stats in history.items()],
-            'source':'tenant shipment history','window_days':90,'origin_filter_applied':False,
+            'source':'tenant shipment history','window_days':90,'origin_filter_applied':True,
             'notice':'Carrier/destination history for your workspace; synthetic fixtures excluded.'}
 
     @router.post("/audit/invoice")

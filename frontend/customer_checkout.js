@@ -23,18 +23,19 @@ function checkoutProduct(item={}) {
   const value=name=>escapeHTML(item[name]??'');
   return `<div class="checkout-product"><label>Product description</label><textarea name="description" minlength="3" maxlength="500" placeholder="e.g. Electric steam iron for household clothing" required>${value('description')}</textarea>
   <button type="button" class="secondary" data-checkout-hs>Find HS code in official tariff</button><div class="checkout-tariffs" aria-live="polite"></div>
-  <div class="fields"><div><label>Reviewed HS code</label><input name="hs_code" value="${value('hs_code')}" placeholder="6, 8 or 10 digits" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></div><div><label>Country of manufacture</label><input name="origin_country" value="${value('origin_country')}" placeholder="e.g. GB" pattern="[A-Za-z]{2}" required></div>
-  <div><label>Quantity</label><input name="quantity" value="${value('quantity')}" type="number" min="1" max="10000" step="1" placeholder="e.g. 2" required></div><div><label>Value per item</label><input name="unit_value" value="${value('unit_value')}" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" placeholder="e.g. 25.00" required></div>
-  <div><label>Net weight per item (kg)</label><input name="unit_weight_kg" value="${value('unit_weight_kg')}" type="number" min="0.001" step="0.001" placeholder="e.g. 0.250" required></div></div><button class="secondary" type="button" data-checkout-remove>Remove product</button></div>`;
+  <div class="fields"><div><label>Reviewed HS code</label><input name="hs_code" value="${value('hs_code')}" placeholder="6, 8 or 10 digits" pattern="[0-9]{6}([0-9]{2})?([0-9]{2})?" required></div><div><label>Country of manufacture</label><input readonly name="origin_country" value="${value('origin_country')}" placeholder="e.g. GB" pattern="[A-Za-z]{2}" required></div>
+  <div><label>Quantity</label><input readonly name="quantity" value="${value('quantity')}" type="number" min="1" max="10000" step="1" placeholder="e.g. 2" required></div><div><label>Value per item</label><input readonly name="unit_value" value="${value('unit_value')}" inputmode="decimal" pattern="[0-9]+(\\.[0-9]{1,2})?" placeholder="e.g. 25.00" required></div>
+  <div><label>Net weight per item (kg)</label><input readonly name="unit_weight_kg" value="${value('unit_weight_kg')}" type="number" min="0.001" step="0.001" placeholder="e.g. 0.250" required></div></div></div>`;
 }
 
 function renderCheckoutCustoms() {
   const context=customerCheckout.context;
+  if(!context.items?.length){$('#checkout-next').innerHTML='<div class="notice">This older quote has no saved goods details. Close checkout, enter goods in Create shipment and fetch a fresh quote.</div>';return;}
   $('#checkout-next').innerHTML=`<h2>Customs details &amp; HS finder</h2><p class="subtle">Enter the real goods in this shipment. Review tariff suggestions before declaring them.</p>
-    <form id="customer-customs-form"><label>Invoice reference - linked to this booking</label><input name="invoice_reference" readonly value="${escapeHTML(context.invoice_reference)}">
+    <p class="subtle">Packed weight: ${escapeHTML(context.gross_weight_kg)} kg; total goods net weight: ${escapeHTML(context.total_goods_net_weight_kg||'Not recorded')} kg.</p><form id="customer-customs-form"><label>Invoice reference - linked to this booking</label><input name="invoice_reference" readonly value="${escapeHTML(context.invoice_reference)}">
     <div class="fields"><div><label>Shipping cost</label><input readonly value="${escapeHTML(money(context.shipping_cost,context.shipping_currency))}"></div><div><label>Goods value currency</label><select name="currency"><option ${context.goods_value_currency==='GBP'?'selected':''}>GBP</option><option ${context.goods_value_currency==='EUR'?'selected':''}>EUR</option><option ${context.goods_value_currency==='USD'?'selected':''}>USD</option></select></div></div>
-    <p class="footnote">Enter goods values in the selected currency. Some services require USD customs values; no automatic currency conversion is assumed.</p>
-    <div class="checkout-products">${checkoutProduct()}</div><button class="secondary" type="button" id="checkout-add-product">Add another product</button>
+    <p class="footnote">Review goods values in the selected currency. Some services require USD customs values; no automatic currency conversion is assumed.</p>
+    <p class="notice">Quantity, value, goods origin and net weight come from your saved shipment quote. To change these values, close this checkout, edit Create shipment and request fresh rates.</p><div class="checkout-products">${(context.items||[]).map(item=>checkoutProduct(item)).join('')}</div><button class="secondary" type="button" id="checkout-add-product" hidden disabled>Add another product</button>
     <label>Export category</label><select name="category"><option value="SALE">Sale of goods</option><option value="GIFT">Gift</option><option value="RETURN">Returned goods</option><option value="SAMPLE">Commercial sample</option><option value="OTHER">Other</option></select>
     <div id="checkout-other-field" hidden><label>Describe the export reason</label><input name="category_other" minlength="3" maxlength="200" placeholder="e.g. Exhibition goods being sent temporarily"></div>
     <label>Import duties and taxes</label><select name="incoterm"><option value="DAP">Recipient pays import duties and taxes (DAP)</option></select>
@@ -43,7 +44,7 @@ function renderCheckoutCustoms() {
     <label>Declaration signed by</label><input name="signer" maxlength="200" placeholder="Full name of the responsible shipper" required>
     <label class="check"><input name="reviewed" type="checkbox" required>I confirm the HS codes, origin, values and weights describe my goods accurately.</label>
     <button id="checkout-prepare-btn" class="primary full">Review final booking price</button></form>`;
-  const form=$('#customer-customs-form');
+  const form=$('#customer-customs-form');form.elements.currency.disabled=true;
   form.elements.category.addEventListener('change',()=>{
     const other=form.elements.category.value==='OTHER';$('#checkout-other-field').hidden=!other;
     form.elements.category_other.required=other;if(!other)form.elements.category_other.value='';
@@ -109,7 +110,7 @@ function showCustomerBooking(result,prepared) {
   const pending=result.status==='SYNC_PENDING';
   $('#review-content').innerHTML=`<h2>${pending?'Your label is being prepared':'Shipment booked successfully'}</h2><p class="notice">${pending?'Your carrier has accepted the request. Credit remains reserved while the label is prepared. Do not place a second booking.':'Tracking: '+escapeHTML(result.label.tracking_number)}</p><p class="subtle">Booking / invoice reference: ${escapeHTML(prepared.invoice_reference)}</p><div id="checkout-downloads" class="actions"></div><button class="secondary" id="checkout-open-manifest">Open Manifest &amp; Labels</button><button class="secondary" id="checkout-new-shipment">Start a new shipment</button>`;
   if(!pending){
-    const documents=[{document_type:'Shipping label PDF',url:result.label.label_url},...(result.label.carrier_forms||[])];
+    const documents=[{document_type:'Booking receipt PDF',url:'/api/v1/checkout/'+result.shipment_id+'/receipt.pdf'},{document_type:'Shipping label PDF',url:result.label.label_url},...(result.label.carrier_forms||[])];
     if(prepared.customs_required)documents.push({document_type:'Commercial invoice PDF',url:'/api/v1/checkout/'+result.shipment_id+'/commercial-invoice.pdf'});
     for(const shippingDocument of documents){const button=document.createElement('button');button.type='button';button.className='primary';button.textContent='Download '+shippingDocument.document_type;button.addEventListener('click',()=>busy(button,()=>downloadPartnerDocument(shippingDocument.url)));$('#checkout-downloads').append(button);}
     state.quotes[customerCheckout.index].booked=true;
@@ -139,10 +140,11 @@ function resetCustomerCheckout() {
 }
 $('#review-dialog').addEventListener('close',resetCustomerCheckout);
 const checkoutClearSessionBase=clearSession;
-clearSession=function(){resetCustomerCheckout();$('#review-dialog').close();checkoutClearSessionBase.apply(this,arguments);for(const prefix of ['origin','destination'])for(const field of addressNames){const input=$('#'+prefix+'-'+field);if(input)input.value='';}$('#item-description').value='';$('#hs-results').replaceChildren();};
+clearSession=function(){checkoutManifestInvoiceId=null;$('#shipment-receipt').disabled=true;resetCustomerCheckout();$('#review-dialog').close();checkoutClearSessionBase.apply(this,arguments);for(const prefix of ['origin','destination'])for(const field of addressNames){const input=$('#'+prefix+'-'+field);if(input)input.value='';}$('#item-description').value='';$('#hs-results').replaceChildren();};
 
 // Standalone HS exploration is permitted; linked declaration editing happens in checkout.
 $('#declaration-form').hidden=true;
+$('#declaration-form').closest('.card').hidden=true;
 $('#declaration-result').innerHTML='<div class="notice">Start with a shipping quote and select Book shipping label to prepare a declaration linked to your shipment. Final invoice PDFs are available after the booking is confirmed.</div>';
 $('#declaration-form').closest('.card').querySelector('.subtle').textContent='Customs details and invoice references belong to a booking.';
 $('#checkout-customs').hidden=true;
@@ -156,10 +158,13 @@ $('#item-description').addEventListener('input',()=>{ $('#hs-results').replaceCh
 let checkoutManifestInvoiceId=null;
 $('#shipment-doc-json').hidden=true;
 $('#shipment-doc-print').textContent='Download commercial invoice PDF';
+$('#shipment-doc-print').insertAdjacentHTML('afterend','<button id="shipment-receipt" class="secondary" disabled>Download booking receipt PDF</button>');
+$('#shipment-receipt').addEventListener('click',()=>{if(checkoutManifestInvoiceId)busy($('#shipment-receipt'),()=>downloadPartnerDocument('/api/v1/checkout/'+checkoutManifestInvoiceId+'/receipt.pdf'));});
 $('#manifest-body').addEventListener('click',event=>{
   const button=event.target.closest('[data-manifest-detail]');if(!button)return;
   const row=manifestRecords().find(item=>item.id===button.dataset.manifestDetail);
   checkoutManifestInvoiceId=row?.id||null;
+  $('#shipment-receipt').disabled=portal.profile?.workspace_role==='DISPATCHER'||!state.session||!row||!['BOOKED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'].includes(row.status);
   $('#shipment-doc-print').disabled=!state.session||!row?.customs_required||!['BOOKED','IN_TRANSIT','DELIVERED','EXCEPTION'].includes(row.status);
 });
 $('#shipment-doc-print').addEventListener('click',event=>{

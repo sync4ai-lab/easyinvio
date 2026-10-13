@@ -165,7 +165,8 @@ class NativeContractTests(unittest.IsolatedAsyncioTestCase):
         strategy.post = AsyncMock(return_value={'id': 'return1', 'rates': []})
         request = main.RatingRequest(origin=buyer, destination=warehouse, weights_kg=['1'],
             dimensions=[{'length_cm': '20', 'width_cm': '15', 'height_cm': '10'}], is_return=True)
-        await strategy.rates(request)
+        with self.assertRaises(main.ProviderFailure) as error:await strategy.rates(request)
+        self.assertEqual(error.exception.code,'NO_SERVICES_FOR_ROUTE_OR_ACCOUNT')
         payload = strategy.post.call_args.args[1]['shipment']
         self.assertTrue(payload['is_return'])
         self.assertEqual(payload['from_address']['name'], 'Warehouse')

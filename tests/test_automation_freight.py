@@ -78,7 +78,7 @@ class AutomationTests(unittest.IsolatedAsyncioTestCase):
         request=main.RatingRequest(origin=address(),destination=address(),cargo_type='LETTER',weights_kg=['0.100'])
         await strategy.rates(request)
         payload=strategy.post.call_args.args[1]['shipment']['parcel']
-        self.assertEqual(set(payload),{'weight'})
+        self.assertEqual(set(payload),{'weight','predefined_package'});self.assertEqual(payload['predefined_package'],'Letter')
         self.assertTrue(strategy.post.call_args.args[1]['shipment']['to_address']['verify_strict'])
 
     async def test_purchase_wire_and_mode_fencing(self):

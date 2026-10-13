@@ -53,7 +53,7 @@ def summarize_history(rows):
         data=groups.setdefault(carrier,{'transits':[],'eligible':0,'on_time':0,'exceptions':0,'samples':0})
         data['samples']+=1
         if row['status']=='EXCEPTION':data['exceptions']+=1
-        start=row['dispatched_at'] or row['booked_at'];end=row['delivered_at']
+        start=row['dispatched_at'] or row.get('first_observed_transit');end=row['delivered_at']
         if row['status']!='DELIVERED' or not start or not end or end<start:continue
         elapsed=end-start
         seconds=Decimal(elapsed.days*86400+elapsed.seconds)+Decimal(elapsed.microseconds)/Decimal('1000000')
@@ -72,7 +72,7 @@ def summarize_history(rows):
             'history_samples':data['samples'],'delivery_samples':len(data['transits']),'on_time_samples':data['eligible'],
             'active_exceptions':data['exceptions'],'history_status':'RECORDED_HISTORY',
             'on_time_method':'quoted business-day estimate; weekends excluded, holidays not adjusted',
-            'transit_method':'elapsed calendar days from dispatch, or booking when dispatch is unavailable'}
+            'transit_method':'elapsed calendar days from recorded dispatch or first accepted in-transit update; booking time is never substituted'}
     return results
 
 
@@ -82,15 +82,18 @@ def unknown_history(status='NO_HISTORY'):
             'on_time_method':'No qualified delivery estimate history','transit_method':'No measured deliveries'}
 
 
-async def route_history(pool,tenant_id,destination):
+async def route_history(pool,tenant_id,destination,origin=None):
     if pool is None:return {}
     async with pool.acquire() as connection:
         rows=await connection.fetch("""SELECT carrier_code,status,booked_at,dispatched_at,delivered_at,
+                (SELECT min(e.occurred_at) FROM public.tracking_events e WHERE e.tenant_id=shipments.tenant_id
+                 AND e.shipment_id=shipments.id AND e.status='IN_TRANSIT' AND e.response->>'applied'='true') AS first_observed_transit,
                 pricing_snapshot->'selected_rate'->>'delivery_days' AS delivery_days
             FROM public.shipments WHERE tenant_id=$1 AND destination_country=$2
+            AND ($3::text IS NULL OR origin_country=$3)
             AND COALESCE(delivered_at,last_tracking_event_at,booked_at,created_at)>=now()-interval '90 days'
             AND logistics_metadata->>'synthetic' IS DISTINCT FROM 'true'
-            AND NOT (logistics_metadata ? 'fixture_batch') LIMIT 10001""",tenant_id,destination)
+            AND NOT (logistics_metadata ? 'fixture_batch') LIMIT 10001""",tenant_id,destination,origin)
     if len(rows)>10000:raise ValueError('History capacity exceeded; no biased sample published')
     return summarize_history(rows)
 

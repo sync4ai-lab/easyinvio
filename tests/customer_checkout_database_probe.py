@@ -73,7 +73,7 @@ async def run():
             origin={'name':'QA Exporter','line1':'1 Fixture Way','city':'London','postal_code':'SW1A 1AA','country_code':'GB'}
             destination={'name':'QA Buyer','line1':'228 Park Ave S','city':'New York','state':'NY','postal_code':'10003','country_code':'US'}
             quote_request=main.RatingRequest(origin=origin,destination=destination,currency='GBP',weights_kg=['2'],
-                dimensions=[{'length_cm':'20','width_cm':'20','height_cm':'20'}])
+                dimensions=[{'length_cm':'20','width_cm':'20','height_cm':'20'}],goods_currency='USD',shipment_items=[{'description':'Electric smoothing iron','quantity':1,'unit_value':'25.00','unit_weight_kg':'1.000','origin_country':'GB'}])
             quoted=await rating.quote(context,quote_request)
             await connection.execute('''INSERT INTO public.partner_unbound_quotes(tenant_id,request_id,request_payload,quote_payload,expires_at)
                 VALUES($1,$2,$3::jsonb,$4::jsonb,$5)''',tenant,quoted.request_id,quote_request.model_dump_json(),quoted.model_dump_json(),quoted.expires_at)
@@ -81,12 +81,22 @@ async def run():
             req=SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(partner_lifecycle=service)))
             data=await endpoints['/api/v1/checkout/context'](quoted.rates[0].offer_id,req,context)
             assert data['goods_value_currency']=='USD' and data['customs_required']
+            repeated=await endpoints['/api/v1/checkout/context'](quoted.rates[0].offer_id,req,context)
+            assert repeated['invoice_reference']==data['invoice_reference']
             body=CheckoutPrepare(offer_id=quoted.rates[0].offer_id,customs={'items':[{'description':'Electric smoothing iron',
                 'hs_code':'851640','origin_country':'GB','quantity':1,'unit_value':'25.00','unit_weight_kg':'1.000'}],
                 'signer':'QA Shipper','reviewed':True,'currency':'USD','category':'OTHER','category_other':'Exhibition demonstration'})
+            changed=body.model_copy(deep=True);changed.customs.items[0].quantity=2
+            try:await endpoints['/api/v1/checkout/prepare'](changed,req,context)
+            except HTTPException as exc:assert exc.status_code==409
+            else:raise AssertionError('Quoted goods snapshot was editable')
             prepared=await endpoints['/api/v1/checkout/prepare'](body,req,context)
             assert prepared['price_changed'] and prepared['invoice_reference']==data['invoice_reference']
             sid=UUID(prepared['shipment_id']);invoice_endpoint=endpoints['/api/v1/checkout/{shipment_id}/commercial-invoice.pdf']
+            receipt_endpoint=endpoints['/api/v1/checkout/{shipment_id}/receipt.pdf']
+            try:await receipt_endpoint(sid,req,context)
+            except HTTPException as exc:assert exc.status_code==409
+            else:raise AssertionError('Receipt downloaded before booking')
             try:await invoice_endpoint(sid,req,context)
             except HTTPException as exc:assert exc.status_code==409
             else:raise AssertionError('Invoice downloaded before payment')
@@ -102,6 +112,15 @@ async def run():
             pdf=await invoice_endpoint(sid,req,context);text=''.join(page.extract_text() for page in PdfReader(BytesIO(pdf.body)).pages)
             assert data['invoice_reference'] in text and str(amount)+' GBP' in text and '25.00 USD' in text
             assert 'Exhibition demonstration' in text
+            receipt=await receipt_endpoint(sid,req,context)
+            receipt_text=''.join(page.extract_text() for page in PdfReader(BytesIO(receipt.body)).pages)
+            assert data['invoice_reference'] in receipt_text and 'GBP '+str(amount) in receipt_text
+            another=await rating.quote(context,quote_request)
+            await connection.execute('''INSERT INTO public.partner_unbound_quotes(tenant_id,request_id,request_payload,quote_payload,expires_at)
+                VALUES($1,$2,$3::jsonb,$4::jsonb,$5)''',tenant,another.request_id,quote_request.model_dump_json(),another.model_dump_json(),another.expires_at)
+            another_data=await endpoints['/api/v1/checkout/context'](another.rates[0].offer_id,req,context)
+            assert int(another_data['invoice_reference'].split('-')[-1])>int(data['invoice_reference'].split('-')[-1])
+            report['checks'].append('PASS: immutable quoted goods; repeated checkout reference is stable; next booking gets a higher EINVIO number; receipt shares the reference and is unavailable before booking')
             report['checks'].append('PASS: one label purchase, one wallet capture, booking replay and branded PDF with linked reference, real shipping cost and separate goods currency')
             other=main.TenantContext(uuid4(),member,'OWNER','')
             try:await invoice_endpoint(sid,req,other)
