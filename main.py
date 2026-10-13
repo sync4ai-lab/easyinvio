@@ -2429,6 +2429,8 @@ from backend.platform_carriers import router as platform_carriers_router
 app.include_router(platform_carriers_router)
 from backend.credential_rotation import router as credential_rotation_router
 app.include_router(credential_rotation_router)
+from backend.help_center import router as help_center_router
+app.include_router(help_center_router)
 from backend.identity import router as identity_router
 app.include_router(identity_router)
 app.include_router(sandbox_router(authenticate, RatingRequest))

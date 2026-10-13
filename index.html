@@ -36,6 +36,8 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 #tenant-admin-form,#margin-admin-form,#carrier-admin-form,#store-admin-form{margin-top:20px}dialog label{margin-bottom:12px}dialog{color:#f1f5f9;background:#020617;border-color:#475569}dialog h2{padding-right:40px}
 @media(max-width:1023px){.container{padding:16px}.topbar{position:relative}.topbar-actions{gap:8px}.brand{font-size:22px}.topbar-status{display:none}}
 @media(max-width:767px){.provider-grid{grid-template-columns:1fr}.header-personas{width:100%;order:2}.topbar-actions{flex:1;justify-content:flex-end}.topbar{padding:12px 16px;gap:8px}.header-personas button{flex:1;font-size:9px}.container{padding:16px 12px}.pagehead h1{font-size:25px}.pagehead .primary{width:100%}.toolbar{flex-wrap:wrap}.toolbar input,.toolbar select{flex:1;min-width:0}.exception-sheet{padding:24px 16px}}
+
+.help-centre-nav{display:flex;align-items:center;gap:12px;min-height:44px;margin-top:12px;padding:11px 12px;border:1px solid #27344b;border-radius:10px;background:#0f172a;color:#a5b4fc;font-size:12px;font-weight:650;text-decoration:none}.help-centre-nav:hover{background:#1e1b4b;color:#e0e7ff}.help-centre-nav span{display:grid;place-items:center;width:22px;height:22px;border:1px solid #475569;border-radius:50%}.sidebar{overflow-y:auto}
 </style>
 <style>
 .carrier-wordmark{width:120px;height:34px;margin-bottom:10px}.trust-ribbon{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;color:#c7d2fe;font-size:12px}.rate-price{text-align:right;flex-shrink:0}.rate.route-delay-alert{border-color:#d97706;background:linear-gradient(120deg,#78350f22,#020617)}.route-warning{margin:12px 0;padding:12px;border:1px solid #92400e;border-radius:12px;color:#fde68a;background:#451a0333}.ratehead{flex-wrap:wrap;gap:12px}.ratehead>div{min-width:0}.rate h3{overflow-wrap:anywhere}
@@ -144,6 +146,8 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <span>Customs tools</span>
 </button>
 </nav>
+<a class="help-centre-nav" href="/help">
+<span aria-hidden="true">?</span> Help Centre</a>
 <div class="sidebar-footer">
 <b>Built for dispatch teams</b>Decimal pricing · tenant isolation<br>Customs suggestions require review.</div>
 </aside>
@@ -5478,6 +5482,7 @@ document.body.insertAdjacentHTML('afterbegin', `<section id="loginContainer" ari
  <label for="identity-password">Password</label><div class="identity-input"><i data-lucide="lock"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg><input id="identity-password" type="password" autocomplete="current-password" required maxlength="4096"></div>
  <button id="identity-login-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-slate-100 font-bold py-3 rounded-xl transition-all" type="submit">Sign In</button>
  <p id="identity-login-status" class="footnote" role="status" aria-live="polite"></p></form>
+ <p class="footnote" style="margin-top:20px"><a href="/help">Help Centre</a> &middot; <a href="/help/contact">Contact support</a></p>
 </div></section>`);
 document.querySelector('main').insertAdjacentHTML('beforeend', `<section id="profile" hidden>
 <div class="pagehead"><div><div class="eyebrow">Your identity</div><h1>User Profile</h1><p>Manage contact details. Permissions are assigned by your administrator.</p></div></div>
@@ -6773,6 +6778,7 @@ document.body.insertAdjacentHTML('beforeend', `<dialog id="store-guide"><button 
 <label>Verified product weights · SKU = unit grams<textarea name="weights" rows="5" placeholder="TEE-BLUE = 200&#10;MUG-WHITE = 350"></textarea></label><p class="subtle">Use measured unit weights, not package dimensions. Missing SKU weights are flagged for review; no weight is invented.</p>
 <label class="check" data-shopify><input type="checkbox" name="live_import" checked>Enable read-only order retrieval</label><p id="store-webhook-path" class="notice"></p><button class="primary full">Save encrypted connection</button></form></dialog>
 <dialog id="store-help"><button class="close" aria-label="Close support form">×</button><h2>Contact EasyInvio support</h2><p>support@easyinvio.com</p><form id="store-help-form"><label>Support topic<select name="topic"><option>Store connection</option><option>Order import</option><option>Labels and tracking</option><option>Wallet and billing</option><option>Account access</option><option>Other</option></select></label><label>Platform or order reference (optional)<input name="reference" maxlength="200"></label><label>How can we help?<textarea name="message" required minlength="10" maxlength="3000" rows="5" placeholder="Describe what you expected and what happened. Do not include passwords, API keys or payment details."></textarea></label><button class="primary full">Open email draft</button><p class="footnote">This opens your email app. Review and send the email there; EasyInvio does not send it automatically.</p></form></dialog>`);
+storePanel.insertAdjacentHTML('beforeend', '<p style="margin-top:20px"><a href="/help">Visit the EasyInvio Help Centre</a> for account, payment and store guidance.</p>');
 storePanel.insertAdjacentHTML('beforeend', '<article class="card" style="margin-top:24px"><h2>Need a hand connecting?</h2><p>Our team can help with authorization, order imports and supported platforms.</p><button class="secondary" data-store-help>Contact support</button> <a href="mailto:support@easyinvio.com">support@easyinvio.com</a></article>');
 
 function renderStoreCatalogue() {

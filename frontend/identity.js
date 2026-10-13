@@ -22,6 +22,7 @@ document.body.insertAdjacentHTML('afterbegin', `<section id="loginContainer" ari
  <label for="identity-password">Password</label><div class="identity-input"><i data-lucide="lock"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg><input id="identity-password" type="password" autocomplete="current-password" required maxlength="4096"></div>
  <button id="identity-login-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-slate-100 font-bold py-3 rounded-xl transition-all" type="submit">Sign In</button>
  <p id="identity-login-status" class="footnote" role="status" aria-live="polite"></p></form>
+ <p class="footnote" style="margin-top:20px"><a href="/help">Help Centre</a> &middot; <a href="/help/contact">Contact support</a></p>
 </div></section>`);
 document.querySelector('main').insertAdjacentHTML('beforeend', `<section id="profile" hidden>
 <div class="pagehead"><div><div class="eyebrow">Your identity</div><h1>User Profile</h1><p>Manage contact details. Permissions are assigned by your administrator.</p></div></div>

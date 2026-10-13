@@ -1,0 +1,76 @@
+EasyInvio Help Centre: product review and implementation
+
+Public entry: /help
+Contact page: /help/contact
+Requested component: frontend/components/SupportHub.html
+Authored article catalogue and renderer: backend/help_center.py
+Local styling and behaviour: frontend/components/support.css and support.js
+
+Nine published guides:
+- Account access and invitation recovery
+- Team roles and account security
+- First quote, customs review and confirmed label
+- Wallet top-ups and pending payment recovery
+- Card/wallet booking payments and temporary credit holds
+- Prices, currencies, taxes and transaction references
+- Questions about charges, statements and loss/damage claims
+- Actual packed measurements and volumetric-weight guidance
+- Shopify registration, authorised connection and order retrieval
+
+Three feature guide placeholders, each with a working route, visible preparation
+status and links to available guidance:
+- /help/features/pricing
+- /help/features/bulk-dispatch
+- /help/features/labels-and-tracking
+These placeholders describe documentation that is forthcoming, not a new
+product capability or a guarantee that every account has enabled live services.
+
+Prompt corrections:
+- Replaced developer/sandbox and accounting jargon with customer task names.
+- Used actual links rather than href="#". Five quick-question shortcuts work.
+- Did not promise Shopify installation in three minutes or one-click onboarding.
+  Permissions, authorised credentials and store eligibility still matter.
+- Did not advertise prepaid threshold alerts; automatic low-wallet notifications
+  are not an established customer feature in the current implementation.
+- Did not advertise automatic FX or multi-currency wallet conversion.
+- Platform markup and carrier-contract settings are admin controls, not a
+  customer pricing-rule editor.
+- Distinguished carrier invoice review from lost/damaged-goods protection claims.
+  A draft finding is not an accepted claim or guaranteed refund.
+- Explained that a quoted/imported shipment is not a purchased label, a payment
+  return is not proof of settlement, and rejected card-funded labels can leave
+  verified funds in the wallet rather than automatically refunding a bank card.
+- Never invented on-time ratings, fixed universal carrier limits, free protection,
+  automatic shipping VAT collection or active integrations for every catalogue entry.
+
+Search matches public titles, descriptions and topic keywords. It works locally
+without external search services or account data. Static category links also
+work without JavaScript. Search failures and unknown guides have useful fallbacks.
+The contact form prepares an encoded mailto draft to support@easyinvio.com.
+Customers review and send it in their email app. It does not create a ticket,
+call a provider, or send a message automatically.
+
+Accessible from the application sidebar, signed-out sign-in screen and Store
+Integrations. Header and article navigation return to the workspace. All help
+pages use local CSS/JS and embedded licensed icons, with no CDN dependency.
+
+Content is original EasyInvio prose based on repository behaviour. The competitor
+was not fetched or used as a text source. Shopify's external administrator link
+was checked against its official documentation. Lucide/Feather icon notices are
+included in the component and ICONS_LICENSE.txt.
+
+Validation:
+- 401 Python unit tests passed, including public routes, every internal guide
+  and fragment target, correct feature preparation labels and asset allowlist.
+- Chromium at 1440px and 390px: signed-out entry, search, bookmarked search,
+  no-results/reset controls, linked guides, clearly marked placeholders,
+  email draft encoding, missing-guide page and no horizontal overflow.
+- Desktop, mobile and article screenshots inspected visually.
+- No database migrations or database/provider/message operations in this change.
+
+Future documentation expansion when requested:
+Detailed customs/HS review, bulk multi-box preparation, returns, protection
+eligibility/claims, delivery history and label cancellation/reconciliation.
+Product decisions needed separately: low-wallet alert thresholds and channels,
+currency conversion and settlement rules, managed store onboarding, and a
+server-backed general helpdesk ticket form if email drafts are insufficient.
