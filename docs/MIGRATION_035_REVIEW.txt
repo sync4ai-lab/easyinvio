@@ -1,0 +1,72 @@
+Migration 035 review and implementation boundary - 13 October 2026
+
+Run migrations in order through 034, then execute the entire file:
+migrations/035_packages_goods_returns_and_credential_locks.sql
+It runs as one transaction with 10-second lock and 120-second statement limits.
+Do not run isolated selections. A failure rolls back the migration; send only
+the error code/message, without credentials or customer row details.
+
+This is the SQL preparation requested by the user. It was tested in the actual
+SANDBOX database with a full rollback, including a second application to prove
+rerun safety. It has NOT been persistently applied. The attached backend prompt
+has been read but will be implemented only after execution is confirmed.
+
+Corrections to the proposed design
+1. JSONB supports indexing; an unindexed array does not inherently prevent item
+   validation. A broad GIN package index does not accelerate numerical summation
+   for a single shipment. Goods lines get a normalized private table with indexed
+   tenant/HS/origin and SKU fields, generated exact totals and tenant-bound FKs.
+   PostgreSQL reference: https://www.postgresql.org/docs/16/datatype-json.html
+2. Every box includes its own actual packed weight as well as three dimensions.
+   Array indices are sequential, 1-based and capped at 100. Numeric validation
+   rejects missing/nonpositive measurements and invalid precision. Flat legacy
+   fields mirror box 1; they are not the aggregate shipment mass. The existing
+   parcel_count=1 CHECK is extended only for a fully captured multi-piece parcel.
+3. Total goods net mass must be <= total packed mass, allowing for packaging.
+   Allocated goods must fit their individual box. Deferred validation allows
+   atomic edits, while parent locks serialize concurrent goods writes. Submitted
+   goods and package measurements are immutable. Unknown historical arrays remain
+   empty; no repeated-box inference or guessed goods/currency backfill occurs.
+4. Store sales fulfillment, return lifecycle and return-case progress are separate.
+   Historical fulfillment defaults to UNKNOWN rather than incorrectly labelling
+   all existing orders UNFULFILLED. Return parents have tenant-bound foreign keys.
+   New return/exchange outbox jobs are held for reconciliation so the CURRENT
+   forward-only worker cannot accidentally fulfill the original order.
+5. A boolean alone is not a credential security boundary. PostgreSQL now locks
+   connection identity on insert and seals existing rows. Standalone credentials,
+   endpoint, environment and account identity cannot be overwritten or unlocked.
+   Operational priority/activation edits continue to work. Shared tenant mirrors
+   may only synchronize from their existing trusted platform catalog record.
+   last_security_audit_at remains NULL until a real audit occurs.
+
+Current application compatibility
+The new package/goods snapshots are empty until the backend implementation.
+Existing single-box booking uses its existing validated fields. Current admin
+carrier PATCH changes activation/priority/timeouts and remains compatible.
+Shared provider changes continue through the existing catalog synchronization.
+Standalone credential rotation will use a fresh-authenticated platform-admin
+replacement-and-retirement flow, preserving historical shipment references.
+No arbitrary unlock flag or client-supplied admin assertion will be trusted.
+
+Attached prompt corrections for the next phase
+- Use sum(max(actual_kg[i], length[i]*width[i]*height[i]/5000)) for parcel planning.
+  Summing dimensional weights alone ignores heavy compact boxes. Send actual
+  per-box dimensions/weights to each provider; do not duplicate an aggregate mass
+  onto every box. Provider limits, rounding, freight rules and multi-piece purchase
+  capability must be verified independently. Preserve every returned package label
+  and tracking number, and handle partial/uncertain purchases explicitly.
+- Shopify returns require the appropriate return/reverse-fulfillment objects and
+  scopes; they are not ordinary forward fulfillments. Do not invent a generic
+  Amazon return-update endpoint or assume every Amazon seller program supports it.
+  Unsupported return synchronization remains an explicit review case.
+  https://shopify.dev/docs/api/admin-graphql/2026-07/mutations/returnCreate
+  https://developer-docs.amazon/sp-api/lang-us/docs/report-type-values-returns
+- Fresh admin reauthentication must be verified server-side. A token refresh or
+  a JSON field saying ADMIN is insufficient. Locked standalone credentials are
+  replaced rather than editing the old encrypted identity in place.
+
+Validation: migration applies twice; distinct boxes accepted; invalid boxes,
+goods mass/allocation, cross-tenant lines and count mismatches rejected; submitted
+snapshots frozen; returns fenced from the old forward worker; credential overwrite
+and unlock blocked; trusted catalog propagation preserved; goods remain private.
+All database test writes rolled back; zero provider calls or messages.
