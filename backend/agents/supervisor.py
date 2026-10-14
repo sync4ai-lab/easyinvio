@@ -17,6 +17,8 @@ class LogisticsSupervisor:
         self.invoice = InvoiceSurchargeAuditorAgent(self.runtime)
         self.support = ProactiveClaimsSupportAgent(self.runtime)
         self.help = HelpRetriever(self.runtime)
+        from backend.agents.margin_optimizer import MarginOptimizerAgent
+        self.optimizer = MarginOptimizerAgent(self.runtime)
 
     @staticmethod
     def dispatch_permission(context):
@@ -62,6 +64,7 @@ class LogisticsSupervisor:
         workflow.move(State.EXECUTING)
         try:
             result = await rating_service.quote(context, body)
+            result = await self.optimizer.recommend(context, result, getattr(rating_service, 'pool', None))
         except BaseException:
             workflow.move(State.REVIEW_REQUIRED)
             raise

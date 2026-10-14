@@ -1,6 +1,6 @@
 # EasyInvio bounded logistics assistance
 
-The supervisor coordinates narrow workers around existing services. It is an application state machine, not a model deciding who may spend money. No database migration, RLS change or FinanceEngine modification is required. Standard workflows remain available with AI disabled.
+The supervisor coordinates narrow workers around existing services. It is an application state machine, not a model deciding who may spend money. Agent orchestration and optional rate badges require no additional migration, RLS-context change or FinanceEngine modification. The separate Settings catalogs use migration 036. Standard workflows remain available with AI disabled.
 
 ## Capabilities and boundaries
 
@@ -56,3 +56,12 @@ The design reduces avoidable token use by reserving AI for ambiguous interpretat
 - [OpenAI Agents SDK](https://developers.openai.com/api/docs/guides/agents/sdk)
 - [Structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
 - [Embeddings](https://developers.openai.com/api/docs/guides/embeddings)
+
+
+## Top-three rate advice and reviewed catalogs
+
+Pricing still uses the existing database margin rules. Carrier/service/currency consolidation chooses the largest absolute contribution (customer price minus returned wholesale total), with deterministic ties, then retains the three lowest customer prices. This is not a claim of net accounting profit after overhead, tax and other platform expenses. UI rate requests optionally send only those offers' customer prices, estimates and measured local history to MarginOptimizerAgent. No supplier IDs, credentials or wholesale costs go to that model.
+
+The advice step has an outer 1.5-second timeout. It may attach one evidence-checked, server-formatted badge, but cannot reorder, reprice or purchase any offer. Missing history cannot produce a reliability claim. A timeout or invalid recommendation returns the unchanged offers without a badge. Internal failures are written asynchronously to existing automation_failures and support_tickets, grouped by tenant/error/hour to prevent repeated optional timeouts flooding the queue. Writes are bounded and logged if storage is unavailable; no system can guarantee a database trace during a database outage. Completed-response usage is measured; cancelled requests may still incur provider charges not represented by a completed SDK usage response.
+
+Migration 036 prepares private address/contact/product catalogs; it does not alter finance, shipment or RLS contexts. Saved SKU facts become ordinary validated quote snapshots. The authenticated customs suggestion endpoint can accept an optional sku and reuse a matching, explicitly reviewed tenant product without a model call. A different description cannot silently inherit that reviewed classification. Every shipment declaration still requires human approval.

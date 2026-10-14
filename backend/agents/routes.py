@@ -7,6 +7,7 @@ from backend.agents.supervisor import supervisor
 
 class Description(StrictOutput):
     description: str = Field(min_length=3, max_length=500)
+    sku: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class CustomsItems(StrictOutput):
@@ -29,7 +30,18 @@ def build_router(authenticate, rating_model, authenticate_platform_owner):
     async def customs(body: Description, request: Request, context=Depends(authenticate)):
         engine = supervisor(request)
         engine.dispatch_permission(context)
-        return await engine.customs.suggest(context, body.description)
+        product = None
+        if body.sku:
+            from backend.tenant_catalogs import TenantCatalogService, database_error
+            import asyncpg
+            finance = getattr(request.app.state, 'finance', None)
+            if finance is None:
+                raise HTTPException(503, 'Catalog storage is unavailable')
+            try:
+                product = await TenantCatalogService(finance.pool).product_by_sku(context, body.sku)
+            except asyncpg.PostgresError as error:
+                raise database_error(error) from None
+        return await engine.customs.suggest(context, body.description, product=product)
 
     @router.post('/api/v1/agents/customs/information')
     async def information(body: CustomsItems, request: Request, context=Depends(authenticate)):

@@ -18,6 +18,9 @@ def present_ticket(row):
         result['responsibility']='EasyInvio support case; XCover assesses the insurer claim'
     if internal:
         result['ai_summary']=processing_remedy(row.get('error_code') or 'ORDER_SERVICE_FAILED')
+        if str(row.get('error_code') or '').startswith('AI_RECOMMENDATION_'):
+            result['ticket_title']='Quote recommendation assistance'
+            result['ai_summary']=row.get('ai_summary') or 'Optional recommendation unavailable. Priced offers were returned without a badge; no booking or wallet change occurred.'
     result['pod_state']=('NOT_BOOKED' if not booked else 'AWAITING_DELIVERY' if row.get('shipment_status')!='DELIVERED'
                          else 'AVAILABLE' if row.get('proof_of_delivery_url') else 'NOT_PROVIDED')
     notifications=row.get('notifications') or []
@@ -27,6 +30,9 @@ def present_ticket(row):
         result['notification_explanation']='No merchant alert is queued for an internal preparation issue. Notes stay inside EasyInvio.'
         if insurance:
             result['notification_explanation']='Support notes do not submit a claim to XCover or confirm insurer review or payment.'
+        elif result.get('ticket_title'):
+            result['pod_state']='NOT_APPLICABLE'
+            result['notification_explanation']='This is optional quote advice, not a shipment failure. No merchant alert is queued.'
     elif notifications:
         result['notification_explanation']='Delivery states below are receipts for queued WhatsApp alerts; accepted does not mean delivered.'
     else:

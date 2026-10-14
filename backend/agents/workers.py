@@ -177,7 +177,13 @@ class CustomsHarmonizerAgent:
             'explanation': choice.explanation, 'missing_attributes': choice.missing_attributes,
             'customs_approved': False}}
 
-    async def suggest(self, context, description):
+    async def suggest(self, context, description, product=None):
+        if product and product.get('hs_reviewed') and product.get('hs_code') and ' '.join(description.lower().split()) == ' '.join(product['description'].lower().split()):
+            self.runtime.usage['deterministic_calls'] += 1
+            return {'description': description, 'hs_code': product['hs_code'], 'sku': product['sku'],
+                'source': 'tenant_reviewed_catalog', 'status': 'review_required', 'simulated': False,
+                'confidence': None, 'customs_approved': False,
+                'notice': 'Saved classification loaded without an AI call. Review destination requirements and approve the declaration before booking.'}
         # This repository has a small example dictionary, not a certified tariff catalogue.
         # The agent may rank those entries, but cannot manufacture a national extension.
         baseline = predict_hs_code(description)

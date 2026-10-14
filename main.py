@@ -431,6 +431,7 @@ class WholesaleRate(StrictModel):
 
 
 class ClientRate(StrictModel):
+    recommendation_badge: str | None = Field(default=None, max_length=180)
     package_count: int = Field(default=1, ge=1, le=100)
     package_weight_summary: dict = Field(default_factory=dict)
     label_purchase_available: bool = True
@@ -1211,7 +1212,7 @@ class RatingService:
                 "issues": [i.model_dump(mode="json") for i in issues],
             })
         from backend.carrier_consolidation import consolidate_rates,route_history,carrier_identity,unknown_history
-        rates=consolidate_rates(rates)
+        rates=consolidate_rates(rates)[:3]
         try:
             history=await route_history(self.pool,context.tenant_id,request.destination.country_code,request.origin.country_code,include_services=True)
             unavailable=False
@@ -2065,6 +2066,7 @@ async def lifespan(application: FastAPI):
         async with deterministic_lifespan(application):
             yield
     finally:
+        await application.state.logistics_supervisor.optimizer.close()
         await application.state.logistics_supervisor.runtime.close()
 
 
@@ -2542,6 +2544,9 @@ app.include_router(card_checkout_router(authenticate))
 
 from backend.agents.routes import build_router as agent_router
 app.include_router(agent_router(authenticate, RatingRequest, authenticate_platform_owner))
+
+from backend.tenant_catalogs import build_router as tenant_catalog_router
+app.include_router(tenant_catalog_router(authenticate, Address))
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")

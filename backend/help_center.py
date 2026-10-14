@@ -171,6 +171,21 @@ GUIDES = {
         <p>Check that the store and connection are enabled, the permission is still valid and the order is eligible for import. Missing verified product weights or a permission problem can require review. Include the store name and an affected order reference when asking for help.</p>
         <p>Store administrators can read <a href="https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens" target="_blank" rel="noopener noreferrer">Shopify's official access guidance</a>. For other platforms, use the How to connect guidance in Store Integrations; some catalogue entries need assisted setup rather than an active order importer.</p>""",
         'shopify store ecommerce e commerce integration connect connection sync retrieve import orders webhook webhooks'),
+    'settings-catalogs': Guide(
+        'Reuse saved addresses, contacts and products', 'Explore your shipping tools',
+        'Prepare shipments faster with your workspace address book and SKU catalog.',
+        """<h2 id="save">Save your shipping details</h2>
+        <p>Open Settings and choose Addresses, Saved Contacts or Products. Owners, administrators and dispatchers can save and edit records. Accountants can view the catalogs. Company and team administration remains restricted to owners and administrators.</p>
+        <p>Use separate sender, return, pickup and invoice address roles. Each role can have one default location. A default is a saved preference; it does not schedule a collection or change a booking.</p>
+        <h2 id="reuse">Choose a record in Create a shipment</h2>
+        <p>Use Saved addresses beside Pickup name for your sender or pickup location. Use Saved contacts beside Delivery name for a recipient. Check the selected address before requesting rates.</p>
+        <p>Enter an exact saved SKU to fill the goods description, net unit weight, value, country of manufacture and saved HS code. Search results also let you choose a product. Use Add another goods item for additional products, all using the same goods currency.</p>
+        <h2 id="review">Review measurements and customs</h2>
+        <p>Product weight is the weight of one item, not the packed box. Measure your packaging and enter the actual packed weight separately. Catalog values are not automatically converted between currencies.</p>
+        <p>A reviewed catalog code is a reusable starting point. The shipper must still check destination requirements and approve each customs declaration. Changing a description or manufacture country clears the prefilled code for review.</p>
+        <h2 id="changes">Edit or archive a record</h2>
+        <p>Edits apply to future selections. Existing shipment snapshots keep their original details. Archive hides a record from future choices. If someone else updated a record, refresh it before saving your changes.</p>""",
+        'settings catalogs warehouse addresses contacts recipients sku products default saved autofill'),
     'features/bulk-dispatch': Guide(
         'Prepare and book several orders', 'Shipping tools',
         'A forthcoming guide to bulk uploads, marketplace preparation and selected-label checkout.',
