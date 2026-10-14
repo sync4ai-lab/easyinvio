@@ -58,9 +58,9 @@ The design reduces avoidable token use by reserving AI for ambiguous interpretat
 - [Embeddings](https://developers.openai.com/api/docs/guides/embeddings)
 
 
-## Top-three rate advice and reviewed catalogs
+## Top-ten rate advice and reviewed catalogs
 
-Pricing still uses the existing database margin rules. Carrier/service/currency consolidation chooses the largest absolute contribution (customer price minus returned wholesale total), with deterministic ties, then retains the three lowest customer prices. This is not a claim of net accounting profit after overhead, tax and other platform expenses. UI rate requests optionally send only those offers' customer prices, estimates and measured local history to MarginOptimizerAgent. No supplier IDs, credentials or wholesale costs go to that model.
+Pricing still uses the existing database margin rules. Carrier/service/currency consolidation chooses the largest absolute contribution (customer price minus returned wholesale total), with deterministic ties, then retains up to ten lowest customer prices. This is not a claim of net accounting profit after overhead, tax and other platform expenses. UI rate requests optionally send only those offers' customer prices, estimates and measured local history to MarginOptimizerAgent. No supplier IDs, credentials or wholesale costs go to that model.
 
 The advice step has an outer 1.5-second timeout. It may attach one evidence-checked, server-formatted badge, but cannot reorder, reprice or purchase any offer. Missing history cannot produce a reliability claim. A timeout or invalid recommendation returns the unchanged offers without a badge. Internal failures are written asynchronously to existing automation_failures and support_tickets, grouped by tenant/error/hour to prevent repeated optional timeouts flooding the queue. Writes are bounded and logged if storage is unavailable; no system can guarantee a database trace during a database outage. Completed-response usage is measured; cancelled requests may still incur provider charges not represented by a completed SDK usage response.
 

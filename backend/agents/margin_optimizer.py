@@ -1,4 +1,4 @@
-"""Optional strategic advice over immutable, already-priced top-three offers."""
+"""Optional strategic advice over immutable, already-priced top-ten offers."""
 import asyncio
 import logging
 from datetime import datetime, timezone
@@ -13,7 +13,7 @@ logger = logging.getLogger('easyinvio.agents')
 
 
 class StrategicChoice(StrictOutput):
-    selected_index: int = Field(strict=True, ge=0, le=2)
+    selected_index: int = Field(strict=True, ge=0, le=9)
     basis: Literal['PRICE', 'SPEED', 'RELIABILITY', 'BALANCED']
 
 
@@ -26,7 +26,7 @@ class MarginOptimizerAgent:
     async def recommend(self, context, response, pool):
         if not self.runtime.available or not response.rates:
             return response
-        rates = response.rates[:3]
+        rates = response.rates[:10]
         if not any(rate.label_purchase_available for rate in rates):
             return response
         payload = {'offers': [{'index': index, 'carrier_code': rate.carrier_code,

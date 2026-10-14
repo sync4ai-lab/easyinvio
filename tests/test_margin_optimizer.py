@@ -54,6 +54,26 @@ class OptimizerTests(unittest.IsolatedAsyncioTestCase):
         original=response(self.rates)
         self.assertIs(await self.worker.recommend(self.context,original,None),original)
 
+    async def test_complete_ten_offer_payload_can_recommend_tenth_offer(self):
+        rates=[rate('DHL',str(Decimal('10.00')+index),'8.00',service=f'SERVICE_{index}') for index in range(10)]
+        original=response(rates)
+        self.runtime.run=AsyncMock(return_value=ModelResult(StrategicChoice(selected_index=9,basis='BALANCED'),20,10,0))
+        result=await self.worker.recommend(self.context,original,None)
+        payload=self.runtime.run.call_args.args[3]['offers']
+        self.assertEqual(len(payload),10)
+        self.assertEqual([item['index'] for item in payload],list(range(10)))
+        self.assertEqual([item['client_price_ex_tax'] for item in payload],[str(item.client_price_ex_tax) for item in rates])
+        self.assertTrue(result.rates[9].recommendation_badge)
+        self.assertEqual(sum(bool(item.recommendation_badge) for item in result.rates),1)
+        for before,after in zip(original.rates,result.rates):
+            self.assertEqual(before.model_dump(exclude={'recommendation_badge'}),after.model_dump(exclude={'recommendation_badge'}))
+
+    async def test_index_beyond_available_shortlist_returns_unchanged_rates(self):
+        original=response(self.rates)
+        self.runtime.run=AsyncMock(return_value=ModelResult(StrategicChoice(selected_index=9,basis='BALANCED'),20,10,0))
+        self.assertIs(await self.worker.recommend(self.context,original,None),original)
+        self.assertEqual(len(self.runtime.run.call_args.args[3]['offers']),3)
+
     async def test_known_reliable_lane_uses_only_supported_badge(self):
         self.rates[0]=self.rates[0].model_copy(update={'on_time_samples':20,'on_time_rate':Decimal('95'),'history_samples':20})
         self.runtime.run=AsyncMock(return_value=ModelResult(StrategicChoice(selected_index=0,basis='RELIABILITY'),20,10,0))
@@ -108,14 +128,17 @@ class ColdSelectionTests(unittest.TestCase):
         self.assertEqual(result['pod_state'],'NOT_APPLICABLE')
         self.assertIn('unchanged offers',result['ai_summary'])
 
-    def test_highest_absolute_profit_duplicate_then_lowest_three_prices(self):
+    def test_highest_absolute_profit_duplicate_then_lowest_ten_prices(self):
         low=rate('DHL','10.00','9.00')
         high=rate('DHL','14.00','10.00')
         choices=[rate('UPS','11.00','9.00'),rate('DPD','12.00','10.00'),rate('FEDEX','16.00','13.00'),low,high]
-        selected=consolidate_rates(choices)[:3]
-        self.assertEqual([item.client_price_ex_tax for item in selected],[Decimal('11.00'),Decimal('12.00'),Decimal('14.00')])
+        choices.extend(rate('UPS',str(Decimal('20.00')+index),'15.00',service=f'EXTRA_{index}') for index in range(10))
+        selected=consolidate_rates(choices)[:10]
+        self.assertEqual([item.client_price_ex_tax for item in selected],
+            [Decimal('11.00'),Decimal('12.00'),Decimal('14.00'),Decimal('16.00')]+
+            [Decimal('20.00')+index for index in range(6)])
         self.assertIn(high,selected);self.assertNotIn(low,selected)
-        self.assertEqual(len({(item.carrier_code,item.service_code) for item in selected}),3)
+        self.assertEqual(len({(item.carrier_code,item.service_code) for item in selected}),10)
 
 
 if __name__=='__main__':unittest.main()

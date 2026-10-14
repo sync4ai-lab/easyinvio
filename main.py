@@ -1212,7 +1212,7 @@ class RatingService:
                 "issues": [i.model_dump(mode="json") for i in issues],
             })
         from backend.carrier_consolidation import consolidate_rates,route_history,carrier_identity,unknown_history
-        rates=consolidate_rates(rates)[:3]
+        rates=consolidate_rates(rates)[:10]
         try:
             history=await route_history(self.pool,context.tenant_id,request.destination.country_code,request.origin.country_code,include_services=True)
             unavailable=False
