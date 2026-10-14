@@ -33,6 +33,39 @@ def declaration():
 
 
 class CheckoutTests(unittest.IsolatedAsyncioTestCase):
+    async def test_catalog_official_only_search_bypasses_optional_ai_ranking(self):
+        def official_response(request):
+            self.assertEqual(request.url.host, 'www.trade-tariff.service.gov.uk')
+            return httpx.Response(200, json={'data': {'attributes': {
+                'goods_nomenclature_match': {'commodities': [{'_source': {
+                    'goods_nomenclature_item_id': '8516400000',
+                    'description': 'Electric smoothing irons', 'declarable': True,
+                }}]}
+            }}})
+        user = SimpleNamespace(tenant_id=uuid4(), user_id=uuid4(), role='OWNER')
+        ranker = AsyncMock(return_value={'candidates': [], 'ranked': True})
+        app = FastAPI()
+        app.include_router(build_router(lambda: user))
+        app.state.logistics_supervisor = SimpleNamespace(
+            runtime=SimpleNamespace(available=True), customs=SimpleNamespace(rank_tariff=ranker))
+        async with httpx.AsyncClient(transport=httpx.MockTransport(official_response)) as tariff:
+            app.state.partner_lifecycle = SimpleNamespace(client=tariff)
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+                response = await client.post('/api/v1/checkout/hs-search', json={
+                    'description': 'electric smoothing irons', 'official_only': True})
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(response.json()['candidates'][0]['hs_code'], '851640')
+                ranker.assert_not_awaited()
+                # Existing customs callers keep their optional ranking behavior.
+                response = await client.post('/api/v1/checkout/hs-search', json={
+                    'description': 'electric smoothing irons'})
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertTrue(response.json()['ranked'])
+                ranker.assert_awaited_once()
+                response = await client.post('/api/v1/checkout/hs-search', json={
+                    'description': 'electric smoothing irons', 'official_only': 'true'})
+                self.assertEqual(response.status_code, 422)
+
     async def test_sendcloud_categories_follow_the_official_enum(self):
         from backend.automation_three_partners import SendcloudAdapter
         from backend.automation_freight_engine import PurchaseRejected

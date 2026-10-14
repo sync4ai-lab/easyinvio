@@ -34,6 +34,7 @@ class CheckoutPrepare(StrictInput):
 
 class TariffQuery(StrictInput):
     description: str = Field(min_length=3,max_length=500)
+    official_only: bool = Field(default=False, strict=True)
 
 
 async def search_tariff(client,description):
@@ -118,7 +119,7 @@ def build_router(authenticate):
     async def hs_search(body:TariffQuery,request:Request,user=Depends(authenticate)):
         result = await search_tariff(request.app.state.partner_lifecycle.client,body.description)
         engine = getattr(request.app.state, 'logistics_supervisor', None)
-        if engine is not None and engine.runtime.available:
+        if not body.official_only and engine is not None and engine.runtime.available:
             try:
                 result = await engine.customs.rank_tariff(user, body.description, result)
             except HTTPException:

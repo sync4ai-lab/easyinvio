@@ -7548,7 +7548,71 @@ renderAccount = function() {
     const value=name=>escapeHTML(row?.[name]??'');
     if (active==='products') {
       $('#catalog-form-fields').innerHTML=`<div class="fields"><label>SKU<input name="sku" maxlength="200" required value="${value('sku')}"></label><label>Product description<input name="description" minlength="3" maxlength="500" required value="${value('description')}"></label><label>Unit weight · kg<input name="unit_weight_kg" type="number" min="0.001" max="30000" step="0.001" required value="${value('unit_weight_kg')}"></label><label>Declared value per unit<input name="unit_value" type="number" min="0.01" max="1000000" step="0.01" required value="${value('unit_value')}"></label><label>Value currency<select name="currency">${['GBP','EUR','USD'].map(currency=>`<option ${currency===(row?.currency||'GBP')?'selected':''}>${currency}</option>`).join('')}</select></label><label>Country of manufacture${countrySelect('origin_country',row?.origin_country)}</label><label>HS code · optional until reviewed<input name="hs_code" pattern="([0-9]{6}|[0-9]{8}|[0-9]{10})" maxlength="10" value="${value('hs_code')}" placeholder="6, 8 or 10 digits"></label></div><label class="check"><input type="checkbox" name="hs_reviewed" ${row?.hs_reviewed?'checked':''}>I reviewed this classification for these goods.</label><p class="subtle">A saved code can be reused, but the shipper must still review the destination requirements and approve each declaration. Unit weight excludes packaging.</p><a href="https://www.trade-tariff.service.gov.uk/" target="_blank" rel="noopener noreferrer">Open the UK tariff reference</a>`;
-      for (const name of ['description','origin_country','hs_code']) $('#catalog-form').elements[name].addEventListener('input',()=>{$('#catalog-form').elements.hs_reviewed.checked=false;});
+      const productForm = $('#catalog-form'), codeInput = productForm.elements.hs_code,
+        reviewedInput = productForm.elements.hs_reviewed;
+      productForm.querySelector('.fields').insertAdjacentHTML('afterend', `
+        <div class="catalog-hs-finder">
+          <button type="button" class="secondary" id="catalog-hs-search">Find an HS code</button>
+          <p class="subtle">Not sure which code to use? Enter a clear product description above, including what it does and what it is made from, then search the official UK tariff.</p>
+          <div id="catalog-hs-results" aria-live="polite"></div>
+        </div>`);
+      reviewedInput.closest('label').insertAdjacentHTML('afterend', '<p id="catalog-hs-review-help" class="subtle" role="status"></p>');
+      reviewedInput.setAttribute('aria-describedby', 'catalog-hs-review-help');
+      const results = $('#catalog-hs-results'), reviewHelp = $('#catalog-hs-review-help');
+      let searchVersion = 0;
+      function syncClassificationReview() {
+        const valid = /^([0-9]{6}|[0-9]{8}|[0-9]{10})$/.test(codeInput.value.trim());
+        reviewedInput.disabled = !valid;
+        if (!valid) reviewedInput.checked = false;
+        reviewHelp.textContent = valid
+          ? 'Check that the code describes your goods, then tick the review box. Selecting a search result does not confirm your review.'
+          : 'Find or enter a 6, 8 or 10 digit HS code before confirming your review. You can save the product without a code and review it later.';
+      }
+      for (const name of ['description','origin_country','hs_code']) productForm.elements[name].addEventListener('input', () => {
+        reviewedInput.checked = false;
+        searchVersion++;
+        results.replaceChildren();
+        syncClassificationReview();
+      });
+      syncClassificationReview();
+      $('#catalog-hs-search').addEventListener('click', event => {
+        const button = event.currentTarget;
+        busy(button, async () => {
+          const description = productForm.elements.description.value.trim(), scope = key(), ticket = ++searchVersion;
+          if (description.length < 3) {
+            results.textContent = 'Add a product description above before searching. For example: cotton knitted T-shirt.';
+            productForm.elements.description.focus();
+            return;
+          }
+          reviewedInput.checked = false;
+          results.textContent = 'Searching the official UK tariff…';
+          try {
+            const result = await api('/api/v1/checkout/hs-search', {
+              method: 'POST', auth: true, body: {description, official_only: true}
+            });
+            if (scope !== key() || ticket !== searchVersion || !results.isConnected || !editor.open) return;
+            const candidates = (result.candidates || []).filter(candidate => /^([0-9]{6}|[0-9]{8}|[0-9]{10})$/.test(candidate.hs_code));
+            results.innerHTML = candidates.length
+              ? '<p class="subtle">Official UK tariff matches. Choose the description that fits your product, then review the code before saving.</p>' + candidates.map(candidate => `
+                <div class="hs-card">
+                  <p><b>${escapeHTML(candidate.hs_code)}</b> · ${escapeHTML(candidate.title)}</p>
+                  <button type="button" class="secondary" data-catalog-hs-code="${escapeHTML(candidate.hs_code)}">Use this code</button>
+                  ${/^[0-9]{10}$/.test(candidate.national_code || '') ? `<a href="https://www.trade-tariff.service.gov.uk/commodities/${candidate.national_code}" target="_blank" rel="noopener noreferrer">View official tariff entry ↗</a>` : ''}
+                </div>`).join('')
+              : `<p class="notice">${escapeHTML(result.question || 'No matching code found. Add the material and what the product is used for to its description, then search again or open the UK tariff reference below.')}</p>`;
+            results.querySelectorAll('[data-catalog-hs-code]').forEach(choice => choice.addEventListener('click', () => {
+              codeInput.value = choice.dataset.catalogHsCode;
+              reviewedInput.checked = false;
+              syncClassificationReview();
+              codeInput.focus();
+              $('#catalog-form-error').hidden = true;
+            }));
+          } catch (error) {
+            if (scope !== key() || ticket !== searchVersion || !results.isConnected || !editor.open) return;
+            results.textContent = 'The official tariff search is unavailable right now. Try again or open the UK tariff reference below. You can save this product without a reviewed code.';
+          }
+        });
+      });
     } else {
       const address=row?.address||{}, v=name=>escapeHTML(address[name]||'');
       $('#catalog-form-fields').innerHTML=`<label>Saved label<input name="label" maxlength="100" required value="${value('label')}" placeholder="e.g. Leeds dispatch desk"></label>${active==='addresses'?`<div class="fields"><label>Use this location for<select name="address_role">${['SENDER','RETURN','PICKUP','INVOICE'].map(role=>`<option ${role===(row?.address_role||'SENDER')?'selected':''}>${role}</option>`).join('')}</select></label><label class="check"><input name="is_default" type="checkbox" ${row?.is_default?'checked':''}>Default for this role</label></div>`:''}<div class="fields"><label>Contact name<input name="name" maxlength="200" required value="${v('name')}"></label><label>Company · optional<input name="company" maxlength="200" value="${v('company')}"></label><label>Street and building number<input name="line1" maxlength="200" required value="${v('line1')}"></label><label>Address line 2 · optional<input name="line2" maxlength="200" value="${v('line2')}"></label><label>City<input name="city" maxlength="100" required value="${v('city')}"></label><label>State / province · when needed<input name="state" maxlength="100" value="${v('state')}"></label><label>Postal code<input name="postal_code" maxlength="30" required value="${v('postal_code')}"></label><label>Country${countrySelect('country_code',address.country_code)}</label><label>Email · optional<input name="email" type="email" maxlength="254" value="${v('email')}"></label><label>Phone · optional<input name="phone" type="tel" pattern="\\+[1-9][0-9]{7,14}" value="${v('phone')}" placeholder="+447123456789"></label></div><p class="subtle">Use the international phone format with + and country code, without spaces. Saving an address does not verify carrier coverage or schedule a collection.</p>`;

@@ -13,7 +13,7 @@ os.environ['PLAYWRIGHT_BROWSERS_PATH']=str(Path('.playwright').resolve())
 
 async def run(origin):
     output=Path('output/tenant-catalogs');output.mkdir(parents=True,exist_ok=True)
-    tenant=str(uuid4());calls=[];errors=[]
+    tenant=str(uuid4());calls=[];errors=[];tariff_calls=[];tariff_mode=['matches']
     address={'name':'Test Warehouse','company':'Northgate Test','line1':'9 Test Street','line2':'Unit 2','city':'Leeds','state':None,'postal_code':'LS1 1AA','country_code':'GB','phone':'+447123456789','email':'warehouse@example.test'}
     recipient={**address,'name':'Test Recipient','city':'Paris','postal_code':'75001','country_code':'FR'}
     records={'addresses':[{'id':str(uuid4()),'label':'Leeds dispatch','address':address,'address_role':'SENDER','is_default':True,'version':1}],
@@ -24,6 +24,15 @@ async def run(origin):
         page.on('pageerror',lambda error:errors.append(str(error)))
         async def handler(route):
             url=urlsplit(route.request.url);path=url.path;method=route.request.method
+            if path=='/api/v1/checkout/hs-search':
+                tariff_calls.append(route.request.post_data_json)
+                assert route.request.post_data_json=={'description':'Steel bracket','official_only':True}
+                if tariff_mode[0]=='unavailable':
+                    await route.fulfill(status=503,json={'detail':'Official tariff lookup unavailable'});return
+                if tariff_mode[0]=='empty':
+                    await route.fulfill(json={'candidates':[],'question':'Describe the material and intended use.'});return
+                await route.fulfill(json={'candidates':[{'hs_code':'732690','national_code':'7326909890',
+                    'title':'Other articles of iron or steel','source':'UK Integrated Online Tariff'}]});return
             if path.startswith('/api/v1/catalog/'):
                 parts=path.split('/');kind=parts[4];calls.append((method,path,route.request.post_data_json if method!='GET' else None))
                 if '/by-sku/' in path:
@@ -53,10 +62,34 @@ async def run(origin):
         await page.locator('#catalog-tab-products').click();await expect(page.locator('#catalog-records')).to_contain_text('SKU1')
         await page.screenshot(path=str(output/'products.png'),full_page=True)
         await page.locator('#catalog-new').click();await expect(page.locator('#catalog-editor')).to_be_visible()
-        for name,value in {'sku':'SKU2','description':'Steel bracket','unit_weight_kg':'0.250','unit_value':'4.50','origin_country':'GB','hs_code':'732690'}.items():
+        await expect(page.locator('#catalog-form [name=hs_reviewed]')).to_be_disabled()
+        await page.locator('#catalog-hs-search').click()
+        await expect(page.locator('#catalog-hs-results')).to_contain_text('Add a product description')
+        assert not tariff_calls
+        for name,value in {'sku':'SKU2','description':'Steel bracket','unit_weight_kg':'0.250','unit_value':'4.50','origin_country':'GB'}.items():
             field=page.locator('#catalog-form [name='+name+']')
             if name=='origin_country':await field.select_option(value)
             else:await field.fill(value)
+        await page.locator('#catalog-hs-search').click()
+        await expect(page.locator('#catalog-hs-results')).to_contain_text('Other articles of iron or steel')
+        await expect(page.locator('#catalog-hs-results a')).to_have_attribute('href','https://www.trade-tariff.service.gov.uk/commodities/7326909890')
+        await page.locator('[data-catalog-hs-code]').click()
+        await expect(page.locator('#catalog-form [name=hs_code]')).to_have_value('732690')
+        await expect(page.locator('#catalog-form [name=hs_reviewed]')).not_to_be_checked()
+        await page.locator('#catalog-form [name=hs_reviewed]').check()
+        tariff_mode[0]='unavailable';await page.locator('#catalog-hs-search').click()
+        await expect(page.locator('#catalog-hs-results')).to_contain_text('unavailable right now')
+        await expect(page.locator('#catalog-form [name=hs_reviewed]')).not_to_be_checked()
+        await expect(page.locator('#catalog-form [name=sku]')).to_have_value('SKU2')
+        tariff_mode[0]='empty';await page.locator('#catalog-hs-search').click()
+        await expect(page.locator('#catalog-hs-results')).to_contain_text('Describe the material')
+        tariff_mode[0]='matches';await page.locator('#catalog-hs-search').click()
+        await page.locator('[data-catalog-hs-code]').click()
+        await page.locator('#catalog-form [name=hs_reviewed]').check()
+        await page.locator('#catalog-form [name=hs_code]').fill('')
+        await expect(page.locator('#catalog-form [name=hs_reviewed]')).to_be_disabled()
+        await expect(page.locator('#catalog-form [name=hs_reviewed]')).not_to_be_checked()
+        await page.locator('#catalog-hs-search').click();await page.locator('[data-catalog-hs-code]').click()
         await page.locator('#catalog-form [name=hs_reviewed]').check()
         await page.locator('#catalog-save').click();await expect(page.locator('#catalog-editor')).not_to_be_visible();await expect(page.locator('#catalog-records')).to_contain_text('SKU2')
         post=next(body for method,path,body in calls if method=='POST' and path.endswith('/products'))
