@@ -17,7 +17,7 @@ Apply [migration 037](../migrations/037_admin_client_assistance.sql) after migra
 
 Use the client switch again to choose another workspace. A new workspace starts with cleared local transaction state. Completed bookings and stored records remain with their original client. An already-running request may finish after a switch; its audit session still identifies the original workspace and operator.
 
-Sessions last at most 30 minutes and never outlive the admin authentication token used to start them. The selection is held in browser memory, not in a URL or reusable customer token. Reloading the page returns to the normal admin sign-in/workspace flow. Expired or revoked assistance sessions cannot authorize more client requests. Returning remains possible after local expiry; if server revocation cannot be confirmed during a network failure, the browser drops the local client context and the server session expires normally.
+Sessions last at most 30 minutes and follow the renewed parent admin sign-in session within that limit. The selection and app token are held in browser memory, not in a URL or browser storage. Reloading the page requires explicit sign-in. Active token renewal preserves the selected client; it does not renew an already expired or revoked assistance session. Returning remains possible after local expiry; if server revocation cannot be confirmed during a network failure, the browser drops the local client context and the server session expires normally.
 
 ## Audit records
 
@@ -33,7 +33,7 @@ Shipment preparation requires a `public.users` operator FK. Starting assistance 
 
 ## Authorization boundaries
 
-The server revalidates platform-owner authentication on assisted requests and binds each session to the admin, the original bearer-token fingerprint and one tenant. Another user or another sign-in token cannot reuse the session ID. A conflicting `tenant_id` query is rejected. Existing RLS policies and the deterministic finance engine are unchanged. Client requests cannot become platform-management or identity-management requests by supplying an assistance header; those operations use the separate Super Admin context.
+The server revalidates platform-owner authentication on assisted requests and binds each session to the admin, the parent authenticated app session and one tenant. Active token renewal preserves this binding; a different user or a new sign-in session cannot reuse the assistance ID. Direct provider tokens remain bound to their token fingerprint. A conflicting `tenant_id` query is rejected. Existing RLS policies and the deterministic finance engine are unchanged. Client requests cannot become platform-management or identity-management requests by supplying an assistance header; those operations use the separate Super Admin context.
 
 Client workspace-owner access is intentional. Assistance does not reproduce a particular employee's narrower dispatcher/accountant role, impersonate their personal profile or bypass an inactive/suspended account's existing transaction rules. The personal User Profile remains the admin's own identity. WebSocket tracking uses the same selected session and revalidates it during updates. No external notifications are sent merely by opening a workspace.
 

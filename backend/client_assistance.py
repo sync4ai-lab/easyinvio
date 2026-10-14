@@ -68,6 +68,9 @@ async def append_event(connection, session, kind, request_id=None, method=None, 
 
 
 def token_fingerprint(request):
+    claims=getattr(request.state,'app_session_claims',None)
+    if claims:
+        return hashlib.sha256(('app-session:'+claims['jti']).encode()).hexdigest()
     return hashlib.sha256(request.headers.get('authorization', '').encode()).hexdigest()
 
 
@@ -85,8 +88,9 @@ async def resolve_assistance(request, credentials=None):
     async with request.app.state.finance.pool.acquire() as connection:
         session = await connection.fetchrow('''SELECT s.*,t.company_name,t.workspace_status,t.is_sandbox
             FROM public.admin_client_assistance_sessions s JOIN public.tenants t USING(tenant_id)
-            WHERE s.id=$1 AND s.actor_auth_user_id=$2 AND s.bearer_sha256=$3
-            AND s.revoked_at IS NULL AND s.expires_at>now()''', identifier, actor.user_id, token_fingerprint(request))
+            WHERE s.id=$1 AND s.actor_auth_user_id=$2 AND s.bearer_sha256=ANY($3::text[])
+            AND s.revoked_at IS NULL AND s.expires_at>now()''', identifier, actor.user_id,
+            [token_fingerprint(request),hashlib.sha256(request.headers.get('authorization','').encode()).hexdigest()])
     if not session:
         raise HTTPException(401, 'Client assistance ended or expired. Return to Super Admin and select the client again.')
     request.state.client_assistance = dict(session)

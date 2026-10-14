@@ -125,6 +125,15 @@ class AssistanceTests(unittest.IsolatedAsyncioTestCase):
                 await main.authenticate(request,HTTPAuthorizationCredentials(scheme='Bearer',credentials='admin-token'))
         self.assertEqual(caught.exception.status_code,401)
 
+    def test_parent_binding_survives_token_renewal_but_not_a_new_sign_in(self):
+        def request(token,parent):
+            result=Request({'type':'http','method':'GET','path':'/','headers':[(b'authorization',token.encode())],'query_string':b''})
+            result.state.app_session_claims={'jti':parent}
+            return result
+        parent=str(uuid4())
+        self.assertEqual(support.token_fingerprint(request('Bearer old',parent)),support.token_fingerprint(request('Bearer renewed',parent)))
+        self.assertNotEqual(support.token_fingerprint(request('Bearer renewed',parent)),support.token_fingerprint(request('Bearer renewed',str(uuid4()))))
+
 
 if __name__ == '__main__':
     unittest.main()

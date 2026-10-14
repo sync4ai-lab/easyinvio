@@ -31,7 +31,11 @@ async def run():
         request=Request({'type':'http','method':'POST','path':'/api/v1/admin/client-assistance/sessions',
             'headers':[(b'authorization',b'Bearer rollback-assistance-probe')],'query_string':b'','app':app})
         request.state.platform_auth_claims={'exp':int(datetime.now(timezone.utc).timestamp())+600}
-        request.state.app_session_claims={'exp':int(datetime.now(timezone.utc).timestamp())+300}
+        request.state.app_session_claims={'exp':int(datetime.now(timezone.utc).timestamp())+300,'jti':str(uuid4())}
+        parent_claims=request.state.app_session_claims
+        async def verified_owner(candidate,credentials=None):
+            candidate.state.app_session_claims=parent_claims
+            return owner
         owner=SimpleNamespace(user_id=actor)
         result=await support.start(support.StartAssistance(tenant_id=tenant,reason='Rollback-only attribution verification'),request,owner)
         identifier=UUID(result['session_id'])
@@ -40,7 +44,7 @@ async def run():
         assert session['expires_at'].timestamp()<=request.state.app_session_claims['exp']
         assert await connection.fetchval('SELECT auth_user_id FROM public.users WHERE id=$1',session['operator_membership_id'])==actor
         scope={'type':'http','method':'GET','path':'/api/v1/profile','headers':[(b'authorization',b'Bearer rollback-assistance-probe'),(b'x-easyinvio-assistance',str(identifier).encode())],'query_string':b'','app':app}
-        with patch.object(support,'authenticate_platform_owner',AsyncMock(return_value=owner)):
+        with patch.object(support,'authenticate_platform_owner',verified_owner):
             resolved=await support.resolve_assistance(Request(scope));assert resolved['tenant_id']==tenant
         context=main.TenantContext(tenant,actor,'OWNER','',identifier)
         assert await support.operator_member_id(connection,context)==session['operator_membership_id']
@@ -54,7 +58,7 @@ async def run():
             assert not await connection.fetchval("SELECT has_table_privilege('authenticated',$1,'SELECT')",'public.'+table)
         await support.stop(identifier,request,owner);await support.stop(identifier,request,owner)
         assert await connection.fetchval("SELECT count(*) FROM public.admin_client_assistance_events WHERE session_id=$1 AND event_type='SESSION_ENDED'",identifier)==1
-        with patch.object(support,'authenticate_platform_owner',AsyncMock(return_value=owner)):
+        with patch.object(support,'authenticate_platform_owner',verified_owner):
             try: await support.resolve_assistance(Request(scope))
             except HTTPException as error: assert error.status_code==401
             else: raise AssertionError('Revoked session remained usable')

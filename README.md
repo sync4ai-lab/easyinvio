@@ -63,7 +63,7 @@ Copy `.env.example` to `.env` **only if `.env` does not already exist**. Fill al
 .venv/Scripts/python.exe main.py
 ```
 
-The setup check prints invalid variable names without printing their values. Configured startup checks database connectivity, trusted-role capabilities and the original required tables. Supabase tokens require a top-level `tenant_id` claim and ES256/RS256 signing compatible with `JWT_ALGORITHM`. Enable the appropriate Custom Access Token Hook, provision an active tenant membership, and configure carrier accounts and wallet records. Tokens remain in browser memory and are cleared on reload/sign-out; expired tokens require signing in again.
+The setup check prints invalid variable names without printing their values. Configured startup checks database connectivity, trusted-role capabilities and the original required tables. Supabase tokens require a top-level `tenant_id` claim and ES256/RS256 signing compatible with `JWT_ALGORITHM`. Enable the appropriate Custom Access Token Hook, provision an active tenant membership, and configure carrier accounts and wallet records. App tokens remain in memory, renew during activity and are cleared on refresh/sign-out. Fifteen minutes of inactivity or the eight-hour work-session limit requires sign-in again. Editable forms are cleared at session boundaries; see [session lifecycle](docs/session_lifecycle.md).
 
 ## Migration and recorded audit data
 

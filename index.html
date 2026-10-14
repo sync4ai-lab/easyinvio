@@ -1859,12 +1859,7 @@ function armSessionExpiry() {
     }
   }
   if (!Number.isFinite(expires)) return;
-  sessionExpiryTimer = setTimeout(() => {
-    if (state.session === session) {
-      clearSession();
-      notify('Your session expired. Sign in again.', true)
-    }
-  }, Math.max(0, Math.min(2147483647, expires - Date.now())))
+  armIdentityWorkSession(session, expires);
 }
 
 function notify(message, error = false) {
@@ -1882,7 +1877,9 @@ async function api(path, {
   signal
 } = {}) {
   if (auth && !state.session) throw Error('Sign in to your connected workspace first.');
+  if (auth) await ensureActiveIdentitySession();
   const activeSession = state.session;
+  const sentToken = activeSession?.access_token;
   const headers = {};
   if (body !== undefined) headers['Content-Type'] = raw ? 'text/csv' : 'application/json';
   if (auth) headers.Authorization = `Bearer ${activeSession.access_token}`;
@@ -1901,6 +1898,7 @@ async function api(path, {
   if (auth && activeSession !== state.session) throw Error('Session changed. Retry after signing in.');
   if (!response.ok) {
     if (response.status === 401 && auth) {
+      if (activeSession?.access_token !== sentToken) throw Error('Your session was renewed. Check the operation status before retrying.');
       if (state.assistance) await returnFromAssistance();
       else clearSession()
     }
@@ -5523,6 +5521,7 @@ async function loadIdentityProfile() {
 }
 
 async function process_user_login(email = $('#identity-email').value, password = $('#identity-password').value) {
+  clearSession();
   $('#identity-login-submit').disabled = true;
   $('#identity-login-status').textContent = 'Verifying your identity…';
   try {
@@ -5540,7 +5539,7 @@ async function process_user_login(email = $('#identity-email').value, password =
     });
     portal.role = portal.profile.portal_role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLIENT';
     await loadIdentityProfile();
-    localStorage.setItem(identityStorageKey, JSON.stringify(session));
+    lastIdentityActivity = Date.now();
     armSessionExpiry();
     renderAccount();
     renderPortal();
@@ -5574,6 +5573,7 @@ clearSession = function() {
 async function logoutIdentity() {
   let token = state.session?.access_token;
   clearSession();
+  localStorage.setItem('easyinvio.logout', String(Date.now()));
   $('#identity-email').focus();
   try {
     if (token) {
@@ -5616,37 +5616,13 @@ $('#signout-btn').addEventListener('click', event => {
   logoutIdentity().catch(() => {});
 }, true);
 window.addEventListener('storage', event => {
-  if (event.key === identityStorageKey && !event.newValue) clearSession();
+  if ((event.key === identityStorageKey && !event.newValue) || event.key === 'easyinvio.logout') clearSession();
 });
 async function restoreIdentitySession() {
+  localStorage.removeItem(identityStorageKey);
+  state.session = null;
+  identityProfile = null;
   showIdentityGate();
-  try {
-    const saved = JSON.parse(localStorage.getItem(identityStorageKey) || 'null');
-    if (!saved?.access_token || Number(saved.expires_at) * 1000 <= Date.now()) {
-      localStorage.removeItem(identityStorageKey);
-      return;
-    }
-    state.session = saved;
-    renderAccount();
-    portal.profile = await api('/api/v1/profile', {
-      auth: true
-    });
-    portal.role = portal.profile.portal_role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLIENT';
-    await loadIdentityProfile();
-    armSessionExpiry();
-    renderAccount();
-    renderPortal();
-    setView(portal.profile.workspace_role === 'DISPATCHER' && portal.profile.portal_role !== 'SUPER_ADMIN' ? 'workspace' : 'dashboard');
-    window.dispatchEvent(new Event('easyinvio-session-ready'));
-  } catch (error) {
-    if (!state.session) return;
-    if (error.status === 403) {
-      clearSession();
-      return;
-    }
-    showIdentityGate();
-    $('#identity-login-status').textContent = 'Unable to restore the workspace right now. Your saved session is retained. Reload to retry.';
-  }
 }
 // Recovery links carry a one-use token hash in the fragment, never an app JWT.
 // Remove it before rendering or restoring any saved workspace session.
@@ -7742,7 +7718,6 @@ function resetAssistanceWorkspace(session, identity) {
   state.manifest = [];
   state.session = {...session};
   identityProfile = identity;
-  localStorage.setItem(identityStorageKey, JSON.stringify(state.session));
   armSessionExpiry();
   showIdentityGate();
   renderAccount();
@@ -7854,6 +7829,142 @@ $('#assistance-close').onclick = () => $('#assistance-dialog').close();
 $('#assistance-start').onclick = startClientAssistance;
 $('#assistance-return').onclick = () => {void returnFromAssistance();};
 $('#assistance-audit-refresh').onclick = () => {void loadAssistanceAudit();};
+</script>
+<script>
+// Authentication is memory-only. Real user activity, not polling, keeps a session active.
+const identityIdleMilliseconds = 15 * 60 * 1000;
+let lastIdentityActivity = 0;
+let identityIdleTimer = null;
+let identityHardExpiryTimer = null;
+let identityRenewal = null;
+
+function resetSessionForms() {
+  for (const form of document.forms) {
+    form.reset();
+    if (!['identity-login-form','login-form'].includes(form.id)) form.autocomplete = 'off';
+    for (const field of form.querySelectorAll('input,textarea')) {
+      if (field.tagName === 'TEXTAREA' || !['hidden','checkbox','radio','button','submit','reset'].includes(field.type)) field.value = '';
+    }
+  }
+  $('#catalog-extra-items')?.replaceChildren();
+  for (const id of ['shipment-sku','shipment-hs-code','origin-name','origin-company','origin-line1','origin-line2','origin-city','origin-state','origin-postal_code','origin-phone','origin-email',
+      'destination-name','destination-company','destination-line1','destination-line2','destination-city','destination-state','destination-postal_code','destination-phone','destination-email']) {
+    const field = document.getElementById(id); if (field) field.value = '';
+  }
+  configureCargo(false);
+  weightGeneration++;
+  resetQuoteForm();
+  $('#rates').innerHTML = '<div class="empty">Enter shipment details to compare services.</div>';
+}
+
+function expireIdentitySession(message) {
+  const token = state.session?.access_token;
+  clearSession();
+  localStorage.setItem('easyinvio.logout', String(Date.now()));
+  $('#identity-login-status').textContent = message;
+  if (token) void fetch(API + '/api/v1/auth/logout', {method:'POST',headers:{Authorization:'Bearer '+token},keepalive:true}).catch(() => {});
+}
+
+function armIdentityIdleTimer() {
+  clearTimeout(identityIdleTimer);
+  if (!state.session || !lastIdentityActivity) return;
+  identityIdleTimer = setTimeout(() => {
+    if (state.session && Date.now()-lastIdentityActivity >= identityIdleMilliseconds) expireIdentitySession('You were signed out after 15 minutes without activity. Sign in again.');
+    else armIdentityIdleTimer();
+  }, Math.max(0,lastIdentityActivity+identityIdleMilliseconds-Date.now()));
+}
+
+function armIdentityWorkSession(session, expires) {
+  clearTimeout(sessionExpiryTimer);
+  clearTimeout(identityHardExpiryTimer);
+  identityHardExpiryTimer=setTimeout(()=>{
+    if(state.session===session && Number(session.expires_at)*1000<=Date.now()) expireIdentitySession('Your session expired. Sign in again.');
+  },Math.max(0,expires-Date.now()));
+  if (!lastIdentityActivity) lastIdentityActivity = Date.now();
+  armIdentityIdleTimer();
+  const absolute = Number(session.absolute_expires_at || 0)*1000;
+  const atAbsoluteLimit = absolute && absolute <= Date.now()+120000;
+  const delay = expires-Date.now()-(atAbsoluteLimit ? 0 : 90000);
+  sessionExpiryTimer = setTimeout(async () => {
+    if (state.session !== session) return;
+    if (expires<=Date.now() || (absolute && Date.now()>=absolute)) {
+      expireIdentitySession('Your work session ended. Sign in again.'); return;
+    }
+    if (Date.now()-lastIdentityActivity >= identityIdleMilliseconds) {
+      expireIdentitySession('You were signed out after 15 minutes without activity. Sign in again.'); return;
+    }
+    try { await renewIdentitySession(); }
+    catch (error) {
+      if (state.session !== session) return;
+      if ([401,403].includes(error.status)) expireIdentitySession('Your session could not be renewed. Sign in again.');
+      else sessionExpiryTimer=setTimeout(() => armSessionExpiry(),Math.min(15000,Math.max(1,expires-Date.now())));
+    }
+  },Math.max(0,delay));
+}
+
+async function renewIdentitySession() {
+  if (identityRenewal) return identityRenewal;
+  const session = state.session;
+  if (!session) throw Error('Sign in again.');
+  const attempt = (async () => {
+    const response = await fetch(API+'/api/v1/auth/renew', {method:'POST',headers:{Authorization:'Bearer '+session.access_token},signal:AbortSignal.timeout(35000)});
+    const result = await response.json();
+    if (state.session !== session) throw Error('The sign-in session changed.');
+    if (!response.ok) {const error=Error(typeof result.detail==='string'?result.detail:'Session renewal is unavailable');error.status=response.status;throw error;}
+    if (typeof result.access_token !== 'string' || !Number.isFinite(Number(result.expires_at)) || Number(result.expires_at)*1000<=Date.now()) throw Error('Invalid session renewal response');
+    Object.assign(session,{access_token:result.access_token,expires_at:result.expires_at,absolute_expires_at:result.absolute_expires_at});
+    if (state.assistance) {
+      const assisted=(result.assistance_sessions || []).find(row=>row.session_id===state.assistance.session_id);
+      if (assisted) {
+        state.assistance.expires_at=assisted.expires_at;
+        clearTimeout(assistanceTimer);
+        assistanceTimer=setTimeout(()=>void returnFromAssistance(),Math.max(0,Date.parse(assisted.expires_at)-Date.now()));
+        $('#assistance-session-note').textContent=(state.assistance.is_sandbox?'Sandbox':'Production')+' · Owner access · Actions attributed to your admin account · Expires '+new Date(assisted.expires_at).toLocaleTimeString();
+      }
+    }
+    armSessionExpiry();
+    return result;
+  })();
+  identityRenewal=attempt;
+  try {return await attempt;} finally {if(identityRenewal===attempt)identityRenewal=null;}
+}
+
+async function ensureActiveIdentitySession() {
+  const session=state.session;
+  if (!session) throw Error('Sign in again.');
+  const expires=Number(session.expires_at)*1000;
+  if (lastIdentityActivity && Date.now()-lastIdentityActivity>=identityIdleMilliseconds) {
+    expireIdentitySession('You were signed out after 15 minutes without activity. Sign in again.');throw Error('Sign in again.');
+  }
+  if (Number.isFinite(expires) && expires<=Date.now()) {expireIdentitySession('Your session expired. Sign in again.');throw Error('Sign in again.');}
+  if (Number.isFinite(expires) && expires-Date.now()<90000) {
+    try {await renewIdentitySession();}
+    catch(error) {if([401,403].includes(error.status))expireIdentitySession('Your session could not be renewed. Sign in again.');throw error;}
+  }
+}
+
+function recordIdentityActivity(event) {
+  if (!state.session || !event.isTrusted) return;
+  if (lastIdentityActivity && Date.now()-lastIdentityActivity>=identityIdleMilliseconds) {expireIdentitySession('You were signed out after 15 minutes without activity. Sign in again.');return;}
+  if (Date.now()-lastIdentityActivity<1000) return;
+  lastIdentityActivity=Date.now();armIdentityIdleTimer();
+}
+for(const type of ['pointerdown','pointermove','keydown','input','wheel','touchstart']) document.addEventListener(type,recordIdentityActivity,{capture:true,passive:true});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.session)void ensureActiveIdentitySession().catch(()=>{});});
+const identityHygieneClearBase=clearSession;
+clearSession=function(){
+  clearTimeout(sessionExpiryTimer);clearTimeout(identityIdleTimer);clearTimeout(identityHardExpiryTimer);identityRenewal=null;lastIdentityActivity=0;
+  identityHygieneClearBase.apply(this,arguments);
+  resetSessionForms();
+};
+window.addEventListener('pagehide',()=>{
+  const token=state.session?.access_token;
+  clearSession();
+  if(token)void fetch(API+'/api/v1/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token},keepalive:true}).catch(()=>{});
+});
+window.addEventListener('pageshow',event=>{if(event.persisted)clearSession();else if(!state.session)resetSessionForms();});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{if(!state.session)resetSessionForms();},{once:true});
+else if(!state.session)resetSessionForms();
 </script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+# Sign in and session lifecycle
+
+Active users receive renewed short-lived app tokens before expiry. User activity includes typing, clicks, pointer movement, scrolling and touch. Background dashboard requests do not reset the inactivity timer. Fifteen minutes without user activity signs the browser out and clears editable forms. The server imposes an eight-hour maximum work session; reaching it requires a fresh sign-in.
+
+A page refresh, navigation away or browser history restoration does not restore authentication. Sign-in tokens stay in memory, not localStorage or sessionStorage. Old `easyinvio.session` entries are removed automatically. Navigating away attempts server logout; the UI always discards the local session even if the network is unavailable. Logout notifications between tabs contain only a timestamp, never a token. A password manager may offer credentials, but the application does not submit them automatically.
+
+Sign-out, expiry and each new login clear editable operational forms, file selections, shipment addresses, goods lines, dimensions, quote selections and session-scoped workflow state. Routine token renewal preserves the current work instead. Saved addresses, SKU catalog records, packaging preferences, confirmed shipments and financial records are not deleted. Pending payment references remain scoped to their existing transaction so server-verified settlement is not lost.
+
+`POST /api/v1/auth/renew` accepts only a valid, unexpired, unrevoked EasyInvio app session. It rechecks the provider identity, active workspace membership and current platform-admin permission. When required, the backend refreshes Supabase credentials using the refresh token encrypted in the existing `app_auth_sessions.provider_token` envelope. Neither the provider access token nor refresh token is returned to the browser. Concurrent renewals serialize on the existing session row. No schema migration is needed.
+
+An unavailable identity provider yields a temporary error and the browser retries while its existing token remains valid. It does not replay a booking or payment automatically. Once a session expires, is revoked or loses its required membership, it cannot be silently reopened. Older sessions without an encrypted provider refresh token may require one fresh sign-in before upstream renewal is possible.
+
+Client assistance binds to the parent app-session ID, so renewal does not break the admin audit identity or switch clients. The existing 30-minute assistance limit still applies. Assistance expiry adjustments are recorded in its append-only audit trail. Starting a different sign-in session does not authorize reuse of an old assistance ID.
+
+Validation covers encrypted-only refresh credentials, upstream renewal, revoked/expired sessions, membership checks, maximum duration, assistance binding, browser refresh, form clearing, inactivity and failed renewal. Browser checks use synthetic API responses; they do not submit real passwords, buy labels or mutate client balances.

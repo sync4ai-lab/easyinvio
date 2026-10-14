@@ -31,6 +31,8 @@ class IdentityRoute(APIRoute):
 router=APIRouter(prefix='/api/v1/auth',tags=['Identity'],route_class=IdentityRoute)
 ISSUER='easyinvio-auth'
 AUDIENCE='easyinvio-api'
+SESSION_WINDOW_SECONDS=900
+SESSION_MAX_SECONDS=8*60*60
 
 
 class Login(BaseModel):
@@ -106,11 +108,13 @@ async def token(body: Login, request: Request):
         if len(members)>1 or (not admin and len(members)!=1):raise HTTPException(403,'An active workspace registration is required')
         tenant_id=members[0]['tenant_id'] if members else None
         role='SUPER_ADMIN' if admin else members[0]['role']
-        now=int(time.time());expires=min(now+900,int(data.get('expires_at',now+int(data.get('expires_in',3600)))))
+        now=int(time.time());provider_expires=int(data.get('expires_at',now+int(data.get('expires_in',3600))))
+        expires=min(now+SESSION_WINDOW_SECONDS,provider_expires)
         if expires<=now:raise HTTPException(401,'Authentication session expired')
         identifier=uuid4();key_id=sorted(settings.credential_keys)[0]
         cipher=Fernet(settings.credential_keys[key_id].get_secret_value().encode()).encrypt(json.dumps({
-            'session_id':str(identifier),'user_id':str(user_id),'access_token':access}).encode())
+            'session_id':str(identifier),'user_id':str(user_id),'access_token':access,
+            'refresh_token':data.get('refresh_token'),'provider_expires_at':provider_expires}).encode())
         await c.execute('DELETE FROM public.app_auth_sessions WHERE expires_at<now()')
         await c.execute("DELETE FROM public.app_login_limits WHERE window_start<now()-interval '1 day'")
         await c.execute('INSERT INTO public.app_auth_sessions(id,auth_user_id,tenant_id,provider_token,key_id,expires_at) VALUES($1,$2,$3,$4,$5,$6)',identifier,user_id,tenant_id,cipher,key_id,datetime.fromtimestamp(expires,timezone.utc))
@@ -118,7 +122,88 @@ async def token(body: Login, request: Request):
         'tenant_id':str(tenant_id) if tenant_id else None,'role':role,'email':email,
         'iat':now,'exp':expires,'jti':str(identifier)}
     return {'access_token':jwt.encode(claims,settings.auth_jwt_secret.get_secret_value(),algorithm='HS256'),
-            'token_type':'bearer','expires_at':expires,'user':{'id':str(user_id),'email':email}}
+            'token_type':'bearer','expires_at':expires,'absolute_expires_at':now+SESSION_MAX_SECONDS,
+            'user':{'id':str(user_id),'email':email}}
+
+
+@router.post('/renew')
+async def renew(request: Request):
+    """Renew an unexpired app session; provider refresh secrets never leave the server."""
+    from fastapi.security import HTTPBearer
+    credentials=await HTTPBearer(auto_error=False)(request)
+    if not credentials or credentials.scheme.lower()!='bearer':raise HTTPException(401,'Sign in again')
+    await unwrap_app_session(request,credentials.credentials)
+    claims=getattr(request.state,'app_session_claims',None)
+    if not claims:raise HTTPException(401,'Sign in through EasyInvio to renew your session')
+    settings=request.app.state.settings
+    identifier,user_id=UUID(claims['jti']),UUID(claims['user_id'])
+    async with request.app.state.finance.pool.acquire() as connection:
+        async with connection.transaction():
+            row=await connection.fetchrow('''SELECT s.* FROM public.app_auth_sessions s JOIN auth.users a ON a.id=s.auth_user_id
+                WHERE s.id=$1 AND s.auth_user_id=$2 AND s.expires_at>now()
+                AND (a.banned_until IS NULL OR a.banned_until<now()) AND (to_jsonb(a)->>'deleted_at') IS NULL FOR UPDATE OF s''',identifier,user_id)
+            now=int(time.time())
+            if not row:raise HTTPException(401,'Session ended. Sign in again')
+            absolute=int(row['created_at'].timestamp())+SESSION_MAX_SECONDS
+            if now>=absolute:raise HTTPException(401,'Your work session has reached eight hours. Sign in again')
+            try:
+                envelope=json.loads(Fernet(settings.credential_keys[row['key_id']].get_secret_value().encode()).decrypt(bytes(row['provider_token'])))
+                if envelope['session_id']!=str(identifier) or envelope['user_id']!=str(user_id):raise ValueError()
+                provider_expires=int(envelope.get('provider_expires_at') or jwt.decode(envelope['access_token'],options={'verify_signature':False})['exp'])
+            except (ValueError,KeyError,TypeError,InvalidToken,jwt.PyJWTError):
+                raise HTTPException(401,'Sign in again to renew your session') from None
+            members=await connection.fetch('''SELECT u.tenant_id,u.role FROM public.users u JOIN public.tenants t USING(tenant_id)
+                WHERE u.auth_user_id=$1 AND u.is_active AND t.workspace_status='ACTIVE' LIMIT 2''',user_id)
+            admin=user_id in settings.platform_admin_user_ids
+            if len(members)>1 or (not admin and len(members)!=1):raise HTTPException(403,'Active workspace access is required')
+            tenant_id=members[0]['tenant_id'] if members else None
+            if tenant_id!=row['tenant_id']:raise HTTPException(401,'Workspace access changed. Sign in again')
+            role='SUPER_ADMIN' if admin else members[0]['role']
+            try:
+                async with httpx.AsyncClient(trust_env=False,timeout=15) as client:
+                    identity=await client.get(settings.supabase_url+'/auth/v1/user',headers={
+                        'apikey':settings.supabase_publishable_key.get_secret_value(),'Authorization':'Bearer '+envelope['access_token']})
+                    if identity.status_code>=500:raise HTTPException(503,'Authentication renewal is temporarily unavailable')
+                    if identity.status_code!=200 or UUID(identity.json()['id'])!=user_id:
+                        raise HTTPException(401,'Identity verification failed. Sign in again')
+                    if provider_expires<=now+120:
+                        if not envelope.get('refresh_token'):raise HTTPException(401,'Sign in again to renew this older session')
+                        result=await client.post(settings.supabase_url+'/auth/v1/token?grant_type=refresh_token',
+                            headers={'apikey':settings.supabase_publishable_key.get_secret_value()},
+                            json={'refresh_token':envelope['refresh_token']})
+                        if result.status_code>=500:raise HTTPException(503,'Authentication renewal is temporarily unavailable')
+                        if result.status_code!=200:raise HTTPException(401,'Your session can no longer be renewed. Sign in again')
+                        data=result.json()
+                        if UUID(data['user']['id'])!=user_id:raise HTTPException(401,'Identity verification failed. Sign in again')
+                        envelope['access_token']=data['access_token']
+                        envelope['refresh_token']=data.get('refresh_token') or envelope['refresh_token']
+                        provider_expires=int(data.get('expires_at',now+int(data.get('expires_in',3600))))
+                        envelope['provider_expires_at']=provider_expires
+            except (httpx.HTTPError,ValueError,KeyError,TypeError):
+                raise HTTPException(503,'Authentication renewal is temporarily unavailable') from None
+            now=int(time.time())
+            expires=min(now+SESSION_WINDOW_SECONDS,provider_expires,absolute)
+            if expires<=now:raise HTTPException(401,'Session expired. Sign in again')
+            cipher=Fernet(settings.credential_keys[row['key_id']].get_secret_value().encode()).encrypt(json.dumps(envelope).encode())
+            await connection.execute('UPDATE public.app_auth_sessions SET provider_token=$2,expires_at=$3 WHERE id=$1',
+                identifier,cipher,datetime.fromtimestamp(expires,timezone.utc))
+            renewed={**claims,'role':role,'iat':now,'exp':expires}
+            assisted=[]
+            if admin and await connection.fetchval("SELECT to_regclass('public.admin_client_assistance_sessions') IS NOT NULL"):
+                rows=await connection.fetch('''UPDATE public.admin_client_assistance_sessions
+                    SET bearer_sha256=$3,expires_at=least(created_at+interval '30 minutes',$4)
+                    WHERE actor_auth_user_id=$1 AND bearer_sha256 IN ($2,$3) AND revoked_at IS NULL
+                    AND expires_at>now() RETURNING *''',user_id,
+                    hashlib.sha256(request.headers.get('authorization','').encode()).hexdigest(),
+                    hashlib.sha256(('app-session:'+str(identifier)).encode()).hexdigest(),datetime.fromtimestamp(expires,timezone.utc))
+                assisted=[{'session_id':str(item['id']),'expires_at':item['expires_at'].isoformat()} for item in rows]
+                from backend.client_assistance import append_event
+                for item in rows:
+                    audit_id=uuid4()
+                    await append_event(connection,item,'REQUEST_STARTED',audit_id,'POST','/api/v1/auth/renew',detail={'operation':'SESSION_RENEWAL'})
+                    await append_event(connection,item,'REQUEST_FINISHED',audit_id,'POST','/api/v1/auth/renew',200,{'expires_at':item['expires_at'].isoformat()})
+    return {'access_token':jwt.encode(renewed,settings.auth_jwt_secret.get_secret_value(),algorithm='HS256'),
+        'token_type':'bearer','expires_at':expires,'absolute_expires_at':absolute,'assistance_sessions':assisted}
 
 
 async def current_identity(request):
