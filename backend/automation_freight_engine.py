@@ -399,7 +399,11 @@ class AutomationService:
                             require_prepaid_funds(wallet,Decimal('.01'),order.currency)
                     accounts=await self.repository.accounts(context,historical_account_id=return_account_id) if return_account_id else await self.repository.accounts(context)
                     if not accounts: raise HTTPException(503,'NO_CARRIER_ACCOUNTS')
-                    user_id=await lock.fetchval('SELECT id FROM public.users WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active',context.tenant_id,context.user_id)
+                    if getattr(context,'assistance_session_id',None):
+                        from backend.client_assistance import operator_member_id
+                        user_id=await operator_member_id(lock,context)
+                    else:
+                        user_id=await lock.fetchval('SELECT id FROM public.users WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active',context.tenant_id,context.user_id)
                     if user_id is None: raise HTTPException(403,'ACTIVE_MEMBER_REQUIRED')
                     if order.store_id:
                         store=await lock.fetchrow('SELECT platform FROM public.ecommerce_stores WHERE tenant_id=$1 AND id=$2 AND is_active',context.tenant_id,order.store_id)

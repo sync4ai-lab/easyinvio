@@ -78,6 +78,10 @@ def build_router(authenticate, origins):
             scope = {'type': 'http', 'method': 'GET', 'path': '/api/v1/dispatch-workspace/live',
                 'headers': [], 'query_string': b'', 'app': socket.app, 'scheme': 'https',
                 'client': socket.scope.get('client'), 'server': socket.scope.get('server')}
+            if message.get('assistance_session_id'):
+                scope['easyinvio_assistance_revalidate'] = True
+                scope['headers'] = [(b'x-easyinvio-assistance', str(message['assistance_session_id']).encode()),
+                    (b'authorization', ('Bearer '+token).encode())]
             request = Request(scope)
             credentials = HTTPAuthorizationCredentials(scheme='Bearer', credentials=token)
             context = await authenticate(request, credentials)

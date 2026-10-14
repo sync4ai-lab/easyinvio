@@ -558,6 +558,7 @@ class TenantContext:
     user_id: UUID
     role: str
     bearer_token: str
+    assistance_session_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -2080,7 +2081,8 @@ try:
 except (ValueError, TypeError):
     raise RuntimeError("FRONTEND_ALLOWED_ORIGINS must be a JSON array of explicit origins") from None
 app.add_middleware(CORSMiddleware, allow_origins=_frontend_origins,
-                   allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
+                   allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+                   allow_headers=["Authorization", "Content-Type", "X-EasyInvio-Assistance"])
 bearer = HTTPBearer(auto_error=False)
 
 
@@ -2145,6 +2147,15 @@ async def authenticate(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ) -> TenantContext:
+    if request.headers.get('X-EasyInvio-Assistance'):
+        from backend.client_assistance import resolve_assistance
+        assistance = getattr(request.state, 'client_assistance', None)
+        if assistance is None or request.scope.get('easyinvio_assistance_revalidate'):
+            assistance = await resolve_assistance(request, credentials)
+        validate_tenant_query(request, assistance['tenant_id'])
+        request.state.workspace_role = 'OWNER'
+        return TenantContext(assistance['tenant_id'], assistance['actor_auth_user_id'], 'OWNER',
+            credentials.credentials if credentials else '', assistance['id'])
     unauthorized = HTTPException(401, "Invalid or expired authentication token",
                                  headers={"WWW-Authenticate": "Bearer"})
     if credentials is None or credentials.scheme.lower() != "bearer":
@@ -2547,6 +2558,9 @@ app.include_router(agent_router(authenticate, RatingRequest, authenticate_platfo
 
 from backend.tenant_catalogs import build_router as tenant_catalog_router
 app.include_router(tenant_catalog_router(authenticate, Address))
+from backend.client_assistance import router as assistance_router, ClientAssistanceMiddleware
+app.include_router(assistance_router)
+app.add_middleware(ClientAssistanceMiddleware)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")

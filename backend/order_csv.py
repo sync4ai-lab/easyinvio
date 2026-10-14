@@ -232,7 +232,11 @@ class CSVOrderService:
         async with self.pool.acquire() as connection:
             async with connection.transaction():
                 tenant=await connection.fetchrow('SELECT * FROM public.tenants WHERE tenant_id=$1 AND workspace_status=\'ACTIVE\' FOR SHARE',context.tenant_id)
-                member=await connection.fetchval("SELECT id FROM public.users WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active AND role IN ('OWNER','ADMIN','DISPATCHER')",context.tenant_id,context.user_id)
+                if getattr(context,'assistance_session_id',None):
+                    from backend.client_assistance import operator_member_id
+                    member=await operator_member_id(connection,context)
+                else:
+                    member=await connection.fetchval("SELECT id FROM public.users WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active AND role IN ('OWNER','ADMIN','DISPATCHER')",context.tenant_id,context.user_id)
                 if not tenant or not member:raise HTTPException(403,'Active dispatch membership required')
                 if order.store_id:
                     store=await connection.fetchrow('SELECT platform FROM public.ecommerce_stores WHERE tenant_id=$1 AND id=$2 AND is_active FOR SHARE',context.tenant_id,order.store_id)

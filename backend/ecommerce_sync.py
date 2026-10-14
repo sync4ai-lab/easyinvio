@@ -215,9 +215,14 @@ class EcommerceService:
                         raise HTTPException(409, "Order already imported with different shipping data; reconcile before updating")
                     return {"shipment_id": str(existing["id"]), "status": existing["status"], "replayed": True, **metadata}
                 shipment_id = uuid4()
-                member = await connection.fetchrow(
-                    "SELECT id FROM public.users WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active AND role IN ('OWNER','ADMIN','DISPATCHER')",
-                    context.tenant_id, context.user_id)
+                if getattr(context,'assistance_session_id',None):
+                    from backend.client_assistance import operator_member_id
+                    member_id=await operator_member_id(connection,context)
+                    member={'id':member_id} if member_id else None
+                else:
+                    member = await connection.fetchrow(
+                        "SELECT id FROM public.users WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active AND role IN ('OWNER','ADMIN','DISPATCHER')",
+                        context.tenant_id, context.user_id)
                 tenant = await connection.fetchrow(
                     "SELECT billing_address,legal_company_name FROM public.tenants WHERE tenant_id=$1 AND workspace_status='ACTIVE'",
                     context.tenant_id)

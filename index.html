@@ -1901,7 +1901,8 @@ async function api(path, {
   if (auth && activeSession !== state.session) throw Error('Session changed. Retry after signing in.');
   if (!response.ok) {
     if (response.status === 401 && auth) {
-      clearSession()
+      if (state.assistance) await returnFromAssistance();
+      else clearSession()
     }
     const detail = data.detail;
     const error = Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.message ? detail.message + (detail.reason ? ': ' + detail.reason : '') : detail?.code || `Request failed (${response.status})`);
@@ -3749,7 +3750,7 @@ function refreshEnterpriseNavigation() {
   const warehouse = portal.profile?.workspace_role === 'DISPATCHER';
   const admin = portal.role === 'SUPER_ADMIN';
   if (!state.session && admin) $('#mode-label').textContent = 'SAMPLE PLATFORM CONTROL PLANE · Sign in as an authorized owner to manage database configuration.';
-  $('#role-admin').hidden = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
+  $('#role-admin').hidden = !!state.session && !state.assistance && portal.profile?.portal_role !== 'SUPER_ADMIN';
   $('#role-client').hidden = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
   $('.sidebar-caption').textContent = admin ? 'Platform control plane' : warehouse ? 'Warehouse operations' : 'Client workspace';
   $('#dashboard .quick-grid').hidden = admin || warehouse;
@@ -7006,7 +7007,8 @@ function connectDispatchUpdates() {
   dispatchLive.socket = socket;
   socket.onopen = () => {
     if (session === state.session) socket.send(JSON.stringify({
-      access_token: session.access_token
+      access_token: session.access_token,
+      assistance_session_id: state.assistance?.session_id || null
     }));
     else socket.close();
   };
@@ -7666,6 +7668,192 @@ renderAccount = function() {
   $('#catalog-company-panel').hidden=true;
   panel.insertAdjacentHTML('beforeend','<p class="subtle"><a href="/help/settings-catalogs" target="_blank" rel="noopener">How to reuse saved shipping details</a></p>');
 })();
+</script>
+<style>
+#assistance-banner{position:sticky;top:0;z-index:70;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 24px;background:#312e16;border-bottom:1px solid #a16207;color:#fef3c7}#assistance-banner[hidden]{display:none}#assistance-banner small{display:block;color:#fde68a}#assistance-dialog{width:min(760px,94vw);max-height:90vh;padding:24px;border:1px solid #334155;border-radius:20px;background:#0b1222;color:#f1f5f9}#assistance-dialog::backdrop{background:#020617b8;backdrop-filter:blur(5px)}.assistance-results{display:grid;gap:8px;max-height:310px;overflow:auto;margin:14px 0}.assistance-choice{display:block;width:100%;text-align:left;padding:12px;border:1px solid #334155;border-radius:10px;background:#0f172a;color:#f1f5f9}.assistance-choice[aria-pressed=true]{border-color:#34d399;background:#063b35}.assistance-choice small{display:block;color:#94a3b8;overflow-wrap:anywhere}#assistance-audit{margin-top:24px;padding:20px;border:1px solid #334155;border-radius:16px;background:#020617}#assistance-audit .table-wrap{max-height:420px;overflow:auto}#assistance-dialog textarea{width:100%;min-height:76px}#assistance-start{margin-top:16px}@media(max-width:600px){#assistance-banner{flex-wrap:wrap;padding:12px}#assistance-dialog{padding:16px}}
+</style>
+<style>#assistance-return,#assistance-close,#assistance-audit-refresh{background:#17243b;color:#e2e8f0;border:1px solid #475569;border-radius:9px;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}#assistance-return:hover,#assistance-close:hover,#assistance-audit-refresh:hover{background:#243653;border-color:#94a3b8}</style>
+<div id="assistance-banner" hidden role="status"><div><strong id="assistance-client-name"></strong><small id="assistance-session-note"></small></div><button id="assistance-return" type="button">Return to Super Admin</button></div>
+<dialog id="assistance-dialog" aria-labelledby="assistance-title"><div style="display:flex;justify-content:space-between;gap:12px"><h2 id="assistance-title">Assist a client</h2><button id="assistance-close" type="button" aria-label="Close client picker">Close</button></div><p class="subtle">Open the client's workspace with owner access. Transactions use their balance and settings, and actions are recorded under your admin identity.</p><label>Find a client<input id="assistance-search" type="search" maxlength="200" placeholder="Company, Client ID, workspace name or billing email" autocomplete="off"></label><div id="assistance-results" class="assistance-results" aria-live="polite"></div><label>Reason for access<textarea id="assistance-reason" minlength="10" maxlength="500" placeholder="For example: investigate the label error reported in support case 123"></textarea></label><p id="assistance-picker-status" role="status"></p><button id="assistance-start" class="primary" type="button" disabled>Open client workspace</button></dialog>
+<script>
+// Assistance keeps the operator's own token; no customer password or token is issued.
+state.assistance = null;
+let assistanceTimer = null;
+let assistanceSearchTimer = null;
+let assistanceSearchVersion = 0;
+let assistanceSelected = null;
+let assistanceChanging = false;
+let assistanceAdminProfile = null;
+let assistanceAuditLoaded = false;
+document.body.prepend($('#assistance-banner'));
+$('#dashboard-note').parentElement.insertAdjacentHTML('beforeend', '<section id="assistance-audit" hidden><h2>Client assistance audit</h2><p class="subtle">Admin access, requested actions and HTTP outcomes. A request without a finish event needs review before retrying a transaction.</p><button id="assistance-audit-refresh" type="button">Refresh audit</button><div id="assistance-audit-results" class="table-wrap" aria-live="polite"></div></section>');
+
+const assistanceFetchBase = window.fetch.bind(window);
+window.fetch = function(input, options = {}) {
+  const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url, location.href);
+  const backend = new URL(API || location.origin, location.origin);
+  const headers = new Headers(options.headers || (input instanceof Request ? input.headers : undefined));
+  if (state.assistance && url.origin === backend.origin && /^\/(api\/v1|v1)\//.test(url.pathname)
+      && !url.pathname.startsWith('/api/v1/admin/') && !url.pathname.startsWith('/api/v1/auth/')
+      && headers.get('Authorization') === 'Bearer ' + state.session?.access_token) {
+    headers.set('X-EasyInvio-Assistance', state.assistance.session_id);
+  }
+  return assistanceFetchBase(input, {...options, headers});
+};
+
+async function searchAssistanceClients() {
+  const version = ++assistanceSearchVersion;
+  $('#assistance-picker-status').textContent = 'Finding clients...';
+  try {
+    const data = await api('/api/v1/admin/client-assistance/clients?q=' + encodeURIComponent($('#assistance-search').value.trim()), {auth:true});
+    if (version !== assistanceSearchVersion || !$('#assistance-dialog').open) return;
+    $('#assistance-results').replaceChildren();
+    for (const client of data.clients) {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'assistance-choice';
+      button.setAttribute('aria-pressed', String(assistanceSelected?.tenant_id === client.tenant_id));
+      button.innerHTML = '<strong>' + escapeHTML(client.company_name || client.workspace_name) + '</strong><small>' + escapeHTML(client.billing_email) + ' · ' + escapeHTML(client.is_sandbox ? 'Sandbox' : 'Production') + ' · ' + escapeHTML(client.workspace_status) + '</small><small>Client ID: ' + escapeHTML(client.tenant_id) + '</small>';
+      button.onclick = () => {
+        assistanceSelected = client;
+        $$('#assistance-results button').forEach(row => row.setAttribute('aria-pressed', String(row === button)));
+        validateAssistanceChoice();
+      };
+      $('#assistance-results').append(button);
+    }
+    $('#assistance-picker-status').textContent = data.clients.length ? 'Choose a client and enter the support reason. Up to 50 matches are shown.' : 'No matching client. Try a company name, email or full Client ID.';
+  } catch (error) { $('#assistance-picker-status').textContent = error.message; }
+}
+function validateAssistanceChoice() {
+  $('#assistance-start').disabled = !assistanceSelected || $('#assistance-reason').value.trim().length < 10 || assistanceChanging;
+}
+function openAssistancePicker() {
+  assistanceSelected = null;
+  $('#assistance-reason').value = '';
+  validateAssistanceChoice();
+  $('#assistance-dialog').showModal();
+  $('#assistance-search').focus();
+  void searchAssistanceClients();
+}
+function resetAssistanceWorkspace(session, identity) {
+  clearSession();
+  state.wallet = 0n;
+  state.reserved = 0n;
+  state.history = [];
+  state.manifest = [];
+  state.session = {...session};
+  identityProfile = identity;
+  localStorage.setItem(identityStorageKey, JSON.stringify(state.session));
+  armSessionExpiry();
+  showIdentityGate();
+  renderAccount();
+}
+async function returnFromAssistance() {
+  if (assistanceChanging) return;
+  assistanceChanging = true;
+  const session = state.session, identity = identityProfile, current = state.assistance;
+  try {
+    if (current && session) await api('/api/v1/admin/client-assistance/sessions/' + current.session_id, {method:'DELETE',auth:true});
+  } catch (error) {
+    notify('Client access closed locally. Server revocation could not be confirmed; the session expires automatically. ' + error.message, true);
+  } finally {
+    if (session && state.session === session) {
+      resetAssistanceWorkspace(session, identity);
+      portal.profile = assistanceAdminProfile || {portal_role:'SUPER_ADMIN',tenant_id:null};
+      portal.role = 'SUPER_ADMIN';
+      assistanceAdminProfile = null;
+      setView('dashboard');
+      renderPortal();
+      void refreshPortal();
+    }
+    assistanceChanging = false;
+  }
+}
+async function startClientAssistance() {
+  if (assistanceChanging || !assistanceSelected) return;
+  assistanceChanging = true;
+  validateAssistanceChoice();
+  const chosen = assistanceSelected;
+  const session = state.session, identity = identityProfile;
+  const adminProfile = assistanceAdminProfile || portal.profile;
+  try {
+    if (state.assistance) await api('/api/v1/admin/client-assistance/sessions/' + state.assistance.session_id, {method:'DELETE',auth:true});
+    const support = await api('/api/v1/admin/client-assistance/sessions', {method:'POST',auth:true,
+      body:{tenant_id:chosen.tenant_id,reason:$('#assistance-reason').value.trim()}});
+    if (session !== state.session) return;
+    resetAssistanceWorkspace(session, identity);
+    assistanceAdminProfile = adminProfile;
+    state.assistance = support;
+    portal.profile = {portal_role:'CLIENT',workspace_role:'OWNER',tenant_id:support.tenant_id,user_id:support.actor_user_id,company_name:support.company_name};
+    portal.role = 'CLIENT';
+    $('#assistance-banner').hidden = false;
+    $('#assistance-client-name').textContent = 'Assisting ' + support.company_name;
+    $('#assistance-session-note').textContent = (support.is_sandbox ? 'Sandbox' : 'Production') + ' · Owner access · Actions attributed to your admin account · Expires ' + new Date(support.expires_at).toLocaleTimeString();
+    assistanceTimer = setTimeout(() => {void returnFromAssistance();}, Math.max(0,Date.parse(support.expires_at)-Date.now()));
+    setView('dashboard');
+    renderPortal();
+    await refreshPortal();
+    notify('Client workspace opened. Your actions are audited.');
+  } catch (error) { $('#assistance-picker-status').textContent = error.message; }
+  finally { assistanceChanging = false; validateAssistanceChoice(); }
+}
+async function loadAssistanceAudit() {
+  if (!state.session || state.assistance || portal.profile?.portal_role !== 'SUPER_ADMIN') return;
+  const session = state.session;
+  try {
+    const data = await api('/api/v1/admin/client-assistance/events', {auth:true});
+    if (session !== state.session || state.assistance) return;
+    const rows = data.events.map(event => {
+      const change = event.detail?.requested_change;
+      const details = change ? '<details><summary>Requested changes</summary><pre style="white-space:pre-wrap;max-width:420px">' + escapeHTML(JSON.stringify(change,null,2)) + '</pre></details>' : '';
+      return '<tr><td>' + escapeHTML(new Date(event.created_at).toLocaleString()) + '</td><td>' + escapeHTML(event.company_name) + '</td><td>' + escapeHTML(event.actor_auth_user_id) + '</td><td>' + escapeHTML(event.event_type) + '<br>' + escapeHTML((event.method || '') + ' ' + (event.path || '')) + details + '<small>Request: ' + escapeHTML(event.request_id || event.session_id) + '</small></td><td>' + escapeHTML(event.status_code == null ? '—' : String(event.status_code)) + '</td><td>' + escapeHTML(event.reason) + '</td></tr>';
+    }).join('');
+    $('#assistance-audit-results').innerHTML = rows ? '<table><thead><tr><th>Time</th><th>Client</th><th>Admin identity</th><th>Event / action</th><th>HTTP status</th><th>Support reason</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<p class="subtle">No client assistance activity recorded.</p>';
+  } catch (error) { $('#assistance-audit-results').textContent = error.message; }
+}
+const assistanceRoleBase = setPortalRole;
+setPortalRole = function(role) {
+  if (state.session && role === 'CLIENT' && (state.assistance || portal.profile?.portal_role === 'SUPER_ADMIN')) return openAssistancePicker();
+  if (state.assistance && role === 'SUPER_ADMIN') return void returnFromAssistance();
+  return assistanceRoleBase(role);
+};
+const assistanceRenderBase = renderPortal;
+renderPortal = function() {
+  assistanceRenderBase();
+  if (state.session && (state.assistance || portal.profile?.portal_role === 'SUPER_ADMIN')) {
+    $('#mode-label').textContent = state.assistance ? 'CLIENT ASSISTANCE · ' + state.assistance.company_name + ' · Requests use this client workspace and are audited under your admin identity.' : 'CONNECTED BACKEND · Super Admin workspace. Select a client to assist with their operations.';
+    $('#health-label').textContent = 'SIGNED IN';
+    $('#modebar').classList.add('live');
+    $('#topup-btn').textContent = 'Create Stripe Checkout';
+    $('#topup-note').textContent = 'Payments use Stripe. Credit is added only after server verification.';
+  }
+  if (state.assistance) $('#role-admin').disabled = false;
+  const show = !!state.session && !state.assistance && portal.role === 'SUPER_ADMIN';
+  $('#assistance-audit').hidden = !show;
+  if (show && !assistanceAuditLoaded) {assistanceAuditLoaded = true; void loadAssistanceAudit();}
+};
+const assistanceClearBase = clearSession;
+clearSession = function() {
+  clearTimeout(assistanceTimer);
+  state.assistance = null;
+  assistanceAuditLoaded = false;
+  $('#assistance-banner').hidden = true;
+  $('#assistance-audit-results').replaceChildren();
+  assistanceClearBase.apply(this, arguments);
+};
+$('#assistance-search').addEventListener('input', () => {
+  clearTimeout(assistanceSearchTimer);
+  assistanceSearchVersion++;
+  assistanceSelected = null;
+  $('#assistance-results').replaceChildren();
+  $('#assistance-picker-status').textContent = 'Finding clients...';
+  validateAssistanceChoice();
+  assistanceSearchTimer=setTimeout(searchAssistanceClients,250);
+});
+$('#assistance-reason').addEventListener('input', validateAssistanceChoice);
+$('#assistance-close').onclick = () => $('#assistance-dialog').close();
+$('#assistance-start').onclick = startClientAssistance;
+$('#assistance-return').onclick = () => {void returnFromAssistance();};
+$('#assistance-audit-refresh').onclick = () => {void loadAssistanceAudit();};
 </script>
 </body>
 </html>

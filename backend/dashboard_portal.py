@@ -85,6 +85,13 @@ def build_router(authenticate):
     async def profile(request: Request):
         from fastapi.security import HTTPBearer
         credentials = await HTTPBearer(auto_error=False)(request)
+        if request.headers.get('X-EasyInvio-Assistance'):
+            context = await authenticate(request, credentials)
+            assistance = request.state.client_assistance
+            return {'portal_role': 'CLIENT', 'user_id': str(context.user_id), 'tenant_id': str(context.tenant_id),
+                'workspace_role': 'OWNER', 'company_name': assistance['company_name'],
+                'assistance': {'session_id': str(assistance['id']), 'actor_user_id': str(context.user_id),
+                    'expires_at': assistance['expires_at'].isoformat()}}
         try:
             owner = await authenticate_platform_owner(request, credentials)
             return {"portal_role": "SUPER_ADMIN", "user_id": str(owner.user_id), "tenant_id": None}
