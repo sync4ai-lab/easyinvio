@@ -112,7 +112,7 @@ MAX_FORM_BYTES = 32_768
 PHONE_PATTERN = re.compile(r"^whatsapp:(\+[1-9][0-9]{7,14})$")
 SID_PATTERN = re.compile(r"^SM[0-9a-fA-F]{32}$")
 QUOTE_PATTERN = re.compile(
-    r"^\s*quote\s+(?P<weight>[0-9]{1,4}(?:\.[0-9]{1,3})?)\s*kg\s+"
+    r"^\s*(?:quote\s+)?(?P<weight>[0-9]{1,4}(?:[.,][0-9]{1,3})?)\s*kg\s+"
     r"from\s+(?P<origin>[a-z]{2,3})\s+to\s+(?P<destination>[a-z]{2,3})"
     r"(?:\s+route\s+(?P<route>[a-z0-9_-]{1,24}))?\s*$",
     re.IGNORECASE | re.ASCII,
@@ -1683,7 +1683,7 @@ def parse_quote(body: str) -> ParsedQuote:
     match = QUOTE_PATTERN.fullmatch(body)
     if match is None:
         raise ValueError("Unrecognized quote format")
-    weight = Decimal(match.group("weight"))
+    weight = Decimal(match.group("weight").replace(",", "."))
     if not ZERO < weight <= Decimal("1000"):
         raise ValueError("Weight must be greater than zero and at most 1000kg")
     route = match.group("route")
