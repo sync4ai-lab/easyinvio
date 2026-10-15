@@ -1,7 +1,7 @@
-"""Signed conversational WhatsApp adapter for the existing tenant rating engine.
+"""Signed WhatsApp ingress into the shared authenticated conversational gateway.
 
-No label is purchased from a message. Signed, expiring links open the authenticated
-workspace, whose booking engine remains responsible for atomic wallet checks.
+Explicit booking commands use native lifecycle and wallet controls. Quote links
+also allow customers to review their selection in the authenticated workspace.
 """
 import asyncio
 import logging
@@ -102,23 +102,17 @@ async def whatsapp_webhook(request: Request) -> Response:
         async with asyncio.timeout(settings.whatsapp_deadline_seconds):
             context = await service.resolve_sender(sender, receiver)
             if context is None:
-                xml = xml_message(f"Welcome to {brand}. Your mobile number is not registered to an active workspace node. Please pair your mobile inside your online profile panel.")
+                return Response(content=xml_message(f"Your mobile number is not registered to an active {brand} workspace. Ask your owner to verify your number."), status_code=403, media_type='application/xml')
             elif form["NumMedia"] != "0":
                 xml = xml_message("Please send text: Quote 4.5kg from GB to US")
             else:
-                engine = getattr(request.app.state, 'logistics_supervisor', None)
-                if engine is not None and engine.runtime.available:
-                    parsed = await engine.whatsapp_quote(context, form["Body"])
-                    xml = await service.process(context, form["MessageSid"], form["Body"], sender,
-                                                conversational=True, preparsed=parsed)
-                else:
-                    xml = await service.process(context, form["MessageSid"], form["Body"], sender,
-                                                conversational=True)
+                from backend.agents.conversational_gateway import signed_whatsapp_message
+                xml = await signed_whatsapp_message(request, context, form)
     except TimeoutError:
-        xml = xml_message("The carriers did not respond quickly enough. Please resend shortly.")
+        xml = xml_message("The action could not be confirmed in time. Check Shipments, Wallet or Support before sending the action again.")
     except HTTPException as exc:
-        xml = xml_message("Rates are temporarily unavailable. Please try again." if exc.status_code == 503
-                          else "This quote could not be processed. Contact your workspace admin.")
+        xml = xml_message("The assistant could not confirm this action. Check your workspace before trying again." if exc.status_code == 503
+                          else "This action needs review. Check your workspace or contact your administrator.")
     except (ValueError, ValidationError, asyncpg.PostgresError):
         logger.error("WhatsApp saved-route or database processing failed")
         xml = xml_message("Ask your workspace admin to check the saved route and carrier configuration.")

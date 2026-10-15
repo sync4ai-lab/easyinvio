@@ -1,7 +1,9 @@
+import re
 from enum import StrEnum
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID, uuid4
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class StrictOutput(BaseModel):
@@ -14,6 +16,30 @@ class QuoteIntent(StrictOutput):
     origin_country: str | None
     destination_country: str | None
     route_code: str | None
+
+
+class ConversationalIntent(StrictOutput):
+    """Model proposals are data; only the gateway authorizes an action."""
+    intent: Literal['QUOTE', 'BOOK_RESERVATION', 'TRACK_PACKAGE', 'TOPUP_WALLET', 'FILE_CLAIM', 'HELP']
+    weight_kg: str | None = None
+    origin_country: str | None = None
+    destination_country: str | None = None
+    route_code: str | None = None
+    target_reference_id: str | None = Field(default=None, max_length=200)
+    monetary_amount: Decimal | None = Field(default=None, ge=1, le=10000, decimal_places=2, allow_inf_nan=False)
+    selection_index: int | None = Field(default=None, ge=1, le=10, strict=True)
+    description_notes: str | None = Field(default=None, max_length=2000)
+
+    @field_validator('monetary_amount', mode='before')
+    @classmethod
+    def exact_amount(cls, value):
+        if value is None:
+            return value
+        if isinstance(value, bool) or not isinstance(value, (str, int, Decimal)):
+            raise ValueError('Use an exact decimal amount, not a floating point value')
+        if not re.fullmatch(r'[0-9]+(?:\.[0-9]{1,2})?', str(value)):
+            raise ValueError('Use a positive amount with at most two decimal places')
+        return Decimal(value)
 
 
 class ColumnMapping(StrictOutput):

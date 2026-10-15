@@ -318,8 +318,8 @@ def build_router(authenticate: Any, rating_model: Any) -> APIRouter:
                     user = await connection.fetchrow(
                         """SELECT id,role FROM public.users WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active FOR SHARE""",
                         body.tenant_id, body.auth_user_id)
-                    if user is None or user["role"] not in DISPATCH_ROLES:
-                        raise HTTPException(422, "An active dispatch member is required")
+                    if user is None or user["role"] not in DISPATCH_ROLES | FINANCE_ROLES:
+                        raise HTTPException(422, "An active dispatch or finance member is required")
                     await connection.execute("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",
                                              f"sandbox-binding:{body.sender_e164}:{SANDBOX_NUMBER}")
                     bindings = await connection.fetch(

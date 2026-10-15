@@ -1728,7 +1728,7 @@ class WhatsAppService:
                    JOIN public.tenants t ON t.tenant_id=b.tenant_id
                    WHERE b.sender_e164=$1 AND b.receiver_e164=$2 AND b.is_active
                      AND b.verified_at IS NOT NULL
-                     AND u.is_active AND u.role IN ('OWNER','ADMIN','DISPATCHER')
+                     AND u.is_active AND u.role IN ('OWNER','ADMIN','DISPATCHER','ACCOUNTANT')
                      AND t.workspace_status='ACTIVE'
                      AND (NOT $3::boolean OR t.is_sandbox) LIMIT 2""", sender, receiver,
                 getattr(self.settings, "twilio_whatsapp_sandbox_enabled", False),
@@ -2396,6 +2396,9 @@ app.include_router(payment_gateway_router(authenticate, TopupRequest, stripe_web
 from backend.whatsapp_bot import router as whatsapp_bot_router
 app.include_router(whatsapp_bot_router)
 
+from backend.agents.conversational_gateway import build_router as conversational_router
+app.include_router(conversational_router(authenticate))
+
 
 @app.post("/webhooks/twilio/whatsapp")
 async def inbound_whatsapp(request: Request) -> Response:
@@ -2408,21 +2411,17 @@ async def inbound_whatsapp(request: Request) -> Response:
         async with asyncio.timeout(settings.whatsapp_deadline_seconds):
             context = await request.app.state.whatsapp.resolve_sender(sender.group(1), receiver.group(1))
             if context is None:
-                return xml_response(twiml("This number is not registered for EasyInvio.com dispatch.\n"
-                    "Ask your workspace owner to verify and register your WhatsApp number, then resend."))
+                return Response(content=twiml("This number is not registered for EasyInvio.com dispatch.\n"
+                    "Ask your workspace owner to verify and register your WhatsApp number, then resend."), media_type='application/xml', status_code=403)
             if form.get("NumMedia", "0") != "0":
                 return xml_response(twiml("Please send text: Quote 4.5kg from GBR to USA"))
-            engine = getattr(request.app.state, 'logistics_supervisor', None)
-            if engine is not None and engine.runtime.available:
-                parsed = await engine.whatsapp_quote(context, form["Body"])
-                return xml_response(await request.app.state.whatsapp.process(context, form["MessageSid"],
-                    form["Body"], sender.group(1), preparsed=parsed))
-            return xml_response(await request.app.state.whatsapp.process(context, form["MessageSid"], form["Body"], sender.group(1)))
+            from backend.agents.conversational_gateway import signed_whatsapp_message
+            return xml_response(await signed_whatsapp_message(request, context, form))
     except TimeoutError:
-        return xml_response(twiml("The carriers did not respond quickly enough. Please resend shortly."))
+        return xml_response(twiml("The action could not be confirmed in time. Check Shipments, Wallet or Support before sending the action again."))
     except HTTPException as exc:
-        text = ("Live rates are temporarily unavailable. Please try again." if exc.status_code == 503
-                else "This quote could not be processed. Contact your workspace admin.")
+        text = ("The assistant could not confirm this action. Check your workspace before trying again." if exc.status_code == 503
+                else "This action needs review. Check your workspace or contact your administrator.")
         return xml_response(twiml(text))
     except (ValueError, ValidationError, asyncpg.PostgresError):
         logger.error("WhatsApp route or DB processing failure")

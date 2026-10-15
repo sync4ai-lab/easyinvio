@@ -57,6 +57,7 @@ class Connection:
         self.shipment_id = uuid4()
         self.lock, self.depth, self.calls = asyncio.Lock(), 0, []
         self.fail_ledger = False
+        self.messages = {}
         self.state = {"tenant": {"tenant_id": tenant, "workspace_status": "ACTIVE", "billing_status": "ACTIVE", "billing_plan": "PREPAID_WALLET", "default_currency": "GBP", "stripe_customer_id": "cus_test", "is_sandbox": True},
                       "wallet": {"tenant_id": tenant, "currency": "GBP", "balance": Decimal("0.00"), "reserved_balance": Decimal("0.00")},
                       "topups": {}, "ledger": [], "reservations": [], "receipts": {}, "choices": [],
@@ -64,6 +65,7 @@ class Connection:
     def transaction(self, **kwargs): return Transaction(self, **kwargs)
     async def fetchrow(self, sql, *args):
         self.calls.append((sql, args))
+        if "FROM public.conversational_messages" in sql: return self.messages.get(args[2])
         if "FROM public.tenants" in sql: return dict(self.state["tenant"]) if args[0] == self.tenant else None
         if "FROM public.users" in sql: return {"role": "OWNER"}
         if "FROM public.wallets" in sql: return dict(self.state["wallet"]) if args[0] == self.tenant else None
@@ -86,11 +88,20 @@ class Connection:
         raise AssertionError(sql)
     async def fetchval(self, sql, *args):
         self.calls.append((sql, args))
+        if "to_regclass('public.conversational_messages')" in sql or 'pg_try_advisory_lock' in sql: return True
+        if 'SELECT EXISTS(SELECT 1 FROM public.conversational_messages' in sql: return False
+        if 'SELECT response FROM public.conversational_messages' in sql:
+            quotes = [row['response'] for row in self.messages.values() if row['state'] == 'COMPLETED' and json.loads(row['response']).get('action_taken') == 'QUOTE']
+            return quotes[-1] if quotes else None
         if "response_xml" in sql: return self.state["receipts"].get(args)
         raise AssertionError(sql)
     async def execute(self, sql, *args):
         self.calls.append((sql, args))
-        if "UPDATE public.tenants SET stripe_customer_id" in sql: self.state["tenant"]["stripe_customer_id"] = args[1]
+        if "INSERT INTO public.conversational_messages" in sql:
+            self.messages[args[0]] = {'input_sha256': args[4], 'state': 'PROCESSING', 'response': '{}'}
+        elif "UPDATE public.conversational_messages" in sql:
+            self.messages[args[2]].update(state='COMPLETED', response=args[3])
+        elif "UPDATE public.tenants SET stripe_customer_id" in sql: self.state["tenant"]["stripe_customer_id"] = args[1]
         elif "INSERT INTO public.wallet_topups" in sql:
             self.state["topups"][args[0]] = {"id": args[0], "tenant_id": args[1], "requested_by_auth_user_id": args[2], "stripe_customer_id": args[3], "amount": args[4], "currency": "GBP", "is_sandbox": True, "sandbox_test_token": args[5], "status": "PENDING", "stripe_payment_intent_id": None, "created_at": datetime.now(timezone.utc)}
         elif "UPDATE public.wallets SET balance" in sql: self.state["wallet"]["balance"] = args[1]
@@ -246,7 +257,7 @@ class WhatsAppTests(unittest.TestCase):
         self.observed = []
         observed = self.observed
         class Rating:
-            async def quote(self, context, request, deadline):
+            async def quote(self, context, request, deadline=None):
                 observed.append((context, request))
                 now = datetime.now(timezone.utc)
                 return main.RatingResponse(request_id=uuid4(), currency="GBP", quoted_at=now, expires_at=now + timedelta(minutes=5), partial=False, issues=[],
@@ -255,6 +266,10 @@ class WhatsAppTests(unittest.TestCase):
         main.app.state.settings = self.settings
         main.app.state.twilio_validator = RequestValidator(self.settings.twilio_auth_token.get_secret_value())
         main.app.state.whatsapp = main.WhatsAppService(self.pool, self.settings, Rating())
+        main.app.state.rating = main.app.state.whatsapp.rating
+        main.app.state.finance = SimpleNamespace(pool=self.pool)
+        main.app.state.logistics_supervisor = None
+        main.app.state.settings.whatsapp_brand_name = "EasyInvio.com"
         self.client = TestClient(main.app)
     def fields(self, **overrides):
         return {"AccountSid": self.settings.twilio_account_sid, "From": "whatsapp:+447700900123", "To": "whatsapp:+14155238886", "MessageSid": "SM" + "b" * 32, "Body": "Quote 4.5kg from GBR to USA", "NumMedia": "0", **overrides}
@@ -266,7 +281,7 @@ class WhatsAppTests(unittest.TestCase):
         response = self.post(self.fields(FutureTwilioParameter="must be included in signature"))
         self.assertEqual(response.status_code, 200, response.text)
         text = ElementTree.fromstring(response.text).find("Message").text
-        self.assertIn("GBP 23.45", text)
+        self.assertIn("23.45 GBP", text)
         self.assertIn("sandbox quotes", text)
         self.assertIn("4.5kg", text)
         context, request = self.observed[0]
@@ -292,7 +307,7 @@ class WhatsAppTests(unittest.TestCase):
         self.assertEqual(self.observed, [])
     def test_media_returns_text_instruction_and_bad_iso_returns_help(self):
         self.assertIn("Please send text", self.post(self.fields(NumMedia="1")).text)
-        self.assertIn("Send:", self.post(self.fields(Body="Quote 4.5kg from XYZ to USA")).text)
+        self.assertIn("Quote 4.5kg", self.post(self.fields(Body="Quote 4.5kg from XYZ to USA")).text)
         self.assertEqual(self.observed, [])
     def test_non_sandbox_binding_cannot_be_quoted(self):
         self.connection.state["tenant"]["is_sandbox"] = False

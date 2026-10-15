@@ -1,13 +1,13 @@
 # EasyInvio bounded logistics assistance
 
-The supervisor coordinates narrow workers around existing services. It is an application state machine, not a model deciding who may spend money. Agent orchestration and optional rate badges require no additional migration, RLS-context change or FinanceEngine modification. The separate Settings catalogs use migration 036. Standard workflows remain available with AI disabled.
+The supervisor coordinates narrow workers around existing services. It is an application state machine, not a model deciding who may spend money. Optional preparation and rate badges do not change FinanceEngine or RLS contexts. The separate Settings catalogs use migration 036. Conversational actions require private receipt migration 038, applied after 037. Standard workflows remain available with AI disabled.
 
 ## Capabilities and boundaries
 
 | Capability | Implementation | Authority |
 |---|---|---|
-| Message preparation | IngestionWorkerAgent uses the existing parser first; otherwise one forced, read-only Agents SDK tool call extracts typed facts | A UI message cannot authorize a purchase. Missing addresses, dimensions and goods require review |
-| WhatsApp quotes | Verified Twilio ingress resolves the registered sender before optional parsing outside database locks | Existing saved routes supply real addresses and measurements; the current receipt and quote-choice flow stays authoritative |
+| Message preparation | IngestionWorkerAgent retains the quote preparation tool and adds a structured ConversationalIntent extractor | A model proposal cannot authorize a purchase. Explicit commands, authenticated roles, displayed options and native service checks authorize actions |
+| Conversational actions | Both signed Twilio webhook routes and the authenticated web chat use ConversationalActionGateway | Registered phone bindings or the browser session establish identity. Receipt hashes prevent changed-content replay; durable private choices preserve the displayed option order |
 | CSV imports | Known headers normalize without AI. Unknown headers use a bounded tool call containing column names only | Row values are unchanged. Existing CSV validators, durable imports, quote flow and manual booking approval remain authoritative |
 | Customs preparation | Typed goods preserve quantities, weights, values, origin and allocation; descriptions are deduplicated for suggestions | The existing checkout tariff search additionally ranks fresh official UK tariff candidates when AI is enabled, keeping their source links and requiring review. The separate example-suggestion endpoint uses eight examples and is not a certified tariff. Codes and national extensions require review; customs approval is never granted by AI |
 | Quote execution | Supervisor calls the existing durable rates endpoint with a complete RatingRequest | Current permissions, package rules, pricing and stored quote snapshots apply |
@@ -23,6 +23,7 @@ The supervisor coordinates narrow workers around existing services. It is an app
 - `POST /api/v1/agents/customs/suggest`: `{ "description": "cotton knitted t-shirt" }`. Returns a review-required suggestion.
 - `POST /api/v1/agents/customs/information`: `{ "items": [...] }`, using the existing Goods schema, up to 100 lines. Preserves goods facts and returns suggestions without approving them.
 - `POST /api/v1/help/search-agent`: `{ "query": "When is my wallet charged?" }`. Returns answer, source links, retrieval mode, document version and generation usage.
+- `POST /api/v1/conversational/process-message`: authenticated WEB_CHAT messages with `message_body`, `channel` and a stable UUID `request_id`. Optional `sender_id` is not an authentication credential. Returns `status`, `conversational_reply` and `action_taken`.
 - `GET /api/v1/admin/agents/metrics`: existing platform-owner authentication; aggregate current-process model/embedding usage and configuration status. No prompts or secrets.
 
 The existing rates, official tariff search, CSV, invoice, tracking and confirm-booking paths are connected directly. Provider webhooks and ordinary UI rates retain their current deterministic validation. Help searches on each keystroke remain local; the explicit assistant button calls the server. Anonymous visitors can still read every public guide.
@@ -31,13 +32,34 @@ The existing rates, official tariff search, CSV, invoice, tracking and confirm-b
 
 1. Install the pinned-range dependencies in `requirements.txt` using the project virtual environment.
 2. Set `OPENAI_API_KEY` privately and `LOGISTICS_AGENTS_ENABLED=true`. The default model is the requested `gpt-4o-mini`; embeddings use `text-embedding-3-small`. Never put credentials in Git.
-3. Restart the backend. No SQL migration is needed.
+3. Apply `migrations/038_conversational_actions.sql` after 037 before using chat actions, then restart the backend. Existing preparation and help endpoints do not need this new table.
 4. Test messages, mapped CSV headers, reviewed customs examples and Help Centre answers in a non-production workspace. Complete accuracy evaluations against your real use cases before broader rollout.
 5. Inspect the protected metrics endpoint and your provider billing dashboard. Set a provider budget appropriate to your account. To disable AI, set the flag false and restart; standard shipping tools continue.
 
 ## Cost, privacy and resilience
 
 Each model run is limited to one turn, 600 output tokens by default, no model retries, a six-second timeout and four concurrent slots. WhatsApp parsing has a tighter three-second budget. Per-tenant, per-process sliding limits conservatively reserve input bytes plus schema overhead and output allowance. These are abuse controls, not guaranteed billing caps or shared limits across multiple server processes.
+
+## Conversational commands and deployment
+
+The dashboard's **Ask EasyInvio** button opens a session-bound conversation. Its contents stay in browser memory and clear on logout, login or an assistance workspace change. Renewing the same active session keeps the conversation. The Help Centre search remains a documentation-only endpoint; the action gateway is a separate authenticated interface that can also call that documentation retriever.
+
+Both `/webhooks/twilio/whatsapp` and `/api/v1/integrations/whatsapp/webhook` verify the existing Twilio signature before resolving an active, verified phone binding. An unregistered number receives 403. Configure Twilio's canonical external webhook URL for the chosen route, as before. Sending arbitrary WHATSAPP JSON to the web endpoint is forbidden, including with a valid web session. Web chat derives tenant and user from the existing session, never from a supplied phone number. Existing admin-assistance request auditing still applies.
+
+Supported commands work with AI disabled:
+
+- `Quote 4.5kg from GB to US route EXPORT_US`: a unique active saved WhatsApp route must supply full addresses and measured packaging. The native rating service consolidates prices; up to ten actual options are stored in displayed order. This command does not invent goods details or remove international customs review requirements. Use Create a shipment when the route lacks the required goods or customs information.
+- `Book option 1`: confirms the price displayed by the latest completed quote for this user, workspace and channel. The choice must be unexpired. OWNER, ADMIN or DISPATCHER permission is required. PartnerLifecycleService owns preparation, customs readiness, environment checks, wallet reservation, capture/release, carrier confirmation and document generation. A model choosing an option is insufficient consent. Protection is not automatically added.
+- `Track YOUR_REFERENCE`: looks up a unique shipment UUID, customer reference or tracking number within the authenticated tenant. It reports recorded status and milestone timestamps, including recent recorded exceptions. It does not claim a new live carrier check or expose internal supplier error text.
+- `Top up 50 GBP`: OWNER, ADMIN or ACCOUNTANT permission is required. The amount must match the wallet currency, be between 1 and 10000 and have at most two decimal places. Exact Decimal values reach FinanceEngine.create_checkout. A verified HTTPS Stripe Checkout link lets the customer complete payment; chat does not credit the wallet or collect card details.
+- `Claim TRACKING123 damaged Describe what happened`: use `lost` or `damaged` and at least ten characters of notes. A locally confirmed XCover policy is required. This creates a `CLAIM_INGESTED` support case and ticket. It does not assert current insurer eligibility, submit FNOL, approve a claim, change delivery status or credit funds. Insurer filing and evidence use the existing Shipment protection & claims workflow, which verifies coverage with the provider.
+- `Help`: lists commands without a model call. General questions use the published-document retriever when available; disabled AI retains document excerpts and citations.
+
+The optional model proposes one of six typed intents. Its parse has a three-second deadline; explicit commands need zero parser tokens. The legacy QuoteIntent remains for existing preparation callers. Monetary model fields reject binary floats. Mutation handlers independently ground the exact booking, top-up and claim command in the original message. Approximate natural-language payment instructions receive an explicit command example instead of executing.
+
+Migration 038 stores message hashes, actor/tenant/channel identity, processing outcome and private ordered quote-choice references. It does not store raw conversation prompts. Claim notes are deliberately saved in the existing private insurance/support records. The receipt's short transaction commits before model or provider IO, and releases its database connection before native financial services run. Only one processing message per user/channel starts at a time. Completed deliveries replay the saved result; changed-content reuse and unfinished deliveries receive 409. Reuse the same request UUID when retrying a web request; Twilio MessageSid maps to a stable UUID.
+
+An interrupted action is never automatically executed again. REVIEW_REQUIRED receipts need comparison with authoritative shipments, reservations, payments or claim cases. A process crash may leave PROCESSING and block later messages in that thread. An authorized operator must reconcile its outcome before changing that receipt to REVIEW_REQUIRED; do not delete receipts or restart purchases to clear the block. This is a deliberate financial retry fence. No carrier purchase, Stripe payment, model API call or migration was executed as part of the local contract/browser tests.
 
 Identical private requests cache in bounded memory for five minutes, scoped to tenant and model; generated help answers cache for two minutes with document-version invalidation. Concurrent identical first requests may still incur separate calls. Published-document vectors alone cache under `output/agents`; queries and customer rows are never written there. The public index builds lazily once per process/document version and can be shared through that cache directory. Runtime metrics include embedding and generation usage; per-answer `usage` reports generation only, not shared index construction. Cache hits report zero new generation tokens.
 

@@ -29,9 +29,9 @@ class ConversationalWebhookTests(WhatsAppTests):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.headers['content-type'].startswith('application/xml'))
         text = ElementTree.fromstring(response.text).find('Message').text
-        self.assertIn('£23.45 GBP', text)
-        self.assertIn('(4.50kg)', text)
-        self.assertIn('GB ➔ US', text)
+        self.assertIn('23.45 GBP', text)
+        self.assertIn('4.5kg', text)
+        self.assertIn('GB \u2192 US', text)
         self.assertIn('wallet balance is too low', text)
         self.assertIn('https://sandbox.example.com/book?', text)
         self.assertEqual(self.post(self.fields(Body="Quote 4.5kg from GB to US")).text, response.text)
@@ -53,7 +53,7 @@ class ConversationalWebhookTests(WhatsAppTests):
         self.settings.booking_page_url = ''
         response = self.post(self.fields())
         self.assertEqual(response.status_code, 200)
-        self.assertIn('Book in your signed-in EasyInvio workspace', response.text)
+        self.assertIn('Book option N', response.text)
         self.assertNotIn('_Book:_ https', response.text)
 
     def test_wrong_canonical_url_and_disabled_integration(self):

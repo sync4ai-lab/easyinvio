@@ -8139,5 +8139,123 @@ else if(!state.session)resetSessionForms();
   setView = function(next) { generation++; snapshot=null; requestId=null; dialog.close(); return view.apply(this, arguments); };
 })();
 </script>
+<style>
+  #conversation-open { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 45; border-radius: 999px; box-shadow: 0 8px 28px #0008; }
+  body.auth-locked #conversation-open { display: none; }
+  #conversation-dialog { width: min(38rem, calc(100vw - 2rem)); padding: 1.4rem; background: #080f20; color: #e2e8f0; border: 1px solid #334155; border-radius: 1.25rem; }
+  #conversation-log { height: min(48vh, 26rem); overflow-y: auto; display: flex; flex-direction: column; gap: .8rem; padding: .6rem 0; }
+  .conversation-bubble { padding: .8rem 1rem; border: 1px solid #26334a; background: #101d32; border-radius: 1rem; white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; }
+  .conversation-bubble[data-speaker="You"] { background: #063b35; margin-left: 1.5rem; }
+  .conversation-bubble a { color: #a5b4fc; text-decoration: underline; }
+  #conversation-form { display: grid; gap: .65rem; margin-top: .8rem; }
+</style>
+<button id="conversation-open" type="button" class="primary" aria-haspopup="dialog">Ask EasyInvio</button>
+<dialog id="conversation-dialog" aria-labelledby="conversation-title">
+  <button id="conversation-close" type="button" class="close" aria-label="Close chat">&times;</button>
+  <h2 id="conversation-title">Your shipping assistant</h2>
+  <p class="subtle">Use your current workspace. Booking an option confirms its displayed price. Top-ups open Stripe for payment.</p>
+  <div id="conversation-log" role="log" aria-live="polite" aria-label="Conversation"></div>
+  <form id="conversation-form">
+    <label for="conversation-message">How can we help?</label>
+    <textarea id="conversation-message" rows="2" maxlength="2000" required placeholder="Track a shipment, ask a question, or type Help"></textarea>
+    <button id="conversation-send" type="submit" class="primary">Send message</button>
+    <p id="conversation-status" class="subtle" role="status"></p>
+  </form>
+</dialog>
+<script>
+(() => {
+  const dialog = document.querySelector('#conversation-dialog');
+  const log = document.querySelector('#conversation-log');
+  const input = document.querySelector('#conversation-message');
+  const status = document.querySelector('#conversation-status');
+  const send = document.querySelector('#conversation-send');
+  let context = null;
+  let pending = null;
+  let generation = 0;
+  let identitySession = null;
+  const identity = () => {
+    if (!state.session) return null;
+    if (identitySession !== state.session) { identitySession = state.session; generation++; }
+    return [generation, portal.profile?.tenant_id, state.assistance?.session_id].join(':');
+  };
+  function reset() {
+    generation++;
+    pending = null;
+    context = identity();
+    log.replaceChildren();
+    input.value = '';
+    status.textContent = '';
+    send.disabled = false;
+    dialog.close();
+  }
+  function bubble(speaker, text) {
+    const row = document.createElement('div');
+    row.className = 'conversation-bubble';
+    row.dataset.speaker = speaker;
+    const label = document.createElement('strong');
+    label.textContent = speaker + '\n';
+    row.append(label);
+    let offset = 0;
+    for (const match of text.matchAll(/https:\/\/[^\s]+|\/help\/[A-Za-z0-9_/#?=&.%+-]+/g)) {
+      row.append(document.createTextNode(text.slice(offset, match.index)));
+      let safe = false;
+      try {
+        const url = new URL(match[0], location.origin);
+        safe = !url.username && !url.password && (!url.port || url.port === '443') && (url.origin === location.origin || url.hostname === 'checkout.stripe.com');
+      } catch {}
+      if (safe) {
+        const link = document.createElement('a');
+        link.href = match[0];
+        link.textContent = match[0];
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        row.append(link);
+      } else row.append(document.createTextNode(match[0]));
+      offset = match.index + match[0].length;
+    }
+    row.append(document.createTextNode(text.slice(offset)));
+    log.append(row);
+    while (log.children.length > 40) log.firstChild.remove();
+    log.scrollTop = log.scrollHeight;
+  }
+  document.querySelector('#conversation-open').addEventListener('click', () => {
+    if (!state.session) return;
+    if (context !== identity()) reset();
+    if (!log.children.length) bubble('EasyInvio', 'Hello. Ask a shipping question, or try “Track YOUR_REFERENCE”. Quotes use the full addresses and package measurements in a saved route.');
+    dialog.showModal();
+    input.focus();
+  });
+  document.querySelector('#conversation-close').addEventListener('click', () => dialog.close());
+  document.querySelector('#conversation-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!state.session || send.disabled) return;
+    if (context !== identity()) { reset(); return; }
+    const text = input.value.trim();
+    if (!text) return;
+    if (!pending || pending.text !== text) pending = {text, requestId: crypto.randomUUID()};
+    const version = generation;
+    send.disabled = true;
+    status.textContent = 'Checking your request…';
+    bubble('You', text);
+    try {
+      const result = await api('/api/v1/conversational/process-message', {method: 'POST', body: {channel: 'WEB_CHAT', message_body: text, request_id: pending.requestId}});
+      if (version !== generation || context !== identity()) return;
+      bubble('EasyInvio', result.conversational_reply);
+      status.textContent = result.status === 'COMPLETED' ? '' : 'More information or a workspace review is needed.';
+      input.value = '';
+      pending = null;
+    } catch (error) {
+      if (version === generation && context === identity()) status.textContent = error.message + ' Check your workspace before repeating a booking or payment request.';
+    } finally {
+      if (version === generation) send.disabled = false;
+    }
+  });
+  const clear = clearSession;
+  clearSession = function() { reset(); return clear.apply(this, arguments); };
+  const view = setView;
+  setView = function(next) { if (context !== identity()) reset(); return view.apply(this, arguments); };
+  setInterval(() => { if (context !== null && context !== identity()) reset(); }, 1000);
+})();
+</script>
 </body>
 </html>
