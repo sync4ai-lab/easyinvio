@@ -197,6 +197,8 @@ class MatrixConnection:
         elif "UPDATE public.shipments SET status='BOOKED'" in query:
             pool.shipment.update(status='BOOKED', tracking_number=args[2], label_storage_path=args[3])
             pool.shipment['logistics_metadata'].update(json.loads(args[4]))
+        elif "UPDATE public.shipments SET status='FAILED'" in query:
+            pool.shipment['status'] = 'FAILED'
         else:
             raise AssertionError(f'Unexpected execute SQL: {query}')
         return 'UPDATE 1'

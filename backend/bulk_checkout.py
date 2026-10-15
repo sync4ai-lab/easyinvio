@@ -81,7 +81,9 @@ async def validate_checkout(service,context,selection,*,check_wallet=True):
             if snapshot.get('offer_id')!=str(selected.offer_id):raise HTTPException(409,'This order already has another booking in progress or confirmed')
         else:
             if row['status']!='QUOTED' or stored['expires_at']<=now or stored['expires_at']!=row['quote_expires_at']:
-                raise HTTPException(409,'An order needs fresh rates. No labels were purchased.')
+                raise HTTPException(409,{'code':'FRESH_QUOTE_REQUIRED',
+                    'message':'This booking needs fresh rates before either payment method can be used. No card checkout was started.',
+                    'retry_requires_fresh_quote':True})
             customs=decoded(row['logistics_metadata']).get('automation_customs',{})
             if row['customs_required'] and not customs.get('ready_for_provider'):
                 raise HTTPException(409,'Review customs before checkout. No labels were purchased.')
@@ -112,7 +114,7 @@ async def checkout_orders(service,context,selection):
                 result=await service.confirm(context,BookingRequest(tenant_id=context.tenant_id,offer_id=selected.offer_id))
                 return {'reference':row['customer_reference'],**result}
             except HTTPException as exc:
-                return {'shipment_id':str(selected.shipment_id),'reference':row['customer_reference'],'status':'ACTION_REQUIRED','error':exc.detail,'http_status':exc.status_code}
+                return {'shipment_id':str(selected.shipment_id),'reference':row['customer_reference'],'status':'ACTION_REQUIRED','error':exc.detail.get('message',exc.detail.get('code','Booking needs review')) if isinstance(exc.detail,dict) else exc.detail,'http_status':exc.status_code}
             except Exception:
                 return {'shipment_id':str(selected.shipment_id),'reference':row['customer_reference'],'status':'RECONCILIATION_REQUIRED','error':'Refresh this order before retrying; a carrier outcome may require reconciliation.'}
     results=await asyncio.gather(*(buy(x,r) for x,r in zip(selection.offers,rows,strict=True)))

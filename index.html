@@ -1903,6 +1903,8 @@ async function api(path, {
     const detail = data.detail;
     const error = Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.message ? detail.message + (detail.reason ? ': ' + detail.reason : '') : detail?.code || `Request failed (${response.status})`);
     error.status = response.status;
+    error.code = typeof detail?.code === 'string' ? detail.code : null;
+    error.requiresFreshQuote = detail?.retry_requires_fresh_quote === true;
     error.quoteReference = typeof detail?.request_id === 'string' ? detail.request_id : null;
     error.supportCaseId = typeof detail?.support_case_id === 'string' ? detail.support_case_id : null;
     throw error;
@@ -5820,6 +5822,18 @@ function checkoutError(error) {
     target.hidden = false;
     target.textContent = error.message || 'Booking could not be completed. No confirmed label is available.';
   }
+  if (error.requiresFreshQuote && $('#checkout-next')) {
+    for (const id of ['checkout-purchase','checkout-pay-card']) if ($('#'+id)) $('#'+id).hidden = true;
+    if (!$('#checkout-fresh-rates')) {
+      $('#checkout-next').insertAdjacentHTML('beforeend', '<p class="notice">Changing payment method cannot repair this booking. Compare fresh rates and choose an available service.</p><button type="button" class="primary full" id="checkout-fresh-rates">Get fresh rates</button>');
+      $('#checkout-fresh-rates').addEventListener('click', () => {
+        $('#review-dialog').close();
+        customerCheckout.generation++;
+        customerCheckout.prepared = null;
+        $('#quote-form').requestSubmit();
+      });
+    }
+  }
 }
 
 function checkoutProduct(item = {}) {
@@ -6536,6 +6550,7 @@ async function refreshBookingWallet() {
 }
 async function startLabelCardPayment(offers) {
   if (!state.session || !['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) throw Error('Workspace owner or administrator permission required for card checkout.');
+  const paymentSession = state.session;
   const paymentWindow = window.open('about:blank', '_blank', 'popup,width=520,height=760');
   if (paymentWindow) {
     paymentWindow.opener = null;
@@ -6559,17 +6574,35 @@ async function startLabelCardPayment(offers) {
     });
     if (state.session !== session) throw Error('Session changed.');
     const url = new URL(result.url);
-    if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || url.username || url.password) throw Error('Unexpected payment destination.');
+    if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || url.username || url.password || (url.port && url.port !== '443')) throw Error('Unexpected payment destination.');
     labelCardPayment.cartId = result.cart_id;
-    localStorage.setItem(labelCardStorageKey(), JSON.stringify({
-      cartId: result.cart_id
-    }));
+    try {
+      localStorage.setItem(labelCardStorageKey(), JSON.stringify({cartId: result.cart_id}));
+    } catch {
+      // The server retains the cart; storage restrictions must not block checkout.
+    }
     $('#bulk-checkout-body').innerHTML = `<h3>Pay selected labels by card</h3><p class="subtle">${escapeHTML(result.mode||'TEST')} payment mode</p><p>Selected total: ${escapeHTML(money(result.amount,result.currency))}</p><p class="notice">${escapeHTML(result.notice)}</p><a class="primary" href="${escapeHTML(url.href)}" target="_blank" rel="noopener noreferrer">Open secure Stripe payment</a><p id="label-card-status" role="status">Awaiting your card payment.</p>`;
     $('#bulk-checkout-dialog').showModal();
     if (paymentWindow) paymentWindow.location.replace(url.href);
     void verifyLabelCardPayment(result.cart_id, session);
   } catch (error) {
-    paymentWindow?.close();
+    const sameSession = state.session === paymentSession;
+    if (sameSession && $('#review-dialog').open && offers.length === 1 && customerCheckout.prepared?.offer.offer_id === offers[0].offer_id) checkoutError(error);
+    if (sameSession && $('#bulk-checkout-dialog').open) {
+      $('#bulk-checkout-error').hidden = false;
+      $('#bulk-checkout-error').textContent = error.message;
+    }
+    if (paymentWindow && !paymentWindow.closed) {
+      if (error.status === 401 || !state.session || !sameSession) paymentWindow.close();
+      else {
+        try {
+          paymentWindow.document.title = 'Card checkout could not start';
+          paymentWindow.document.body.textContent = 'Card checkout could not start. ' + error.message + ' Return to EasyInvio to review the booking. No card details have been requested in this window.';
+        } catch {
+          // The originating checkout always retains the error if the window is inaccessible.
+        }
+      }
+    }
     throw error;
   }
 }

@@ -101,7 +101,8 @@ async def _complete_cart(service,context,cart_id):
                 in_progress=await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.shipments WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND status='BOOKING')",context.tenant_id,[x.shipment_id for x in selection.offers])
                 if in_progress:status='BOOKING'
             except HTTPException as exc:
-                result={'results':[],'notice':str(exc.detail)+'. Payment is already verified; unused credit remains in your wallet. Request fresh rates and use wallet payment. Do not pay again.'}
+                message=exc.detail.get('message',exc.detail.get('code','Booking needs review')) if isinstance(exc.detail,dict) else str(exc.detail)
+                result={'results':[],'notice':message+'. Payment is already verified; unused credit remains in your wallet. Request fresh rates and use wallet payment. Do not pay again.'}
                 status='REVIEW_REQUIRED'
             except Exception:
                 result={'results':[],'notice':'Payment is verified. Refresh the manifest and reconcile any submitted bookings before retrying; unused credit remains in the wallet.'};status='REVIEW_REQUIRED'

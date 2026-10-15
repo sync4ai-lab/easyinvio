@@ -39,6 +39,19 @@ class BulkTests(unittest.IsolatedAsyncioTestCase):
  async def test_unreviewed_customs_stops_before_purchase(self):self.row['customs_required']=True;await self.reject(409)
  async def test_wallet_currency_stops_before_purchase(self):self.wallet['currency']='USD';await self.reject(409)
  async def test_old_quote_stops_before_purchase(self):self.row['quote_expires_at']+=timedelta(seconds=1);await self.reject(409)
+ async def test_failed_booking_rejects_card_before_creating_payment(self):
+  from backend.card_checkout import CardCart,create_cart
+  self.row['status']='FAILED'
+  body=CardCart(request_id=uuid4(),offers=self.body().offers)
+  with self.assertRaises(HTTPException) as error:await create_cart(self.service,self.context,body)
+  self.assertEqual(error.exception.status_code,409)
+  self.assertEqual(error.exception.detail['code'],'FRESH_QUOTE_REQUIRED')
+  self.assertTrue(error.exception.detail['retry_requires_fresh_quote'])
+  self.service.confirm.assert_not_awaited()
+ async def test_structured_carrier_error_is_a_readable_bulk_result(self):
+  self.service.confirm.side_effect=HTTPException(502,{'code':'CARRIER_UNAVAILABLE','message':'Carrier unavailable; credit released.'})
+  result=await checkout_orders(self.service,self.context,self.body())
+  self.assertEqual(result['results'][0]['error'],'Carrier unavailable; credit released.')
  async def test_booking_replay_uses_same_offer(self):
   self.row.update(status='BOOKED',pricing_snapshot={'selected_rate':{'offer_id':str(self.oid)}});self.offer['expires_at']=datetime.now(timezone.utc)-timedelta(minutes=1)
   await checkout_orders(self.service,self.context,self.body());self.service.confirm.assert_awaited_once()

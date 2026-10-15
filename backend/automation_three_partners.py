@@ -1709,7 +1709,11 @@ class PartnerLifecycleService:
                                    'or try again later. Reserved wallet credit has been released.' if unavailable else
                                    'The carrier could not create this label. Reserved wallet credit has been released. '
                                    'Request fresh quotes or contact EasyInvio support; the failure is recorded for our team.')
-                        raise HTTPException(502, message) from None
+                        raise HTTPException(502, {
+                            'code': 'CARRIER_UNAVAILABLE' if unavailable else 'CARRIER_PURCHASE_REJECTED',
+                            'message': message, 'retry_requires_fresh_quote': True,
+                            'reserved_credit_released': True,
+                        }) from None
                     except Exception:
                         pending = await lock.fetchval('''SELECT logistics_metadata->>'label_lifecycle_status'
                             FROM public.shipments WHERE tenant_id=$1 AND id=$2''', context.tenant_id, row['id'])
