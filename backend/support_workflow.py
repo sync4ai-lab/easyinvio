@@ -21,6 +21,9 @@ def present_ticket(row):
         if str(row.get('error_code') or '').startswith('AI_RECOMMENDATION_'):
             result['ticket_title']='Quote recommendation assistance'
             result['ai_summary']=row.get('ai_summary') or 'Optional recommendation unavailable. Priced offers were returned without a badge; no booking or wallet change occurred.'
+        if row.get('error_code') in {'RATE_QUOTES_UNAVAILABLE', 'FREIGHT_QUOTE_REQUESTED'}:
+            result['ticket_title'] = 'Freight quote request' if row['error_code'] == 'FREIGHT_QUOTE_REQUESTED' else 'Rate availability investigation'
+            result['ai_summary'] = row.get('ai_summary') or 'Review the quote reference and connected carrier services. No booking or payment occurred.'
     result['pod_state']=('NOT_BOOKED' if not booked else 'AWAITING_DELIVERY' if row.get('shipment_status')!='DELIVERED'
                          else 'AVAILABLE' if row.get('proof_of_delivery_url') else 'NOT_PROVIDED')
     notifications=row.get('notifications') or []

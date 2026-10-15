@@ -279,7 +279,6 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div class="sectionlabel">01 · Pickup & delivery</div>
 <details open class="card" style="margin-bottom:16px">
 <summary>Goods in this shipment</summary>
-<p class="subtle">Enter these before requesting international goods rates. Customs documents use this saved snapshot; changing it requires a fresh quote.</p>
 <label>Goods description<input id="shipment-description" maxlength="500" placeholder="e.g. Electric steam iron">
 </label>
 <div class="fields">
@@ -322,7 +321,6 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div id="freight-options" class="notice" hidden>
 <label class="check">
 <input id="cargo-stackable" type="checkbox" checked> Cargo is stackable</label>
-<p>Non-stackable freight uses the configured loading-metre floor. Carrier acceptance and tariff classes require review.</p>
 </div>
 <div id="cargo-dimensions" class="fields three">
 <div>
@@ -1905,6 +1903,8 @@ async function api(path, {
     const detail = data.detail;
     const error = Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.message ? detail.message + (detail.reason ? ': ' + detail.reason : '') : detail?.code || `Request failed (${response.status})`);
     error.status = response.status;
+    error.quoteReference = typeof detail?.request_id === 'string' ? detail.request_id : null;
+    error.supportCaseId = typeof detail?.support_case_id === 'string' ? detail.support_case_id : null;
     throw error;
   }
   return data
@@ -1925,7 +1925,7 @@ async function busy(button, operation) {
 }
 
 function errorPanel(target, error) {
-  $(target).innerHTML = `<div class="errorbox">${escapeHTML(error.message)}</div>`
+  $(target).innerHTML = `<div class="errorbox">${escapeHTML(error.message)}</div>${error.quoteReference ? `<p class="subtle">Quote reference: ${escapeHTML(error.quoteReference)}${error.supportCaseId ? ' · Saved for our support team to investigate.' : ''}</p>` : ''}`
 }
 
 function download(name, content, type) {
@@ -2104,6 +2104,12 @@ $('#quote-form').addEventListener('submit', event => {
     try {
       const check = await checkPackageBeforeRates(body);
       if (generation !== state.generation) return;
+      if ((check.messages || []).some(message => message.code === 'FREIGHT_NOT_CONFIGURED')) {
+        $('#rates-badge').textContent = 'FREIGHT QUOTE REQUEST';
+        $('#rates-summary').textContent = 'Our shipping team will review your freight requirements';
+        document.dispatchEvent(new Event('easyinvio-freight-support'));
+        return;
+      }
       const proceed = await reviewPackageGuidance(check);
       if (generation !== state.generation) return;
       if (!proceed) {
@@ -3132,7 +3138,7 @@ $('#shipment-goods-origin').innerHTML = '<option value="">Choose country</option
 function cargoCapabilityNotice() {
   const kind = $('#cargo-type').value;
   $('#cargo-capability-notice').hidden = kind === 'PARCEL';
-  $('#cargo-capability-notice').textContent = kind === 'LETTER' ? 'Letter rates require an activated document service and successful address verification. No parcel service is relabelled as a letter.' : 'Industrial freight needs a verified freight booking adapter and carrier contract. The weight calculation alone does not establish carrier availability.';
+  $('#cargo-capability-notice').textContent = kind === 'LETTER' ? 'Letter rates require an activated document service and successful address verification.' : 'Our shipping team reviews road and sea freight quote requests before confirming a price.';
 }
 $('#cargo-type').addEventListener('change', cargoCapabilityNotice);
 cargoCapabilityNotice();
@@ -3176,7 +3182,8 @@ function configureCargo(useDefaults = true) {
   $('#cargo-badge').textContent = cargoTitles[kind];
   $('#cargo-dimensions').hidden = letter;
   $('#freight-options').hidden = !freight;
-  $('#cargo-help').textContent = letter ? 'Document letters must weigh strictly below 0.5 kg. No box dimensions required.' : freight ? 'Road freight uses configured cubic-metre factors; non-stackable loads also use a loading-metre floor.' : 'Express billing uses max(actual kg, length × width × height / 5000).';
+  $('#cargo-help').textContent = letter ? 'Document letters must weigh strictly below 0.5 kg. No box dimensions required.' : freight ? 'Enter the packed dimensions and weight to request a freight quote.' : 'Express billing uses max(actual kg, length × width × height / 5000).';
+  $('#quote-btn').textContent = freight ? 'Request a freight quote' : state.session ? 'Compare shipping rates' : 'Compare sample rates';
   for (const id of ['length_cm', 'width_cm', 'height_cm']) {
     $('#' + id).required = !letter;
     $('#' + id).disabled = letter
@@ -3200,6 +3207,15 @@ updateWeight = async function() {
   const generation = ++weightGeneration;
   try {
     const cargo = cargoPayload();
+    const measurements = cargo.cargo_type === 'LETTER' ? ['actual_weight_kg'] : ['actual_weight_kg', 'length_cm', 'width_cm', 'height_cm'];
+    if (measurements.some(field => !String(cargo[field] ?? '').trim())) {
+      $('#weight-result').textContent = cargo.cargo_type === 'LETTER' ? 'Enter the packed weight.' : 'Enter the packed weight and dimensions.';
+      return;
+    }
+    if (measurements.some(field => !Number.isFinite(Number(cargo[field])) || Number(cargo[field]) <= 0)) {
+      $('#weight-result').textContent = 'Use a number greater than zero for each measurement.';
+      return;
+    }
     if (cargo.cargo_type === 'PARCEL' && Number(cargo.actual_weight_kg) > 1000) throw Error('Weight exceeds 1000 kg parcel limit. Select Overland Freight.');
     if (cargo.cargo_type === 'PARCEL' && Number(cargo.length_cm) >= 500) throw Error('Oversize parcel: check carrier limits or choose Heavy Pallet Freight.');
     const result = await api(cargo.cargo_type === 'PARCEL' ? '/api/v1/logistics/weight' : '/api/v1/logistics/cargo-weight', {
@@ -7658,20 +7674,21 @@ renderAccount = function() {
   async function loadDirectory() {
     const scope=key(), query=$('#catalog-directory-search').value.trim(),target=pickerTarget;
     $('#catalog-directory-status').textContent='Loading directory…';
-    const kind=target==='origin'?'addresses':'contacts';
-    const result=target==='origin'?{items:(await Promise.all(['SENDER','PICKUP'].map(role=>requestCatalog('addresses',query,0,15,role)))).flatMap(page=>page.items)}:await requestCatalog(kind,query,0,30);
+    const kinds=target==='origin'?['addresses','contacts']:['contacts','addresses'];
+    const pages=await Promise.all(kinds.map(kind=>requestCatalog(kind,query,0,30)));
+    const result={items:pages.flatMap((page,index)=>page.items.map(row=>({...row,directory_kind:kinds[index]})))};
     if(scope!==key()||target!==pickerTarget||query!==$('#catalog-directory-search').value.trim()||!directory.open)return;
-    const items=result.items.filter(row=>target!=='origin'||['SENDER','PICKUP'].includes(row.address_role));
+    const items=result.items;
     $('#catalog-directory-list').replaceChildren();
     $('#catalog-directory-status').textContent=items.length?'Choose the correct location. Check it before quoting.':'No matching records. Save one in Settings or enter the address manually.';
-    for(const row of items){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=row.label+(row.is_default?' · Default':'');const detail=document.createElement('small');detail.textContent=[row.address.name,row.address.company,row.address.line1,row.address.city,row.address.postal_code,row.address.country_code].filter(Boolean).join(' · ');button.append(detail);button.addEventListener('click',()=>{for(const field of ['name','company','line1','line2','city','state','postal_code','country_code','phone','email']){const element=$('#'+target+'-'+field);if(element){element.value=row.address[field]||'';element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));}}selectedPrefixes.add(target);directory.close();notify('Saved address applied. Review it before requesting rates.');});$('#catalog-directory-list').append(button);}
+    for(const row of items){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=row.label+' · '+(row.address_role?row.address_role.toLowerCase():'contact')+(row.is_default?' · Default':'');const detail=document.createElement('small');detail.textContent=[row.address.name,row.address.company,row.address.line1,row.address.city,row.address.postal_code,row.address.country_code].filter(Boolean).join(' · ');button.append(detail);button.addEventListener('click',()=>{for(const field of ['name','company','line1','line2','city','state','postal_code','country_code','phone','email']){const element=$('#'+target+'-'+field);if(element){element.value=row.address[field]||'';element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));}}selectedPrefixes.add(target);directory.close();notify('Saved address applied. Review it before requesting rates.');});$('#catalog-directory-list').append(button);}
   }
-  document.addEventListener('click',event=>{const button=event.target.closest('[data-catalog-directory]');if(!button)return;pickerTarget=button.dataset.catalogDirectory;$('#catalog-directory-search').value='';$('#catalog-directory-title').textContent=pickerTarget==='origin'?'Choose a sender or pickup address':'Choose a saved recipient';directory.showModal();loadDirectory().catch(error=>{$('#catalog-directory-status').textContent=error.message;});});
+  document.addEventListener('click',event=>{const button=event.target.closest('[data-catalog-directory]');if(!button)return;pickerTarget=button.dataset.catalogDirectory;$('#catalog-directory-search').value='';$('#catalog-directory-title').textContent=pickerTarget==='origin'?'Choose a sender address':'Choose a recipient address';directory.showModal();loadDirectory().catch(error=>{$('#catalog-directory-status').textContent=error.message;});});
   $('#catalog-directory-search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadDirectory().catch(error=>{$('#catalog-directory-status').textContent=error.message;}),250);});
   const goods=$('#shipment-description').closest('details');
-  goods.querySelector('summary').insertAdjacentHTML('afterend','<label>Saved product SKU<input id="shipment-sku" data-catalog-sku maxlength="200" autocomplete="off" placeholder="Search or enter a saved SKU"></label><div class="catalog-sku-options" id="shipment-sku-options"></div><p class="subtle" id="shipment-catalog-status"></p>');
-  goods.querySelector('.fields').insertAdjacentHTML('beforeend','<label>Saved HS code<input id="shipment-hs-code" pattern="([0-9]{6}|[0-9]{8}|[0-9]{10})" maxlength="10" placeholder="Review before declaring"></label>');
-  const extra=document.createElement('div');extra.id='catalog-extra-items';goods.append(extra);goods.insertAdjacentHTML('beforeend','<button type="button" class="secondary" id="catalog-add-item">+ Add another goods item</button>');
+  goods.querySelector('summary').insertAdjacentHTML('afterend','<label>Product SKU (type or search)<input id="shipment-sku" data-catalog-sku maxlength="200" autocomplete="off" placeholder="Type your SKU or search saved products"></label><div class="catalog-sku-options" id="shipment-sku-options"></div><p class="subtle" id="shipment-catalog-status"></p>');
+  goods.querySelector('.fields').insertAdjacentHTML('beforeend','<input id="shipment-hs-code" type="hidden">');
+  const extra=document.createElement('div');extra.id='catalog-extra-items';goods.append(extra);goods.insertAdjacentHTML('beforeend','<button type="button" class="secondary" id="catalog-add-item">+ Add more goods</button>');
   function fillProduct(product,input) {
     const row=input.closest('.catalog-extra-item'), fields=row?Object.fromEntries([...row.querySelectorAll('[data-goods-field]')].map(node=>[node.dataset.goodsField,node])):Object.fromEntries([['description','shipment-description'],['quantity','shipment-quantity'],['unit_value','shipment-unit-value'],['unit_weight_kg','shipment-unit-weight'],['origin_country','shipment-goods-origin'],['hs_code','shipment-hs-code']].map(([name,id])=>[name,$('#'+id)]));
     const currency=$('#shipment-goods-currency');
@@ -7681,7 +7698,7 @@ renderAccount = function() {
     if(!fields.quantity.value)fields.quantity.value='1';
     input.value=product.sku;if(!row)selectedPrimary=true;
     const status=row?row.querySelector('.catalog-item-status'):$('#shipment-catalog-status');
-    status.textContent=product.hs_reviewed?'Saved classification loaded. Review the destination and declaration before booking.':'Product loaded. Review the HS code before international shipping.';
+    status.textContent='';
     (row?row.querySelector('.catalog-sku-options'):$('#shipment-sku-options')).replaceChildren();
     $('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));
   }
@@ -7695,12 +7712,12 @@ renderAccount = function() {
     const scope=key();
     timers.set(input,setTimeout(async()=>{try{let exact=null;try{exact=await api('/api/v1/catalog/products/by-sku/'+encodeURIComponent(query),{auth:true});}catch(error){if(error.status!==404)throw error;}const result=exact?{items:[exact]}:await requestCatalog('products',query,0,12);if(scope!==key()||input.value.trim()!==query||!input.isConnected)return;const matched=result.items.find(product=>product.sku.toLowerCase()===query.toLowerCase());if(matched){fillProduct(matched,input);return;}for(const product of result.items){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=product.sku+' · '+product.description;button.addEventListener('click',()=>fillProduct(product,input));target.append(button);}}catch(error){const status=row?row.querySelector('.catalog-item-status'):$('#shipment-catalog-status');status.textContent=error.message;}},250));
   });
-  $('#catalog-add-item').addEventListener('click',()=>{if(extra.children.length>=99)return;const row=document.createElement('div');row.className='catalog-extra-item';row.innerHTML=`<div class="catalog-toolbar"><h3>Additional goods item</h3><button type="button" class="secondary" data-remove-goods>Remove</button></div><label>Saved product SKU<input data-catalog-sku data-goods-field="sku" maxlength="200" autocomplete="off"></label><div class="catalog-sku-options"></div><p class="catalog-item-status subtle"></p><label>Description<input data-goods-field="description" minlength="3" maxlength="500" required></label><div class="fields"><label>Quantity<input data-goods-field="quantity" type="number" min="1" max="10000" step="1" required value="1"></label><label>Value per unit<input data-goods-field="unit_value" type="number" min="0.01" step="0.01" required></label><label>Net kg per unit<input data-goods-field="unit_weight_kg" type="number" min="0.001" step="0.001" required></label><label>Made in${countrySelect('extra_origin')}</label><label>HS code<input data-goods-field="hs_code" pattern="([0-9]{6}|[0-9]{8}|[0-9]{10})" maxlength="10"></label></div>`;row.querySelector('[name=extra_origin]').dataset.goodsField='origin_country';row.querySelector('[data-remove-goods]').addEventListener('click',()=>{row.remove();$('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));});extra.append(row);$('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));});
+  $('#catalog-add-item').addEventListener('click',()=>{if(extra.children.length>=99)return;const row=document.createElement('div');row.className='catalog-extra-item';row.innerHTML=`<div class="catalog-toolbar"><h3>Additional goods</h3><button type="button" class="secondary" data-remove-goods>Remove</button></div><label>Product SKU (type or search)<input placeholder="Type your SKU or search saved products" data-catalog-sku data-goods-field="sku" maxlength="200" autocomplete="off"></label><div class="catalog-sku-options"></div><p class="catalog-item-status subtle"></p><label>Description<input data-goods-field="description" minlength="3" maxlength="500" required></label><div class="fields"><label>Quantity<input data-goods-field="quantity" type="number" min="1" max="10000" step="1" required value="1"></label><label>Value per unit<input data-goods-field="unit_value" type="number" min="0.01" step="0.01" required></label><label>Net kg per unit<input data-goods-field="unit_weight_kg" type="number" min="0.001" step="0.001" required></label><label>Made in${countrySelect('extra_origin')}</label><input type="hidden" data-goods-field="hs_code"></div>`;row.querySelector('[name=extra_origin]').dataset.goodsField='origin_country';row.querySelector('[data-remove-goods]').addEventListener('click',()=>{row.remove();$('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));});extra.append(row);$('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));});
   const quoteBase=quotePayload;
   quotePayload=function(){const result=quoteBase();if(result.shipment_items?.length){const sku=$('#shipment-sku').value.trim(),hs=$('#shipment-hs-code').value.trim();if(sku)result.shipment_items[0].sku=sku;if(hs)result.shipment_items[0].hs_code=hs;}for(const row of extra.children){const item=Object.fromEntries([...row.querySelectorAll('[data-goods-field]')].map(node=>[node.dataset.goodsField,node.value.trim()]));item.quantity=Number(item.quantity);if(!item.hs_code)delete item.hs_code;if(!item.sku)delete item.sku;result.shipment_items.push(item);}return result;};
   const resetBase=resetQuoteForm;
   resetQuoteForm=function(){resetBase();extra.replaceChildren();$('#shipment-sku').value='';$('#shipment-hs-code').value='';$('#shipment-catalog-status').textContent='';selectedPrimary=false;};
-  document.addEventListener('input',event=>{if(event.target.matches('#shipment-description,#shipment-goods-origin')){$('#shipment-hs-code').value='';$('#shipment-catalog-status').textContent='Review the HS code for these goods.';}const row=event.target.closest('.catalog-extra-item');if(row&&['description','origin_country'].includes(event.target.dataset.goodsField))row.querySelector('[data-goods-field=hs_code]').value='';});
+  document.addEventListener('input',event=>{if(event.target.matches('#shipment-description,#shipment-goods-origin')){$('#shipment-hs-code').value='';$('#shipment-catalog-status').textContent='';}const row=event.target.closest('.catalog-extra-item');if(row&&['description','origin_country'].includes(event.target.dataset.goodsField))row.querySelector('[data-goods-field=hs_code]').value='';});
   const viewBase=setView;
   setView=function(view){viewBase(view);resetScope();if(view==='settings'&&!$('#settings').hidden)setTab(active==='company'&&!['OWNER','ADMIN'].includes(portal.profile?.workspace_role)?'addresses':active);};
   const accountBase=renderAccount;
@@ -8029,6 +8046,65 @@ window.addEventListener('pagehide',()=>{
 window.addEventListener('pageshow',event=>{if(event.persisted)clearSession();else if(!state.session)resetSessionForms();});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{if(!state.session)resetSessionForms();},{once:true});
 else if(!state.session)resetSessionForms();
+</script>
+<script>
+// Internal quote intake. This capability cannot buy labels or move wallet funds.
+(() => {
+  const dialog = document.createElement('dialog');
+  dialog.id = 'quote-support-dialog';
+  dialog.setAttribute('aria-labelledby', 'quote-support-title');
+  dialog.style.cssText = 'width:min(620px,calc(100vw - 24px));max-height:90dvh;overflow:auto';
+  dialog.innerHTML = `<h2 id="quote-support-title">Ask our shipping team</h2>
+    <p class="subtle">Request help with parcel rates or a road or sea freight quote. Our team will review availability. This does not book a shipment or take payment.</p>
+    <form id="quote-support-form"><label>Service needed<select id="quote-support-mode"><option value="PARCEL">Parcel quote help</option><option value="ROAD">Road freight quote</option><option value="SEA">Sea freight quote</option></select></label>
+    <label>Anything else we should know?<textarea id="quote-support-notes" maxlength="1000" placeholder="For freight, include the number of pallets, collection date and any loading requirements."></textarea></label>
+    <p id="quote-support-status" role="status"></p><div class="actions"><button type="button" class="secondary" id="quote-support-close">Close</button><button type="submit" class="primary" id="quote-support-send">Send request</button></div></form>`;
+  document.body.append(dialog);
+  $('#quote-btn').insertAdjacentHTML('afterend', '<button type="button" class="secondary full" id="freight-quote-request" style="margin-top:10px">Request parcel help or a freight quote</button>');
+  const oldSupport = $('#package-guidance-dialog a[href^="mailto:"]');
+  if (oldSupport) oldSupport.outerHTML = '<button type="button" class="secondary" id="package-quote-support">Ask support</button>';
+  let snapshot = null, requestId = null, scope = null, generation = 0;
+  const workspace = () => state.session && portal.profile?.tenant_id ? portal.profile.tenant_id : null;
+  function openSupport() {
+    if (!state.session) { notify('Sign in before requesting support.', true); return; }
+    if (!$('#quote-form').reportValidity()) return;
+    let body;
+    try { body = quotePayload(); } catch (error) { notify(error.message, true); return; }
+    snapshot = {origin_country:body.origin.country_code, destination_country:body.destination.country_code,
+      cargo_type:body.cargo_type || 'PARCEL', actual_weight_kg:body.weights_kg[0],
+      dimensions:body.cargo_type === 'LETTER' ? null : body.dimensions[0], shipment_items:body.shipment_items || []};
+    scope = workspace(); requestId = crypto.randomUUID(); generation++;
+    $('#quote-support-mode').value = ['PALLET','OVERLAND_FREIGHT'].includes(snapshot.cargo_type) ? 'ROAD' : 'PARCEL';
+    $('#quote-support-notes').value = ''; $('#quote-support-status').textContent = '';
+    $('#quote-support-send').hidden = false;
+    finishPackageReview(false);
+    dialog.showModal();
+  }
+  $('#freight-quote-request').addEventListener('click', openSupport);
+  document.addEventListener('easyinvio-freight-support', openSupport);
+  $('#package-quote-support')?.addEventListener('click', openSupport);
+  $('#quote-support-close').addEventListener('click', () => dialog.close());
+  $('#quote-support-form').addEventListener('submit', event => {
+    event.preventDefault();
+    busy($('#quote-support-send'), async () => {
+      if (!snapshot || !scope || scope !== workspace()) { dialog.close(); return; }
+      const ticket = generation;
+      try {
+        const result = await api('/api/v1/shipping/quote-support', {method:'POST', auth:true,
+          body:{...snapshot, request_id:requestId, transport_mode:$('#quote-support-mode').value, notes:$('#quote-support-notes').value.trim()}});
+        if (ticket !== generation || scope !== workspace() || !dialog.open) return;
+        $('#quote-support-status').textContent = result.message + ' Reference: ' + result.case_id;
+        $('#quote-support-send').hidden = true;
+      } catch (error) {
+        if (ticket === generation && scope === workspace() && dialog.open) $('#quote-support-status').textContent = error.message;
+      }
+    });
+  });
+  const clear = clearSession;
+  clearSession = function() { generation++; snapshot=null; requestId=null; dialog.close(); return clear.apply(this, arguments); };
+  const view = setView;
+  setView = function(next) { generation++; snapshot=null; requestId=null; dialog.close(); return view.apply(this, arguments); };
+})();
 </script>
 </body>
 </html>

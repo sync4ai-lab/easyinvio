@@ -2293,6 +2293,20 @@ async def get_rates(body: RatingRequest, request: Request,
                             VALUES($1,$2,$3::jsonb,$4::jsonb,$5)''', context.tenant_id, quote_id,
                             body.model_dump_json(), json.dumps(snapshot), expires_at)
                     exc.detail['request_id'] = str(quote_id)
+                    try:
+                        from backend.rate_diagnostics import record_quote_case
+                        codes = ', '.join(sorted({str(issue.get('code', 'UNKNOWN')) for issue in exc.detail.get('issues', [])}))
+                        dimensions = ' / '.join(f'{box.length_cm} x {box.width_cm} x {box.height_cm}' for box in body.dimensions) or 'document'
+                        summary = (f'Quote {quote_id}: {body.origin.country_code} to {body.destination.country_code}; '
+                                   f'{body.cargo_type}; {len(body.weights_kg)} package(s); '
+                                   f'packed kg {sum(body.weights_kg, Decimal(0))}; dimensions cm {dimensions}; {body.currency}. '
+                                   f'No rates returned. Diagnostic codes: {codes or "NO_ELIGIBLE_QUOTES"}. '
+                                   'Open Carrier Connectors > Capabilities & quote diagnostics and review the saved request before retrying. No booking or payment occurred.')
+                        async with asyncio.timeout(3):
+                            ticket = await record_quote_case(pool, context.tenant_id, quote_id, summary)
+                        exc.detail['support_case_id'] = str(ticket)
+                    except Exception:
+                        logger.warning('Quote support intake unavailable; saved quote remains available')
                 except Exception:
                     logger.warning('Unsuccessful quote diagnostic persistence unavailable')
         raise

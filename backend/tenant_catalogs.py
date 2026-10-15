@@ -96,7 +96,7 @@ class TenantCatalogService:
         permission(context)
         table = TABLES[kind]
         pattern = '%' + q.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
-        search = "(sku ILIKE $2 OR description ILIKE $2)" if kind == 'products' else "(label ILIKE $2 OR address->>'name' ILIKE $2 OR address->>'company' ILIKE $2 OR address->>'city' ILIKE $2)"
+        search = "(sku ILIKE $2 OR description ILIKE $2)" if kind == 'products' else "(label ILIKE $2 OR address->>'name' ILIKE $2 OR address->>'company' ILIKE $2 OR address->>'city' ILIKE $2 OR address->>'line1' ILIKE $2 OR address->>'line2' ILIKE $2 OR address->>'postal_code' ILIKE $2 OR address->>'country_code' ILIKE $2)"
         params = [context.tenant_id, pattern, limit + 1, offset]
         role_filter = ''
         if address_role is not None:

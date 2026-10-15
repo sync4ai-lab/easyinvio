@@ -1,6 +1,7 @@
 """Route-scoped package guidance; reference limits never certify carrier eligibility."""
 from decimal import Decimal
 from typing import Literal
+from uuid import UUID, uuid4
 
 import pycountry
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -113,8 +114,8 @@ def evaluate_package(body, accounts=None):
             add('NO_ACTIVE_CONNECTIONS', 'ERROR', 'No rate connections are enabled for this workspace.',
                 'Contact support to enable a shipping connection before requesting rates.')
         elif body.cargo_type in {'PALLET', 'OVERLAND_FREIGHT'} and all(identify_aggregator(a.base_url) for a in accounts):
-            add('FREIGHT_NOT_CONFIGURED', 'ERROR', 'Freight quoting is not configured on the connected parcel integrations.',
-                'Contact support to arrange a verified freight carrier contract. Keep the measured pallet dimensions and weight.')
+            add('FREIGHT_NOT_CONFIGURED', 'ERROR', 'This shipment needs a freight quote from our shipping team.',
+                'Choose Ask support to request a road or sea freight quote using your packed dimensions and weight. No booking or payment is made.')
         elif body.cargo_type == 'LETTER' and all(identify_aggregator(a.base_url) and 'easypost.com' not in a.base_url for a in accounts):
             add('LETTER_NOT_CONFIGURED', 'ERROR', 'The enabled connections do not have a supported document-letter service.',
                 'Use a Standard Parcel service with accurate package dimensions, or contact support for document shipping.')
@@ -124,8 +125,36 @@ def evaluate_package(body, accounts=None):
             'measurement_help': 'Measure the longest outside side and the two remaining sides of the sealed package in centimetres. Weigh the complete package in kilograms. Combined length and girth = longest side + 2 × each other side.'}
 
 
+class QuoteSupport(PackageCheck):
+    request_id: UUID = Field(default_factory=uuid4)
+    transport_mode: Literal['PARCEL', 'ROAD', 'SEA'] = 'PARCEL'
+    notes: str = Field(default='', max_length=1000)
+
+
 def build_router(authenticate):
     router = APIRouter(tags=['Package guidance'])
+
+    @router.post('/api/v1/shipping/quote-support')
+    async def quote_support(body: QuoteSupport, request: Request, context=Depends(authenticate)):
+        if context.role not in {'OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT'}:
+            raise HTTPException(403, 'Workspace shipping permission required')
+        from backend.rate_diagnostics import record_quote_case
+        import asyncpg
+        freight = body.transport_mode in {'ROAD', 'SEA'} or body.cargo_type in {'PALLET', 'OVERLAND_FREIGHT'}
+        summary = (f'Quote {body.request_id}: {body.origin_country} to {body.destination_country}; '
+                   f'{body.transport_mode}; {body.cargo_type}; packed kg {body.actual_weight_kg}; '
+                   f'dimensions cm {body.dimensions.model_dump_json() if body.dimensions else "document"}. '
+                   f'Customer notes: {body.notes}. '
+                   'Confirm the route, collection requirements, freight contract and carrier capability with the customer. '
+                   'This is a manual quote request, not a price, label or booking. No payment or notification was sent.')
+        try:
+            ticket = await record_quote_case(request.app.state.finance.pool, context.tenant_id,
+                body.request_id, summary, 'FREIGHT_QUOTE_REQUESTED' if freight else 'RATE_QUOTES_UNAVAILABLE')
+        except asyncpg.PostgresError:
+            raise HTTPException(503, 'Support intake is unavailable. Try again; no booking or payment occurred.') from None
+        return {'case_id': str(ticket), 'request_id': str(body.request_id),
+                'status': 'REVIEW_REQUIRED', 'booked': False,
+                'message': 'Your request is saved for the EasyInvio team to review. No booking or payment has been made.'}
 
     @router.post('/api/v1/logistics/package-guidance')
     async def public_guidance(body: PackageCheck):

@@ -89,6 +89,15 @@ class ValidationTests(unittest.TestCase):
 
 
 class ServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_address_search_includes_location_and_postcode_without_forcing_role(self):
+        actor=context();pool=Pool()
+        await TenantCatalogService(pool).list(actor,'addresses','LEEDS')
+        sql,args=pool.calls[0]
+        self.assertEqual(args[0],actor.tenant_id)
+        for field in ('city','line1','line2','postal_code','country_code'):
+            self.assertIn("address->>'"+field+"' ILIKE $2",sql)
+        self.assertNotIn('address_role=$5',sql)
+
     async def test_search_binds_verified_tenant_and_escapes_wildcards(self):
         actor=context();pool=Pool()
         result=await TenantCatalogService(pool).list(actor,'products','SKU%_')

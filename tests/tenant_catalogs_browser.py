@@ -24,6 +24,15 @@ async def run(origin):
         page.on('pageerror',lambda error:errors.append(str(error)))
         async def handler(route):
             url=urlsplit(route.request.url);path=url.path;method=route.request.method
+            if path=='/v1/rates':raise AssertionError('Unsupported freight must use manual intake, not parcel rate APIs')
+            if path=='/api/v1/shipping/package-check':
+                await route.fulfill(json={'blocking':True,'messages':[{'code':'FREIGHT_NOT_CONFIGURED'}]});return
+            if path=='/api/v1/shipping/quote-support':
+                data=route.request.post_data_json
+                assert data['transport_mode']=='SEA' and data['origin_country']=='GB' and data['destination_country']=='FR'
+                assert 'tenant_id' not in data and data['actual_weight_kg']=='1'
+                calls.append((method,path,data))
+                await route.fulfill(json={'case_id':str(uuid4()),'message':'Your request is saved for our shipping team.','booked':False});return
             if path=='/api/v1/checkout/hs-search':
                 tariff_calls.append(route.request.post_data_json)
                 assert route.request.post_data_json=={'description':'Steel bracket','official_only':True}
@@ -95,15 +104,42 @@ async def run(origin):
         post=next(body for method,path,body in calls if method=='POST' and path.endswith('/products'))
         assert post['unit_weight_kg']=='0.250' and post['unit_value']=='4.50' and 'tenant_id' not in post
         await page.evaluate("setView('dispatch')")
+        await expect(page.locator('#weight-result')).not_to_contain_text('body.actual_weight_kg')
+        await expect(page.locator('#weight-result')).to_contain_text('Enter')
+        await expect(page.locator('#shipment-hs-code')).to_be_hidden()
+        assert await page.locator('label:has(#shipment-sku)').inner_text()=='Product SKU (type or search)'
+        assert 'Enter these before requesting international goods rates' not in await page.locator('#quote-form').inner_text()
+        records['addresses'][0]['address_role']='RETURN'
         await page.locator('[data-catalog-directory=origin]').click();await expect(page.locator('#catalog-directory-list')).to_contain_text('Leeds dispatch')
+        await page.locator('#catalog-directory-search').fill('LEEDS')
+        await expect(page.locator('#catalog-directory-list')).to_contain_text('Leeds dispatch')
         await page.locator('#catalog-directory-list button').first.click();await expect(page.locator('#origin-line1')).to_have_value('9 Test Street')
         await expect(page.locator('#origin-company')).to_have_value('Northgate Test')
         await page.locator('[data-catalog-directory=destination]').click();await page.locator('#catalog-directory-list button').first.click();await expect(page.locator('#destination-country_code')).to_have_value('FR')
         await page.locator('#shipment-sku').fill('SKU1');await expect(page.locator('#shipment-description')).to_have_value('Cotton knitted shirt');await expect(page.locator('#shipment-hs-code')).to_have_value('610910')
         await expect(page.locator('#shipment-unit-value')).to_have_value('12.30');assert await page.locator('#weight_kg').input_value()==''
         await page.locator('#catalog-add-item').click();extra=page.locator('.catalog-extra-item');await extra.locator('[data-catalog-sku]').fill('SKU2');await expect(extra.locator('[data-goods-field=description]')).to_have_value('Steel bracket')
+        await expect(extra.locator('[data-goods-field=hs_code]')).to_be_hidden()
+        await expect(extra.locator('h3')).to_have_text('Additional goods')
+        assert 'Review the HS code before international shipping' not in await page.locator('#quote-form').inner_text()
         for field,value in {'length_cm':'30','width_cm':'20','height_cm':'15','weight_kg':'1'}.items():await page.locator('#'+field).fill(value)
         body=await page.evaluate('quotePayload()');assert len(body['shipment_items'])==2 and body['shipment_items'][0]['sku']=='SKU1' and body['shipment_items'][1]['hs_code']=='732690'
+        await page.locator('#freight-quote-request').click()
+        await expect(page.locator('#quote-support-dialog')).to_be_visible()
+        await page.locator('#quote-support-mode').select_option('SEA')
+        await page.locator('#quote-support-notes').fill('Synthetic freight request; two pallets')
+        await page.locator('#quote-support-send').click()
+        await expect(page.locator('#quote-support-status')).to_contain_text('Reference:')
+        assert len([call for call in calls if call[1]=='/api/v1/shipping/quote-support'])==1
+        await page.locator('#quote-support-close').click()
+        await page.locator('#cargo-type').select_option('OVERLAND_FREIGHT')
+        for field,value in {'length_cm':'120','width_cm':'80','height_cm':'100','weight_kg':'100'}.items():await page.locator('#'+field).fill(value)
+        await expect(page.locator('#quote-btn')).to_have_text('Request a freight quote')
+        await page.locator('#quote-btn').click()
+        await expect(page.locator('#quote-support-dialog')).to_be_visible()
+        await expect(page.locator('#quote-support-mode')).to_have_value('ROAD')
+        await page.locator('#quote-support-close').click()
+        await page.locator('#cargo-type').select_option('PARCEL')
         assert body['origin']['phone']=='+447123456789' and body['destination']['city']=='Paris'
         await page.locator('#shipment-description').fill('Different material');await expect(page.locator('#shipment-hs-code')).to_have_value('')
         await page.evaluate('resetQuoteForm()');assert await page.locator('.catalog-extra-item').count()==0

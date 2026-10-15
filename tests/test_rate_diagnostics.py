@@ -36,11 +36,19 @@ class RateDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('larger or heavier', message)
 
     async def test_unsuccessful_quote_is_saved_for_support_without_an_offer(self):
-        connection = SimpleNamespace(execute=AsyncMock())
+        ticket_id=uuid4()
+        @asynccontextmanager
+        async def transaction():yield
+        connection = SimpleNamespace(execute=AsyncMock(),transaction=transaction,
+            fetchval=AsyncMock(side_effect=[uuid4(),ticket_id]))
         class Pool:
+            held=False
             @asynccontextmanager
             async def acquire(self):
-                yield connection
+                assert not self.held, 'Quote support must not hold one connection while acquiring another'
+                self.held=True
+                try:yield connection
+                finally:self.held=False
         failure = HTTPException(503, {'code': 'NO_CARRIER_RATES_AVAILABLE', 'message': 'No eligible rates', 'issues': []})
         request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(
             settings=SimpleNamespace(quote_ttl_seconds=300),
@@ -50,6 +58,8 @@ class RateDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
             await main.get_rates(main.RatingRequest.model_validate(payload()), request, context)
         self.assertEqual(error.exception.status_code, 503)
         self.assertIn('request_id', error.exception.detail)
+        self.assertEqual(error.exception.detail['support_case_id'],str(ticket_id))
+        self.assertEqual(connection.fetchval.await_count,2)
         args = connection.execute.await_args.args
         self.assertEqual(args[1], context.tenant_id)
         self.assertEqual(json.loads(args[4])['rates'], [])

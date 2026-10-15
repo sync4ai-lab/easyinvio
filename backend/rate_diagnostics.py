@@ -1,6 +1,23 @@
 """Safe rate diagnostics; never expose upstream response bodies or credentials."""
 
 
+async def record_quote_case(pool, tenant_id, request_id, summary, code='RATE_QUOTES_UNAVAILABLE'):
+    """Idempotent internal intake only; no provider, wallet or messaging action."""
+    async with pool.acquire() as connection:
+        async with connection.transaction():
+            failure = await connection.fetchval('''INSERT INTO public.automation_failures
+                (tenant_id,idempotency_key,order_reference,error_code)
+                VALUES($1,$2,$3,$4) ON CONFLICT(tenant_id,idempotency_key)
+                DO UPDATE SET error_code=excluded.error_code RETURNING id''',
+                tenant_id, request_id, 'QUOTE-' + str(request_id), code)
+            ticket = await connection.fetchval('''INSERT INTO public.support_tickets
+                (tenant_id,automation_failure_id,status,ai_summary,ai_method,prompt_version)
+                VALUES($1,$2,'OPEN',$3,'DETERMINISTIC','quote-support-v1')
+                ON CONFLICT(automation_failure_id) DO UPDATE SET ai_summary=excluded.ai_summary
+                RETURNING id''', tenant_id, failure, summary[:6000])
+    return ticket
+
+
 class RateCurrencyUnavailable(ValueError):
     def __init__(self, currencies):
         self.available_currencies = sorted(set(currencies) & {'GBP', 'EUR', 'USD'})
