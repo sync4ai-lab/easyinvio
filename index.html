@@ -7697,11 +7697,41 @@ renderAccount = function() {
     if(archive)busy(archive,async()=>{const row=rows.find(row=>row.id===archive.dataset.catalogArchive);if(!row||!confirm('Archive this saved record? Existing shipments keep their original details.'))return;await api('/api/v1/catalog/'+active+'/'+encodeURIComponent(row.id),{auth:true,method:'DELETE',body:{expected_version:row.version}});await load();});
   });
   const addressBase=address;
-  address=function(prefix){const result=addressBase(prefix);for(const field of ['company','line2','state','phone','email']){const element=$('#'+prefix+'-'+field);if(element?.value.trim())result[field]=element.value.trim();}return result;};
+  function validateShipmentPhone(prefix) {
+    const input = $('#'+prefix+'-phone');
+    if (!input) return '';
+    let value = input.value.trim();
+    // Remove presentation characters only when the international prefix is explicit.
+    // A national number must never acquire a guessed country code.
+    if (/^(?:\+|00)/.test(value)) value = value.replace(/[ ()-]/g, '').replace(/^00/, '+');
+    input.value = value;
+    const valid = !value || /^\+[1-9][0-9]{7,14}$/.test(value);
+    input.setCustomValidity(valid ? '' : 'Enter the '+(prefix==='origin'?'sender':'recipient')+' phone with + and country code, for example +447700900123. Leave it blank if no phone is available.');
+    return value;
+  }
+  address=function(prefix){
+    const result=addressBase(prefix);
+    const phone=validateShipmentPhone(prefix);
+    const input=$('#'+prefix+'-phone');
+    if(input && !input.validity.valid){input.closest('details').open=true;input.reportValidity();throw Error(input.validationMessage);}
+    for(const field of ['company','line2','state','email']){const element=$('#'+prefix+'-'+field);if(element?.value.trim())result[field]=element.value.trim();}
+    if(phone)result.phone=phone;
+    return result;
+  };
   for(const prefix of ['origin','destination']) {
     const name=$('#'+prefix+'-name');
     name.insertAdjacentHTML('afterend',`<button type="button" class="secondary catalog-picker-button" data-catalog-directory="${prefix}" aria-label="Choose saved ${prefix==='origin'?'sender':'recipient'}">▤ Saved ${prefix==='origin'?'addresses':'contacts'}</button>`);
     const container=document.createElement('details');container.innerHTML=`<summary>${prefix==='origin'?'Sender':'Recipient'} contact details · optional</summary>${['company','line2','state','phone','email'].map(field=>`<label>${({company:'Company',line2:'Address line 2',state:'State / province',phone:'International phone',email:'Email'})[field]}<input id="${prefix}-${field}" maxlength="${field==='email'?254:200}" ${field==='email'?'type="email"':''}></label>`).join('')}`;
+    const phone=container.querySelector('#'+prefix+'-phone');
+    phone.type='tel';phone.inputMode='tel';phone.autocomplete=prefix==='origin'?'shipping tel':'tel';
+    phone.maxLength=40;phone.placeholder='+447700900123';
+    phone.pattern='\\+[1-9][0-9]{7,14}';
+    const help=document.createElement('small');help.id=prefix+'-phone-help';help.className='subtle';
+    help.textContent='Include + and country code. You can leave this optional field blank.';
+    phone.setAttribute('aria-describedby',help.id);phone.after(help);
+    phone.addEventListener('input',()=>validateShipmentPhone(prefix));
+    phone.addEventListener('change',()=>validateShipmentPhone(prefix));
+    phone.addEventListener('invalid',()=>{container.open=true;});
     $('#address-fields').append(container);
   }
   async function loadDirectory() {
