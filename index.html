@@ -8139,36 +8139,64 @@ else if(!state.session)resetSessionForms();
   setView = function(next) { generation++; snapshot=null; requestId=null; dialog.close(); return view.apply(this, arguments); };
 })();
 </script>
+<!-- EasyInvio conversational widget: one self-contained interface and controller. -->
 <style>
-  #conversation-open { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 45; border-radius: 999px; box-shadow: 0 8px 28px #0008; }
+  #conversation-open { position: fixed; right: 1.25rem; bottom: max(var(--conversation-floor, 1.25rem), env(safe-area-inset-bottom)); z-index: 45; width: 3.5rem; height: 3.5rem; padding: 0; border-radius: 50%; background: #4f46e5; border: 1px solid #818cf8; color: white; display: grid; place-items: center; box-shadow: 0 8px 28px #0008; transition: background .18s, transform .18s; }
+  #conversation-open:hover { background: #4338ca; transform: translateY(-2px); }
+  #conversation-open svg { width: 1.6rem; height: 1.6rem; }
   body.auth-locked #conversation-open { display: none; }
-  #conversation-dialog { width: min(38rem, calc(100vw - 2rem)); padding: 1.4rem; background: #080f20; color: #e2e8f0; border: 1px solid #334155; border-radius: 1.25rem; }
-  #conversation-log { height: min(48vh, 26rem); overflow-y: auto; display: flex; flex-direction: column; gap: .8rem; padding: .6rem 0; }
-  .conversation-bubble { padding: .8rem 1rem; border: 1px solid #26334a; background: #101d32; border-radius: 1rem; white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; }
-  .conversation-bubble[data-speaker="You"] { background: #063b35; margin-left: 1.5rem; }
-  .conversation-bubble a { color: #a5b4fc; text-decoration: underline; }
-  #conversation-form { display: grid; gap: .65rem; margin-top: .8rem; }
+  #conversation-open:focus-visible, #conversation-close:focus-visible, #conversation-send:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 3px; }
+  #conversation-dialog { position: fixed; inset: auto 1.25rem calc(var(--conversation-floor, 1.25rem) + 4.25rem) auto; margin: 0; z-index: 46; width: min(25rem, calc(100vw - 2.5rem)); height: min(38rem, calc(100dvh - var(--conversation-floor, 1.25rem) - 5.5rem)); max-height: none; padding: 0; overflow: hidden; background: #080f20; color: #e2e8f0; border: 1px solid #334155; border-radius: 1.25rem; box-shadow: 0 18px 65px #0009; }
+  #conversation-dialog[open] { display: flex; flex-direction: column; }
+  .conversation-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; padding: 1rem; border-bottom: 1px solid #27344b; background: linear-gradient(110deg, #101d32, #25204b); }
+  #conversation-title { padding: 0; margin: 0; font-size: 1rem; }
+  .conversation-header .subtle { margin: .25rem 0 0; }
+  #conversation-close { float: none; flex-shrink: 0; width: 2.75rem; height: 2.75rem; padding: 0; font-size: 1.4rem; }
+  #conversation-log { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: .8rem; padding: 1rem; }
+  .conversation-bubble { flex-shrink: 0; padding: .8rem 1rem; border: 1px solid #26334a; background: #101d32; border-radius: 1rem; white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; font-size: .8rem; line-height: 1.6; }
+  .conversation-bubble[data-speaker="You"] { background: #312e81; margin-left: 1.5rem; }
+  .conversation-bubble a { color: #c7d2fe; text-decoration: underline; }
+  #conversation-form { flex-shrink: 0; display: grid; gap: .5rem; margin: 0; padding: .85rem 1rem; border-top: 1px solid #27344b; background: #0f172a; }
+  #conversation-form label { margin: 0; }
+  .conversation-composer { display: flex; gap: .5rem; align-items: flex-end; }
+  #conversation-message { min-height: 3rem; max-height: 6rem; resize: vertical; flex: 1; }
+  #conversation-send { flex-shrink: 0; background: #4f46e5; min-height: 3rem; }
+  #conversation-status { margin: 0; min-height: 1.1rem; }
+  #conversation-guidance { margin: 0; font-size: .65rem; line-height: 1.5; }
+  @media(max-width: 600px) { #conversation-open { right: 1rem; bottom: var(--conversation-floor, 9.5rem); } #conversation-dialog { right: .75rem; bottom: calc(var(--conversation-floor, 9.5rem) + 4.25rem); width: calc(100vw - 1.5rem); height: min(34rem, calc(100dvh - var(--conversation-floor, 9.5rem) - 5.5rem)); } #conversation-message { font-size: 16px; } }
+  @media(prefers-reduced-motion: reduce) { #conversation-open { transition: none; } }
 </style>
-<button id="conversation-open" type="button" class="primary" aria-haspopup="dialog">Ask EasyInvio</button>
-<dialog id="conversation-dialog" aria-labelledby="conversation-title">
-  <button id="conversation-close" type="button" class="close" aria-label="Close chat">&times;</button>
-  <h2 id="conversation-title">Your shipping assistant</h2>
-  <p class="subtle">Use your current workspace. Booking an option confirms its displayed price. Top-ups open Stripe for payment.</p>
-  <div id="conversation-log" role="log" aria-live="polite" aria-label="Conversation"></div>
+<button id="conversation-open" type="button" aria-label="Ask EasyInvio" title="Ask EasyInvio" aria-haspopup="dialog" aria-controls="conversation-dialog" aria-expanded="false">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.3 10 10 0 0 1-4-.8L3 21l1.5-4.5A8 8 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/><path d="M8 12h.01M12 12h.01M16 12h.01" stroke-width="3" stroke-linecap="round"/></svg>
+</button>
+<dialog id="conversation-dialog" aria-labelledby="conversation-title" aria-describedby="conversation-guidance">
+  <header class="conversation-header"><div><h2 id="conversation-title">EasyInvio Assistant</h2><p class="subtle">Shipping actions and help for your workspace</p></div><button id="conversation-close" type="button" class="close" aria-label="Close chat">&times;</button></header>
+  <div id="conversation-log" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation"></div>
   <form id="conversation-form">
-    <label for="conversation-message">How can we help?</label>
-    <textarea id="conversation-message" rows="2" maxlength="2000" required placeholder="Track a shipment, ask a question, or type Help"></textarea>
-    <button id="conversation-send" type="submit" class="primary">Send message</button>
+    <label for="conversation-message">Your message</label>
+    <div class="conversation-composer"><textarea id="conversation-message" rows="2" maxlength="2000" required placeholder="Ask a question or type Help"></textarea><button id="conversation-send" type="submit" class="primary">Send</button></div>
     <p id="conversation-status" class="subtle" role="status"></p>
+    <p id="conversation-guidance" class="subtle">Booking an option confirms its displayed price. Top-ups open Stripe. Enter sends; Shift+Enter adds a line.</p>
   </form>
 </dialog>
 <script>
 (() => {
   const dialog = document.querySelector('#conversation-dialog');
+  const trigger = document.querySelector('#conversation-open');
   const log = document.querySelector('#conversation-log');
   const input = document.querySelector('#conversation-message');
   const status = document.querySelector('#conversation-status');
   const send = document.querySelector('#conversation-send');
+  function positionWidget() {
+    const navigation = document.querySelector('.mobile-nav');
+    const bounds = navigation?.getBoundingClientRect();
+    const floor = bounds && bounds.height > 0 ? Math.max(20, innerHeight - bounds.top + 12) : 20;
+    for (const element of [trigger, dialog]) element.style.setProperty('--conversation-floor', floor + 'px');
+  }
+  window.addEventListener('resize', positionWidget);
+  const navigation = document.querySelector('.mobile-nav');
+  if (navigation && 'ResizeObserver' in window) new ResizeObserver(positionWidget).observe(navigation);
+  positionWidget();
   let context = null;
   let pending = null;
   let generation = 0;
@@ -8186,6 +8214,7 @@ else if(!state.session)resetSessionForms();
     input.value = '';
     status.textContent = '';
     send.disabled = false;
+    log.setAttribute('aria-busy', 'false');
     dialog.close();
   }
   function bubble(speaker, text) {
@@ -8222,8 +8251,15 @@ else if(!state.session)resetSessionForms();
     if (!state.session) return;
     if (context !== identity()) reset();
     if (!log.children.length) bubble('EasyInvio', 'Hello. Ask a shipping question, or try “Track YOUR_REFERENCE”. Quotes use the full addresses and package measurements in a saved route.');
-    dialog.showModal();
+    if (dialog.open) { dialog.close(); return; }
+    dialog.show();
+    trigger.setAttribute('aria-expanded', 'true');
     input.focus();
+  });
+  dialog.addEventListener('close', () => { trigger.setAttribute('aria-expanded', 'false'); if (state.session) trigger.focus(); });
+  dialog.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); dialog.close(); } });
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); document.querySelector('#conversation-form').requestSubmit(); }
   });
   document.querySelector('#conversation-close').addEventListener('click', () => dialog.close());
   document.querySelector('#conversation-form').addEventListener('submit', async event => {
@@ -8232,13 +8268,15 @@ else if(!state.session)resetSessionForms();
     if (context !== identity()) { reset(); return; }
     const text = input.value.trim();
     if (!text) return;
-    if (!pending || pending.text !== text) pending = {text, requestId: crypto.randomUUID()};
+    const firstAttempt = !pending || pending.text !== text;
+    if (firstAttempt) pending = {text, requestId: crypto.randomUUID()};
     const version = generation;
     send.disabled = true;
     status.textContent = 'Checking your request…';
-    bubble('You', text);
+    log.setAttribute('aria-busy', 'true');
+    if (firstAttempt) bubble('You', text);
     try {
-      const result = await api('/api/v1/conversational/process-message', {method: 'POST', body: {channel: 'WEB_CHAT', message_body: text, request_id: pending.requestId}});
+      const result = await api('/api/v1/conversational/process-message', {method: 'POST', auth: true, body: {channel: 'WEB_CHAT', message_body: text, request_id: pending.requestId}});
       if (version !== generation || context !== identity()) return;
       bubble('EasyInvio', result.conversational_reply);
       status.textContent = result.status === 'COMPLETED' ? '' : 'More information or a workspace review is needed.';
@@ -8247,7 +8285,7 @@ else if(!state.session)resetSessionForms();
     } catch (error) {
       if (version === generation && context === identity()) status.textContent = error.message + ' Check your workspace before repeating a booking or payment request.';
     } finally {
-      if (version === generation) send.disabled = false;
+      if (version === generation) { send.disabled = false; log.setAttribute('aria-busy', 'false'); }
     }
   });
   const clear = clearSession;
