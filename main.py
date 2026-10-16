@@ -162,6 +162,8 @@ class Settings(BaseSettings):
 
     whatsapp_brand_name: str = Field(default="EasyInvio.com", min_length=1, max_length=80)
     twilio_enabled: bool = False
+    whatsapp_onboarding_enabled: bool = False
+    whatsapp_onboarding_daily_limit: int = Field(default=100, ge=1, le=10000)
     twilio_account_sid: str = ""
     twilio_auth_token: SecretStr = SecretStr("")
     twilio_whatsapp_number: str = ""
@@ -2409,8 +2411,16 @@ async def inbound_whatsapp(request: Request) -> Response:
     sender, receiver = PHONE_PATTERN.fullmatch(form["From"]), PHONE_PATTERN.fullmatch(form["To"])
     try:
         async with asyncio.timeout(settings.whatsapp_deadline_seconds):
+            from backend.whatsapp_onboarding import onboarding_manager
+            signup = await onboarding_manager(request)
+            if signup is not None:
+                replay = await signup.replay(form)
+                if replay is not None:
+                    return xml_response(replay)
             context = await request.app.state.whatsapp.resolve_sender(sender.group(1), receiver.group(1))
             if context is None:
+                if signup is not None and form.get('NumMedia', '0') == '0':
+                    return xml_response(await signup.handle(form))
                 return Response(content=twiml("This number is not registered for EasyInvio.com dispatch.\n"
                     "Ask your workspace owner to verify and register your WhatsApp number, then resend."), media_type='application/xml', status_code=403)
             if form.get("NumMedia", "0") != "0":

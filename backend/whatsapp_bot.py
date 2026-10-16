@@ -100,8 +100,16 @@ async def whatsapp_webhook(request: Request) -> Response:
     brand = getattr(settings, "whatsapp_brand_name", "EasyInvio.com")
     try:
         async with asyncio.timeout(settings.whatsapp_deadline_seconds):
+            from backend.whatsapp_onboarding import onboarding_manager
+            signup = await onboarding_manager(request)
+            if signup is not None:
+                replay = await signup.replay(form)
+                if replay is not None:
+                    return Response(content=replay, media_type='application/xml')
             context = await service.resolve_sender(sender, receiver)
             if context is None:
+                if signup is not None and form['NumMedia'] == '0':
+                    return Response(content=await signup.handle(form), media_type='application/xml')
                 return Response(content=xml_message(f"Your mobile number is not registered to an active {brand} workspace. Ask your owner to verify your number."), status_code=403, media_type='application/xml')
             elif form["NumMedia"] != "0":
                 xml = xml_message("Please send text: Quote 4.5kg from GB to US")
