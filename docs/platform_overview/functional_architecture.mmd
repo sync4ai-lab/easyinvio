@@ -1,0 +1,18 @@
+flowchart LR
+    Join[Company signup / identity verification] --> Configure[Team / addresses / contacts / SKU catalog]
+    Configure --> Intake[Manual / CSV / configured store intake]
+    Intake --> Prepare[Measured packages / goods / customs review]
+    Prepare --> Compare[Deterministic top-ten carrier comparison]
+    Compare --> Approve[Explicit selected offer confirmation]
+    Approve --> Pay[Wallet reservation or Stripe checkout]
+    Pay --> Book[Carrier purchase / confirmation / financial reconciliation]
+    Book --> Documents[Labels / document bundles]
+    Documents --> Tracking[Milestones / exceptions / store synchronization]
+    Tracking --> Resolve[Support / invoice disputes / eligible claims]
+    Admin[Platform admin: tenants / margins / diagnostics / audited assistance] -.-> Configure
+    Admin -.-> Resolve
+    Chat[WhatsApp / web chat: authenticated role-bound actions] -.-> Compare
+    Chat -.-> Approve
+    Chat -.-> Tracking
+    Help[Published documentation / optional RAG / fallback] -.-> Prepare
+    Freight[Unsupported freight: manual quote support] --> Resolve

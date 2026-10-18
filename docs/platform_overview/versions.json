@@ -1,0 +1,30 @@
+{
+  "captured": "2026-10-18",
+  "python": "3.14.0",
+  "local_environment": {
+    "fastapi": "0.143.0",
+    "uvicorn": "0.54.0",
+    "starlette": "1.7.0",
+    "pydantic": "2.14.0",
+    "pydantic-settings": "2.15.0",
+    "httpx": "0.28.1",
+    "asyncpg": "0.32.0",
+    "PyJWT": "2.15.1",
+    "cryptography": "50.0.2",
+    "stripe": "14.4.1",
+    "twilio": "9.11.2",
+    "openai": "3.29.0",
+    "openai-agents": "0.23.1",
+    "reportlab": "5.0.1",
+    "pypdf": "6.20.0",
+    "openpyxl": "3.1.5",
+    "Pillow": "12.3.0",
+    "Markdown": "3.11",
+    "python-multipart": "0.0.32",
+    "defusedxml": "0.7.1",
+    "pycountry": "24.6.1",
+    "pytest": "9.1.1",
+    "pytest-asyncio": "1.4.0",
+    "playwright": "1.63.0"
+  }
+}

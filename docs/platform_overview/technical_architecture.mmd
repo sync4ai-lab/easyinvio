@@ -1,0 +1,27 @@
+%% EasyInvio repository architecture, 18 October 2026.
+flowchart TB
+    Web[Single-page web workspace] --> Auth[JWT / membership / tenant / role guards]
+    WhatsApp[Signed Twilio WhatsApp] --> Bind[Verified phone binding or opt-in onboarding]
+    Bind --> Gateway[Shared conversational gateway]
+    Web --> Gateway
+    Auth --> API[FastAPI routers / lifespan / async services]
+    Gateway --> API
+    Hooks[Verified carrier, store and Stripe callbacks] --> API
+    API --> Rating[Deterministic rating / margin / top-ten consolidation]
+    API --> Booking[PartnerLifecycleService / FinanceEngine]
+    API --> Ops[Catalogs / dispatch / tracking / support / audits]
+    API -. optional .-> Agents[Bounded supervisor and typed AI workers]
+    Agents -. advisory only .-> Rating
+    Agents --> RAG[Published help corpus / local vectors / citations]
+    Rating --> Carriers[EasyPost / Sendcloud / Shippo]
+    Booking --> Carriers
+    Booking --> Stripe[Stripe Checkout / verified payment events]
+    Ops --> Providers[Configured stores / CRM / insurance / tariff services]
+    Booking --> DB[(Supabase PostgreSQL / wallet locks / ledger)]
+    Ops --> DB
+    Gateway --> DB
+    DB --> Jobs[Durable SQL jobs / outboxes / reconciliation]
+    Jobs --> Providers
+    Agents --> OpenAI[OpenAI structured outputs / embeddings]
+    RAG --> Docs[Local Help Centre guides]
+    Bind --> SupabaseAuth[Supabase Auth + custom SMTP for email codes]

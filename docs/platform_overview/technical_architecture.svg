@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1150" viewBox="0 0 1500 1150" role="img">
+<title>EasyInvio | Technical architecture</title><desc>Repository snapshot: 18 October 2026. Logical components inside one Python application, not separate microservices.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10" fill="#64748b"/></marker></defs>
+<rect width="1500" height="1150" fill="#f8fafc"/>
+<style>text{font-family:Arial,sans-serif}.title{font-size:36px;font-weight:700;fill:#0f172a}.sub{font-size:19px;fill:#475569}.head{font-size:21px;font-weight:700;fill:#0f172a}.body{font-size:18px;fill:#334155}.small{font-size:17px;fill:#475569}</style>
+<text x="48" y="66" style="font-family:Arial,sans-serif;font-size:36px;font-weight:700;fill:#0f172a">EasyInvio | Technical architecture</text>
+<text x="48" y="104" style="font-family:Arial,sans-serif;font-size:19px;fill:#475569">Repository snapshot: 18 October 2026. Logical components inside one Python application, not separate microservices.</text>
+<rect x="48" y="175" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="48" y="175" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="68" y="219" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">01  Web workspace</text>
+<text x="68" y="261" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">index.html: HTML + JavaScript</text>
+<text x="68" y="293" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Tailwind 4 + custom CSS; Lucide</text>
+<text x="68" y="325" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Session in memory; role-aware screens</text>
+<path d="M272 394V439" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="526" y="175" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="526" y="175" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="546" y="219" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">02  Signed / authenticated ingress</text>
+<text x="546" y="261" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Twilio WhatsApp webhooks</text>
+<text x="546" y="293" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Store and tracking callbacks</text>
+<text x="546" y="325" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Stripe payment webhooks</text>
+<path d="M750 394V439" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1004" y="175" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="1004" y="175" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="1024" y="219" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">03  Identity and tenant boundary</text>
+<text x="1024" y="261" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Supabase Auth / JWT + membership</text>
+<text x="1024" y="293" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Role guards; verified tenant binding</text>
+<text x="1024" y="325" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Admin assistance + write-ahead audit</text>
+<path d="M1228 394V439" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="48" y="455" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="48" y="455" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="68" y="499" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">04  FastAPI modular monolith</text>
+<text x="68" y="541" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">main.py lifespan + backend routers</text>
+<text x="68" y="573" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">asyncio, asyncpg pools, bounded IO</text>
+<text x="68" y="605" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Pydantic request/response validation</text>
+<path d="M272 674V719" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="526" y="455" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="526" y="455" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="546" y="499" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">05  Deterministic domain services</text>
+<text x="546" y="541" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">RatingService + MarginEvaluator</text>
+<text x="546" y="573" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">PartnerLifecycleService + FinanceEngine</text>
+<text x="546" y="605" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Decimal; wallet locks; replay fences</text>
+<path d="M750 674V719" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1004" y="455" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="1004" y="455" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="1024" y="499" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">06  Bounded optional AI layer</text>
+<text x="1024" y="541" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Supervisor + typed worker outputs</text>
+<text x="1024" y="573" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Intent / customs / rate badge / help</text>
+<text x="1024" y="605" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">No model authority over wallet or price</text>
+<path d="M1228 674V719" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="48" y="735" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="48" y="735" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="68" y="779" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">07  Operational service modules</text>
+<text x="68" y="821" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Dispatch, catalogs, stores, tracking</text>
+<text x="68" y="853" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Invoice audits, support and claims</text>
+<text x="68" y="885" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">PDFs, durable receipts and outbox jobs</text>
+<rect x="526" y="735" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="526" y="735" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="546" y="779" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">08  Supabase managed services</text>
+<text x="546" y="821" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">PostgreSQL: tenant-scoped records</text>
+<text x="546" y="853" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Auth identities + private backend tables</text>
+<text x="546" y="885" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">RLS, SQL transactions, audit / ledger</text>
+<rect x="1004" y="735" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="1004" y="735" width="448" height="8" rx="4" fill="#4f46e5"/>
+<text x="1024" y="779" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">09  External adapters / providers</text>
+<text x="1024" y="821" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">EasyPost, Sendcloud, Shippo; Stripe</text>
+<text x="1024" y="853" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Twilio; configured store / CRM / cover APIs</text>
+<text x="1024" y="885" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Official tariff lookup; OpenAI; SMTP</text>
+<rect x="48" y="1025" width="1404" height="82" rx="12" fill="#e0e7ff"/>
+<text x="70" y="1056" style="font-family:Arial,sans-serif;font-size:17px;fill:#475569">Arrows show logical layer flow, not a complete endpoint or deployment network map. Optional AI delegates to native services.</text>
+<text x="70" y="1083" style="font-family:Arial,sans-serif;font-size:17px;fill:#475569">Private DB access is server-side. Durable SQL state fences external side effects; provider and database commits are not atomic.</text>
+<path d="M267 431L272 439L277 431Z" fill="#64748b"/>
+<path d="M745 431L750 439L755 431Z" fill="#64748b"/>
+<path d="M1223 431L1228 439L1233 431Z" fill="#64748b"/>
+<path d="M267 711L272 719L277 711Z" fill="#64748b"/>
+<path d="M745 711L750 719L755 711Z" fill="#64748b"/>
+<path d="M1223 711L1228 719L1233 711Z" fill="#64748b"/>
+</svg>

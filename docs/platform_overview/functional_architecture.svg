@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1150" viewBox="0 0 1500 1150" role="img">
+<title>EasyInvio | Functional architecture</title><desc>Read stages 01–08 in order; stage 09 assists multiple stages. Actions always inherit the authenticated role.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10" fill="#64748b"/></marker></defs>
+<rect width="1500" height="1150" fill="#f8fafc"/>
+<style>text{font-family:Arial,sans-serif}.title{font-size:36px;font-weight:700;fill:#0f172a}.sub{font-size:19px;fill:#475569}.head{font-size:21px;font-weight:700;fill:#0f172a}.body{font-size:18px;fill:#334155}.small{font-size:17px;fill:#475569}</style>
+<text x="48" y="66" style="font-family:Arial,sans-serif;font-size:36px;font-weight:700;fill:#0f172a">EasyInvio | Functional architecture</text>
+<text x="48" y="104" style="font-family:Arial,sans-serif;font-size:19px;fill:#475569">Read stages 01–08 in order; stage 09 assists multiple stages. Actions always inherit the authenticated role.</text>
+<rect x="48" y="175" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="48" y="175" width="448" height="8" rx="4" fill="#059669"/>
+<text x="68" y="219" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">01  Join and configure</text>
+<text x="68" y="261" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Visitor / OWNER / platform admin</text>
+<text x="68" y="293" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Company, profile and dual-code signup</text>
+<text x="68" y="325" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Team, addresses, contacts, SKU catalog</text>
+<path d="M498 280H520" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="526" y="175" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="526" y="175" width="448" height="8" rx="4" fill="#059669"/>
+<text x="546" y="219" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">02  Bring orders into the workspace</text>
+<text x="546" y="261" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Store connectors / CSV / manual form</text>
+<text x="546" y="293" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Validate identity, addresses and goods</text>
+<text x="546" y="325" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Retain order references and row errors</text>
+<path d="M976 280H998" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1004" y="175" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="1004" y="175" width="448" height="8" rx="4" fill="#059669"/>
+<text x="1024" y="219" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">03  Prepare and compare</text>
+<text x="1024" y="261" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Dispatcher / authorized client user</text>
+<text x="1024" y="293" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Measured boxes, goods and customs review</text>
+<text x="1024" y="325" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Deterministic deduplication: up to 10 rates</text>
+<rect x="48" y="455" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="48" y="455" width="448" height="8" rx="4" fill="#059669"/>
+<text x="68" y="499" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">04  Approve and pay</text>
+<text x="68" y="541" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">OWNER / ADMIN / DISPATCHER booking</text>
+<text x="68" y="573" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Explicit service and price confirmation</text>
+<text x="68" y="605" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Wallet reservation or Stripe checkout</text>
+<path d="M498 560H520" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="526" y="455" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="526" y="455" width="448" height="8" rx="4" fill="#059669"/>
+<text x="546" y="499" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">05  Buy and document</text>
+<text x="546" y="541" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Native booking lifecycle</text>
+<text x="546" y="573" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Provider confirmation; capture / release</text>
+<text x="546" y="605" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Carrier labels and document bundles</text>
+<path d="M976 560H998" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1004" y="455" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="1004" y="455" width="448" height="8" rx="4" fill="#059669"/>
+<text x="1024" y="499" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">06  Track and synchronize</text>
+<text x="1024" y="541" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Warehouse / customer / support</text>
+<text x="1024" y="573" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Validated milestones and exceptions</text>
+<text x="1024" y="605" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Store fulfillment updates; outbox recovery</text>
+<rect x="48" y="735" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="48" y="735" width="448" height="8" rx="4" fill="#059669"/>
+<text x="68" y="779" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">07  Reconcile and resolve</text>
+<text x="68" y="821" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Finance / support / platform admin</text>
+<text x="68" y="853" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Invoice audit, disputes, eligible claims</text>
+<text x="68" y="885" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Quote diagnostics and manual freight cases</text>
+<path d="M498 840H520" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="526" y="735" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="526" y="735" width="448" height="8" rx="4" fill="#059669"/>
+<text x="546" y="779" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">08  Operate and improve</text>
+<text x="546" y="821" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Platform admin / tenant management</text>
+<text x="546" y="853" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Revenue, markup and delivery history</text>
+<text x="546" y="885" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Margin controls; audited client assistance</text>
+<path d="M976 840H998" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1004" y="735" width="448" height="214" rx="16" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="1004" y="735" width="448" height="8" rx="4" fill="#059669"/>
+<text x="1024" y="779" style="font-family:Arial,sans-serif;font-size:21px;font-weight:700;fill:#0f172a">09  Assist across channels</text>
+<text x="1024" y="821" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">WhatsApp / desktop chat / Help Centre</text>
+<text x="1024" y="853" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Shared authenticated action controller</text>
+<text x="1024" y="885" style="font-family:Arial,sans-serif;font-size:18px;fill:#334155">Optional AI + documentation citations</text>
+<rect x="48" y="1025" width="1404" height="82" rx="12" fill="#e0e7ff"/>
+<text x="70" y="1056" style="font-family:Arial,sans-serif;font-size:17px;fill:#475569">All stages: tenant isolation • exact money • explicit consequential-action approval • audit and reconciliation.</text>
+<text x="70" y="1083" style="font-family:Arial,sans-serif;font-size:17px;fill:#475569">Provider-dependent functions require activation. Manual freight intake is available; native road/sea booking is not implied.</text>
+<path d="M512 275L520 280L512 285Z" fill="#64748b"/>
+<path d="M990 275L998 280L990 285Z" fill="#64748b"/>
+<path d="M512 555L520 560L512 565Z" fill="#64748b"/>
+<path d="M990 555L998 560L990 565Z" fill="#64748b"/>
+<path d="M512 835L520 840L512 845Z" fill="#64748b"/>
+<path d="M990 835L998 840L990 845Z" fill="#64748b"/>
+</svg>
