@@ -5,7 +5,7 @@ from pathlib import Path
 
 class FrontendHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path.split("?", 1)[0] not in ("/", "/index.html"):
+        if self.path.split("?", 1)[0] not in ("/", "/index.html", "/set-password"):
             self.send_error(404)
             return
         body = Path(__file__).with_name("index.html").read_bytes()

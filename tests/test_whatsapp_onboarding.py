@@ -375,3 +375,82 @@ def test_opt_in_hooks_only_enrol_signed_unregistered_senders(path):
     finally:
         main.app.state._state.clear()
         main.app.state._state.update(original)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('code', ['12345', '1234567', '１２３４５６', '123 456', 123456, None])
+async def test_email_verification_rejects_non_six_digit_input_without_provider_io(code):
+    client = SimpleNamespace(post=AsyncMock())
+    provider = SupabaseSignupProvider(SimpleNamespace(), client)
+    assert await provider.verify('alex@example.com', code) is None
+    client.post.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('redirect', [
+    'http://localhost:5000/set-password',
+    'http://127.0.0.1:8000/set-password',
+    'https://easyinvio.com/set-password',
+])
+async def test_password_email_uses_configured_destination_without_returning_credential(redirect):
+    async def server(request):
+        assert request.url.path == '/auth/v1/recover'
+        assert request.url.params['redirect_to'] == redirect
+        assert json.loads(request.content) == {'email': 'alex@example.com'}
+        return httpx.Response(200, json={})
+    settings = SimpleNamespace(supabase_url='https://synthetic.supabase.co',
+        supabase_publishable_key=SecretStr('synthetic-public'), auth_recovery_redirect_url=redirect)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(server)) as client:
+        assert await SupabaseSignupProvider(settings, client).password_email('alex@example.com') is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('redirect', [
+    'http://easyinvio.com/set-password', 'https://user:password@easyinvio.com/',
+    'https://easyinvio.com/#token_hash=secret', 'https://easyinvio.com/?redirect=https://foreign.example',
+    'https://easyinvio.com:bad/', 'https://[broken/', 'https://easyinvio.com:0/',
+    'https://easyinvio.com/\n', 'https://easyinvio.com\\@foreign.example/', None,
+])
+async def test_bad_recovery_configuration_never_dispatches_email(redirect):
+    client = SimpleNamespace(request=AsyncMock())
+    provider = SupabaseSignupProvider(SimpleNamespace(auth_recovery_redirect_url=redirect), client)
+    assert await provider.password_email('alex@example.com') is False
+    client.request.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_set_password_alias_serves_the_existing_spa_without_caching():
+    from fastapi import FastAPI
+    from main import frontend
+    app = FastAPI()
+    app.add_api_route('/set-password', frontend, methods=['GET'])
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+        response = await client.get('/set-password')
+    assert response.status_code == 200
+    assert response.headers['cache-control'] == 'no-store'
+    assert 'identityRecoveryHash' in response.text
+
+
+@pytest.mark.asyncio
+async def test_long_email_code_cannot_advance_registration(signup):
+    manager, database, provider = signup
+    queue, code, _ = await reach_codes(manager, database)
+    assert 'did not match' in await manager.handle(form('1234567 ' + code))
+    provider.verify.assert_not_awaited()
+    assert queue['current_state'] == 'PENDING_OTP'
+    assert not database.data['tenants']
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('failure', [429, 500, 'timeout'])
+async def test_smtp_upstream_failure_never_reports_delivery_accepted(failure):
+    async def server(request):
+        if failure == 'timeout':
+            raise httpx.ReadTimeout('synthetic provider timeout', request=request)
+        return httpx.Response(failure, json={'message': 'synthetic provider rejection'})
+    settings = SimpleNamespace(supabase_url='https://synthetic.supabase.co',
+        supabase_publishable_key=SecretStr('synthetic-public'))
+    async with httpx.AsyncClient(transport=httpx.MockTransport(server)) as client:
+        with pytest.raises(HTTPException) as error:
+            await SupabaseSignupProvider(settings, client).send_code('alex@example.com')
+    assert error.value.status_code == (429 if failure == 429 else 503)

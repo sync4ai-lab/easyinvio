@@ -71,9 +71,17 @@ class SupabaseSignupProvider:
             raise HTTPException(503, 'The authentication response could not be verified.') from None
 
     async def send_code(self, email):
+        """Supabase issues the OTP and uses its configured SendGrid SMTP/template.
+
+        Sender identity and SMTP credentials are project-level Auth configuration,
+        not fields accepted by the public OTP endpoint. Never generate or email a
+        competing local email code or insert a fabricated identity into auth.users.
+        """
         await self.request('POST', 'otp', {'email': email, 'create_user': True})
 
     async def verify(self, email, code):
+        if not isinstance(code, str) or not re.fullmatch(r'[0-9]{6}', code):
+            return None
         # Invalid codes and provider outages are deliberately distinct outcomes.
         key = self.settings.supabase_publishable_key.get_secret_value()
         try:
@@ -108,10 +116,23 @@ class SupabaseSignupProvider:
             raise HTTPException(503, 'Workspace identity update needs reconciliation')
 
     async def password_email(self, email):
+        """Ask Auth to generate and email a single-use recovery credential.
+
+        The configured Reset Password template maps RedirectTo and TokenHash to
+        the SPA's fragment contract. No recovery credential is returned to chat.
+        """
         redirect = self.settings.auth_recovery_redirect_url
-        parsed = urlsplit(redirect)
-        local = parsed.scheme == 'http' and parsed.hostname in {'localhost', '127.0.0.1'}
-        if not parsed.hostname or parsed.username or parsed.password or parsed.fragment or (parsed.scheme != 'https' and not local):
+        try:
+            if not isinstance(redirect, str) or any(character.isspace() or ord(character) < 32 for character in redirect):
+                return False
+            parsed = urlsplit(redirect)
+            port = parsed.port
+            local = parsed.scheme == 'http' and parsed.hostname in {'localhost', '127.0.0.1'}
+            if (not parsed.hostname or parsed.username or parsed.password or parsed.fragment or parsed.query
+                    or '\\' in redirect or (port is not None and port == 0)
+                    or (parsed.scheme != 'https' and not local)):
+                return False
+        except ValueError:
             return False
         try:
             await self.request('POST', 'recover', {'email': email}, params={'redirect_to': redirect})
@@ -304,7 +325,7 @@ class ConversationalSignupManager:
             if not queue['otp_expires_at'] or queue['otp_expires_at'] <= now() or queue['attempts'] >= 5:
                 await self.lock(queue)
                 return 'Verification expired or the attempt limit was reached. Contact support or start again later.'
-            codes = re.fullmatch(r'([0-9]{6,10})\s+([0-9]{6})', text)
+            codes = re.fullmatch(r'([0-9]{6})\s+([0-9]{6})', text)
             async with self.pool.acquire() as c:
                 await c.execute('UPDATE public.whatsapp_registration_queue SET attempts=attempts+1 WHERE id=$1 AND attempts<5', queue['id'])
             if not codes or not hmac.compare_digest(self.digest(str(queue['id']), codes[2]), queue['phone_otp_hmac'] or ''):
