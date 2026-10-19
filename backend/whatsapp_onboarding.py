@@ -22,8 +22,12 @@ from cryptography.fernet import Fernet, InvalidToken
 from fastapi import HTTPException
 
 from backend.admin_portal import CompanyProfile
+from backend.workspace_personas import PersonalProfile, storage_profile
 from backend.ai_engine import country_code
 from backend.whatsapp_bot import xml_message
+
+PERSONA_PROMPT = ("Welcome to EasyInvio! Are you registering as a Business or an Individual? "
+    "Please reply with '1' for Business or '2' for Individual.")
 
 TERMINAL = {'EXPIRED', 'CANCELLED', 'LOCKED'}
 COMPANY_PROMPT = ('Welcome to EasyInvio. To register, reply with your legal company name, registration number and country, '
@@ -237,7 +241,7 @@ class ConversationalSignupManager:
                     sid, sender, receiver, self.digest('input', form['Body']))
                 if queue is None:
                     if text.casefold() not in {'hello', 'hi', 'register', 'start'}:
-                        answer = 'This number is not registered. Reply Register to start a new company signup, or contact your existing workspace owner.'
+                        answer = 'This number is not registered. Reply Register to start a new account signup, or contact your existing workspace owner.'
                     else:
                         await c.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', 'signup-start:' + receiver)
                         count = await c.fetchval("SELECT count(*) FROM public.whatsapp_registration_queue WHERE phone_e164=$1 AND created_at>now()-interval '1 day'", sender)
@@ -245,8 +249,8 @@ class ConversationalSignupManager:
                         if count >= 3 or total >= self.settings.whatsapp_onboarding_daily_limit:
                             answer = 'Registration limit reached. Contact support or try again tomorrow.'
                         else:
-                            await c.execute("INSERT INTO public.whatsapp_registration_queue(phone_e164,receiver_e164,current_state) VALUES($1,$2,'PENDING_COMPANY')", sender, receiver)
-                            answer = COMPANY_PROMPT
+                            await c.execute("INSERT INTO public.whatsapp_registration_queue(phone_e164,receiver_e164,current_state) VALUES($1,$2,'PENDING_PERSONA')", sender, receiver)
+                            answer = PERSONA_PROMPT
                     await self.finish(c, sid, answer)
                     return xml_message(answer)
                 if text.casefold() == 'cancel':
@@ -309,6 +313,16 @@ class ConversationalSignupManager:
             async with self.pool.acquire() as c:
                 await c.execute("UPDATE public.whatsapp_registration_queue SET current_state='RECONCILIATION_REQUIRED' WHERE id=$1", queue['id'])
             return 'Your verified setup window has expired. Contact support to complete this registration securely.'
+        if state == 'PENDING_PERSONA':
+            if text.strip().casefold() in {'1', 'business'}:
+                async with self.pool.acquire() as c:
+                    await c.execute("UPDATE public.whatsapp_registration_queue SET workspace_type='BUSINESS',current_state='PENDING_COMPANY',updated_at=now() WHERE id=$1", queue['id'])
+                return COMPANY_PROMPT
+            if text.strip().casefold() in {'2', 'individual', 'personal'}:
+                async with self.pool.acquire() as c:
+                    await c.execute("UPDATE public.whatsapp_registration_queue SET workspace_type='INDIVIDUAL',current_state='PENDING_EMAIL',updated_at=now() WHERE id=$1", queue['id'])
+                return 'Please reply with your personal Email Address to receive your verification code. The email code can contain 6 to 10 digits.'
+            return PERSONA_PROMPT
         if state == 'PENDING_COMPANY':
             if text.casefold() in {'hello', 'register', 'status', 'hi'}:
                 return COMPANY_PROMPT
@@ -329,7 +343,7 @@ class ConversationalSignupManager:
         if state == 'PENDING_EMAIL':
             email = text.casefold()
             if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email) or len(email) > 254:
-                return 'Enter your billing email address, for example alex@example.com.'
+                return 'Enter your email address, for example alex@example.com.'
             async with self.pool.acquire() as c:
                 async with c.transaction():
                     if await self.duplicate(c, queue['company_reg_number'], queue['country_code'], email, queue['id']) or await self.email_identity_blocked(c, email, queue):
@@ -369,8 +383,16 @@ class ConversationalSignupManager:
             async with self.pool.acquire() as c:
                 await c.execute("UPDATE public.whatsapp_registration_queue SET auth_user_id=$2,current_state='PROVISIONING',phone_otp_hmac=NULL,updated_at=now() WHERE id=$1", queue['id'], user_id)
             queue['auth_user_id'] = user_id
-            return 'Both codes are verified. Reply Continue to finish creating your workspace. No funds or shipping labels have been created.'
+            return ('Both codes are verified. Reply with your full name to finish creating your personal workspace.' if queue.get('workspace_type') == 'INDIVIDUAL'
+                else 'Both codes are verified. Reply Continue to finish creating your workspace. No funds or shipping labels have been created.')
         if state == 'PROVISIONING':
+            if queue.get('workspace_type') == 'INDIVIDUAL' and not decoded(queue['profile']).get('full_name'):
+                if text.strip().casefold() in {'continue','status','hello','register'}:
+                    return 'Please reply with your full name to finish your personal account setup.'
+                profile = PersonalProfile(full_name=text, billing_email=queue['email_address'], phone_e164=queue['phone_e164'])
+                queue['profile'] = profile.model_dump(mode='json')
+                async with self.pool.acquire() as c:
+                    await c.execute('UPDATE public.whatsapp_registration_queue SET profile=$2::jsonb WHERE id=$1', queue['id'], profile.model_dump_json())
             return await self.provision(queue)
         if state == 'VERIFIED':
             return 'Registration was completed. Ask support to check your WhatsApp binding if workspace access is unavailable.'
@@ -400,8 +422,10 @@ class ConversationalSignupManager:
         async with self.pool.acquire() as c:
             if await c.fetchval('SELECT EXISTS(SELECT 1 FROM public.users WHERE auth_user_id=$1)', user_id):
                 raise HTTPException(409, 'This identity already has a membership. Account setup needs support review.')
-        profile = CompanyProfile(company_name=queue['company_name'], billing_email=queue['email_address'],
-            country_code=queue['country_code'], company_registration_number=queue['company_reg_number'], **decoded(queue['profile']))
+        individual = queue.get('workspace_type') == 'INDIVIDUAL'
+        profile = storage_profile(PersonalProfile.model_validate(decoded(queue['profile']))) if individual else CompanyProfile(
+            company_name=queue['company_name'], billing_email=queue['email_address'], country_code=queue['country_code'],
+            company_registration_number=queue['company_reg_number'], **decoded(queue['profile']))
         sandbox = self.settings.database_environment == 'SANDBOX'
         if (sandbox and self.settings.provider_environment != 'TEST') or (not sandbox and self.settings.provider_environment != 'LIVE'):
             raise HTTPException(403, 'Registration environment requires administrator configuration')
@@ -424,11 +448,11 @@ class ConversationalSignupManager:
                     raise HTTPException(409, 'This identity acquired another membership. Contact support.')
                 await c.execute('''INSERT INTO public.tenants
                     (tenant_id,company_name,company_profile,billing_plan,default_currency,workspace_status,billing_status,is_sandbox,
-                    workspace_slug,workspace_name,legal_company_name,billing_email,billing_address,country_code,company_registration_number,onboarding_source)
-                    VALUES($1,$2,$3::jsonb,'PREPAID_WALLET','GBP','ACTIVE','ACTIVE',$4,$5,$2,$2,$6,$7::jsonb,$8,$9,'WHATSAPP_INGRESS')''',
+                    workspace_slug,workspace_name,legal_company_name,billing_email,billing_address,country_code,company_registration_number,onboarding_source,workspace_type)
+                    VALUES($1,$2,$3::jsonb,'PREPAID_WALLET','GBP','ACTIVE','ACTIVE',$4,$5,$2,CASE WHEN $10='BUSINESS' THEN $2 END,$6,$7::jsonb,$8,$9,'WHATSAPP_INGRESS',$10)''',
                     tenant_id, profile.company_name, profile.model_dump_json(), sandbox, 'tenant-' + tenant_id.hex,
                     profile.billing_email, json.dumps({'line1': profile.address_line1, 'city': profile.city,
-                        'postal_code': profile.postal_code, 'country_code': profile.country_code}), profile.country_code, profile.company_registration_number)
+                        'postal_code': profile.postal_code, 'country_code': profile.country_code}), profile.country_code, profile.company_registration_number, queue.get('workspace_type','BUSINESS'))
                 await c.execute('INSERT INTO public.wallets(tenant_id,currency,balance,reserved_balance) VALUES($1,\'GBP\',$2,$2) ON CONFLICT(tenant_id) DO NOTHING', tenant_id, Decimal('0.00'))
                 wallet = await c.fetchrow('SELECT currency,balance,reserved_balance FROM public.wallets WHERE tenant_id=$1', tenant_id)
                 if not wallet or wallet['currency'] != 'GBP' or wallet['balance'] != 0 or wallet['reserved_balance'] != 0:

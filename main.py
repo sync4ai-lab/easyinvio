@@ -1174,6 +1174,13 @@ class RatingService:
         quoted_at = datetime.now(timezone.utc)
         issues = [issue for _, issue in results if issue is not None]
         rates = []
+        persona_policy = None
+        if self.pool is not None:
+            from backend.workspace_personas import individual_policy
+            async with self.pool.acquire() as connection:
+                tenant = await connection.fetchrow('SELECT workspace_type FROM public.tenants WHERE tenant_id=$1', context.tenant_id)
+                if tenant and tenant.get('workspace_type') == 'INDIVIDUAL':
+                    persona_policy = await individual_policy(connection)
         for wholesale_rates, _ in results:
             for rate in wholesale_rates:
                 source_account=next(account for account in accounts if account.id==rate.account_id)
@@ -1183,7 +1190,7 @@ class RatingService:
                     'account_credential_sha256':hashlib.sha256(secret.encode()).hexdigest() if isinstance(secret,str) else None,
                     'account_upstream_id':getattr(source_account,'upstream_account_id',None)}
                 with calibrated_pricing_scope(
-                    self.pool, currency=rate.currency, origin=request.origin.country_code,
+                    self.pool, currency=rate.currency, origin=request.origin.country_code, persona_policy=persona_policy,
                     carrier_account_id=rate.account_id, service_code=rate.service_code,
                     weight_kg=sum(request.weights_kg,Decimal(0)), quoted_at=quoted_at, cargo_type=request.cargo_type,
                     volume_m3=sum((box.length_cm*box.width_cm*box.height_cm/Decimal('1000000') for box in physical_request.dimensions),Decimal(0)) if dimensions else None,
@@ -1201,7 +1208,7 @@ class RatingService:
                     delivery_days=rate.delivery_days,
                     package_count=len(physical_request.weights_kg),
                     package_weight_summary=package_charge(physical_request.dimensions,physical_request.weights_kg) if physical_request.cargo_type=='PARCEL' else weight,
-                    execution_details={**rate.execution_details,**identity},
+                    execution_details={**rate.execution_details,**identity, **({'pricing_policy':persona_policy} if persona_policy else {})},
                     fee_breakdown={
                         **({key: str(money(value)) for key, value in rate.fee_components.model_dump().items()}
                            if rate.fee_components else {key: None for key in ("base_cost", "fuel_surcharge", "residential_fee", "remote_area_fee")}),
@@ -1904,13 +1911,13 @@ async def deterministic_lifespan(application: FastAPI):
                 for table in ("tenants", "users", "carrier_accounts", "margin_rules", "shipments",
                               "wallets", "wallet_topups", "wallet_reservations", "wallet_ledger",
                               "whatsapp_bindings", "whatsapp_routes", "whatsapp_quote_choices", "whatsapp_receipts",
-                              "admin_configuration_events", "ecommerce_stores", "ecommerce_tracking_outbox", "workspace_store_connections", "workspace_dispatch_events", "billing_disputes", "amazon_order_notifications",
+                              "individual_pricing_settings", "individual_pricing_events", "web_registration_sessions", "admin_configuration_events", "ecommerce_stores", "ecommerce_tracking_outbox", "workspace_store_connections", "workspace_dispatch_events", "billing_disputes", "amazon_order_notifications",
                               "tracking_events", "support_tickets", "support_message_outbox"):
                     if await connection.fetchval("SELECT to_regclass($1)", f"public.{table}") is None:
                         raise RuntimeError(f"Required migration table is missing: public.{table}")
                 if settings.stripe_enabled and await connection.fetchval("SELECT to_regclass('public.payment_carts')") is None:
                     raise RuntimeError('Apply migration 030_card_checkout.sql before enabling card checkout')
-                await connection.execute("SELECT is_sandbox FROM public.tenants LIMIT 0")
+                await connection.execute("SELECT is_sandbox,workspace_type FROM public.tenants LIMIT 0")
                 await connection.execute("SELECT is_sandbox,sandbox_test_token,stripe_payment_intent_id FROM public.wallet_topups LIMIT 0")
                 await connection.execute("SELECT stripe_payment_intent_id FROM public.wallet_ledger LIMIT 0")
                 await connection.execute("SELECT proof_of_delivery_url FROM public.shipments LIMIT 0")

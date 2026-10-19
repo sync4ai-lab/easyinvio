@@ -257,6 +257,7 @@ class RecoveryRequest(BaseModel):
 
 
 class ResetPassword(BaseModel):
+    email: str | None = Field(default=None, max_length=254, pattern=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
     model_config = ConfigDict(extra='forbid', hide_input_in_errors=True)
     token_hash: SecretStr = Field(min_length=20, max_length=1024)
     password: SecretStr = Field(min_length=12, max_length=128)
@@ -317,6 +318,8 @@ async def reset_password(body: ResetPassword, request: Request):
             if verified.status_code != 200:
                 raise HTTPException(400, 'This reset link is invalid or expired. Request a new link.')
             session = verified.json()
+            if body.email is not None and session['user'].get('email','').casefold() != body.email.strip().casefold():
+                raise HTTPException(400, 'This reset link does not match the supplied email. Request a new link.')
             access = session['access_token']
             user_id = UUID(session['user']['id'])
             headers['Authorization'] = 'Bearer ' + access
@@ -334,3 +337,14 @@ async def reset_password(body: ResetPassword, request: Request):
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
         raise HTTPException(503, 'Recovery is temporarily unavailable. Request a new link if necessary.') from None
     return {'message': 'Password updated. Sign in with your new password.'}
+
+
+from backend.web_registration import RegistrationStart, RegistrationVerify, start_registration, verify_registration
+
+@router.post('/register')
+async def register_account(body: RegistrationStart, request: Request):
+    return await start_registration(body, request)
+
+@router.post('/register/verify')
+async def verify_account(body: RegistrationVerify, request: Request):
+    return await verify_registration(body, request)

@@ -89,7 +89,7 @@ def build_router(authenticate):
             context = await authenticate(request, credentials)
             assistance = request.state.client_assistance
             return {'portal_role': 'CLIENT', 'user_id': str(context.user_id), 'tenant_id': str(context.tenant_id),
-                'workspace_role': 'OWNER', 'company_name': assistance['company_name'],
+                'workspace_role': 'OWNER', 'company_name': assistance['company_name'], 'workspace_type':assistance.get('workspace_type','BUSINESS'),
                 'assistance': {'session_id': str(assistance['id']), 'actor_user_id': str(context.user_id),
                     'expires_at': assistance['expires_at'].isoformat()}}
         try:
@@ -101,7 +101,8 @@ def build_router(authenticate):
         context = await authenticate(request, credentials)
         async with request.app.state.finance.pool.acquire() as connection:
             company=await connection.fetchval('SELECT company_name FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
-        return {"portal_role": "CLIENT", "user_id": str(context.user_id), "tenant_id": str(context.tenant_id), "workspace_role": context.role,'company_name':str(company) if company else ''}
+            workspace_type=await connection.fetchval('SELECT workspace_type FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
+        return {"portal_role": "CLIENT", "user_id": str(context.user_id), "tenant_id": str(context.tenant_id), "workspace_role": context.role,'company_name':str(company) if company else '', 'workspace_type':workspace_type or 'BUSINESS'}
 
     @router.get("/admin/analytics/dashboard")
     async def platform_report(request: Request, start_date: date, end_date: date,
@@ -115,11 +116,11 @@ def build_router(authenticate):
         sandbox = environment=='SANDBOX'
         async with request.app.state.finance.pool.acquire() as connection:
             async with connection.transaction(isolation="repeatable_read", readonly=True):
-                totals = await connection.fetch("""SELECT currency,sum(final_client_price)::numeric AS revenue,
+                totals = await connection.fetch("""SELECT t.workspace_type,currency,count(*)::bigint AS label_count,sum(final_client_price)::numeric AS revenue,
                     sum(profit_markup)::numeric AS margin,sum(parcel_count)::bigint AS package_count
                     FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
                     WHERE ((NOT t.is_sandbox AND NOT $3::boolean) OR (t.is_sandbox AND $3::boolean)) AND booked_at >= $1 AND booked_at < $2
-                    AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY currency""", start, end,sandbox)
+                    AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY t.workspace_type,currency""", start, end,sandbox)
                 tenants = await connection.fetchval("SELECT count(*) FROM public.tenants WHERE workspace_status='ACTIVE' AND is_sandbox=$1",sandbox)
                 carriers = await connection.fetch("""SELECT coalesce(carrier_code,'Unassigned') AS carrier,sum(parcel_count)::bigint AS volume
                     FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
@@ -135,7 +136,24 @@ def build_router(authenticate):
                 threads = await connection.fetch('''SELECT q.status,count(*)::bigint AS ticket_count FROM public.support_tickets q
                     JOIN public.tenants t ON t.tenant_id=q.tenant_id WHERE t.is_sandbox=$1 AND q.status IN ('OPEN','IN_REVIEW')
                     GROUP BY q.status ORDER BY q.status''',sandbox)
-        return {"active_tenants": tenants, "totals_by_currency": [{"currency": row["currency"], "revenue": money(row["revenue"]), "margin": money(row["margin"]), "package_count": row["package_count"]} for row in totals],
+                cohort_tickets = await connection.fetch('''SELECT t.workspace_type,count(*)::bigint AS ticket_count
+                    FROM public.support_tickets q JOIN public.tenants t ON t.tenant_id=q.tenant_id
+                    WHERE t.is_sandbox=$3 AND q.created_at>=$1 AND q.created_at<$2
+                    GROUP BY t.workspace_type''', start,end,sandbox)
+                cohort_accounts = await connection.fetch('''SELECT workspace_type,count(*)::bigint AS active_tenants
+                    FROM public.tenants WHERE is_sandbox=$1 AND workspace_status='ACTIVE' GROUP BY workspace_type''',sandbox)
+        # Preserve combined currency totals while publishing explicit cohort dimensions.
+        from decimal import Decimal
+        combined = {}
+        for row in totals:
+            aggregate = combined.setdefault(row['currency'], {'currency':row['currency'], 'revenue':Decimal(0), 'margin':Decimal(0), 'package_count':0})
+            for field in ('revenue','margin','package_count'):
+                aggregate[field] += row[field] or 0
+        cohort_shipping = [{'workspace_type':r.get('workspace_type','BUSINESS'), 'currency':r['currency'],
+            'revenue':money(r['revenue']), 'margin':money(r['margin']), 'package_count':r['package_count'],
+            'label_count':r.get('label_count',0)} for r in totals]
+        return {"active_tenants": tenants, "totals_by_currency": [{"currency": row["currency"], "revenue": money(row["revenue"]), "margin": money(row["margin"]), "package_count": row["package_count"]} for row in combined.values()],
+                "cohorts": {"shipping":cohort_shipping, "tickets":[dict(r) for r in cohort_tickets], "accounts":[dict(r) for r in cohort_accounts]},
                 "carriers": [dict(row) for row in carriers], "margin_basis": "stored gross markup; net profit is unavailable",
                 'environment':environment,'start_date':start_date.isoformat(),'end_date':end_date.isoformat(),
                 'billing_pipeline':[dict(row) for row in billing],

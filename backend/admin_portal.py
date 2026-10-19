@@ -26,6 +26,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.ai_engine import country_code, strict_decimal
+from backend.workspace_personas import PersonalProfile, storage_profile, individual_policy
 
 logger = logging.getLogger("veloce.admin")
 CENT = Decimal("0.01")
@@ -47,6 +48,7 @@ def printable(value: str) -> str:
 
 
 class CompanyProfile(InputModel):
+    phone_e164: str | None = Field(default=None, pattern=r'^\+[1-9][0-9]{7,14}$')
     company_name: str = Field(min_length=1, max_length=200)
     contact_name: str = Field(min_length=1, max_length=200)
     billing_email: str = Field(max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
@@ -72,7 +74,8 @@ class CompanyProfile(InputModel):
 class TenantCreate(InputModel):
     # Supply the same request_id when retrying to avoid duplicate accounts.
     request_id: UUID = Field(default_factory=uuid4)
-    company_profile: CompanyProfile
+    company_profile: CompanyProfile | PersonalProfile
+    workspace_type: Literal["BUSINESS", "INDIVIDUAL"] = "BUSINESS"
     billing_plan: BillingPlan
     default_currency: Currency = "GBP"
     owner_auth_user_id: UUID | None = None
@@ -80,10 +83,18 @@ class TenantCreate(InputModel):
     is_sandbox: bool = False
 
 
+    @model_validator(mode="after")
+    def persona_profile(self):
+        if (self.workspace_type == 'INDIVIDUAL') != isinstance(self.company_profile, PersonalProfile):
+            raise ValueError('The profile must match the selected account type')
+        return self
+
+
 class TenantCreated(InputModel):
     request_id: UUID
     tenant_id: UUID
-    company_profile: CompanyProfile
+    company_profile: CompanyProfile | PersonalProfile
+    workspace_type: Literal["BUSINESS", "INDIVIDUAL"] = "BUSINESS"
     billing_plan: BillingPlan
     default_currency: Currency
     workspace_status: Literal["ACTIVE"] = "ACTIVE"
@@ -270,22 +281,23 @@ class AdminService:
                     "SELECT EXISTS(SELECT 1 FROM auth.users WHERE id=$1)", body.owner_auth_user_id):
                     raise HTTPException(422, "owner_auth_user_id must identify an existing Supabase Auth user")
                 tenant_id = uuid4()
+                profile = storage_profile(body.company_profile)
                 await connection.execute(
                     """INSERT INTO public.tenants
                        (tenant_id,company_name,company_profile,billing_plan,default_currency,
                         workspace_status,billing_status,stripe_customer_id,is_sandbox,
                         workspace_slug,workspace_name,legal_company_name,billing_email,billing_address,
-                        country_code,company_registration_number,vat_registration_number)
+                        country_code,company_registration_number,vat_registration_number,workspace_type)
                        VALUES ($1,$2,$3::jsonb,$4,$5,'ACTIVE','ACTIVE',$6,$7,
-                               $8,$2,$2,$9,$10::jsonb,$11,$12,$13)""",
-                    tenant_id, body.company_profile.company_name, body.company_profile.model_dump_json(),
+                               $8,$2,CASE WHEN $14='BUSINESS' THEN $2 END,$9,$10::jsonb,$11,$12,$13,$14)""",
+                    tenant_id, profile.company_name, profile.model_dump_json(),
                     body.billing_plan, body.default_currency, body.stripe_customer_id, body.is_sandbox,
-                    "tenant-" + tenant_id.hex, body.company_profile.billing_email,
-                    json.dumps({"line1": body.company_profile.address_line1,
-                                "line2": body.company_profile.address_line2, "city": body.company_profile.city,
-                                "postal_code": body.company_profile.postal_code, "country_code": body.company_profile.country_code}),
-                    body.company_profile.country_code, body.company_profile.company_registration_number,
-                    body.company_profile.tax_id)
+                    "tenant-" + tenant_id.hex, profile.billing_email,
+                    json.dumps({"line1": profile.address_line1,
+                                "line2": profile.address_line2, "city": profile.city,
+                                "postal_code": profile.postal_code, "country_code": profile.country_code}),
+                    profile.country_code, profile.company_registration_number,
+                    profile.tax_id, body.workspace_type)
                 await connection.execute(
                     """INSERT INTO public.wallets (tenant_id,currency,balance,reserved_balance)
                        VALUES ($1,$2,0,0) ON CONFLICT (tenant_id) DO NOTHING""", tenant_id, body.default_currency)
@@ -301,7 +313,7 @@ class AdminService:
                 response = TenantCreated(request_id=body.request_id, tenant_id=tenant_id,
                                          company_profile=body.company_profile, billing_plan=body.billing_plan,
                                          default_currency=body.default_currency, owner_auth_user_id=body.owner_auth_user_id,
-                                         is_sandbox=body.is_sandbox)
+                                         is_sandbox=body.is_sandbox,workspace_type=body.workspace_type)
                 await self.audit(connection, actor, "CREATE_TENANT", body, response)
                 return response
 
@@ -356,6 +368,7 @@ class PricingScope:
     quoted_at: datetime | None = None
     cargo_type: str | None = None
     volume_m3: Decimal | None = None
+    persona_policy: dict | None = None
 
 
 _scope: ContextVar[PricingScope | None] = ContextVar("veloce_pricing_scope", default=None)
@@ -473,7 +486,7 @@ async def get_client_calibrated_rate(
     try:
         async with pricing_read_connection(scope) as connection:
             tenant = await connection.fetchrow(
-                "SELECT default_currency,workspace_status,billing_plan FROM public.tenants WHERE tenant_id=$1", tenant_id)
+                "SELECT default_currency,workspace_status,billing_plan,workspace_type FROM public.tenants WHERE tenant_id=$1", tenant_id)
             if tenant is None:
                 raise HTTPException(404, "Tenant not found")
             if tenant["workspace_status"] != "ACTIVE":
@@ -481,6 +494,11 @@ async def get_client_calibrated_rate(
             currency = scope.currency or tenant["default_currency"]
             if currency not in ("GBP", "EUR", "USD"):
                 raise ValueError("Unsupported tenant currency")
+            if tenant.get('workspace_type', 'BUSINESS') == 'INDIVIDUAL':
+                policy = scope.persona_policy or await individual_policy(connection)
+                return calculate_calibrated_price(base_wholesale_cost, {
+                    'markup_type': 'PERCENTAGE', 'markup_value': strict_decimal(policy['markup_percent']),
+                    'minimum_markup': ZERO})
             rule = await connection.fetchrow(
                 """SELECT * FROM public.margin_rules
                    WHERE tenant_id=$1 AND currency=$2 AND is_active=true
@@ -554,3 +572,47 @@ async def create_margin(body: MarginCreate, request: Request, actor: PlatformOwn
         return await service_for(request).create_margin(body, actor)
     except (asyncpg.PostgresError, OSError, TimeoutError) as exc:
         raise database_error(exc) from None
+
+
+class IndividualPricingUpdate(InputModel):
+    request_id: UUID = Field(default_factory=uuid4)
+    expected_version: int = Field(ge=0)
+    individual_global_markup_percent: Decimal = Field(ge=0, le=Decimal('999.99'), decimal_places=2)
+
+    @field_validator('individual_global_markup_percent', mode='before')
+    @classmethod
+    def fixed_point(cls, value):
+        return strict_decimal(value)
+
+
+@router.get('/individual-pricing')
+async def read_individual_pricing(request: Request, actor: PlatformOwner = Depends(authenticate_platform_owner)):
+    async with service_for(request).pool.acquire() as connection:
+        policy = await individual_policy(connection)
+    return {'individual_global_markup_percent': policy['markup_percent'], 'version': policy['version']}
+
+
+@router.put('/individual-pricing')
+async def update_individual_pricing(body: IndividualPricingUpdate, request: Request,
+                                    actor: PlatformOwner = Depends(authenticate_platform_owner)):
+    async with service_for(request).pool.acquire() as connection:
+        async with connection.transaction():
+            await connection.execute("SELECT pg_advisory_xact_lock(hashtextextended('individual-pricing',0))")
+            replay = await connection.fetchrow('SELECT * FROM public.individual_pricing_events WHERE actor_auth_user_id=$1 AND request_id=$2', actor.user_id, body.request_id)
+            if replay:
+                if replay['new_percent'] != body.individual_global_markup_percent or replay['previous_version'] != body.expected_version:
+                    raise HTTPException(409, 'Request reference already used with different settings')
+                return {'individual_global_markup_percent': str(replay['new_percent']), 'version': replay['version']}
+            previous = await individual_policy(connection)
+            if previous['version'] != body.expected_version:
+                raise HTTPException(409, 'Pricing changed. Refresh settings before saving.')
+            version = previous['version'] + 1
+            await connection.execute('''INSERT INTO public.individual_pricing_settings(singleton,individual_global_markup_percent,version,updated_by)
+                VALUES(true,$1,$2,$3) ON CONFLICT(singleton) DO UPDATE SET
+                individual_global_markup_percent=excluded.individual_global_markup_percent,version=excluded.version,
+                updated_by=excluded.updated_by,updated_at=now()''',body.individual_global_markup_percent,version,actor.user_id)
+            await connection.execute('''INSERT INTO public.individual_pricing_events
+                (actor_auth_user_id,request_id,previous_percent,new_percent,previous_version,version)
+                VALUES($1,$2,$3,$4,$5,$6)''',actor.user_id,body.request_id,Decimal(previous['markup_percent']),
+                body.individual_global_markup_percent,previous['version'],version)
+    return {'individual_global_markup_percent': str(body.individual_global_markup_percent), 'version': version}

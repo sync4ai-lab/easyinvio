@@ -3981,7 +3981,7 @@ function renderEnterpriseTables() {
   const crmLink = t => /^\d+$/.test(String(t.hubspot_company_id || '')) && /^\d+$/.test(String(t.hubspot_portal_id || '')) ?
     `<a href="https://app.hubspot.com/contacts/${t.hubspot_portal_id}/record/0-2/${t.hubspot_company_id}" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1" aria-label="Open HubSpot company timeline"><i data-lucide="external-link"></i><span>HubSpot</span></a>` :
     '<span class="subtle">Not synchronized</span>';
-  $('#tenant-rows').innerHTML = enterprise.tenants.filter(t => JSON.stringify(t).toLowerCase().includes(query)).map(t => `<tr><td><b>${escapeHTML(t.company_name || t.workspace_slug)}</b><p class="subtle">${escapeHTML(t.billing_email)} · ${escapeHTML(t.workspace_slug)}</p><span class="mono subtle">${escapeHTML(t.tenant_id)}</span></td><td>${escapeHTML(t.billing_plan)}<br>${escapeHTML(t.default_currency)}</td><td><span class="tag green">${escapeHTML(t.workspace_status)}</span></td><td>${t.is_sandbox ? 'SANDBOX' : 'PRODUCTION'}</td><td><button class="secondary" data-client-margins="${escapeHTML(t.tenant_id)}">Pricing rules</button></td><td>${crmLink(t)}</td></tr>`).join('') || '<tr><td colspan="6">No client accounts match this view.</td></tr>';
+  $('#tenant-rows').innerHTML = enterprise.tenants.filter(t => JSON.stringify(t).toLowerCase().includes(query)).map(t => `<tr><td><b>${escapeHTML(t.company_name || t.workspace_slug)}</b><p class="subtle">${escapeHTML(t.workspace_type || 'BUSINESS')} &middot; ${escapeHTML(t.billing_email)} · ${escapeHTML(t.workspace_slug)}</p><span class="mono subtle">${escapeHTML(t.tenant_id)}</span></td><td>${escapeHTML(t.billing_plan)}<br>${escapeHTML(t.default_currency)}</td><td><span class="tag green">${escapeHTML(t.workspace_status)}</span></td><td>${t.is_sandbox ? 'SANDBOX' : 'PRODUCTION'}</td><td><button class="secondary" data-client-margins="${escapeHTML(t.tenant_id)}">Pricing rules</button></td><td>${crmLink(t)}</td></tr>`).join('') || '<tr><td colspan="6">No client accounts match this view.</td></tr>';
   const filter = $('#margin-tenant-filter').value;
   $('#margin-tenant-filter').innerHTML = tenantOptions(true);
   $('#margin-tenant-filter').value = filter;
@@ -4010,10 +4010,14 @@ $('#tenant-admin-form').addEventListener('submit', event => {
     enterpriseAdminGuard();
     if (!state.session) throw Error('Sign in as an authorized platform owner. No customer has been created.');
     const f = new FormData(event.target);
-    const company_profile = Object.fromEntries(['company_name', 'contact_name', 'billing_email', 'address_line1', 'city', 'postal_code', 'country_code'].map(k => [k, String(f.get(k)).trim()]));
+    const workspace_type = f.get('workspace_type') || 'BUSINESS';
+    const company_profile = workspace_type === 'INDIVIDUAL' ? {
+      full_name:String(f.get('contact_name')).trim(),billing_email:String(f.get('billing_email')).trim(),phone_e164:String(f.get('phone_e164')).trim()
+    } : Object.fromEntries(['company_name', 'contact_name', 'billing_email', 'address_line1', 'city', 'postal_code', 'country_code'].map(k => [k, String(f.get(k)).trim()]));
     if (f.get('tax_id')) company_profile.tax_id = String(f.get('tax_id'));
     const body = {
       request_id: event.target.dataset.requestId,
+      workspace_type,
       company_profile,
       billing_plan: f.get('billing_plan'),
       default_currency: f.get('default_currency'),
@@ -5754,6 +5758,7 @@ $('#identity-reset-form').addEventListener('submit', async event => {
         password
       } : {
         token_hash: identityRecoveryHash,
+        email: $('#identity-reset-email').value.trim(),
         password
       }
     });
@@ -7999,7 +8004,7 @@ async function startClientAssistance() {
     resetAssistanceWorkspace(session, identity);
     assistanceAdminProfile = adminProfile;
     state.assistance = support;
-    portal.profile = {portal_role:'CLIENT',workspace_role:'OWNER',tenant_id:support.tenant_id,user_id:support.actor_user_id,company_name:support.company_name};
+    portal.profile = {portal_role:'CLIENT',workspace_role:'OWNER',tenant_id:support.tenant_id,user_id:support.actor_user_id,company_name:support.company_name,workspace_type:support.workspace_type||'BUSINESS'};
     portal.role = 'CLIENT';
     $('#assistance-banner').hidden = false;
     $('#assistance-client-name').textContent = 'Assisting ' + support.company_name;
@@ -8422,5 +8427,169 @@ else if(!state.session)resetSessionForms();
   setInterval(() => { if (context !== null && context !== identity()) reset(); }, 1000);
 })();
 </script>
+<style>
+.persona-switch{display:flex;gap:8px;margin:16px 0}.persona-switch button{flex:1;padding:12px;border:1px solid #334155;border-radius:10px;background:#0f172a;color:#cbd5e1}.persona-switch button[aria-pressed=true]{border-color:#10b981;color:#6ee7b7;background:#064e3b55}
+.persona-chart{display:grid;gap:14px;margin-top:16px}.persona-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}.persona-bar{height:10px;background:#10b981;border-radius:6px;margin-top:6px}.persona-bar.personal{background:#818cf8}#identity-signup-form[hidden],#identity-signup-corporate[hidden],#identity-signup-code[hidden]{display:none}
+</style>
+<script>
+$('#identity-login-form').insertAdjacentHTML('afterend', `<button type="button" id="identity-signup-open" class="secondary full" style="margin-top:12px">Create an account</button>
+<form id="identity-signup-form" hidden style="margin-top:20px"><h2>Create your EasyInvio account</h2>
+<div class="persona-switch" role="group" aria-label="Account type"><button type="button" data-signup-persona="BUSINESS" aria-pressed="true">&#128084; Business Account</button><button type="button" data-signup-persona="INDIVIDUAL" aria-pressed="false">&#128100; Personal Account</button></div>
+<label>Name<input name="full_name" autocomplete="name" minlength="2" maxlength="200" required></label>
+<label>Email<input name="email" type="email" autocomplete="email" required maxlength="254"></label>
+<label>Phone<input name="phone" type="tel" autocomplete="tel" placeholder="+447700900123" pattern="\\+[1-9][0-9]{7,14}" required></label>
+<label>Password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+<div id="identity-signup-corporate"><label>Company name<input name="company_name" maxlength="200" required></label>
+<label>Registration number<input name="registration" maxlength="100" required></label><label>Tax / VAT number (optional)<input name="tax_id" maxlength="100"></label>
+<label>Billing street<input name="street" maxlength="200" required></label><label>City<input name="city" maxlength="100" required></label><label>Postcode<input name="postcode" maxlength="30" required></label><label>Country code<input name="country" maxlength="2" value="GB" required></label></div>
+<label id="identity-signup-code" hidden>Email verification code<input name="code" inputmode="numeric" pattern="[0-9]{6,10}" autocomplete="one-time-code" disabled></label>
+<button class="primary full" type="submit">Send verification code</button><button class="outline full" type="button" id="identity-signup-back">Back to sign in</button><p role="status" class="footnote" aria-live="polite"></p></form>`);
+let signupPersona = 'BUSINESS', signupReceipt = null;
+function setSignupPersona(persona) {
+  if (signupReceipt) return;
+  signupPersona = persona;
+  $('#identity-signup-corporate').hidden = persona === 'INDIVIDUAL';
+  $('#identity-signup-corporate').querySelectorAll('input').forEach(input => input.disabled = persona === 'INDIVIDUAL');
+  $$('[data-signup-persona]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.signupPersona === persona)));
+}
+$$('[data-signup-persona]').forEach(button => button.addEventListener('click', () => setSignupPersona(button.dataset.signupPersona)));
+const personaRecoveryViewBase = identityRecoveryView;
+identityRecoveryView = function(view) {
+  $('#identity-signup-form').hidden = true;
+  $('#identity-signup-open').hidden = view !== 'login';
+  personaRecoveryViewBase(view);
+};
+$('#identity-signup-open').addEventListener('click', () => {
+  identityRecoveryView('signup');
+  $('#identity-signup-form').hidden = false;
+  $('#identity-signup-form input').focus();
+});
+function resetPersonaSignup() {
+  signupReceipt = null;
+  const form = $('#identity-signup-form');
+  form.reset();
+  form.querySelectorAll('input').forEach(input => input.disabled = false);
+  form.elements.code.disabled = true;
+  form.elements.code.required = false;
+  $('#identity-signup-code').hidden = true;
+  $$('[data-signup-persona]').forEach(button => button.disabled = false);
+  form.querySelector('[type=submit]').textContent = 'Send verification code';
+  form.querySelector('[role=status]').textContent = '';
+  setSignupPersona('BUSINESS');
+}
+$('#identity-signup-back').addEventListener('click', () => { resetPersonaSignup(); identityRecoveryView('login'); });
+$('#identity-signup-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.target, button = form.querySelector('[type=submit]'), status = form.querySelector('[role=status]');
+  button.disabled = true;
+  try {
+    const fields = form.elements;
+    if (!signupReceipt) {
+      const profile = signupPersona === 'INDIVIDUAL' ? {
+        full_name:fields.full_name.value.trim(), billing_email:fields.email.value.trim(), phone_e164:fields.phone.value.trim()
+      } : {company_name:fields.company_name.value.trim(), contact_name:fields.full_name.value.trim(), billing_email:fields.email.value.trim(),
+        company_registration_number:fields.registration.value.trim(), tax_id:fields.tax_id.value.trim()||null,
+        address_line1:fields.street.value.trim(), city:fields.city.value.trim(), postal_code:fields.postcode.value.trim(), country_code:fields.country.value.trim(), phone_e164:fields.phone.value.trim()};
+      signupReceipt = await api('/api/v1/auth/register', {method:'POST',body:{workspace_type:signupPersona,profile}});
+      form.querySelectorAll('input:not([name=password]):not([name=code])').forEach(input => input.disabled = true);
+      $$('[data-signup-persona]').forEach(control => control.disabled = true);
+      $('#identity-signup-code').hidden = false;
+      fields.code.disabled = false;
+      fields.code.required = true;
+      fields.code.focus();
+      button.textContent = 'Verify email and create account';
+      status.textContent = signupReceipt.message;
+    } else {
+      const result = await api('/api/v1/auth/register/verify', {method:'POST',body:{registration_id:signupReceipt.registration_id,
+        registration_secret:signupReceipt.registration_secret,code:fields.code.value,password:fields.password.value}});
+      $('#identity-signup-back').click();
+      $('#identity-login-status').textContent = result.message;
+    }
+  } catch (error) { status.textContent = error.message; }
+  finally { button.disabled = false; }
+});
+// Recovery remains a single-use email proof followed by a normal password login.
+$('#identity-reset-form h2').insertAdjacentHTML('afterend', '<label id="identity-reset-email-label">Account email<input id="identity-reset-email" type="email" autocomplete="email" required maxlength="254"></label>');
+$('#identity-reset-email').disabled = Boolean(identityInviteToken);
+$('#identity-reset-email-label').hidden = Boolean(identityInviteToken);
+if (recoveryFragment.get('type') === 'recovery' || recoveryFragment.get('type') === 'invite') $('#identity-signup-open').hidden = true;
+
+$('#tenant-admin-form').insertAdjacentHTML('afterbegin', '<label>Account type<select name="workspace_type"><option value="BUSINESS">Business</option><option value="INDIVIDUAL">Personal</option></select></label><label>Personal phone<input name="phone_e164" type="tel" placeholder="+447700900123"></label>');
+$('#tenant-admin-form').elements.workspace_type.addEventListener('change', event => {
+  const form = event.target.form, personal = event.target.value === 'INDIVIDUAL';
+  for (const name of ['company_name','address_line1','city','postal_code','country_code','tax_id']) {
+    form.elements[name].disabled = personal;
+    form.elements[name].closest('label').hidden = personal;
+  }
+  form.elements.phone_e164.required = personal;
+});
+$('#admin-margins').insertAdjacentHTML('beforeend', `<article class="card" style="margin-top:18px"><h2>Personal account pricing</h2><form id="individual-pricing-form"><label>Global individual markup (%)<input name="percent" inputmode="decimal" type="number" min="0" max="999.99" step="0.01" required></label><button class="primary" type="submit">Save pricing</button><button class="secondary" type="button" id="individual-pricing-refresh">Refresh</button><p class="subtle" role="status"></p></form></article>`);
+let individualPricingVersion = null;
+async function loadIndividualPricing() {
+  if (!state.session || portal.profile?.portal_role !== 'SUPER_ADMIN') return;
+  const session = state.session;
+  try {
+    const data = await api('/api/v1/admin/individual-pricing', {auth:true});
+    if (session !== state.session) return;
+    individualPricingVersion = data.version;
+    $('#individual-pricing-form').elements.percent.value = data.individual_global_markup_percent;
+    $('#individual-pricing-form [role=status]').textContent = 'Applies to new personal-account quotes in every supported currency.';
+  } catch (error) { $('#individual-pricing-form [role=status]').textContent = error.message; }
+}
+$('#individual-pricing-refresh').addEventListener('click', loadIndividualPricing);
+$('#individual-pricing-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.target;
+  try {
+    if (individualPricingVersion === null) throw Error('Refresh pricing before saving.');
+    const result = await api('/api/v1/admin/individual-pricing', {auth:true,method:'PUT',body:{request_id:crypto.randomUUID(),
+      expected_version:individualPricingVersion,individual_global_markup_percent:form.elements.percent.value}});
+    individualPricingVersion = result.version;
+    form.querySelector('[role=status]').textContent = 'Saved. Existing quoted prices remain unchanged until expiry.';
+  } catch (error) { form.querySelector('[role=status]').textContent = error.message; }
+});
+window.addEventListener('easyinvio-session-ready', loadIndividualPricing);
+$('#owner-command-center').insertAdjacentHTML('beforeend', '<article class="card" style="margin-top:18px"><h2>Business and personal accounts</h2><div id="persona-report" class="persona-chart"></div></article>');
+function renderPersonaReport(report) {
+  const container = $('#persona-report');
+  container.replaceChildren();
+  const cohorts = report?.cohorts;
+  if (!cohorts) { container.textContent = 'Refresh the report to load account cohorts.'; return; }
+  function pair(title, business, personal, formatter = value => String(value)) {
+    const article = document.createElement('section');
+    const heading = document.createElement('h3'); heading.textContent = title; article.append(heading);
+    const bars = document.createElement('div'); bars.className = 'persona-pair';
+    const scale = Math.max(Number(business), Number(personal), 1);
+    for (const [name,value,isPersonal] of [['Business',business,false],['Personal',personal,true]]) {
+      const column = document.createElement('div'), label = document.createElement('p'), bar = document.createElement('div');
+      label.textContent = name + ': ' + formatter(value);
+      bar.className = 'persona-bar' + (isPersonal?' personal':'');
+      bar.style.width = Math.max(0, Number(value)/scale*100) + '%';
+      column.append(label,bar); bars.append(column);
+    }
+    article.append(bars); container.append(article);
+  }
+  for (const currency of [...new Set(cohorts.shipping.map(row => row.currency))]) {
+    const business = cohorts.shipping.find(row => row.currency === currency && row.workspace_type === 'BUSINESS') || {};
+    const personal = cohorts.shipping.find(row => row.currency === currency && row.workspace_type === 'INDIVIDUAL') || {};
+    pair('Shipping volume ('+currency+' cohort)', business.package_count||0, personal.package_count||0);
+    pair('Confirmed labels ('+currency+' cohort)', business.label_count||0, personal.label_count||0);
+    pair('Gross shipping revenue ('+currency+')', business.revenue||'0.00', personal.revenue||'0.00', value => money(value,currency));
+    pair('Stored gross margin ('+currency+')', business.margin||'0.00', personal.margin||'0.00', value => money(value,currency));
+  }
+  pair('Support tickets created in period',cohorts.tickets.find(row=>row.workspace_type==='BUSINESS')?.ticket_count||0,cohorts.tickets.find(row=>row.workspace_type==='INDIVIDUAL')?.ticket_count||0);
+  pair('Active accounts',cohorts.accounts.find(row=>row.workspace_type==='BUSINESS')?.active_tenants||0,cohorts.accounts.find(row=>row.workspace_type==='INDIVIDUAL')?.active_tenants||0);
+}
+const personaMonitoringBase = renderOwnerMonitoring;
+renderOwnerMonitoring = function() { personaMonitoringBase(); renderPersonaReport(state.session ? portal.report : null); };
+const personaClearSessionBase = clearSession;
+clearSession = function() {
+  resetPersonaSignup();
+  individualPricingVersion = null;
+  $('#individual-pricing-form').reset();
+  personaClearSessionBase.apply(this, arguments);
+};
+</script>
+
 </body>
 </html>

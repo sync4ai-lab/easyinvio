@@ -69,7 +69,7 @@ class Database:
         if 'SELECT EXISTS(SELECT 1 FROM public.tenants' in sql:
             country, reg, email, own = args
             rows = self.data['tenants'] + [q for q in self.data['queues'] if q['id'] != own and q['current_state'] not in {'EXPIRED', 'CANCELLED', 'LOCKED', 'VERIFIED'}]
-            return any((row.get('country_code') == country and row.get('company_reg_number') == reg) or (email and row.get('email_address') == email) for row in rows)
+            return any((reg is not None and country is not None and row.get('country_code') == country and row.get('company_reg_number') == reg) or (email and row.get('email_address') == email) for row in rows)
         if 'FROM auth.users' in sql:
             if args[0] in self.auth_emails:
                 return True
@@ -112,7 +112,7 @@ class Database:
         elif sql.startswith('UPDATE public.whatsapp_registration_receipts'):
             self.data['receipts'][args[0]].update(reply_ciphertext=args[1], key_id=args[2])
         elif sql.startswith('INSERT INTO public.whatsapp_registration_queue'):
-            self.data['queues'].append(dict(id=uuid4(), phone_e164=args[0], receiver_e164=args[1], current_state='PENDING_COMPANY',
+            self.data['queues'].append(dict(id=uuid4(), phone_e164=args[0], receiver_e164=args[1], current_state='PENDING_PERSONA', workspace_type='BUSINESS',
                 company_name=None, company_reg_number=None, country_code=None, profile={}, email_address=None,
                 phone_otp_hmac=None, otp_expires_at=None, attempts=0, send_attempts=0, last_sent_at=None,
                 auth_user_id=None, tenant_id=uuid4(), member_id=uuid4(), busy_message_sid=None, lease_until=None,
@@ -129,6 +129,8 @@ class Database:
                 q['current_state'] = state[1]
             elif 'current_state=$2' in sql:
                 q['current_state'] = args[1]
+            if "workspace_type='INDIVIDUAL'" in sql:
+                q['workspace_type'] = 'INDIVIDUAL'
             if 'company_name=$2' in sql:
                 q.update(company_name=args[1], company_reg_number=args[2], country_code=args[3])
             if 'profile=$2' in sql:
@@ -149,7 +151,7 @@ class Database:
                 q['auth_user_id'] = args[1]
         elif sql.startswith('INSERT INTO public.tenants'):
             assert self.depth == 1
-            self.data['tenants'].append(dict(id=args[0], company_reg_number=args[8], country_code=args[7], email_address=args[5], sandbox=args[3]))
+            self.data['tenants'].append(dict(id=args[0], company_reg_number=args[8], country_code=args[7], email_address=args[5], sandbox=args[3],workspace_type=args[9]))
         elif sql.startswith('INSERT INTO public.wallets'):
             assert type(args[1]) is Decimal and args[1] == Decimal('0.00')
             self.data['wallets'][args[0]] = dict(currency='GBP', balance=args[1], reserved_balance=args[1])
@@ -185,7 +187,7 @@ def form(text, sid=None, phone='+447700900123'):
 
 
 async def reach_codes(manager, database):
-    for text in ('Register', 'Example Ltd, 12345678, GB', 'Alex Example; 1 Example Road; Leeds; LS1 1AA; YES'):
+    for text in ('Register', '1', 'Example Ltd, 12345678, GB', 'Alex Example; 1 Example Road; Leeds; LS1 1AA; YES'):
         await manager.handle(form(text))
     response = await manager.handle(form('alex@example.com'))
     code = re.search(r'WhatsApp code is ([0-9]{6})', response)[1]
@@ -262,7 +264,7 @@ async def test_uncertain_auth_response_is_fenced_from_retry(signup):
 async def test_email_send_failure_and_expired_provisioning_do_not_activate(signup):
     manager, database, provider = signup
     provider.send_code.side_effect = HTTPException(503, 'Delivery not confirmed')
-    for text in ('Register', 'Example Ltd, 12345678, GB', 'Alex; 1 Test Road; Leeds; LS1 1AA; YES', 'alex@example.com'):
+    for text in ('Register', '1', 'Example Ltd, 12345678, GB', 'Alex; 1 Test Road; Leeds; LS1 1AA; YES', 'alex@example.com'):
         await manager.handle(form(text))
     queue = database.data['queues'][0]
     assert queue['current_state'] == 'SENDING_EMAIL'
@@ -281,6 +283,7 @@ async def test_duplicate_company_existing_identity_and_inactive_phone_are_not_ta
     assert 'cannot reactivate' in await manager.handle(form('Register', phone='+447700900999'))
     assert not database.data['queues']
     await manager.handle(form('Register'))
+    await manager.handle(form('1'))
     database.data['tenants'].append({'id': uuid4(), 'company_reg_number': '12345678', 'country_code': 'GB'})
     assert 'already linked' in await manager.handle(form('Example Ltd, 12345678, GB'))
     assert database.data['queues'][0]['current_state'] == 'PENDING_COMPANY'
@@ -552,3 +555,29 @@ async def test_repeating_same_pending_email_uses_resend_limits(signup):
     assert 'accepted a verification email' in await manager.handle(form('alex@example.com'))
     assert provider.send_code.await_count == 2
     assert queue['current_state'] == 'PENDING_OTP' and queue['attempts'] == 0
+
+
+@pytest.mark.asyncio
+async def test_individual_persona_skips_company_and_activates_only_after_both_proofs(signup):
+    manager, database, provider = signup
+    hello = form('Register')
+    assert "Business or an Individual" in await manager.handle(hello)
+    assert 'Business or an Individual' in await manager.handle(hello)
+    assert database.data['queues'][0]['current_state'] == 'PENDING_PERSONA'
+    assert 'personal Email' in await manager.handle(form('2'))
+    queue = database.data['queues'][0]
+    assert queue['workspace_type'] == 'INDIVIDUAL' and queue['current_state'] == 'PENDING_EMAIL'
+    reply = await manager.handle(form('personal@example.com'))
+    code = re.search(r'WhatsApp code is ([0-9]{6})', reply)[1]
+    assert not database.data['tenants']
+    provider.verify.return_value = uuid4()
+    assert 'full name' in await manager.handle(form('12345678 '+code))
+    assert not database.data['tenants']
+    assert 'full name' in await manager.handle(form('Continue'))
+    assert 'GBP 0.00' in await manager.handle(form('Alex Consumer'))
+    assert queue['current_state'] == 'VERIFIED'
+    tenant = database.data['tenants'][0]
+    assert tenant['workspace_type'] == 'INDIVIDUAL'
+    assert tenant['company_reg_number'] is None and tenant['country_code'] is None
+    assert database.data['wallets'][queue['tenant_id']]['balance'] == Decimal('0.00')
+    assert len(database.data['users']) == len(database.data['bindings']) == 1

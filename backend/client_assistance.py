@@ -86,7 +86,7 @@ async def resolve_assistance(request, credentials=None):
         credentials = await HTTPBearer(auto_error=False)(request)
     actor = await authenticate_platform_owner(request, credentials)
     async with request.app.state.finance.pool.acquire() as connection:
-        session = await connection.fetchrow('''SELECT s.*,t.company_name,t.workspace_status,t.is_sandbox
+        session = await connection.fetchrow('''SELECT s.*,t.company_name,t.workspace_type,t.workspace_status,t.is_sandbox
             FROM public.admin_client_assistance_sessions s JOIN public.tenants t USING(tenant_id)
             WHERE s.id=$1 AND s.actor_auth_user_id=$2 AND s.bearer_sha256=ANY($3::text[])
             AND s.revoked_at IS NULL AND s.expires_at>now()''', identifier, actor.user_id,
@@ -112,7 +112,7 @@ async def operator_member_id(connection, context):
 async def clients(request: Request, q: str=Query('', max_length=200), owner=owner_dependency):
     async with request.app.state.finance.pool.acquire() as connection:
         rows = await connection.fetch('''SELECT tenant_id,company_name,workspace_name,workspace_slug,
-            billing_email,workspace_status,billing_status,is_sandbox FROM public.tenants
+            billing_email,workspace_type,workspace_status,billing_status,is_sandbox FROM public.tenants
             WHERE $1='' OR position(lower($1) in lower(concat_ws(' ',tenant_id::text,company_name,
              workspace_name,workspace_slug,billing_email)))>0
             ORDER BY company_name,tenant_id LIMIT 50''', q.strip())
@@ -129,7 +129,7 @@ async def start(body: StartAssistance, request: Request, owner=owner_dependency)
         raise HTTPException(401, 'Sign in again before assisting a client')
     async with request.app.state.finance.pool.acquire() as connection:
         async with connection.transaction():
-            tenant = await connection.fetchrow('SELECT tenant_id,company_name,is_sandbox,workspace_status FROM public.tenants WHERE tenant_id=$1 FOR SHARE', body.tenant_id)
+            tenant = await connection.fetchrow('SELECT tenant_id,company_name,workspace_type,is_sandbox,workspace_status FROM public.tenants WHERE tenant_id=$1 FOR SHARE', body.tenant_id)
             if not tenant:
                 raise HTTPException(404, 'Client workspace not found')
             # Inactive operator rows satisfy historical shipment FKs without
@@ -145,7 +145,7 @@ async def start(body: StartAssistance, request: Request, owner=owner_dependency)
             await append_event(connection, session, 'SESSION_STARTED', detail={'reason': body.reason.strip()})
     return {'session_id': str(session['id']), 'tenant_id': str(body.tenant_id), 'company_name': tenant['company_name'],
             'actor_user_id': str(owner.user_id), 'expires_at': expiry.isoformat(), 'workspace_role': 'OWNER',
-            'is_sandbox': tenant['is_sandbox'], 'workspace_status': tenant['workspace_status']}
+            'is_sandbox': tenant['is_sandbox'], 'workspace_status': tenant['workspace_status'], 'workspace_type':tenant.get('workspace_type','BUSINESS')}
 
 
 @router.delete('/sessions/{session_id}')
