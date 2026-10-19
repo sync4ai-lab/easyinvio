@@ -27,6 +27,7 @@ class Database:
         self.depth = 0
         self.ready = True
         self.auth_emails = set()
+        self.provisional_auth = {}
         self.fail_profile = False
         self.sql = []
 
@@ -70,7 +71,19 @@ class Database:
             rows = self.data['tenants'] + [q for q in self.data['queues'] if q['id'] != own and q['current_state'] not in {'EXPIRED', 'CANCELLED', 'LOCKED', 'VERIFIED'}]
             return any((row.get('country_code') == country and row.get('company_reg_number') == reg) or (email and row.get('email_address') == email) for row in rows)
         if 'FROM auth.users' in sql:
-            return args[0] in self.auth_emails
+            if args[0] in self.auth_emails:
+                return True
+            identity = self.provisional_auth.get(args[0])
+            if identity is None:
+                return False
+            email, phone, receiver, administrators = args
+            if identity.get('member') or identity.get('profile') or identity.get('metadata') or identity.get('banned') or identity.get('deleted') or identity['id'] in administrators:
+                return True
+            return not any(q['email_address'] == email and q['phone_e164'] == phone and q['receiver_e164'] == receiver
+                and q['send_attempts'] > 0 and q['last_sent_at'] and q['auth_user_id'] is None
+                and q['current_state'] in {'SENDING_EMAIL', 'PENDING_OTP', 'EXPIRED', 'CANCELLED', 'LOCKED', 'PENDING_EMAIL'}
+                and q['created_at'] <= identity['created_at'] <= q['last_sent_at'] + timedelta(minutes=1)
+                for q in self.data['queues'])
         if 'FROM public.users' in sql:
             return any(row['auth_user_id'] == args[0] for row in self.data['users'])
         raise AssertionError(sql)
@@ -215,7 +228,7 @@ async def test_phone_code_alone_and_expired_email_never_create_accounts(signup):
     provider.verify.assert_not_awaited()
     provider.verify.return_value = None
     await manager.handle(form('123456 '+code))
-    assert queue['current_state'] == 'PENDING_OTP' and queue['attempts'] == 3
+    assert queue['current_state'] == 'PENDING_OTP' and queue['attempts'] == 2
     queue['otp_expires_at'] = now()-timedelta(seconds=1)
     await manager.handle(form('123456 '+code))
     assert queue['current_state'] == 'LOCKED' and not database.data['tenants']
@@ -228,7 +241,7 @@ async def test_attempt_limit_resend_cooldown_and_provider_failure(signup):
     assert 'one minute' in await manager.handle(form('Resend'))
     assert provider.send_code.await_count == 1
     for _ in range(5):
-        await manager.handle(form('invalid'))
+        await manager.handle(form('123456 999999' if code != '999999' else '123456 888888'))
     assert queue['current_state'] == 'LOCKED' and queue['phone_otp_hmac'] is None
     assert not database.data['tenants']
 
@@ -378,8 +391,8 @@ def test_opt_in_hooks_only_enrol_signed_unregistered_senders(path):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('code', ['12345', '1234567', '１２３４５６', '123 456', 123456, None])
-async def test_email_verification_rejects_non_six_digit_input_without_provider_io(code):
+@pytest.mark.parametrize('code', ['12345', '12345678901', '１２３４５６', '123 456', 123456, None])
+async def test_email_verification_rejects_invalid_numeric_input_without_provider_io(code):
     client = SimpleNamespace(post=AsyncMock())
     provider = SupabaseSignupProvider(SimpleNamespace(), client)
     assert await provider.verify('alex@example.com', code) is None
@@ -432,10 +445,11 @@ async def test_set_password_alias_serves_the_existing_spa_without_caching():
 
 
 @pytest.mark.asyncio
-async def test_long_email_code_cannot_advance_registration(signup):
+async def test_malformed_email_code_does_not_consume_verification_attempt(signup):
     manager, database, provider = signup
     queue, code, _ = await reach_codes(manager, database)
-    assert 'did not match' in await manager.handle(form('1234567 ' + code))
+    assert 'expected format' in await manager.handle(form('12345678901 ' + code))
+    assert queue['attempts'] == 0
     provider.verify.assert_not_awaited()
     assert queue['current_state'] == 'PENDING_OTP'
     assert not database.data['tenants']
@@ -454,3 +468,87 @@ async def test_smtp_upstream_failure_never_reports_delivery_accepted(failure):
         with pytest.raises(HTTPException) as error:
             await SupabaseSignupProvider(settings, client).send_code('alex@example.com')
     assert error.value.status_code == (429 if failure == 429 else 503)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('email_code', ['012345', '0123456', '01234567', '012345678', '0123456789'])
+async def test_all_supported_email_lengths_preserve_exact_code_and_require_both_proofs(signup, email_code):
+    manager, database, provider = signup
+    queue, phone_code, _ = await reach_codes(manager, database)
+    provider.verify.return_value = uuid4()
+    assert 'Reply Continue' in await manager.handle(form(email_code + ' ' + phone_code))
+    provider.verify.assert_awaited_once_with('alex@example.com', email_code)
+    assert queue['current_state'] == 'PROVISIONING'
+    assert not database.data['tenants']
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('email_code', ['012345', '0123456', '01234567', '012345678', '0123456789'])
+async def test_native_provider_passes_full_numeric_code_to_auth(email_code):
+    user_id = uuid4()
+    async def server(request):
+        assert json.loads(request.content)['token'] == email_code
+        return httpx.Response(200, json={'user': {'id': str(user_id), 'email': 'alex@example.com', 'email_confirmed_at': '2026-10-19'}})
+    settings = SimpleNamespace(supabase_url='https://synthetic.supabase.co', supabase_publishable_key=SecretStr('synthetic-public'))
+    async with httpx.AsyncClient(transport=httpx.MockTransport(server)) as client:
+        assert await SupabaseSignupProvider(settings, client).verify('alex@example.com', email_code) == user_id
+
+
+@pytest.mark.asyncio
+async def test_same_phone_can_restart_own_cancelled_provisional_email_without_account_deletion(signup):
+    manager, database, provider = signup
+    old, _, _ = await reach_codes(manager, database)
+    database.provisional_auth['alex@example.com'] = dict(id=uuid4(), created_at=old['last_sent_at'])
+    await manager.handle(form('Cancel'))
+    new, phone_code, reply = await reach_codes(manager, database)
+    assert old['current_state'] == 'CANCELLED' and new['current_state'] == 'PENDING_OTP'
+    assert 'accepted a verification email' in reply
+    assert provider.send_code.await_count == 2
+    provider.verify.assert_not_awaited()
+    assert not database.data['tenants'] and not database.data['users']
+    provider.verify.return_value = database.provisional_auth['alex@example.com']['id']
+    assert 'Both codes are verified' in await manager.handle(form('01234567 ' + phone_code))
+    assert not any('DELETE FROM auth.users' in sql for sql, _ in database.sql)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('reason', ['phone', 'receiver', 'earlier_identity', 'late_identity', 'member', 'profile',
+    'metadata', 'banned', 'deleted', 'administrator', 'uncertain_verification', 'checkpointed_identity'])
+async def test_provisional_reuse_never_claims_another_identity(signup, reason):
+    manager, database, provider = signup
+    old, _, _ = await reach_codes(manager, database)
+    identity = dict(id=uuid4(), created_at=old['last_sent_at'])
+    database.provisional_auth['alex@example.com'] = identity
+    current = dict(old)
+    if reason in {'phone', 'receiver'}:
+        current[reason + '_e164'] = '+447700900999'
+    elif reason == 'earlier_identity':
+        identity['created_at'] = old['created_at'] - timedelta(seconds=1)
+    elif reason == 'late_identity':
+        identity['created_at'] = old['last_sent_at'] + timedelta(minutes=2)
+    elif reason == 'administrator':
+        manager.settings.platform_admin_user_ids = [identity['id']]
+    elif reason == 'uncertain_verification':
+        old['current_state'] = 'RECONCILIATION_REQUIRED'
+    elif reason == 'checkpointed_identity':
+        old['auth_user_id'] = identity['id']
+    else:
+        identity[reason] = True
+    async with database.acquire() as c:
+        assert await manager.email_identity_blocked(c, 'alex@example.com', current)
+    sql, args = database.sql[-1]
+    assert args[:3] == ('alex@example.com', current['phone_e164'], current['receiver_e164'])
+    for fence in ('public.users', 'public.app_user_profiles', 'raw_app_meta_data', 'q.auth_user_id IS NULL', 'u.created_at>=q.created_at'):
+        assert fence in sql
+
+
+@pytest.mark.asyncio
+async def test_repeating_same_pending_email_uses_resend_limits(signup):
+    manager, database, provider = signup
+    queue, _, _ = await reach_codes(manager, database)
+    assert 'one minute' in await manager.handle(form('ALEX@EXAMPLE.COM'))
+    assert provider.send_code.await_count == 1
+    queue['last_sent_at'] = now() - timedelta(seconds=61)
+    assert 'accepted a verification email' in await manager.handle(form('alex@example.com'))
+    assert provider.send_code.await_count == 2
+    assert queue['current_state'] == 'PENDING_OTP' and queue['attempts'] == 0

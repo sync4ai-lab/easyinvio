@@ -61,7 +61,7 @@ not rewritten. Review provider and Supabase rate limits before client rollout.
 Copy the complete [verification email template](email_templates/verification_otp.html)
 into Supabase's **Magic Link** template and **Confirm signup** template, covering
 both existing and newly created Auth identities. Use subject `Your EasyInvio
-verification code`. Configure email OTP length to **6 digits** and expiry to
+verification code`. The app accepts Supabase email OTP lengths of **6 to 10 digits**; use your configured length and set expiry to
 **900 seconds**. Supabase substitutes `{{ .Token }}`; our application generates
 only the separate WhatsApp challenge. Codes are never sent to an LLM.
 
@@ -101,7 +101,7 @@ is insufficient. No automatic web login follows password setup.
 
 Save the SMTP/template/redirect settings, restart the backend after environment
 changes, then run an authorized acceptance signup with your own phone and inbox.
-Check the From address, six-digit email code, separate phone code, successful
+Check the From address, full numeric email code, separate six-digit phone code, successful
 activation, password form and one-time/expired-link behavior. Automated tests
 use HTTP mocks and do not verify the remote SMTP account or send live email.
 No new SQL migration is required for this refinement; migration 039 must
@@ -110,3 +110,35 @@ already be installed.
 References: [Supabase custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp),
 [Supabase email templates](https://supabase.com/docs/guides/auth/auth-email-templates),
 [SendGrid SMTP integration](https://www.twilio.com/docs/sendgrid/for-developers/sending-email/integrating-with-the-smtp-api).
+
+
+## Resuming an unfinished WhatsApp signup
+
+Supabase may create an Auth identity when it accepts an OTP request, before the
+customer proves email access. That provisional record is not an activated
+EasyInvio company, membership or funded wallet. The application now permits
+reuse only when persisted earlier signup evidence ties that identity's creation
+time to a send from the same signed WhatsApp phone and receiver. An unrelated
+existing Auth identity, any membership/profile, trusted tenant/role metadata,
+blocked/deleted identity, administrator or uncertain verification still blocks
+registration. A confirmed email from an earlier clicked signup link is not by
+itself workspace activation: eligible unfinished signup evidence still requires
+fresh email and phone codes. Identity rows and passwords are never deleted or
+reset merely to retry registration.
+
+While waiting for codes, send Resend (or repeat the same email) to request fresh
+codes after the cooldown. Both codes go into one WhatsApp message: EMAIL_CODE,
+one space, then WHATSAPP_CODE. Email codes may contain 6?10 ASCII digits,
+including leading zeros; the phone code remains exactly six digits. Supabase
+verifies the complete email code. Formatting mistakes return guidance without
+using a verification attempt; wrong formatted codes still consume the existing
+five-attempt budget. Resend, delivery, daily-start and hourly-message limits
+remain in force.
+
+If a previous registration is locked, cancelled or expired, Register can start
+a fresh attempt within existing limits and reuse an eligible unfinished email.
+A still-pending registration should be resumed rather than started again.
+PROVISIONING and RECONCILIATION_REQUIRED records need their existing recovery
+flow or operator review; do not remove these fences or delete Auth users.
+These changes need a backend restart and an updated email template, not a new
+schema migration. No live registration data was changed by the automated tests.

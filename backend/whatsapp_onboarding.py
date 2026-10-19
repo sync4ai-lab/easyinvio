@@ -32,8 +32,10 @@ COMPANY_PROMPT = ('Welcome to EasyInvio. To register, reply with your legal comp
 PROFILE_PROMPT = ('Please reply with your full name; billing street address; city; postal code; YES '
     '(separate each part with a semicolon). YES confirms you are authorised to register this company. '
     'Example: Alex Smith; 1 Example Road; Leeds; LS1 1AA; YES')
-OTP_PROMPT = ('Reply with the code from your EMAIL, then a space, then the six-digit WHATSAPP code. '
-    'Example format: 123456 654321. Codes expire after 15 minutes. Never send a password. Reply Resend for new codes.')
+OTP_PROMPT = ('Reply here in WhatsApp with the full numeric code from your EMAIL (6 to 10 digits), then a space, '
+    'then the separate six-digit WHATSAPP code. Example format: 12345678 654321. '
+    'Do not reply by email or click an email verification link. Codes expire after 15 minutes. '
+    'Never send a password. Reply Resend for new codes.')
 
 
 def now():
@@ -80,7 +82,7 @@ class SupabaseSignupProvider:
         await self.request('POST', 'otp', {'email': email, 'create_user': True})
 
     async def verify(self, email, code):
-        if not isinstance(code, str) or not re.fullmatch(r'[0-9]{6}', code):
+        if not isinstance(code, str) or not re.fullmatch(r'[0-9]{6,10}', code):
             return None
         # Invalid codes and provider outages are deliberately distinct outcomes.
         key = self.settings.supabase_publishable_key.get_secret_value()
@@ -281,6 +283,26 @@ class ConversationalSignupManager:
             AND current_state NOT IN ('EXPIRED','CANCELLED','LOCKED','VERIFIED') AND
             ((country_code=$1 AND company_reg_number=$2) OR ($3::text IS NOT NULL AND lower(email_address)=$3)))''', country, registration, email, own_id)
 
+    async def email_identity_blocked(self, c, email, queue):
+        """Only resume our own unfinished Auth creation, never an existing account.
+
+        Auth creates a provisional identity before email verification. Prior signed
+        signup evidence must tie its creation time to this phone/receiver's send.
+        Both fresh codes are still required; no identity is deleted or overwritten.
+        """
+        return await c.fetchval('''SELECT EXISTS(SELECT 1 FROM auth.users u WHERE lower(u.email)=$1 AND (
+            u.deleted_at IS NOT NULL OR u.banned_until>now() OR u.id=ANY($4::uuid[])
+            OR u.raw_app_meta_data->>'tenant_id' IS NOT NULL OR u.raw_app_meta_data->>'role' IS NOT NULL
+            OR EXISTS(SELECT 1 FROM public.users m WHERE m.auth_user_id=u.id)
+            OR EXISTS(SELECT 1 FROM public.app_user_profiles p WHERE p.auth_user_id=u.id)
+            OR NOT EXISTS(SELECT 1 FROM public.whatsapp_registration_queue q
+                WHERE lower(q.email_address)=$1 AND q.phone_e164=$2 AND q.receiver_e164=$3
+                AND q.send_attempts>0 AND q.last_sent_at IS NOT NULL
+                AND q.auth_user_id IS NULL
+                AND q.current_state IN ('SENDING_EMAIL','PENDING_OTP','EXPIRED','CANCELLED','LOCKED','PENDING_EMAIL')
+                AND u.created_at>=q.created_at AND u.created_at<=q.last_sent_at+interval '1 minute')
+            ))''', email, queue['phone_e164'], queue['receiver_e164'], list(self.settings.platform_admin_user_ids))
+
     async def advance(self, queue, text):
         state = queue['current_state']
         if state == 'PROVISIONING' and queue['expires_at'] <= now():
@@ -310,13 +332,13 @@ class ConversationalSignupManager:
                 return 'Enter your billing email address, for example alex@example.com.'
             async with self.pool.acquire() as c:
                 async with c.transaction():
-                    if await self.duplicate(c, queue['company_reg_number'], queue['country_code'], email, queue['id']) or await c.fetchval('SELECT EXISTS(SELECT 1 FROM auth.users WHERE lower(email)=$1)', email):
+                    if await self.duplicate(c, queue['company_reg_number'], queue['country_code'], email, queue['id']) or await self.email_identity_blocked(c, email, queue):
                         return 'These details are already associated with an account or registration. Sign in on the website or contact support; this chat cannot take over an existing account.'
                     await c.execute('UPDATE public.whatsapp_registration_queue SET email_address=$2 WHERE id=$1', queue['id'], email)
             queue['email_address'] = email
             return await self.send_codes(queue)
         if state in {'PENDING_OTP', 'SENDING_EMAIL'}:
-            if text.casefold() == 'resend':
+            if text.casefold() in {'resend', queue['email_address']}:
                 return await self.send_codes(queue)
             if state == 'SENDING_EMAIL':
                 return 'Email delivery has not been confirmed. Wait one minute, then reply Resend, or contact support.'
@@ -325,10 +347,12 @@ class ConversationalSignupManager:
             if not queue['otp_expires_at'] or queue['otp_expires_at'] <= now() or queue['attempts'] >= 5:
                 await self.lock(queue)
                 return 'Verification expired or the attempt limit was reached. Contact support or start again later.'
-            codes = re.fullmatch(r'([0-9]{6})\s+([0-9]{6})', text)
+            codes = re.fullmatch(r'([0-9]{6,10})\s+([0-9]{6})', text)
+            if not codes:
+                return 'Please send both codes in the expected format. ' + OTP_PROMPT
             async with self.pool.acquire() as c:
                 await c.execute('UPDATE public.whatsapp_registration_queue SET attempts=attempts+1 WHERE id=$1 AND attempts<5', queue['id'])
-            if not codes or not hmac.compare_digest(self.digest(str(queue['id']), codes[2]), queue['phone_otp_hmac'] or ''):
+            if not hmac.compare_digest(self.digest(str(queue['id']), codes[2]), queue['phone_otp_hmac'] or ''):
                 if queue['attempts'] + 1 >= 5:
                     await self.lock(queue)
                 return 'The verification codes did not match. ' + OTP_PROMPT
