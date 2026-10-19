@@ -172,6 +172,9 @@ class ConversationalActionGateway:
         booking = re.fullmatch(r'\s*(?:book|confirm)\s+option\s+(10|[1-9])\s*', text, re.I)
         if booking:
             return ConversationalIntent(intent='BOOK_RESERVATION', selection_index=int(booking[1]))
+        returning = re.fullmatch(r'\s*(?:create\s+a\s+return\s+for|return)(?:\s+(?:order|tracking|shipment))?(?:\s+([A-Za-z0-9_-]{1,200}))?\s*', text, re.I)
+        if returning:
+            return ConversationalIntent(intent='TRIGGER_RETURN', target_reference_id=returning[1])
         topup = re.fullmatch(r'\s*(?:top\s*up|topup)\s+(?:[£€$]\s*)?([0-9]+(?:[.,][0-9]{1,2})?)(?:\s+(GBP|EUR|USD))?\s*', text, re.I)
         if topup:
             return ConversationalIntent(intent='TOPUP_WALLET', monetary_amount=Decimal(topup[1].replace(',', '.')))
@@ -229,7 +232,7 @@ class ConversationalActionGateway:
                 await self.store.finish(context, message_id, result)
                 return self.public(result)
             try:
-                new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|topup|help|commands)\b|\btop\s+up\b', body.message_body, re.I)
+                new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|return|topup|help|commands)\b|\btop\s+up\b', body.message_body, re.I)
                 if self.draft and not new_command:
                     if self.draft.action == 'QUOTE':
                         collect_reply(self.draft, body.message_body)
@@ -282,6 +285,8 @@ class ConversationalActionGateway:
         return prompts[draft.waiting_for]
 
     async def execute(self, context, body, intent, message_id):
+        if intent.intent == 'TRIGGER_RETURN':
+            return await self.trigger_return(context, body, intent, message_id)
         if intent.intent == 'QUOTE':
             return await self.quote(context, body, intent, message_id)
         if intent.intent == 'BOOK_RESERVATION':
@@ -363,8 +368,8 @@ class ConversationalActionGateway:
             return await self.claim(context, body, intent, message_id)
         engine = getattr(self.state, 'logistics_supervisor', None)
         commands = ('You can ask for a quote without a saved route; I will collect missing locations, measured packaging and addresses. '
-                    'You can also track, book a displayed option, arrange a top-up or record a claim support case. Send Cancel to clear a draft.\n'
-                    'Examples: Quote 4.5kg from London to Paris; Track EINVIO-00000050; Book option 1; Top up 50 GBP; My package is lost.')
+                    'You can also track, book a displayed option, arrange a top-up, create a return or record a claim support case. Send Cancel to clear a draft.\n'
+                    'Examples: Quote 4.5kg from London to Paris; Track EINVIO-00000050; Book option 1; Return order EINVIO-00000050; Top up 50 GBP; My package is lost.')
         if engine is not None and len(body.message_body.strip()) >= 3 and body.message_body.strip().lower() not in {'help', 'hello', 'commands'}:
             answer = await engine.help.answer(context, body.message_body[:800])
             sources = answer.get('sources', [])[:3]
@@ -474,6 +479,33 @@ class ConversationalActionGateway:
             lines.append('TEST environment: no live label or live payment is promised.')
         lines.append(f'Options expire at {result.expires_at.isoformat()}. Complete packing and customs review is required for international goods.')
         return self.reply('QUOTE', '\n'.join(lines), _choices=choices)
+
+    async def trigger_return(self, context, body, intent, message_id):
+        if context.role not in DISPATCH_ROLES:
+            raise HTTPException(403, 'A dispatch role is required to create returns')
+        if not intent.target_reference_id:
+            draft = ConversationDraft(action='TRIGGER_RETURN',intent=intent,waiting_for='reference',
+                assistance_id=str(context.assistance_session_id) if getattr(context,'assistance_session_id',None) else None)
+            return self.pending_reply(draft,self.draft_prompt(draft))
+        explicit = re.fullmatch(r'\s*(?:create\s+a\s+return\s+for|return)(?:\s+(?:order|tracking|shipment))?\s+([A-Za-z0-9_-]{1,200})\s*',body.message_body,re.I)
+        draft = getattr(self,'draft',None)
+        if not ((explicit and explicit[1]==intent.target_reference_id) or
+                (draft and draft.action=='TRIGGER_RETURN' and body.message_body.strip()==intent.target_reference_id)):
+            return self.reply('TRIGGER_RETURN','To create a retailer-paid return, send: Return order EINVIO-1024.',status='NEEDS_INPUT')
+        from backend.reverse_logistics import ReverseLogisticsService, ReturnCommand
+        shipment = await self.shipment(context,intent.target_reference_id)
+        result = await ReverseLogisticsService(self.state.partner_lifecycle).process(context,
+            ReturnCommand(idempotency_key=message_id,shipment_id=shipment['id']),source=body.channel)
+        if result.get('status')!='BOOKED':
+            return self.reply('TRIGGER_RETURN',result.get('message','Your return needs review. Check Shipments before trying again.'),status='REVIEW_REQUIRED',return_request=result)
+        if result.get('paperless_available') and not result.get('qr_requires_workspace_login',True):
+            text = (f'Return initiated for {intent.target_reference_id}. Use a participating drop-off location for the selected carrier. '
+                'Display this carrier drop-off document on your phone; no printer is required:\n'+result['return_dropoff_qr_code_url'])
+        else:
+            text = (f'Return initiated for {intent.target_reference_id}. '+
+                ('A paperless document is available in your signed-in workspace.' if result.get('paperless_available') else
+                 'This service requires a printed label. Open Shipments to download it and check the selected carrier’s drop-off locations.'))
+        return self.reply('TRIGGER_RETURN',text,return_request=result)
 
     async def shipment(self, context, reference):
         if not reference:

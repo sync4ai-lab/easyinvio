@@ -837,11 +837,14 @@ class EasyPostAdapter(BaseAggregatorAdapter):
         tracking = body.get('tracking_code')
         if not isinstance(tracking, str) or not tracking.strip():
             raise PurchaseUncertain('TRACKING_NOT_READY')
+        qr = next((f.get('form_url') for f in body.get('forms', [])
+                   if f.get('form_type') == 'label_qr_code'), None)
         return {'upstream_id': body['id'], 'tracking_number': tracking,
                 'tracking_url': (body.get('tracker') or {}).get('public_url'),
                 'label_url': secure_link(label.get('label_pdf_url') or label.get('label_url')),
+                **({'return_dropoff_qr_code_url':secure_link(qr)} if qr and snapshot.get('is_return') else {}),
                 'carrier_forms': [{'document_type': f.get('form_type', 'CUSTOMS_FORM'),
-                                   'url': secure_link(f['form_url'])} for f in body.get('forms', [])]}
+                                   'url': secure_link(f['form_url'])} for f in body.get('forms', []) if f.get('form_type') != 'label_qr_code']}
 
     def normalize_order(self,body,snapshot):
         from backend.multi_label import bundle_labels
@@ -1303,7 +1306,8 @@ class SendcloudAdapter(BaseAggregatorAdapter):
         if not label or not data.get('tracking_number'):
             raise PurchaseUncertain('RETURN_DOCUMENT_NOT_READY')
         return {'upstream_id': self.last_remote_id, 'tracking_number': data['tracking_number'],
-                'tracking_url': data.get('tracking_url'), 'label_url': secure_link(label), 'carrier_forms': []}
+                'tracking_url': data.get('tracking_url'), 'label_url': secure_link(label), 'carrier_forms': [],
+                **({'return_dropoff_qr_code_url':secure_link(label)} if data.get('delivery_option')=='drop_off_labelless' else {})}
 
     async def retrieve_label(self, upstream_shipment_id, rate_snapshot):
         rate_snapshot={**rate_snapshot,**rate_snapshot.get('execution_details',{})}
@@ -1341,7 +1345,11 @@ class SendcloudAdapter(BaseAggregatorAdapter):
             'dimensions': parcel['dimensions'], 'weight': parcel['weight'], 'collo_count': 1,
             'order_number': snapshot['order_reference'], 'parcel_items': snapshot.get('parcel_items', [])}
         if snapshot.get('contract_id'):
-            payload['ship_with']['contract_id'] = snapshot['contract_id']
+            payload['ship_with']['contract'] = snapshot['contract_id']
+        if snapshot.get('paperless_requested') and snapshot.get('return_paperless_supported') is True:
+            payload['delivery_option'] = 'drop_off_labelless'
+        else:
+            payload['delivery_option'] = 'drop_off_point'
         if snapshot.get('customs_document', {}).get('required'):
             payload['total_order_value'] = {'value': snapshot['customs_document']['totals']['goods_value'],
                                             'currency': snapshot['customs_document']['currency']}
@@ -1349,7 +1357,12 @@ class SendcloudAdapter(BaseAggregatorAdapter):
             payload['customs_information'] = snapshot['customs_information']
         body = await self.request('POST', '/returns/announce-synchronously', payload)
         self.last_remote_id = str(body['return_id'])
-        data = await self.request('GET', '/returns/' + identifier(self.last_remote_id))
+        try:
+            data = await self.request('GET', '/returns/' + identifier(self.last_remote_id))
+        except PurchaseRejected:
+            # Announcement succeeded. A later document lookup rejection cannot
+            # prove that the carrier purchase failed or authorize a release.
+            raise PurchaseUncertain('SENDCLOUD_RETURN_DOCUMENT_PENDING') from None
         return self.normalize_return(data)
 
 
@@ -1456,6 +1469,11 @@ class FactoryPurchaseBridge:
                 except Exception:
                     pass
             raise
+        # Optional QR creation must never turn a confirmed label into a failed
+        # purchase or release its reservation. Fence the forms POST durably.
+        if snapshot.get('is_return') and snapshot.get('paperless_requested') and isinstance(adapter, EasyPostAdapter):
+            from backend.return_documents import request_easypost_qr
+            label = await request_easypost_qr(self.pool, adapter, account, rate, snapshot, label)
         try:
             async with self.pool.acquire() as connection:
                 await connection.execute('''UPDATE public.shipments
@@ -1496,6 +1514,9 @@ class VoidRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     tenant_id: UUID
     shipment_id: UUID
+
+
+from backend.reverse_logistics import ReturnCommand
 
 
 class ReturnRequest(VoidRequest):
@@ -1545,7 +1566,11 @@ class PartnerLifecycleService:
                           'package_labels':[{'tracking_number':piece['tracking_number'],'label_url':root+('label' if index==0 else str(next(i for i,form in enumerate(label.get('carrier_forms',[])) if form['url']==piece['label_url'])))} for index,piece in enumerate(label.get('package_labels',[]))],
                           'carrier_forms': [{'document_type': f['document_type'], 'url': root + str(i)}
                                             for i, f in enumerate(label.get('carrier_forms', []))]},
-                'customs': customs}
+                'customs': customs,
+                'paperless_available':bool(label.get('return_dropoff_qr_code_url')),
+                'return_dropoff_qr_code_url':root+'return-qr' if label.get('return_dropoff_qr_code_url') else None,
+                'dropoff_instructions':('Use a participating drop-off location for the selected carrier. Check its parcel and location restrictions.'
+                    if label.get('return_dropoff_qr_code_url') else 'Print the shipping label and use an eligible location for the selected carrier.')}
 
     async def bind_direct_quote(self, context, offer_id):
         from main import RatingRequest, RatingResponse
@@ -1630,10 +1655,12 @@ class PartnerLifecycleService:
                 return_order=metadata.get('automation_order') or {}
                 if return_order.get('is_return'):
                     from backend.carrier_access import verified_return_parent
-                    parent_account=await verified_return_parent(lock,context.tenant_id,UUID(return_order['return_of_shipment_id']),return_order['origin'],return_order['destination'])
-                    if parent_account!=rate.account_id:
+                    parent_account=await verified_return_parent(lock,context.tenant_id,UUID(return_order['return_of_shipment_id']),return_order['origin'],return_order['destination'],
+                        warehouse_id=UUID(return_order['return_warehouse_id']) if return_order.get('return_warehouse_id') else None,
+                        warehouse_version=return_order.get('return_warehouse_version'))
+                    if parent_account!=rate.account_id and not return_order.get('return_network_selection'):
                         raise HTTPException(403,'Return offer must use the original shipment connection')
-                    historical_access=True
+                    historical_access=row['status']=='BOOKING' or (parent_account==rate.account_id and not return_order.get('return_network_selection'))
                 accounts = await self.automation.repository.accounts(context)
                 if historical_access and not any(a.id==rate.account_id for a in accounts):
                     accounts=await self.automation.repository.accounts(context,historical_account_id=rate.account_id)
@@ -1845,7 +1872,7 @@ class PartnerLifecycleService:
                     remote_id = metadata.get('partner_pending_remote_id')
                     if not remote_id:
                         raise PurchaseUncertain('PENDING_NATIVE_REFERENCE_MISSING')
-                    label = await adapter.retrieve_label(remote_id, {'is_return': False})
+                    label = await adapter.retrieve_label(remote_id, {'is_return':bool(metadata.get('automation_order',{}).get('is_return'))})
                     await lock.execute('''UPDATE public.shipments SET logistics_metadata=logistics_metadata||
                         jsonb_build_object('automation_label',$3::jsonb) WHERE tenant_id=$1 AND id=$2
                         AND status='BOOKING' ''', row['tenant_id'], shipment_id, json.dumps(label))
@@ -1911,8 +1938,8 @@ async def carrier_document(shipment_id: UUID, document: str, service, context):
     metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
     label = metadata.get('automation_label') or {}
     try:
-        link = label['label_url'] if document == 'label' else label['carrier_forms'][int(document)]['url']
-        if document != 'label' and (not document.isdigit() or int(document) < 0):
+        link = (metadata.get('return_dropoff_qr_code_url') or label['return_dropoff_qr_code_url']) if document == 'return-qr' else label['label_url'] if document == 'label' else label['carrier_forms'][int(document)]['url']
+        if document not in {'label','return-qr'} and (not document.isdigit() or int(document) < 0):
             raise ValueError()
         parsed = urlsplit(secure_link(link))
     except (ValueError, KeyError, IndexError, PurchaseUncertain):
@@ -1935,12 +1962,57 @@ async def carrier_document(shipment_id: UUID, document: str, service, context):
                 raw.extend(chunk)
                 if len(raw) > 15_000_000:
                     raise HTTPException(502, 'Shipping document exceeds download limit')
-        if not raw.startswith(b'%PDF-'):
+        media = ('image/png' if raw.startswith(b'\x89PNG\r\n\x1a\n') else
+                 'image/jpeg' if raw.startswith(b'\xff\xd8\xff') else
+                 'application/pdf' if raw.startswith(b'%PDF-') else None)
+        if media is None or (document != 'return-qr' and media != 'application/pdf'):
             raise HTTPException(502, 'Provider did not return the requested PDF document')
-        return Response(bytes(raw), media_type='application/pdf', headers={'Cache-Control': 'no-store',
-            'Content-Disposition': 'attachment; filename="easyinvio-' + str(shipment_id) + '.pdf"'})
+        extension = {'image/png':'png','image/jpeg':'jpg','application/pdf':'pdf'}[media]
+        return Response(bytes(raw), media_type=media, headers={'Cache-Control': 'no-store',
+            'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
+            'Content-Disposition': ('inline' if document=='return-qr' else 'attachment') + '; filename="easyinvio-' + str(shipment_id) + '.' + extension + '"'})
     except httpx.HTTPError:
         raise HTTPException(502, 'Shipping document temporarily unavailable') from None
+
+async def prepare_return_quote(service, context, body, *, warehouse=None, paperless_requested=False):
+    authorize(context, body.tenant_id)
+    async with service.pool.acquire() as connection:
+        row = await connection.fetchrow('''SELECT logistics_metadata,tracking_number,booked_at,carrier_code FROM public.shipments
+            WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''',
+            context.tenant_id, body.shipment_id)
+    if row is None:
+        raise HTTPException(404, 'Original shipment not found in this workspace')
+    metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
+    original = metadata.get('automation_order')
+    if not original or original.get('is_return'):
+        raise HTTPException(422, 'An original prepared outbound shipment is required')
+    if len(original.get('packages') or [])>1:
+        raise HTTPException(409,'Create separately measured return parcels; grouped return purchase is not enabled')
+    order = copy.deepcopy(original)
+    customs = metadata.get('automation_customs') or {}
+    order.update(idempotency_key=str(body.idempotency_key), order_reference=('RETURN-' + original['order_reference'])[:100],
+        origin=original['destination'], destination=original['origin'], is_return=True,
+        return_of_shipment_id=str(body.shipment_id), platform='MANUAL', store_id=None, store_order_id=None,
+        store_return_reference=body.store_return_reference,
+        customs_signer=body.customs_signer, hs_codes_reviewed=body.hs_codes_reviewed, postal_form=None,
+        sender_eori=customs.get('recipient', {}).get('eori'), recipient_eori=customs.get('sender', {}).get('eori'),
+        sender_vat=customs.get('recipient', {}).get('vat_registration'), recipient_vat=customs.get('sender', {}).get('vat_registration'),
+        original_invoice_number=customs.get('invoice_number') or str(body.shipment_id),
+        return_data={'return_postal_code':original['destination']['postal_code'],
+                     'outbound_tracking_number':row['tracking_number'],
+                     'outbound_shipment_date':row['booked_at'].date().isoformat() if row['booked_at'] else None,
+                     'outbound_carrier_name':row['carrier_code']})
+    if warehouse is not None:
+        order.update(destination=json.loads(warehouse['address']) if isinstance(warehouse['address'],str) else warehouse['address'],
+            return_warehouse_id=str(warehouse['id']),return_warehouse_version=warehouse['version'],
+            return_network_selection=True,paperless_requested=paperless_requested,customs_category='RETURN')
+    async with service.automation.order_limiter:
+        result = await service.automation.process(context, order, 'QUOTE_ONLY')
+    if result['status'] != 'QUOTED':
+        raise HTTPException(422, result.get('error', 'Return preparation requires review'))
+    return result
+
+
 
 def build_router(authenticate):
     router = APIRouter(prefix='/api/v1/shipping', tags=['Private partner lifecycle'])
@@ -1963,40 +2035,29 @@ def build_router(authenticate):
         return await request.app.state.partner_lifecycle.void(context, body)
 
     @router.post('/prepare-return')
-    async def prepare_return(body: ReturnRequest, request: Request, context=Depends(authenticate)):
-        authorize(context, body.tenant_id)
+    async def prepare_return(body: ReturnRequest | list[ReturnCommand], request: Request, context=Depends(authenticate)):
+        from main import validate_tenant_query
+        validate_tenant_query(request, context.tenant_id)
+        if isinstance(body, list):
+            from backend.reverse_logistics import process_batch
+            return await process_batch(request.app.state.partner_lifecycle, context, body)
+        return await prepare_return_quote(request.app.state.partner_lifecycle, context, body)
+
+    @router.get('/return-requests/{request_id}')
+    async def return_status(request_id: UUID, request: Request, context=Depends(authenticate)):
+        from main import validate_tenant_query
+        validate_tenant_query(request, context.tenant_id)
+        from backend.reverse_logistics import ReverseLogisticsService
+        return await ReverseLogisticsService(request.app.state.partner_lifecycle).status(context, request_id)
+
+    @router.get('/return-dropoff')
+    async def return_dropoff(token: str, request: Request):
+        from types import SimpleNamespace
+        from backend.return_documents import verify_dropoff_token
         service = request.app.state.partner_lifecycle
-        async with service.pool.acquire() as connection:
-            row = await connection.fetchrow('''SELECT logistics_metadata,tracking_number,booked_at,carrier_code FROM public.shipments
-                WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''',
-                context.tenant_id, body.shipment_id)
-        if row is None:
-            raise HTTPException(404, 'Original shipment not found in this workspace')
-        metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
-        original = metadata.get('automation_order')
-        if not original or original.get('is_return'):
-            raise HTTPException(422, 'An original prepared outbound shipment is required')
-        if len(original.get('packages') or [])>1:
-            raise HTTPException(409,'Create separately measured return parcels; grouped return purchase is not enabled')
-        order = copy.deepcopy(original)
-        customs = metadata.get('automation_customs') or {}
-        order.update(idempotency_key=str(body.idempotency_key), order_reference=('RETURN-' + original['order_reference'])[:100],
-            origin=original['destination'], destination=original['origin'], is_return=True,
-            return_of_shipment_id=str(body.shipment_id), platform='MANUAL', store_id=None, store_order_id=None,
-            store_return_reference=body.store_return_reference,
-            customs_signer=body.customs_signer, hs_codes_reviewed=body.hs_codes_reviewed, postal_form=None,
-            sender_eori=customs.get('recipient', {}).get('eori'), recipient_eori=customs.get('sender', {}).get('eori'),
-            sender_vat=customs.get('recipient', {}).get('vat_registration'), recipient_vat=customs.get('sender', {}).get('vat_registration'),
-            original_invoice_number=customs.get('invoice_number') or str(body.shipment_id),
-            return_data={'return_postal_code':original['destination']['postal_code'],
-                         'outbound_tracking_number':row['tracking_number'],
-                         'outbound_shipment_date':row['booked_at'].date().isoformat() if row['booked_at'] else None,
-                         'outbound_carrier_name':row['carrier_code']})
-        async with service.automation.order_limiter:
-            result = await service.automation.process(context, order, 'QUOTE_ONLY')
-        if result['status'] != 'QUOTED':
-            raise HTTPException(422, result.get('error', 'Return preparation requires review'))
-        return result
+        tenant_id, shipment_id = verify_dropoff_token(service.automation.settings, token)
+        return await carrier_document(shipment_id, 'return-qr', service,
+            SimpleNamespace(tenant_id=tenant_id,role='DISPATCHER'))
 
     @router.get('/{shipment_id}/documents/{document}')
     async def document(shipment_id: UUID, document: str, request: Request, context=Depends(authenticate)):

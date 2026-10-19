@@ -149,6 +149,15 @@ class EcommerceService:
         self.client = client
         self.credential_keys = credential_keys or {}
 
+    async def prepare_returns(self, lifecycle, context, store_id, commands, *, source='MARKETPLACE'):
+        from backend.reverse_logistics import process_batch
+        async with self.pool.acquire() as connection:
+            active = await connection.fetchval('''SELECT EXISTS(SELECT 1 FROM public.ecommerce_stores
+                WHERE tenant_id=$1 AND id=$2 AND is_active)''', context.tenant_id, store_id)
+        if not active:
+            raise HTTPException(404, 'Active store not found in this workspace')
+        return await process_batch(lifecycle, context, commands, source=source, store_id=store_id)
+
     async def push_live(self, tenant_id, store_order_id, tracking_number, carrier_name):
         """Commit a send fence before the remote mutation; crashes cannot resend."""
         async with self.pool.acquire() as connection:
@@ -269,6 +278,8 @@ class EcommerceService:
             if parent:shipment={**dict(shipment),'ecommerce_store_id':parent['ecommerce_store_id'],'store_order_id':parent['store_order_id']}
         if shipment['ecommerce_store_id'] is None:return None
         body = {"return_quantity":sum(item['quantity'] for item in metadata.get('automation_order',{}).get('items',[])),"tracking_lifecycle_type":lifecycle,"store_return_reference":metadata.get('automation_order',{}).get('store_return_reference'),
+                "paperless_available":bool(metadata.get('return_dropoff_qr_code_url')),
+                "return_dropoff_qr_code_url":('/api/v1/shipping/'+str(shipment_id)+'/documents/return-qr') if metadata.get('return_dropoff_qr_code_url') else None,
                 "tracking_numbers":[piece['tracking_number'] for piece in metadata.get('automation_label',{}).get('package_labels',[])],
                 "fulfillment_state": "RETURN_LABEL_CREATED" if lifecycle=='RETURN_SHIPMENT' else "SHIPPED", "store_order_id": shipment["store_order_id"],
                 "tracking_number": tracking_number, "carrier_name": carrier_name,
@@ -356,6 +367,11 @@ async def tracking_worker(service: EcommerceService):
 
 def build_router(authenticate):
     router = APIRouter(prefix="/api/v1/integration", tags=["E-commerce"])
+
+    @router.post('/return-webhooks/{store_id}')
+    async def return_webhook(store_id: UUID, request: Request):
+        from backend.return_ingress import receive_return_webhook
+        return await receive_return_webhook(request, store_id)
 
     @router.post('/webhooks/{store_id}',status_code=201)
     async def native_webhook(store_id: UUID,request: Request):

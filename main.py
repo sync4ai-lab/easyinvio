@@ -1128,7 +1128,9 @@ class RatingService:
                                  code=code, retryable=retryable, available_currencies=available_currencies)
 
     async def quote(self, context: TenantContext, request: RatingRequest,
-                    provider_deadline: int | None = None, *, return_of_shipment_id: UUID | None = None) -> RatingResponse:
+                    provider_deadline: int | None = None, *, return_of_shipment_id: UUID | None = None,
+                    return_network_selection: bool = False, return_warehouse_id: UUID | None = None,
+                    return_warehouse_version: int | None = None) -> RatingResponse:
         dimensions=request.dimensions[0] if request.dimensions else None
         cargo=Cargo(cargo_type=request.cargo_type,actual_weight_kg=request.weights_kg[0],stackable=request.stackable,
             length_cm=dimensions.length_cm if dimensions else None,width_cm=dimensions.width_cm if dimensions else None,height_cm=dimensions.height_cm if dimensions else None)
@@ -1150,8 +1152,10 @@ class RatingService:
                 raise HTTPException(403,'Authenticated return preparation required')
             from backend.carrier_access import verified_return_parent
             async with self.pool.acquire() as connection:
-                return_account_id=await verified_return_parent(connection,context.tenant_id,return_of_shipment_id,physical_request.origin.model_dump(mode='json'),physical_request.destination.model_dump(mode='json'))
-            accounts=await self.repository.accounts(context,historical_account_id=return_account_id)
+                return_account_id=await verified_return_parent(connection,context.tenant_id,return_of_shipment_id,physical_request.origin.model_dump(mode='json'),physical_request.destination.model_dump(mode='json'),
+                    warehouse_id=return_warehouse_id,warehouse_version=return_warehouse_version)
+            from backend.carrier_access import return_accounts
+            accounts=await return_accounts(self.repository,context,return_account_id,all_active=return_network_selection)
         else:
             accounts = await self.repository.accounts(context)
         # Every configured connection is accounted for; unsupported cargo is an explicit issue.
@@ -1486,7 +1490,9 @@ class FinanceEngine:
                            tracking_number=$3,label_storage_path=$4,
                            logistics_metadata=logistics_metadata || $5::jsonb WHERE tenant_id=$1 AND id=$2""",
                         permit.tenant_id, permit.shipment_id, tracking_number, label_storage_path,
-                        json.dumps({'automation_label':label_documents, 'label_lifecycle_status':'LABEL_CREATED'} if label_documents is not None else {}),
+                        json.dumps(({'automation_label':label_documents, 'label_lifecycle_status':'LABEL_CREATED'} |
+                            ({'return_dropoff_qr_code_url':label_documents['return_dropoff_qr_code_url']}
+                             if label_documents.get('return_dropoff_qr_code_url') else {})) if label_documents is not None else {}),
                     )
                     imported_order_id = await EcommerceService(self.pool).queue_confirmed_tracking(
                         connection, permit.tenant_id, permit.shipment_id, tracking_number, carrier_name)

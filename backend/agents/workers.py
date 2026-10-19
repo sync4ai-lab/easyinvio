@@ -31,6 +31,7 @@ class IngestionWorkerAgent:
             'Keep missing facts null. Do not infer a country from a city or postcode. '
             'Use submit_conversational_intent exactly once. '
             'BOOK_RESERVATION selects a numbered option. FILE_CLAIM describes loss or damage. '
+            'TRIGGER_RETURN requests a return for an explicit order or tracking reference. '
             'HELP is the default for ambiguous or unsupported requests.',
             {'message': text}, tools=[submit_conversational_intent])
         intent = ConversationalIntent.model_validate_json(result.value)

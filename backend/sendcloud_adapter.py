@@ -174,7 +174,8 @@ async def quote_sendcloud_v3(client, account, request):
                 'upstream_shipment_id':'sendcloud-v3-rate-only','upstream_rate_id':code,
                 'carrier_code':carrier.upper(),'service_code':code,'currency':request.currency,
                 'wholesale_cost':cost,'delivery_days':days,
-                'execution_details':{'contract_id':(option.get('contract') or {}).get('id')}})
+                'execution_details':{'contract_id':(option.get('contract') or {}).get('id'),
+                    'return_paperless_supported':bool(getattr(request,'is_return',False) and functionality.get('labelless') is True)}})
     if not rates and available_currencies:
         from backend.rate_diagnostics import RateCurrencyUnavailable
         raise RateCurrencyUnavailable(available_currencies)

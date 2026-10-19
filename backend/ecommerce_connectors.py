@@ -38,6 +38,7 @@ class StoreConnector(BaseModel):
     api_version: str = Field(default='2026-10', pattern=r'^20\d{2}-(01|04|07|10)$')
     live_delivery: bool = Field(default=False, strict=True)
     live_import: bool = Field(default=False, strict=True)
+    live_returns: bool = Field(default=False, strict=True)
     # Woo/Amazon order payloads often omit physical weights; use verified SKU data.
     sku_unit_grams: dict[str, Decimal] = Field(default_factory=dict)
     cargo_type: Literal['LETTER', 'PARCEL', 'PALLET', 'OVERLAND_FREIGHT'] = 'PARCEL'

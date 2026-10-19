@@ -23,7 +23,7 @@ def explicit_country(value):
 
 
 class ConversationDraft(StrictOutput):
-    action: str = Field(pattern=r'^(QUOTE|TRACK_PACKAGE|FILE_CLAIM)$')
+    action: str = Field(pattern=r'^(QUOTE|TRACK_PACKAGE|FILE_CLAIM|TRIGGER_RETURN)$')
     intent: ConversationalIntent
     waiting_for: str = ''
     origin_address: dict | None = None

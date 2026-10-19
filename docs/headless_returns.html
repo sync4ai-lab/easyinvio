@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EasyInvio headless returns — integration guide</title>
+<style>body{max-width:960px;margin:40px auto;padding:0 24px;font:16px/1.6 system-ui;color:#152536}h1,h2{line-height:1.2}pre{padding:18px;background:#edf2f7;overflow:auto}table{border-collapse:collapse;width:100%}td,th{padding:10px;text-align:left;border:1px solid #ccd5df}code{overflow-wrap:anywhere}a{color:#005fa0}</style></head>
+<body><h1>Headless returns</h1><p>Implementation reference · 20 October 2026. Live carrier acceptance is required before release.</p>
+<h2>Enable the workflow</h2>
+<ol><li>Apply <code>migrations/042_headless_returns.sql</code> after migrations 035–041. The migration creates a private return-command receipt table; it does not change balances.</li>
+<li>Save a default active <strong>RETURN</strong> address in Settings. Its saved version is checked again before purchase. This is a merchant-maintained address, not proof of independent postal verification.</li>
+<li>Enable and validate the tenant’s native carrier connections. Existing TEST/SANDBOX and LIVE purchase controls remain mandatory. Ordinary Sendcloud credentials cannot purchase test labels.</li>
+<li>For customer payment, configure the existing Stripe checkout and webhook integration with matching carrier/payment environments. An owner or administrator creates the checkout link. Verified payment funds the merchant’s exact booking basket; unused credit remains in that workspace. No customer wallet or automatic refund is invented.</li>
+<li>Configure <code>BOOKING_PAGE_URL</code> to your public HTTPS application origin and a strong existing <code>QUOTE_LINK_SECRET</code> of at least 32 characters for shared drop-off links. QR links are signed for one document and expire after 24 hours. Provider document hosts must also be explicitly approved in <code>PARTNER_DOCUMENT_ALLOWED_HOSTS</code>. Otherwise documents remain available only through authenticated downloads.</li>
+<li>For signed store intake, enable <strong>Enable signed return requests</strong> in the store connection settings. The saved operator must retain an active dispatch role; customer-paid returns require OWNER or ADMIN.</li></ol>
+<h2>Authenticated return command</h2>
+<p><code>POST /api/v1/shipping/prepare-return</code> accepts a JSON array of 1–20 commands. Authenticate with the requesting workspace user’s valid access token. Never put a Supabase service-role key in a storefront or browser. Supply exactly one <code>shipment_id</code> or <code>order_reference</code>; references also match tracking and store-order IDs and must resolve uniquely.</p>
+<pre>[
+  {
+    "order_reference": "EINVIO-1024",
+    "idempotency_key": "b60e266c-389a-42fb-bc3a-fb0a9ba932ce",
+    "charge_bearer": "RETAILER_PAY",
+    "maximum_price": "10.00",
+    "paperless_requested": true
+  }
+]</pre>
+<p>Generate a fresh UUID for each intended return and retain it when retrying delivery. The maximum price uses the shipment’s quote currency. The API returns per-item outcomes and counts; HTTP 200 for a batch is not proof every item booked. Inspect every result.</p>
+<table><thead><tr><th>Outcome</th><th>Meaning and next action</th></tr></thead><tbody>
+<tr><td>BOOKED</td><td>Native label confirmation and existing financial settlement succeeded. Response includes shipment ID, tracking, label download and paperless availability.</td></tr>
+<tr><td>PAYMENT_REQUIRED</td><td>Share the Stripe checkout URL with the payer. No return label has been purchased yet. The existing verified-payment worker completes eligible bookings.</td></tr>
+<tr><td>PROCESSING</td><td>Original command is in progress or was interrupted. Query status; do not create another return command.</td></tr>
+<tr><td>REVIEW_REQUIRED</td><td>Inspect the existing shipment, reservation and payment. No automatic mutation replay occurs. An operator must reconcile uncertain carrier or payment outcomes.</td></tr>
+</tbody></table>
+<p><code>GET /api/v1/shipping/return-requests/{request_id}</code> requires the same workspace authentication. It observes completed card bookings and can recover an appended EasyPost QR form using GET only. It never repeats a purchase. The original object-shaped endpoint remains compatible and prepares quotes without purchasing.</p>
+<h2>Storefront and marketplace gateways</h2>
+<p>Submit the same JSON array to <code>POST /api/v1/integration/return-webhooks/{store_id}</code>. This is a normalized merchant-controlled gateway contract, not an implementation of Shopify return-event payloads, Amazon RMA approval or automatic purchases on refunds. All matched shipments must belong to the configured tenant <em>and</em> store.</p>
+<p>Send <code>X-EasyInvio-Timestamp</code> as Unix seconds and <code>X-EasyInvio-Return-Signature</code> as a hex HMAC-SHA256 using the saved store webhook secret. Sign the exact UTF-8 request bytes:</p>
+<pre>signed_bytes = timestamp.encode() + b"." + str(store_id).encode() + b"." + request_body
+signature = hmac.new(webhook_secret.encode(), signed_bytes, hashlib.sha256).hexdigest()</pre>
+<p>Timestamps must be within five minutes. Redelivery uses the same command IDs. Existing storefront tracking synchronization preserves the return lifecycle and never marks the forward order fulfilled by a return. Shopify reverse-delivery updates still require a reviewed reverse-fulfillment reference; unsupported native marketplace updates remain held for review.</p>
+<h2>Carrier documents</h2>
+<ul><li><strong>Sendcloud:</strong> only return options advertising <code>functionalities.labelless=true</code> receive <code>delivery_option=drop_off_labelless</code>. A returned labelless document is exposed only when the carrier response confirms that delivery option and supplies a document. Other services use printable labels.</li>
+<li><strong>EasyPost:</strong> USPS Label Broker requires an enabled USPS Returns account. After label purchase, a durably fenced <code>POST /shipments/{id}/forms</code> requests <code>form.type=label_qr_code</code>. Failure retains the confirmed label and charge. A later status read can recover the form without another POST.</li>
+<li><strong>Shippo and other carriers:</strong> printable return handling remains available where the existing native return contract supports it. No undocumented universal QR flag or synthetic QR image is sent.</li></ul>
+<p>Only show “no printer required” when <code>paperless_available=true</code>. A shared link grants one drop-off document, not account access. It is a bearer capability: share it only with the intended recipient. Carrier restrictions determine eligible locations; a return is never advertised as accepted at every post office or depot. The stored source is <code>shipments.logistics_metadata.return_dropoff_qr_code_url</code>; clients receive a scoped application URL rather than private provider credentials.</p>
+<h2>Manual and conversational use</h2>
+<p>Use <strong>Create return</strong> in the manifest to select retailer billing or a customer card link and an optional price ceiling. The browser prevents double submission and clears the dialog when the identity or workspace changes. Alternatively send <code>Return order EINVIO-1024</code> or <code>Create a return for tracking DPD-7712</code> in authenticated web chat or signed WhatsApp. These explicit chat commands authorize a retailer-paid full-parcel return. Missing references are collected without inventing order IDs.</p>
+<p>Twilio’s existing bounded webhook deadline still applies. A timeout does not prove failure: check the durable return and shipment status in the web app rather than submitting a second purchase. Commands interrupted before completion require operational reconciliation.</p>
+<h2>Scope and validation</h2>
+<p>Fresh return prices use current approved connections and exact Decimal customer totals. The lowest eligible price wins; budget carriers win equal-price ties. Partial provider results stop automatic selection because they cannot establish the cheapest available option. No carrier availability or universal QR coverage is guaranteed.</p>
+<p>This entry point returns the entire originally measured single parcel. Partial contents, changed packaging and grouped multi-piece returns require explicit measurement/review. International goods require a fresh customs signer and HS review; outbound consent is not reused. One durable full-parcel return command is allowed per original shipment; another key cannot bypass it. Failed commands require support review rather than automatic replay. No migration was applied or live provider purchase performed during development.</p>
+<pre>.\.venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider
+.\.venv\Scripts\python.exe tests/headless_returns_browser.py</pre>
+<p>Provider references: <a href="https://sendcloud.dev/api/v3/returns/create-a-return-synchronously">Sendcloud return creation</a>, <a href="https://sendcloud.dev/api/v3/returns/retrieve-a-return">Sendcloud return documents</a>, <a href="https://support.easypost.com/hc/en-us/articles/4410441700493-Generate-USPS-Label-Broker-QR-Codes">EasyPost USPS Label Broker</a>.</p>
+</body></html>

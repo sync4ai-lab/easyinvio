@@ -20,6 +20,7 @@ class ConnectionSetup(BaseModel):
     authorization_mode: Literal['TOKEN', 'CLIENT_CREDENTIALS'] | None = None
     webhook_secret: SecretStr | None = Field(default=None, max_length=4096)
     live_import: bool = True
+    live_returns: bool = Field(default=False,strict=True)
     sku_unit_grams: dict[str, str] = Field(default_factory=dict, max_length=1000)
     cargo_type: Literal['LETTER','PARCEL','PALLET','OVERLAND_FREIGHT'] = 'PARCEL'
     amazon_region: Literal['na','eu','fe'] = 'eu'
@@ -50,6 +51,7 @@ async def resolve_connector(service, store_id):
 def public_settings(config):
     return {'configured': config is not None, 'shop_domain': config.shop_domain if config else '',
             'live_import': bool(config and config.live_import),
+            'live_returns': bool(config and config.live_returns),
             'sku_unit_grams': {k: str(v) for k, v in config.sku_unit_grams.items()} if config else {},
             'has_access_token': bool(config and config.access_token),
             'has_client_credentials': bool(config and config.client_secret), 'client_id': config.client_id if config else '',
@@ -112,7 +114,7 @@ def build_router(authenticate):
                     except (KeyError, ValueError, InvalidToken):
                         raise HTTPException(503, 'Existing store credentials unavailable') from None
                 values = body.model_dump(exclude={'access_token', 'client_secret', 'webhook_secret', 'amazon_client_secret', 'amazon_refresh_token', 'authorization_mode'})
-                for field in ('cargo_type','amazon_region','amazon_seller_id','amazon_marketplace_ids','amazon_client_id'):
+                for field in ('cargo_type','amazon_region','amazon_seller_id','amazon_marketplace_ids','amazon_client_id','live_returns'):
                     if field not in body.model_fields_set and field in previous:
                         values[field] = previous[field]
                 if body.client_id is None:

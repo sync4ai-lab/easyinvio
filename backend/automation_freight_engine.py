@@ -138,6 +138,10 @@ class Order(StrictInput):
     customs_category_other: str | None = Field(default=None,min_length=3,max_length=200)
     is_return: bool = False
     return_of_shipment_id: UUID | None = None
+    return_network_selection: bool = False
+    return_warehouse_id: UUID | None = None
+    return_warehouse_version: int | None = Field(default=None,ge=1)
+    paperless_requested: bool = False
     original_invoice_number: str | None = Field(default=None, max_length=40)
     return_data: dict | None = None
     store_return_reference: str | None = Field(default=None,max_length=200)
@@ -165,6 +169,10 @@ class Order(StrictInput):
             raise ValueError('Describe the OTHER export category')
         if bool(self.is_return)!=bool(self.return_of_shipment_id):
             raise ValueError('Returns require an original shipment reference')
+        if (self.return_warehouse_id is None) != (self.return_warehouse_version is None):
+            raise ValueError('Return warehouse ID and version must be supplied together')
+        if (self.return_network_selection or self.return_warehouse_id or self.paperless_requested) and not self.is_return:
+            raise ValueError('Return options require an original return shipment')
         for party in [self.origin,self.destination]:
             if 'country_code' in party:
                 party['country_code']=country_code(party['country_code'])
@@ -389,7 +397,8 @@ class AutomationService:
                     return_account_id=None
                     if order.is_return:
                         from backend.carrier_access import verified_return_parent
-                        return_account_id=await verified_return_parent(lock,context.tenant_id,order.return_of_shipment_id,order.origin,order.destination)
+                        return_account_id=await verified_return_parent(lock,context.tenant_id,order.return_of_shipment_id,order.origin,order.destination,
+                            warehouse_id=order.return_warehouse_id,warehouse_version=order.return_warehouse_version)
                     if mode=='FULFILL':
                         if tenant['is_sandbox'] or self.settings.provider_environment!='LIVE' or getattr(self.settings,'database_environment','LIVE')!='LIVE' or not getattr(self.settings,'automation_purchase_enabled',False):
                             raise HTTPException(403,'PURCHASE_DISABLED_FOR_THIS_ENVIRONMENT')
@@ -397,7 +406,9 @@ class AutomationService:
                             wallet=await lock.fetchrow('SELECT currency,balance,reserved_balance FROM public.wallets WHERE tenant_id=$1',context.tenant_id)
                             from backend.sandbox_hooks import require_prepaid_funds
                             require_prepaid_funds(wallet,Decimal('.01'),order.currency)
-                    accounts=await self.repository.accounts(context,historical_account_id=return_account_id) if return_account_id else await self.repository.accounts(context)
+                    from backend.carrier_access import return_accounts
+                    accounts=(await return_accounts(self.repository,context,return_account_id,all_active=order.return_network_selection)
+                              if return_account_id else await self.repository.accounts(context))
                     if not accounts: raise HTTPException(503,'NO_CARRIER_ACCOUNTS')
                     if getattr(context,'assistance_session_id',None):
                         from backend.client_assistance import operator_member_id
@@ -452,7 +463,9 @@ class AutomationService:
                         dims.length_cm if dims else None,dims.width_cm if dims else None,dims.height_cm if dims else None,order.currency,json.dumps(metadata),declaration['required'],json.dumps(declaration.get('items',[])),order.store_id,order.store_order_id,order.cargo.cargo_type,order.incoterm)
                     from backend.package_sets import persist_package_goods
                     await persist_package_goods(lock,context.tenant_id,shipment_id,order)
-                    quote_result=private_quote if private_quote is not None else (await self.rating.quote(context,request,return_of_shipment_id=order.return_of_shipment_id) if order.is_return else await self.rating.quote(context,request))
+                    return_options = ({'return_network_selection':True,'return_warehouse_id':order.return_warehouse_id,
+                        'return_warehouse_version':order.return_warehouse_version} if order.return_network_selection else {})
+                    quote_result=private_quote if private_quote is not None else (await self.rating.quote(context,request,return_of_shipment_id=order.return_of_shipment_id,**return_options) if order.is_return else await self.rating.quote(context,request))
                     if mode=='FULFILL' and getattr(quote_result,'partial',False):
                         raise HTTPException(503,'PARTIAL_RATE_RESULTS_REQUIRE_RETRY')
                     rate=min(quote_result.rates,key=lambda r:(r.client_price_ex_tax,r.provider,str(r.account_id),r.upstream_rate_id))

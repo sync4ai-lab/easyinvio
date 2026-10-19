@@ -3400,7 +3400,7 @@ renderManifest = function() {
     const status = displayedStatus(row),
       carrier = row.metadata?.carrier || row.carrier_code || 'Not recorded',
       type = row.cargo_type || row.metadata?.cargo_type || 'PARCEL';
-    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}${row.insurance?`<p class="subtle">Protection: ${escapeHTML(({CONFIRMED:'XCover confirmed',PENDING:'awaiting insurer confirmation',FAILED:'not added',CANCELLED:'policy cancelled'})[row.insurance.status]||'not confirmed')}</p>`:''}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(({PENDING_IMPORT:'Imported - needs review',DRAFT:'Draft - needs quote',QUOTED:'Quoted - not booked',BOOKING:'Booking in progress',LABEL_CREATED:'Label created'})[status]||status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
+    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}${row.insurance?`<p class="subtle">Protection: ${escapeHTML(({CONFIRMED:'XCover confirmed',PENDING:'awaiting insurer confirmation',FAILED:'not added',CANCELLED:'policy cancelled'})[row.insurance.status]||'not confirmed')}</p>`:''}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(({PENDING_IMPORT:'Imported - needs review',DRAFT:'Draft - needs quote',QUOTED:'Quoted - not booked',BOOKING:'Booking in progress',LABEL_CREATED:'Label created'})[status]||status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}${['BOOKED','LABEL_CREATED','DISPATCHED','IN_TRANSIT','OUT_FOR_DELIVERY','EXCEPTION','DELIVERED'].includes(status)&&['OWNER','ADMIN','DISPATCHER'].includes(portal.profile?.workspace_role)&&row.tracking_lifecycle_type!=='RETURN_SHIPMENT'?`<button class="secondary" data-prepare-return="${escapeHTML(row.id)}">Create return</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
   }).join('') : '<tr><td colspan="5"><div class="empty"><h3>No Active Shipments</h3><p>No shipments match this view. Create a quote or change the filter.</p><button class="secondary" data-manifest-create="true">Open Speed Quote Matrix</button></div></td></tr>';
   refreshIcons()
 };
@@ -6814,7 +6814,7 @@ document.body.insertAdjacentHTML('beforeend', `<dialog id="store-guide"><button 
 <fieldset data-shopify><legend>Authorization</legend><label>Connection method<select name="authorization_mode"><option value="TOKEN">Authorized Admin API access token</option><option value="CLIENT_CREDENTIALS">App credentials ? own Shopify organization</option></select></label><p class="subtle">Use an authorized Admin API access token, or app credentials for a store in your own Shopify organization.</p><label>Admin API access token<input type="password" name="access_token" autocomplete="new-password"></label><label>App Client ID<input name="client_id" maxlength="200"></label><label>App Client secret<input type="password" name="client_secret" autocomplete="new-password"></label></fieldset>
 <fieldset data-amazon hidden><legend>Amazon seller authorization</legend><label>SP-API region<select name="amazon_region"><option value="eu">Europe / UK</option><option value="na">North America</option><option value="fe">Far East</option></select></label><label>Seller ID<input name="amazon_seller_id" maxlength="100"></label><label>Marketplace IDs ? comma separated<input name="amazon_marketplace_ids" maxlength="1000"></label><label>App Client ID<input name="amazon_client_id" maxlength="200"></label><label>App Client secret<input type="password" name="amazon_client_secret" autocomplete="new-password"></label><label>Seller refresh token<input type="password" name="amazon_refresh_token" autocomplete="new-password"></label></fieldset><label>Webhook signing secret / AWS API-destination key (optional for Shopify retrieval)<input name="webhook_secret" type="password" autocomplete="new-password" minlength="32"></label>
 <label>Verified product weights · SKU = unit grams<textarea name="weights" rows="5" placeholder="TEE-BLUE = 200&#10;MUG-WHITE = 350"></textarea></label><p class="subtle">Use measured unit weights, not package dimensions. Missing SKU weights are flagged for review; no weight is invented.</p>
-<label class="check" data-shopify><input type="checkbox" name="live_import" checked>Enable read-only order retrieval</label><p id="store-webhook-path" class="notice"></p><button class="primary full">Save encrypted connection</button></form></dialog>
+<label class="check" data-shopify><input type="checkbox" name="live_import" checked>Enable read-only order retrieval</label><label class="check"><input type="checkbox" name="live_returns">Enable signed return requests</label><p id="store-webhook-path" class="notice"></p><button class="primary full">Save encrypted connection</button></form></dialog>
 <dialog id="store-help"><button class="close" aria-label="Close support form">×</button><h2>Contact EasyInvio support</h2><p>support@easyinvio.com</p><form id="store-help-form"><label>Support topic<select name="topic"><option>Store connection</option><option>Order import</option><option>Labels and tracking</option><option>Wallet and billing</option><option>Account access</option><option>Other</option></select></label><label>Platform or order reference (optional)<input name="reference" maxlength="200"></label><label>How can we help?<textarea name="message" required minlength="10" maxlength="3000" rows="5" placeholder="Describe what you expected and what happened. Do not include passwords, API keys or payment details."></textarea></label><button class="primary full">Open email draft</button><p class="footnote">This opens your email app. Review and send the email there; EasyInvio does not send it automatically.</p></form></dialog>`);
 storePanel.insertAdjacentHTML('beforeend', '<p style="margin-top:20px"><a href="/help">Visit the EasyInvio Help Centre</a> for account, payment and store guidance.</p>');
 storePanel.insertAdjacentHTML('beforeend', '<article class="card" style="margin-top:24px"><h2>Need a hand connecting?</h2><p>Our team can help with authorization, order imports and supported platforms.</p><button class="secondary" data-store-help>Contact support</button> <a href="mailto:support@easyinvio.com">support@easyinvio.com</a></article>');
@@ -6884,6 +6884,7 @@ document.addEventListener('click', event => {
       form.elements.client_id.value = c.client_id || '';
       form.elements.authorization_mode.value = c.has_client_credentials ? 'CLIENT_CREDENTIALS' : 'TOKEN';
       form.elements.live_import.checked = c.configured ? c.live_import : true;
+      form.elements.live_returns.checked = !!c.live_returns;
       form.elements.weights.value = Object.entries(c.sku_unit_grams || {}).map(([sku, g]) => sku + ' = ' + g).join('\n');
       form.querySelectorAll('[data-amazon]').forEach(n => {
         n.hidden = s.platform !== 'AMAZON';
@@ -6925,6 +6926,7 @@ $('#store-connection-form').addEventListener('submit', event => {
     }
     const body = {
       live_import: store.platform === 'SHOPIFY' && form.elements.live_import.checked,
+      live_returns: form.elements.live_returns.checked,
       sku_unit_grams
     };
     if (store.platform === 'SHOPIFY') {
@@ -8606,5 +8608,115 @@ overviewInfoButton.addEventListener('keydown', event => { if (event.key === 'Esc
 document.addEventListener('pointerdown', event => { if (!overviewInfo.contains(event.target)) overviewTooltip.hidden = true; });
 </script>
 
+<dialog id="return-command-dialog" aria-labelledby="return-command-title">
+  <div class="modal-head"><h2 id="return-command-title">Create a return</h2><button type="button" class="secondary" id="return-command-close">Close</button></div>
+  <form id="return-command-form" class="grid">
+    <p>Return the full parcel to your default return address in Settings.</p>
+    <label>Payment<select name="charge_bearer"><option value="RETAILER_PAY">Retailer pays from workspace billing</option><option value="CUSTOMER_PAY">Customer pays by card</option></select></label>
+    <label>Maximum return price<input name="maximum_price" inputmode="decimal" placeholder="Optional, e.g. 10.00" pattern="[0-9]+([.][0-9]{1,2})?"></label>
+    <label class="check"><input type="checkbox" name="paperless_requested" checked>Request paperless drop-off where supported</label>
+    <p class="subtle">Uses the original parcel measurements and contents. For a different parcel or international customs review, ask support to prepare the return.</p>
+    <button class="primary" type="submit">Create retailer-paid return</button>
+  </form>
+  <p id="return-command-status" role="status" aria-live="polite"></p>
+  <div id="return-command-links"></div>
+  <button type="button" class="secondary" id="return-command-refresh" hidden>Check return status</button>
+</dialog>
+<script>
+(() => {
+  const dialog = document.querySelector('#return-command-dialog');
+  const form = document.querySelector('#return-command-form');
+  const status = document.querySelector('#return-command-status');
+  const links = document.querySelector('#return-command-links');
+  const refresh = document.querySelector('#return-command-refresh');
+  let command = null, shipment = null, generation = 0;
+  const identity = () => [generation, portal.profile?.tenant_id, state.assistance?.session_id].join(':');
+  function reset() { generation++; command = null; shipment = null; dialog.close(); form.reset(); links.replaceChildren(); status.textContent = ''; refresh.hidden = true; }
+  function show(result) {
+    links.replaceChildren();
+    const state = result.status;
+    status.textContent = state === 'BOOKED'
+      ? (result.paperless_available ? 'Return booked. Use a participating location for the selected carrier.' : 'Return booked. This service requires a printed label; open Timeline & docs to download it.')
+      : state === 'PAYMENT_REQUIRED' ? 'Share the card payment link with the customer. The label will be created after payment is verified.'
+      : result.message || result.detail?.message || (typeof result.detail === 'string' ? result.detail : 'Return needs review. Check the existing request before trying again.');
+    const documentPath = result.label?.label_url;
+    if (state === 'BOOKED' && /^\/api\/v1\/shipping\/[0-9a-f-]{36}\/documents\/label$/i.test(documentPath || '')) {
+      const download = document.createElement('button');
+      download.type = 'button'; download.className = 'secondary'; download.textContent = 'Download return label';
+      download.addEventListener('click', async () => {
+        if (download.disabled) return;
+        const scope = identity(); download.disabled = true;
+        try {
+          await ensureActiveIdentitySession();
+          const response = await fetch(API + documentPath,{headers:{Authorization:'Bearer '+state.session.access_token}});
+          if (!response.ok) throw Error('Return label is temporarily unavailable.');
+          const blob = await response.blob();
+          if (blob.type !== 'application/pdf') throw Error('The carrier document is not a PDF label.');
+          if (scope !== identity()) return;
+          const url = URL.createObjectURL(blob), anchor = document.createElement('a');
+          anchor.href = url; anchor.download = 'easyinvio-return-label.pdf'; anchor.click();
+          setTimeout(() => URL.revokeObjectURL(url),1000);
+        } catch (error) { if (scope === identity()) status.textContent = error.message; }
+        finally { download.disabled = false; }
+      });
+      links.append(download);
+    }
+    const value = result.checkout_url || (!result.qr_requires_workspace_login && result.return_dropoff_qr_code_url);
+    if (value) {
+      try {
+        const url = new URL(value, location.origin);
+        if (url.username || url.password || (url.protocol !== 'https:' && url.origin !== location.origin)) return;
+        if (result.checkout_url && url.hostname !== 'checkout.stripe.com') return;
+        const link = document.createElement('a');
+        link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.textContent = result.checkout_url ? 'Open customer card payment' : 'Open paperless drop-off document';
+        links.append(link);
+      } catch { status.textContent += ' Open the workspace to view the document.'; }
+    }
+  }
+  document.addEventListener('click', event => {
+    const button = event.target.closest('[data-prepare-return]');
+    if (!button || !state.session) return;
+    reset(); shipment = button.dataset.prepareReturn;
+    form.querySelectorAll('input,select,button').forEach(node => { node.disabled = false; });
+    form.elements.charge_bearer.querySelector('[value="CUSTOMER_PAY"]').disabled = !['OWNER','ADMIN'].includes(portal.profile?.workspace_role);
+    form.querySelector('[type="submit"]').textContent = 'Create retailer-paid return';
+    dialog.showModal();
+  });
+  form.elements.charge_bearer.addEventListener('change', () => {
+    form.querySelector('[type="submit"]').textContent = form.elements.charge_bearer.value === 'CUSTOMER_PAY' ? 'Create customer payment link' : 'Create retailer-paid return';
+  });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!state.session || command || !shipment) return;
+    const limit = form.elements.maximum_price.value.trim();
+    if (limit && !/^[0-9]+(?:\.[0-9]{1,2})?$/.test(limit)) { status.textContent = 'Enter a valid price with up to two decimal places.'; return; }
+    command = {idempotency_key:crypto.randomUUID(),shipment_id:shipment,charge_bearer:form.elements.charge_bearer.value,paperless_requested:form.elements.paperless_requested.checked};
+    if (limit) command.maximum_price = limit;
+    const scope = identity();
+    form.querySelectorAll('input,select,button').forEach(node => { node.disabled = true; });
+    status.textContent = 'Checking return services…'; refresh.hidden = false;
+    try {
+      const response = await api('/api/v1/shipping/prepare-return', {method:'POST',auth:true,body:[command]});
+      if (scope !== identity()) return;
+      show(response.results[0]);
+    } catch (error) { if (scope === identity()) status.textContent = error.message + ' Check this return status before trying again.'; }
+  });
+  refresh.addEventListener('click', async () => {
+    if (!command || !state.session || refresh.disabled) return;
+    const scope = identity(); refresh.disabled = true;
+    try {
+      const result = await api('/api/v1/shipping/return-requests/' + command.idempotency_key,{auth:true});
+      if (scope === identity()) show(result);
+    } catch (error) { if (scope === identity()) status.textContent = error.message; }
+    finally { refresh.disabled = false; }
+  });
+  document.querySelector('#return-command-close').addEventListener('click', () => dialog.close());
+  const clear = clearSession;
+  clearSession = function() { reset(); return clear.apply(this,arguments); };
+  const view = setView;
+  setView = function(next) { reset(); return view.apply(this,arguments); };
+})();
+</script>
 </body>
 </html>
