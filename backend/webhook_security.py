@@ -16,8 +16,18 @@ def redact_query_secrets(value):
 
 class WebhookSecretFilter(logging.Filter):
     def filter(self, record):
-        record.msg = redact_query_secrets(record.getMessage())
-        record.args = ()
+        if record.name == 'uvicorn.access' and isinstance(record.args, tuple) and len(record.args) == 5:
+            # AccessFormatter requires all five original fields, including the
+            # numeric status. Redact the URL without destroying that contract.
+            record.msg = redact_query_secrets(record.msg)
+            record.args = tuple(redact_query_secrets(value) if isinstance(value, str) else value
+                                for value in record.args)
+        else:
+            record.msg = redact_query_secrets(record.getMessage())
+            record.args = ()
+            # Uvicorn's colour formatter otherwise substitutes its original
+            # template after formatting args have already been consumed.
+            record.__dict__.pop('color_message', None)
         if record.exc_info:
             record.exc_text = redact_query_secrets(''.join(traceback.format_exception(*record.exc_info)))
             record.exc_info = None

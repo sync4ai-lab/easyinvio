@@ -50,6 +50,44 @@ class SecurityTests(unittest.TestCase):
         self.assertNotIn('secret-value',output.getvalue());self.assertNotIn('exception-secret',output.getvalue())
         self.assertIn('[REDACTED]',output.getvalue());self.assertIn('RuntimeError',output.getvalue())
 
+    def test_uvicorn_access_formatter_retains_structured_fields_and_redacts_urls(self):
+        from uvicorn.logging import AccessFormatter
+        formatter = AccessFormatter('%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s', use_colors=False)
+        for path in ('/health', '/tracking?token=synthetic-secret&other=1', '/tracking?access_token=synthetic-secret'):
+            record = logging.LogRecord('uvicorn.access', logging.INFO, __file__, 1,
+                '%s - "%s %s HTTP/%s" %d', ('127.0.0.1:59164', 'GET', path, '1.1', 200), None)
+            redactor = WebhookSecretFilter()
+            redactor.filter(record)
+            redactor.filter(record)  # Installed at both logger and handler boundaries.
+            rendered = formatter.format(record)
+            self.assertEqual(len(record.args), 5)
+            self.assertIsInstance(record.args[4], int)
+            self.assertIn('200', rendered)
+            self.assertIn('127.0.0.1:59164', rendered)
+            self.assertNotIn('synthetic-secret', rendered)
+            if 'token=' in path:
+                self.assertIn('[REDACTED]', rendered)
+
+    def test_uvicorn_coloured_startup_message_formats_after_redaction(self):
+        from uvicorn.logging import DefaultFormatter
+        record = logging.LogRecord('uvicorn.error', logging.INFO, __file__, 1,
+            'Uvicorn running on %s://%s:%d (Press CTRL+C to quit)', ('http', '127.0.0.1', 8000), None)
+        record.color_message = 'Uvicorn running on %s://%s:%d (Press CTRL+C to quit)'
+        WebhookSecretFilter().filter(record)
+        rendered = DefaultFormatter('%(levelprefix)s %(message)s', use_colors=True).format(record)
+        self.assertIn('http://127.0.0.1:8000', rendered)
+        self.assertNotIn('%s', rendered)
+
+    def test_colour_message_cannot_restore_a_redacted_secret(self):
+        from uvicorn.logging import DefaultFormatter
+        record = logging.LogRecord('uvicorn.error', logging.INFO, __file__, 1,
+            'Callback %s', ('https://test/?token=synthetic-secret',), None)
+        record.color_message = 'Callback https://test/?token=synthetic-secret'
+        WebhookSecretFilter().filter(record)
+        rendered = DefaultFormatter('%(levelprefix)s %(message)s', use_colors=True).format(record)
+        self.assertNotIn('synthetic-secret', rendered)
+        self.assertIn('[REDACTED]', rendered)
+
     def test_letter_dimensions_stripped_and_exact_weight_boundary(self):
         cargo={'cargo_type':'LETTER','actual_weight_kg':'0.499','length_cm':'99','width_cm':'99','height_cm':'99'}
         parcel=easypost_parcel(cargo)
