@@ -111,7 +111,7 @@ class Storage:
                 row['state'] = 'REVIEW_REQUIRED'
         elif 'INSERT INTO public.whatsapp_quote_choices' in sql:
             self.choices[args[0]] = {'scope': args[1:3], 'selected_rate': json.loads(args[4]), 'active': True}
-        elif any(fragment in sql for fragment in ('pg_advisory_xact_lock', 'INSERT INTO public.insurance_claim_cases', 'INSERT INTO public.support_tickets', 'INSERT INTO public.partner_unbound_quotes')):
+        elif any(fragment in sql for fragment in ('pg_advisory_xact_lock', 'INSERT INTO public.insurance_claim_cases', 'INSERT INTO public.support_tickets', 'INSERT INTO public.partner_unbound_quotes', 'UPDATE public.whatsapp_bindings')):
             pass
         else:
             raise AssertionError(sql)
@@ -332,3 +332,52 @@ def test_web_endpoint_uses_session_not_sender_and_rejects_whatsapp_json(fixture)
         'channel': 'WHATSAPP', 'sender_id': '+447700900999', 'message_body': 'Help'}).status_code == 403
     assert client.post('/api/v1/conversational/process-message?tenant_id=' + str(uuid4()), json={
         'channel': 'WEB_CHAT', 'message_body': 'Help'}).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_whatsapp_selection_hands_off_signed_choice_without_purchase(fixture):
+    from urllib.parse import parse_qs, urlsplit
+    from pydantic import SecretStr
+    import jwt
+    context, storage, state, gateway, app = fixture
+    state.settings.twilio_whatsapp_number = '+447700900001'
+    state.settings.booking_page_url = 'https://checkout.example.test/'
+    state.settings.quote_link_secret = SecretStr('synthetic-test-signing-key-not-production')
+    gateway.whatsapp = SimpleNamespace(sign_choice=lambda *args: main.WhatsAppService.sign_choice(
+        SimpleNamespace(settings=state.settings), *args))
+    choice_ids = [uuid4() for _ in range(3)]
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+    for choice_id in choice_ids:
+        storage.choices[choice_id] = {'scope': (context.tenant_id, context.user_id), 'active': True,
+            'expires_at': expiry, 'selected_rate': {'offer_id': str(uuid4())}}
+    storage.rows[uuid4()] = {'scope': (context.tenant_id, context.user_id, 'WHATSAPP'), 'state': 'COMPLETED',
+        'response': json.dumps({'action_taken': 'QUOTE', '_choices': list(map(str, choice_ids))})}
+    body = ConversationMessage(channel='WHATSAPP', message_body='book option 3')
+    response = await gateway.process(context, body, verified_whatsapp=True)
+    assert response == await gateway.process(context, body, verified_whatsapp=True)
+    assert response['status'] == 'COMPLETED'
+    assert 'No booking or payment has been made' in response['conversational_reply']
+    token = parse_qs(urlsplit(response['checkout_url']).query)['quote'][0]
+    claims = jwt.decode(token, state.settings.quote_link_secret.get_secret_value(), algorithms=['HS256'],
+        issuer='veloce-whatsapp', audience='veloce-booking')
+    assert claims['q'] == str(choice_ids[2])
+    assert claims['t'] == str(context.tenant_id) and claims['sub'] == str(context.user_id)
+    assert claims['exp'] == int(expiry.timestamp())
+    state.partner_lifecycle.confirm.assert_not_awaited()
+    # The resolver rejects another identity before any database access.
+    foreign = main.TenantContext(uuid4(), uuid4(), 'OWNER', 'synthetic')
+    request = Request({'type': 'http', 'app': app, 'headers': [], 'query_string': b''})
+    with pytest.raises(HTTPException) as error:
+        await main.resolve_quote_choice(token, request, foreign)
+    assert error.value.status_code == 403
+    expired = gateway.whatsapp.sign_choice(context, choice_ids[2], datetime.now(timezone.utc) - timedelta(seconds=1))
+    with pytest.raises(HTTPException) as error:
+        await main.resolve_quote_choice(expired, request, context)
+    assert error.value.status_code == 410
+    storage.choices[choice_ids[2]]['active'] = False
+    assert (await gateway.process(context, ConversationMessage(channel='WHATSAPP', message_body='book option 3'), verified_whatsapp=True))['status'] == 'REVIEW_REQUIRED'
+    storage.choices[choice_ids[2]]['active'] = True
+    state.settings.booking_page_url = ''
+    missing = await gateway.process(context, ConversationMessage(channel='WHATSAPP', message_body='book option 3'), verified_whatsapp=True)
+    assert missing['status'] == 'NEEDS_INPUT' and 'checkout_url' not in missing
+    state.partner_lifecycle.confirm.assert_not_awaited()

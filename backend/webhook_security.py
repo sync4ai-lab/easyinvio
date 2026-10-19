@@ -10,7 +10,7 @@ from fastapi import HTTPException
 
 def redact_query_secrets(value):
     # Also covers escaped/percent-encoded separators in HTTP library tracebacks.
-    return re.sub(r'(?i)((?:[?&]|%3f|%26)(?:token|access_token)(?:=|%3d))[^\s&#"\'<>]+',
+    return re.sub(r'(?i)((?:[?&]|%3f|%26)(?:token|access_token|quote)(?:=|%3d))[^\s&#"\'<>]+',
                   r'\1[REDACTED]', str(value))
 
 

@@ -2,6 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<script>
+let pendingConversationQuote = (() => {
+  const params = new URLSearchParams(location.search);
+  const token = params.get('quote');
+  if (token === null) return null;
+  const tenant = params.get('t');
+  params.delete('quote');
+  params.delete('t');
+  history.replaceState(null, '', location.pathname + (params.size ? '?' + params : '') + location.hash);
+  return {token, tenant};
+})();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>EasyInvio.com | Dispatch intelligence</title>
@@ -7353,6 +7366,35 @@ async function resumeConversationClaim() {
     conversationClaimOpening = false;
   }
 }
+let conversationQuoteOpening = false;
+async function resumeConversationQuote() {
+  if (!pendingConversationQuote || !state.session || !portal.profile?.tenant_id || conversationQuoteOpening) return;
+  conversationQuoteOpening = true;
+  const selection = pendingConversationQuote, session = state.session, generation = state.generation;
+  try {
+    if (!selection.token || selection.token.length > 2048) throw Error('This quote link is invalid. Request fresh rates in WhatsApp.');
+    if (selection.tenant && selection.tenant !== portal.profile.tenant_id) throw Error('Sign in to the workspace that requested this WhatsApp quote.');
+    const result = await api('/v1/whatsapp/quote-choice?token=' + encodeURIComponent(selection.token), {auth:true});
+    if (session !== state.session || generation !== state.generation) return;
+    if (!result.selected_rate?.offer_id || !result.rating_request || !Number.isFinite(Date.parse(result.expires_at)) || Date.parse(result.expires_at) <= Date.now())
+      throw Error('This quote has expired. Request fresh rates in WhatsApp.');
+    state.quotes = [result.selected_rate];
+    state.quoteRequest = result.rating_request;
+    state.lastRateResult = {rates:state.quotes, partial:false};
+    setView('dispatch');
+    renderRates(state.lastRateResult);
+    $('#review-content').textContent = 'Loading your selected service for review...';
+    if (!$('#review-dialog').open) $('#review-dialog').showModal();
+    await bookLive(0);
+    if (session === state.session && generation === state.generation) pendingConversationQuote = null;
+  } catch (error) {
+    if (session === state.session) notify(error.message, true);
+  } finally {
+    conversationQuoteOpening = false;
+  }
+}
+window.addEventListener('easyinvio-session-ready', () => void resumeConversationQuote());
+if (state.session) void resumeConversationQuote();
 window.addEventListener('easyinvio-session-ready', () => void resumeConversationClaim());
 if (state.session) void resumeConversationClaim();
 const insurancePhotoDrop = document.querySelector('#insurance-photos-drop');

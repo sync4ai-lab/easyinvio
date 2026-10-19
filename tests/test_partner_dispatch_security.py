@@ -53,7 +53,7 @@ class SecurityTests(unittest.TestCase):
     def test_uvicorn_access_formatter_retains_structured_fields_and_redacts_urls(self):
         from uvicorn.logging import AccessFormatter
         formatter = AccessFormatter('%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s', use_colors=False)
-        for path in ('/health', '/tracking?token=synthetic-secret&other=1', '/tracking?access_token=synthetic-secret'):
+        for path in ('/health', '/tracking?token=synthetic-secret&other=1', '/tracking?access_token=synthetic-secret', '/?quote=synthetic-secret'):
             record = logging.LogRecord('uvicorn.access', logging.INFO, __file__, 1,
                 '%s - "%s %s HTTP/%s" %d', ('127.0.0.1:59164', 'GET', path, '1.1', 200), None)
             redactor = WebhookSecretFilter()
@@ -65,7 +65,7 @@ class SecurityTests(unittest.TestCase):
             self.assertIn('200', rendered)
             self.assertIn('127.0.0.1:59164', rendered)
             self.assertNotIn('synthetic-secret', rendered)
-            if 'token=' in path:
+            if 'token=' in path or 'quote=' in path:
                 self.assertIn('[REDACTED]', rendered)
 
     def test_uvicorn_coloured_startup_message_formats_after_redaction(self):

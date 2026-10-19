@@ -1,7 +1,7 @@
 """Signed WhatsApp ingress into the shared authenticated conversational gateway.
 
-Explicit booking commands use native lifecycle and wallet controls. Quote links
-also allow customers to review their selection in the authenticated workspace.
+Booking commands return a signed selection link to authenticated web checkout.
+Payment and label purchase require confirmation in the workspace.
 """
 import asyncio
 import logging

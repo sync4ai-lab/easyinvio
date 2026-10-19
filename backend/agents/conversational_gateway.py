@@ -296,11 +296,22 @@ class ConversationalActionGateway:
                 raise HTTPException(409, 'Request a fresh quote in this conversation before choosing an option')
             choice_id = UUID(choices[intent.selection_index - 1])
             async with self.pool.acquire() as connection:
-                choice = await connection.fetchrow('''SELECT selected_rate FROM public.whatsapp_quote_choices
+                choice = await connection.fetchrow('''SELECT selected_rate,expires_at FROM public.whatsapp_quote_choices
                     WHERE tenant_id=$1 AND auth_user_id=$2 AND id=$3 AND expires_at>now()''',
                     context.tenant_id, context.user_id, choice_id)
             if not choice:
                 raise HTTPException(410, 'This option has expired. Request fresh rates.')
+            if body.channel == 'WHATSAPP':
+                base = self.state.settings.booking_page_url
+                if not base or not self.whatsapp:
+                    return self.reply(intent.intent, 'Web checkout is not configured yet. Please contact support to arrange booking. '
+                        'No booking or payment was made.', status='NEEDS_INPUT')
+                from urllib.parse import urlencode
+                link = base + '?' + urlencode({'t': str(context.tenant_id),
+                    'quote': self.whatsapp.sign_choice(context, choice_id, choice['expires_at'])})
+                return self.reply(intent.intent, f'Option {intent.selection_index} selected. Open this secure link and sign in '
+                    'with the same account to review shipment details, customs and payment before confirming:\n' + link +
+                    '\nNo booking or payment has been made.', checkout_url=link)
             from backend.automation_three_partners import BookingRequest
             rate = decoded(choice['selected_rate'])
             result = await self.state.partner_lifecycle.confirm(context, BookingRequest(
@@ -430,7 +441,9 @@ class ConversationalActionGateway:
         sandbox = self.state.settings.provider_environment == 'TEST'
         lines = ['EasyInvio.com sandbox quotes' if sandbox else 'EasyInvio.com live quotes',
             f'{rating.weights_kg[0]}kg | {rating.origin.country_code} → {rating.destination.country_code}',
-            'Prices exclude tax. No shipment protection is added. Sending Book option N confirms the displayed option for wallet booking.']
+            'Prices exclude tax. No shipment protection is added.',
+            'Send Book option N to open secure web checkout. No payment is taken in WhatsApp.' if body.channel == 'WHATSAPP'
+            else 'Sending Book option N confirms the displayed option for wallet booking.']
         choices = []
         async with self.pool.acquire() as connection:
             async with connection.transaction():
