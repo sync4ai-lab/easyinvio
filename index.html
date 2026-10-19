@@ -7238,7 +7238,9 @@ bookLive = async function(index) {
 <label for="insurance-claims-incident">When did you notice the loss or damage?</label>
 <input id="insurance-claims-incident" name="incident_at" type="datetime-local">
 <label for="insurance-claims-photos">Damage photographs</label>
+<div id="insurance-photos-drop" class="notice"><p>Drop damage photographs here or choose files.</p>
 <input id="insurance-claims-photos" name="photos" type="file" accept="image/jpeg,image/png" multiple>
+</div>
 <p class="footnote">Up to four JPEG or PNG images, each up to 5 MB. Preserve the damaged item and packaging. Saving a support case does not confirm insurer submission, review or payment.</p>
 <button id="insurance-claims-submit" class="primary full" type="submit" disabled>Save claim support case</button>
 </form>
@@ -7258,6 +7260,7 @@ function resetInsuranceCase() {
   if (insuranceCasePoll) clearTimeout(insuranceCasePoll);
   insuranceCasePoll = null;
   document.querySelector('#insurance-claims-form').reset();
+  for (const input of document.querySelector('#insurance-claims-form').elements) input.disabled = false;
   document.querySelector('#insurance-claims-progress').replaceChildren();
   document.querySelector('#insurance-claims-submit').disabled = true;
 }
@@ -7286,7 +7289,7 @@ async function pollInsuranceCase(generation, session) {
   }
   insuranceCasePoll = setTimeout(() => pollInsuranceCase(generation, session), 15000);
 }
-document.querySelector('#insurance-claims-open').addEventListener('click', async () => {
+async function openInsuranceClaims() {
   resetInsuranceCase();
   const dialog = document.querySelector('#insuranceClaimsModal'),
     generation = insuranceCaseGeneration,
@@ -7313,6 +7316,58 @@ document.querySelector('#insurance-claims-open').addEventListener('click', async
   } catch (error) {
     if (generation === insuranceCaseGeneration) document.querySelector('#insurance-claims-notice').textContent = error.message;
   }
+}
+document.querySelector('#insurance-claims-open').addEventListener('click', () => void openInsuranceClaims());
+let conversationClaimOpening = false;
+async function resumeConversationClaim() {
+  const params = new URLSearchParams(location.search);
+  const caseId = params.get('claim_id');
+  if (!caseId || !state.session || conversationClaimOpening) return;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId)) return;
+  conversationClaimOpening = true;
+  const session = state.session;
+  try {
+    await openInsuranceClaims();
+    const generation = insuranceCaseGeneration;
+    const result = await api('/api/v1/shipping/claims/' + encodeURIComponent(caseId), {auth:true});
+    if (session !== state.session || generation !== insuranceCaseGeneration || !document.querySelector('#insuranceClaimsModal').open) return;
+    const form = document.querySelector('#insurance-claims-form');
+    const eligible = Array.from(form.elements.shipment_id.options).some(option => option.value === result.shipment_id);
+    if (!eligible) throw Error('This shipment is not currently available for claim completion in your workspace. Contact support.');
+    insuranceCaseId = result.claim_id;
+    form.elements.shipment_id.value = result.shipment_id;
+    form.elements.reason.value = result.reason;
+    form.elements.notes.value = result.notes;
+    showInsuranceProgress(result);
+    if (result.status !== 'CLAIM_INGESTED') {
+      for (const input of form.elements) input.disabled = true;
+      document.querySelector('#insurance-claims-notice').textContent = 'This case is already being processed. Its evidence cannot be replaced.';
+    } else {
+      document.querySelector('#insurance-claims-notice').textContent = 'Your chat support case is open. Review the details, add the incident date and photographs, then complete filing.';
+    }
+    params.delete('claim_id');
+    history.replaceState(null, '', location.pathname + (params.size ? '?' + params : '') + location.hash);
+  } catch (error) {
+    if (session === state.session) document.querySelector('#insurance-claims-notice').textContent = error.message;
+  } finally {
+    conversationClaimOpening = false;
+  }
+}
+window.addEventListener('easyinvio-session-ready', () => void resumeConversationClaim());
+if (state.session) void resumeConversationClaim();
+const insurancePhotoDrop = document.querySelector('#insurance-photos-drop');
+insurancePhotoDrop.addEventListener('dragover', event => event.preventDefault());
+insurancePhotoDrop.addEventListener('drop', event => {
+  event.preventDefault();
+  const input = document.querySelector('#insurance-claims-photos');
+  if (input.disabled) return;
+  const files = Array.from(event.dataTransfer?.files || []);
+  if (!files.length || files.length > 4 || files.some(file => file.size > 5000000 || !['image/jpeg','image/png'].includes(file.type))) {
+    document.querySelector('#insurance-claims-notice').textContent = 'Choose up to four JPEG or PNG images, each no larger than 5 MB.';
+    return;
+  }
+  input.files = event.dataTransfer.files;
+  input.dispatchEvent(new Event('change', {bubbles:true}));
 });
 document.querySelector('#insurance-claims-form').addEventListener('submit', event => {
   event.preventDefault();

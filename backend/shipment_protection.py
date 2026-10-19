@@ -1884,11 +1884,15 @@ def build_router(authenticate):
                 )
                 if existing:
                     if existing["payload_sha256"] != digest:
-                        raise HTTPException(
-                            409,
-                            "This claim reference was already used for different evidence",
-                        )
-                    current_case_state = existing["state"]
+                        from backend.conversational_claims import complete_conversational_claim
+                        completed = await complete_conversational_claim(connection, context, case_id=case_id,
+                            shipment_id=shipment_id, policy_id=policy['policy_id'], reason=reason, notes=notes.strip(),
+                            old_digest=existing['payload_sha256'], digest=digest, state=current_case_state,
+                            submission_payload=headless or {}, photos=photos)
+                        if not completed:
+                            raise HTTPException(409, "This claim reference was already used for different evidence")
+                    else:
+                        current_case_state = existing["state"]
                 else:
                     # Recheck locally under the write transaction in case of cancellation.
                     await insured_shipment(connection, context.tenant_id, shipment_id)

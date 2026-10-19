@@ -25,7 +25,7 @@ class ConversationalWebhookTests(WhatsAppTests):
             headers={"Content-Type": "application/x-www-form-urlencoded", "X-Twilio-Signature": signature})
 
     def test_signed_query_exact_decimal_pricing_and_duplicate_receipt(self):
-        response = self.post(self.fields(Body="Quote 4.5kg from GB to US"))
+        response = self.post(self.fields(Body="Quote 4.5kg from GB to US route TEST"))
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.headers['content-type'].startswith('application/xml'))
         text = ElementTree.fromstring(response.text).find('Message').text
@@ -34,7 +34,7 @@ class ConversationalWebhookTests(WhatsAppTests):
         self.assertIn('GB \u2192 US', text)
         self.assertIn('wallet balance is too low', text)
         self.assertIn('https://sandbox.example.com/book?', text)
-        self.assertEqual(self.post(self.fields(Body="Quote 4.5kg from GB to US")).text, response.text)
+        self.assertEqual(self.post(self.fields(Body="Quote 4.5kg from GB to US route TEST")).text, response.text)
         self.assertEqual(len(self.observed), 1)
         self.assertEqual(self.observed[0][0].tenant_id, self.tenant)
 

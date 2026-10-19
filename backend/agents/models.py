@@ -24,6 +24,10 @@ class ConversationalIntent(StrictOutput):
     weight_kg: str | None = None
     origin_country: str | None = None
     destination_country: str | None = None
+    origin_postal_code: str | None = Field(default=None, min_length=1, max_length=30)
+    destination_postal_code: str | None = Field(default=None, min_length=1, max_length=30)
+    origin_city: str | None = Field(default=None, min_length=1, max_length=100)
+    destination_city: str | None = Field(default=None, min_length=1, max_length=100)
     route_code: str | None = None
     target_reference_id: str | None = Field(default=None, max_length=200)
     monetary_amount: Decimal | None = Field(default=None, ge=1, le=10000, decimal_places=2, allow_inf_nan=False)

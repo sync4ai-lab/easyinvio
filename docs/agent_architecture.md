@@ -48,7 +48,7 @@ Both `/webhooks/twilio/whatsapp` and `/api/v1/integrations/whatsapp/webhook` ver
 
 Supported commands work with AI disabled:
 
-- `Quote 4.5kg from GB to US route EXPORT_US`: a unique active saved WhatsApp route must supply full addresses and measured packaging. The native rating service consolidates prices; up to ten actual options are stored in displayed order. This command does not invent goods details or remove international customs review requirements. Use Create a shipment when the route lacks the required goods or customs information.
+- `Quote 4.5kg from GB to US route EXPORT_US`: an explicitly selected saved route can supply full addresses and measured packaging. Without a route code, the gateway collects postcodes, explicit countries, packed weight, measured dimensions and real contact/street/city details across turns. The native rating service consolidates prices; up to ten actual options are stored in displayed order. This command does not invent goods details or remove international customs review requirements. Use Create a shipment when the route lacks the required goods or customs information.
 - `Book option 1`: confirms the price displayed by the latest completed quote for this user, workspace and channel. The choice must be unexpired. OWNER, ADMIN or DISPATCHER permission is required. PartnerLifecycleService owns preparation, customs readiness, environment checks, wallet reservation, capture/release, carrier confirmation and document generation. A model choosing an option is insufficient consent. Protection is not automatically added.
 - `Track YOUR_REFERENCE`: looks up a unique shipment UUID, customer reference or tracking number within the authenticated tenant. It reports recorded status and milestone timestamps, including recent recorded exceptions. It does not claim a new live carrier check or expose internal supplier error text.
 - `Top up 50 GBP`: OWNER, ADMIN or ACCOUNTANT permission is required. The amount must match the wallet currency, be between 1 and 10000 and have at most two decimal places. Exact Decimal values reach FinanceEngine.create_checkout. A verified HTTPS Stripe Checkout link lets the customer complete payment; chat does not credit the wallet or collect card details.
@@ -124,3 +124,76 @@ Phone challenges use a purpose-separated HMAC, not plaintext storage. Receipt re
 Resends require a 60-second wait, are limited to three per registration and do not reset the five-attempt verification budget. Starts are limited to three per phone per day, with a receiver-wide cap and a 30-message hourly phone limit. Delivery SIDs are idempotent and bound to the original sender, receiver and message HMAC. Changed-content SID reuse is rejected. Expired pending sessions release their company/email reservations. Cancelling before activation does not promise to delete a provisional Supabase identity; an abandoned identity may need support review.
 
 Official references: [Supabase email OTP configuration and verification](https://supabase.com/docs/guides/auth/auth-email-passwordless), [server-side Auth metadata updates](https://supabase.com/docs/reference/javascript/auth-admin-updateuserbyid).
+
+
+## Multi-turn quote and support context
+
+`backend/agents/conversation_context.py` defines a typed 15-minute draft. The
+latest completed receipt in migration 038 stores it privately under `_pending`,
+scoped by tenant, authenticated user and channel, and bound to the selected
+admin-assistance session when applicable. It is not returned to the browser.
+No additional schema migration or in-memory session cache is required. A single
+PROCESSING receipt still fences concurrent deliveries; replay of a completed
+message returns its saved response without advancing the draft again. Structured
+address and quote facts now remain in private receipts for reconciliation; raw
+prompts are not retained except deliberately recorded claim notes. Retention
+policies must cover these private structured drafts as well as prior choices.
+
+Examples work in the same controller for WEB_CHAT and signed WHATSAPP:
+
+1. `Get a quote for a 3kg parcel from London to Paris` records the weight and
+   cities, then requests `Origin Postcode, Destination Postcode`.
+2. Reply with the real postcodes, then confirm ISO countries if not already
+   supplied. Numeric postcodes alone do not establish a country, and no city is
+   inferred from a postcode without an implemented authoritative lookup.
+3. Reply with measured `length x width x height` in centimetres, then real pickup
+   and delivery `contact name; street; city`, optionally adding a fourth field
+   for state/province. The operator supplies all facts not already known.
+4. The native RatingRequest/RatingService boundary validates the complete payload,
+   applies dimensional charging, evaluates margins and consolidates up to ten
+   actual offers. No fabricated street, dimensions, goods or provider rate is
+   introduced. International booking still requires the existing customs review.
+5. `Cancel` clears the active draft. A fresh quote command starts a new draft;
+   unrelated actions interrupt the old one. Expired drafts are ignored. A rate
+   outage retains a bounded retry draft; only an explicit Retry requests rates
+   again. No rate error authorizes a purchase or wallet action.
+
+Explicit quote phrases, field replies, tracking references and simple lost/damaged
+messages avoid model calls. For other wording, IngestionWorkerAgent uses one
+forced side-effect-free `submit_conversational_intent` tool call, with grounded
+postcodes/cities, missing facts set to null and no invented countries. Existing
+model deadlines, token limits and deterministic command authorization remain.
+
+`Where is my package?` asks for a reference when none has been established in
+the immediately preceding conversation turn. It can reuse that user's latest
+explicitly tracked reference, not an arbitrary tenant shipment. Replies report
+saved carrier milestones and timestamps, not a new live carrier API check or an
+invented warehouse location. Recent exception records are described without
+asserting that a historic exception is still active.
+
+`My package is lost` or `My package is damaged` asks for the tracking reference,
+then checks the tenant shipment, role and confirmed local XCover policy before
+creating the existing CLAIM_INGESTED case and OPEN support ticket. It does not
+change shipment status, file an insurer claim, or credit a wallet. Explicit
+`Claim REFERENCE lost Detailed description` commands remain supported.
+
+The reply includes a `/?claim_id=UUID` dashboard link when the configured
+AUTH_RECOVERY_REDIRECT_URL supplies a valid app origin. It is a reference, not
+a bearer credential; the user must sign into the correct workspace. The
+frontend loads the case through the authenticated existing claims endpoint and
+opens the real photo input/drop panel. Backend evidence validation and provider
+eligibility remain authoritative. Production must serve this SPA at that origin;
+localhost links work only on the dashboard computer.
+
+A chat intake may be completed exactly once by its original authenticated actor
+through the existing submit-claim endpoint. `backend/conversational_claims.py`
+requires a matching workspace, shipment, policy, reason, creator, prior digest,
+unsubmitted CLAIM_INGESTED state, empty submission/evidence and the chat intake
+marker. The normal claim advisory lock and SQL transaction enclose the upgrade,
+activity and photograph writes. Subsequent changed-evidence requests remain
+conflicts; identical submissions retain existing idempotency. The normal insurer
+worker or trusted portal, not chat, completes insurer filing.
+
+Validation uses synthetic SQL/provider boundaries and an offline browser scenario.
+No live carrier quote, label, payment, insurer filing, migration or SMTP change
+is performed by those checks. Source: [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling).

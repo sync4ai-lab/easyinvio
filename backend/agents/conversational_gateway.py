@@ -22,6 +22,7 @@ from pydantic import Field
 from twilio.twiml.messaging_response import MessagingResponse
 
 from backend.agents.models import ConversationalIntent, StrictOutput
+from backend.agents.conversation_context import ConversationDraft, collect_reply, explicit_quote
 
 logger = logging.getLogger('easyinvio.conversation')
 ROLES = {'OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT'}
@@ -134,6 +135,13 @@ class ConversationStore:
                 AND response->>'action_taken'='QUOTE' ORDER BY created_at DESC,id DESC LIMIT 1''',
                 context.tenant_id, context.user_id, channel))
 
+    async def latest_turn(self, context, channel):
+        async with self.pool.acquire() as connection:
+            return decoded(await connection.fetchval('''SELECT response FROM public.conversational_messages
+                WHERE tenant_id=$1 AND auth_user_id=$2 AND channel=$3 AND state='COMPLETED'
+                AND created_at>now()-interval '15 minutes'
+                ORDER BY created_at DESC,id DESC LIMIT 1''', context.tenant_id, context.user_id, channel))
+
 
 class ConversationalActionGateway:
     def __init__(self, request: Request, store=None):
@@ -156,6 +164,9 @@ class ConversationalActionGateway:
                 origin_country=parsed.origin_country, destination_country=parsed.destination_country, route_code=parsed.route_code)
         except ValueError:
             pass
+        proposal = explicit_quote(text)
+        if proposal is not None:
+            return proposal
         # Explicit commands continue to work without a model; these are also the
         # authorization grammar for financial actions. A model cannot invent consent.
         booking = re.fullmatch(r'\s*(?:book|confirm)\s+option\s+(10|[1-9])\s*', text, re.I)
@@ -167,9 +178,13 @@ class ConversationalActionGateway:
         tracking = re.fullmatch(r'\s*(?:track|tracking)\s+([A-Za-z0-9_-]{1,200})\s*', text, re.I)
         if tracking:
             return ConversationalIntent(intent='TRACK_PACKAGE', target_reference_id=tracking[1])
+        if re.fullmatch(r'\s*(?:where\s+is\s+my\s+(?:package|parcel|shipment)|track(?:\s+my\s+(?:package|parcel|shipment))?)\s*[?.!]*\s*', text, re.I):
+            return ConversationalIntent(intent='TRACK_PACKAGE')
         claim = re.fullmatch(r'\s*claim\s+([A-Za-z0-9_-]{1,200})\s+(lost|damaged)\s+(.{10,1800})\s*', text, re.I | re.S)
         if claim:
             return ConversationalIntent(intent='FILE_CLAIM', target_reference_id=claim[1], description_notes=claim[3].strip())
+        if re.fullmatch(r'\s*(?:my\s+)?(?:package|parcel|shipment)(?:\s+is)?\s+(?:lost|damaged)\s*[.!]?\s*', text, re.I):
+            return ConversationalIntent(intent='FILE_CLAIM', description_notes=text.strip())
         if text.strip().lower() in {'help', 'hello', 'hi', 'commands'}:
             return ConversationalIntent(intent='HELP')
         engine = getattr(self.state, 'logistics_supervisor', None)
@@ -199,10 +214,37 @@ class ConversationalActionGateway:
                     FROM public.users u WHERE b.tenant_id=$1 AND b.user_id=u.id AND u.tenant_id=b.tenant_id
                     AND u.auth_user_id=$2 AND b.sender_e164=$3 AND b.receiver_e164=$4 AND b.is_active AND u.is_active''',
                     context.tenant_id, context.user_id, body.sender_id, self.state.settings.twilio_whatsapp_number)
+            self.draft = None
+            previous = await self.store.latest_turn(context, body.channel)
+            self.previous = previous or {}
+            if previous and previous.get('_pending'):
+                try:
+                    pending = ConversationDraft.model_validate(previous['_pending'])
+                    if pending.active(context):
+                        self.draft = pending
+                except ValueError:
+                    pass
+            if body.message_body.strip().lower() in {'cancel', 'cancel quote', 'start over'}:
+                result = self.reply('HELP', 'Conversation draft cleared. Send a new quote, tracking reference or claim request.')
+                await self.store.finish(context, message_id, result)
+                return self.public(result)
             try:
-                intent = await self.interpret(context, body.message_body)
+                new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|topup|help|commands)\b|\btop\s+up\b', body.message_body, re.I)
+                if self.draft and not new_command:
+                    if self.draft.action == 'QUOTE':
+                        collect_reply(self.draft, body.message_body)
+                    elif self.draft.waiting_for == 'reference':
+                        reference = body.message_body.strip()
+                        if not re.fullmatch(r'[A-Za-z0-9_-]{1,200}', reference):
+                            raise ValueError('Reply with only the shipment or tracking reference.')
+                        self.draft.intent = self.draft.intent.model_copy(update={'target_reference_id': reference})
+                    intent = self.draft.intent
+                else:
+                    intent = await self.interpret(context, body.message_body)
+                    self.draft = None
             except ValueError:
-                result = self.reply('HELP', 'Please check your amount, weight or reference. Top-ups must be between 1 and 10000 in your wallet currency, with at most two decimal places.', status='NEEDS_INPUT')
+                result = (self.pending_reply(self.draft, 'Please check the requested values and reply in the format shown. ' + self.draft_prompt(self.draft))
+                    if self.draft else self.reply('HELP', 'Please check your amount, weight or reference. Top-ups must be between 1 and 10000 in your wallet currency, with at most two decimal places.', status='NEEDS_INPUT'))
                 await self.store.finish(context, message_id, result)
                 return self.public(result)
             try:
@@ -221,6 +263,23 @@ class ConversationalActionGateway:
     @staticmethod
     def public(result):
         return {key: value for key, value in result.items() if not key.startswith('_')}
+
+    def pending_reply(self, draft, text):
+        return self.reply(draft.action, text, status='NEEDS_INPUT', _pending=draft.model_dump(mode='json'))
+
+    @staticmethod
+    def draft_prompt(draft):
+        prompts = {
+            'postcodes': 'I can check that quote for you. Please reply with Origin Postcode, Destination Postcode.',
+            'countries': 'Please confirm the two countries as Origin Country, Destination Country, for example GB, FR. A postcode alone can be ambiguous.',
+            'weight': 'What is the packed parcel weight in kg?',
+            'dimensions': 'What are the measured parcel dimensions? Reply length x width x height in cm, for example 30 x 20 x 10.',
+            'origin_address': 'Please give the pickup contact name; street address; city. Add a fourth field for state/province when required.',
+            'destination_address': 'Please give the delivery contact name; street address; city. Add a fourth field for state/province when required.',
+            'retry': 'Reply Retry to request rates again, or Cancel to clear the draft.',
+            'reference': 'Please reply with the shipment or tracking reference. I will check only your workspace.',
+        }
+        return prompts[draft.waiting_for]
 
     async def execute(self, context, body, intent, message_id):
         if intent.intent == 'QUOTE':
@@ -251,7 +310,12 @@ class ConversationalActionGateway:
             label = result.get('label') or {}
             return self.reply(intent.intent, f"Shipment booked. Tracking: {label.get('tracking_number', 'awaiting confirmation')}. Open Shipments to download the label and available customs documents.", shipment_id=result['shipment_id'])
         if intent.intent == 'TRACK_PACKAGE':
-            shipment = await self.shipment(context, intent.target_reference_id)
+            reference = intent.target_reference_id or getattr(self, 'previous', {}).get('_last_reference')
+            if not reference:
+                draft = ConversationDraft(action='TRACK_PACKAGE', intent=intent, waiting_for='reference',
+                    assistance_id=str(context.assistance_session_id) if context.assistance_session_id else None)
+                return self.pending_reply(draft, self.draft_prompt(draft))
+            shipment = await self.shipment(context, reference)
             async with self.pool.acquire() as connection:
                 events = await connection.fetch('''SELECT status,occurred_at FROM public.tracking_events
                     WHERE tenant_id=$1 AND shipment_id=$2 ORDER BY occurred_at DESC,id DESC LIMIT 5''',
@@ -264,7 +328,7 @@ class ConversationalActionGateway:
                     lines.append(f"An exception was recorded at {exceptions[0]['occurred_at'].isoformat()}. Open the shipment timeline for carrier details.")
             else:
                 lines.append('No carrier tracking milestone has been recorded yet.')
-            return self.reply(intent.intent, '\n'.join(lines))
+            return self.reply(intent.intent, '\n'.join(lines), _last_reference=reference)
         if intent.intent == 'TOPUP_WALLET':
             if context.role not in FINANCE_ROLES:
                 raise HTTPException(403, 'An owner, admin or accountant must arrange wallet top-ups')
@@ -287,8 +351,9 @@ class ConversationalActionGateway:
         if intent.intent == 'FILE_CLAIM':
             return await self.claim(context, body, intent, message_id)
         engine = getattr(self.state, 'logistics_supervisor', None)
-        commands = ('You can ask for a quote using a saved route, track a shipment, book a displayed option, arrange a wallet top-up, or record a claim support case.\n'
-                    'Examples: Quote 4.5kg from GB to US; Track EINVIO-00000050; Book option 1; Top up 50 GBP; Claim TRACKING123 damaged Describe what happened.')
+        commands = ('You can ask for a quote without a saved route; I will collect missing locations, measured packaging and addresses. '
+                    'You can also track, book a displayed option, arrange a top-up or record a claim support case. Send Cancel to clear a draft.\n'
+                    'Examples: Quote 4.5kg from London to Paris; Track EINVIO-00000050; Book option 1; Top up 50 GBP; My package is lost.')
         if engine is not None and len(body.message_body.strip()) >= 3 and body.message_body.strip().lower() not in {'help', 'hello', 'commands'}:
             answer = await engine.help.answer(context, body.message_body[:800])
             sources = answer.get('sources', [])[:3]
@@ -307,34 +372,64 @@ class ConversationalActionGateway:
         return self.reply('HELP', commands)
 
     async def quote(self, context, body, intent, message_id):
-        from main import Address, Dimensions, ParsedQuote, RatingRequest, get_rates
-        if any(getattr(intent, field) is None for field in ('weight_kg', 'origin_country', 'destination_country')):
-            return self.reply('QUOTE', 'Please include the weight in kg and both countries. Add a saved route code if you have more than one route.', status='NEEDS_INPUT')
-        parsed = ParsedQuote(Decimal(intent.weight_kg), intent.origin_country, intent.destination_country, intent.route_code)
-        async with self.pool.acquire() as connection:
-            routes = await connection.fetch('''SELECT origin_address,destination_address,dimensions,currency
-                FROM public.whatsapp_routes WHERE tenant_id=$1 AND origin_country=$2 AND destination_country=$3
-                AND is_active AND ($4::text IS NULL OR route_code=$4) ORDER BY route_code LIMIT 2''',
-                context.tenant_id, parsed.origin_country, parsed.destination_country, parsed.route_code)
-        if len(routes) != 1:
-            return self.reply('QUOTE', 'No unique saved route matches. Ask your admin to save the full addresses and measured packaging, or use Create a shipment. Nothing has been booked.', status='NEEDS_INPUT')
-        route = routes[0]
-        rating = RatingRequest(origin=Address.model_validate(decoded(route['origin_address'])),
-            destination=Address.model_validate(decoded(route['destination_address'])),
-            dimensions=[Dimensions.model_validate(decoded(route['dimensions']))],
-            weights_kg=[parsed.weight_kg], currency=route['currency'])
-        if body.channel == 'WHATSAPP':
-            result = await self.state.rating.quote(context, rating, self.state.settings.whatsapp_provider_seconds)
+        from main import Address, Dimensions, RatingRequest, get_rates
+        draft = self.draft or ConversationDraft(action='QUOTE', intent=intent,
+            assistance_id=str(context.assistance_session_id) if context.assistance_session_id else None)
+        self.draft = draft
+        rating = None
+        if intent.route_code:
             async with self.pool.acquire() as connection:
-                await connection.execute('''INSERT INTO public.partner_unbound_quotes
-                    (tenant_id,request_id,request_payload,quote_payload,expires_at)
-                    VALUES($1,$2,$3::jsonb,$4::jsonb,$5)''', context.tenant_id, result.request_id,
-                    rating.model_dump_json(), result.model_dump_json(), result.expires_at)
-        else:
-            result = await get_rates(rating, self.request, context)
+                routes = await connection.fetch('''SELECT origin_address,destination_address,dimensions,currency
+                    FROM public.whatsapp_routes WHERE tenant_id=$1 AND origin_country=$2 AND destination_country=$3
+                    AND is_active AND route_code=$4 ORDER BY route_code LIMIT 2''',
+                    context.tenant_id, intent.origin_country, intent.destination_country, intent.route_code)
+            if len(routes) == 1 and intent.weight_kg:
+                route = routes[0]
+                rating = RatingRequest(origin=Address.model_validate(decoded(route['origin_address'])),
+                    destination=Address.model_validate(decoded(route['destination_address'])),
+                    dimensions=[Dimensions.model_validate(decoded(route['dimensions']))],
+                    weights_kg=[Decimal(intent.weight_kg)], currency=route['currency'])
+            else:
+                draft.intent = intent.model_copy(update={'route_code': None})
+                intent = draft.intent
+        if rating is None:
+            required = [
+                ('postcodes', not intent.origin_postal_code or not intent.destination_postal_code),
+                ('countries', not intent.origin_country or not intent.destination_country),
+                ('weight', not intent.weight_kg),
+                ('dimensions', draft.dimensions is None),
+                ('origin_address', draft.origin_address is None),
+                ('destination_address', draft.destination_address is None),
+            ]
+            for field, missing in required:
+                if missing:
+                    draft.waiting_for = field
+                    return self.pending_reply(draft, self.draft_prompt(draft))
+            async with self.pool.acquire() as connection:
+                currency = await connection.fetchval('SELECT currency FROM public.wallets WHERE tenant_id=$1', context.tenant_id)
+            if currency not in {'GBP', 'EUR', 'USD'}:
+                raise HTTPException(409, 'Ask your workspace owner to configure the wallet currency before requesting rates.')
+            rating = RatingRequest.from_conversation(origin=draft.origin_address, destination=draft.destination_address,
+                dimensions=draft.dimensions, weight_kg=intent.weight_kg, currency=currency)
+        try:
+            if body.channel == 'WHATSAPP':
+                result = await self.state.rating.quote(context, rating, self.state.settings.whatsapp_provider_seconds)
+                async with self.pool.acquire() as connection:
+                    await connection.execute('''INSERT INTO public.partner_unbound_quotes
+                        (tenant_id,request_id,request_payload,quote_payload,expires_at)
+                        VALUES($1,$2,$3::jsonb,$4::jsonb,$5)''', context.tenant_id, result.request_id,
+                        rating.model_dump_json(), result.model_dump_json(), result.expires_at)
+            else:
+                result = await get_rates(rating, self.request, context)
+        except (HTTPException, TimeoutError) as error:
+            if isinstance(error, HTTPException) and error.status_code < 500:
+                raise
+            draft.waiting_for = 'retry'
+            return self.pending_reply(draft, 'Rates are temporarily unavailable for these details. No booking or payment was made. '
+                'Reply Retry to check again, Cancel to clear the draft, or use Create a shipment for quote diagnostics.')
         sandbox = self.state.settings.provider_environment == 'TEST'
         lines = ['EasyInvio.com sandbox quotes' if sandbox else 'EasyInvio.com live quotes',
-            f'{parsed.weight_kg}kg | {parsed.origin_country} → {parsed.destination_country}',
+            f'{rating.weights_kg[0]}kg | {rating.origin.country_code} → {rating.destination.country_code}',
             'Prices exclude tax. No shipment protection is added. Sending Book option N confirms the displayed option for wallet booking.']
         choices = []
         async with self.pool.acquire() as connection:
@@ -382,10 +477,21 @@ class ConversationalActionGateway:
         from backend.shipment_protection import insured_shipment, require_claim_role
         require_claim_role(context)
         explicit = re.fullmatch(r'\s*claim\s+([A-Za-z0-9_-]{1,200})\s+(lost|damaged)\s+(.{10,1800})\s*', body.message_body, re.I | re.S)
-        if not explicit or explicit[1] != intent.target_reference_id or explicit[3].strip() != intent.description_notes:
+        draft = getattr(self, 'draft', None)
+        source = draft.intent.description_notes if draft and draft.action == 'FILE_CLAIM' else body.message_body.strip()
+        short = re.fullmatch(r'(?:my\s+)?(?:package|parcel|shipment)(?:\s+is)?\s+(lost|damaged)\s*[.!]?', source or '', re.I)
+        if not intent.target_reference_id and short:
+            draft = ConversationDraft(action='FILE_CLAIM', intent=intent.model_copy(update={'description_notes': source}),
+                waiting_for='reference', assistance_id=str(context.assistance_session_id) if context.assistance_session_id else None)
+            return self.pending_reply(draft, self.draft_prompt(draft))
+        if short and draft:
+            reason = 'PARCEL_LOST' if short[1].lower() == 'lost' else 'PARCEL_DAMAGED'
+            intent = intent.model_copy(update={'description_notes': source})
+        elif explicit and explicit[1] == intent.target_reference_id and explicit[3].strip() == intent.description_notes:
+            reason = 'PARCEL_LOST' if explicit[2].lower() == 'lost' else 'PARCEL_DAMAGED'
+        else:
             return self.reply('FILE_CLAIM', 'To record a support case, send: Claim TRACKING123 lost Describe what happened. Use damaged for damage. Photos and insurer filing are completed in Shipment protection & claims.', status='NEEDS_INPUT')
         shipment = await self.shipment(context, intent.target_reference_id)
-        reason = 'PARCEL_LOST' if explicit[2].lower() == 'lost' else 'PARCEL_DAMAGED'
         async with self.pool.acquire() as connection:
             async with connection.transaction():
                 _, policy = await insured_shipment(connection, context.tenant_id, shipment['id'])
@@ -402,7 +508,23 @@ class ConversationalActionGateway:
                     VALUES($1,$2,$3,$4,'OPEN',$5,'CUSTOMER_CLAIM','conversation-intake-v1')''',
                     ticket_id, context.tenant_id, shipment['id'], message_id,
                     'Claim support intake only. Insurer submission is not confirmed. ' + intent.description_notes)
-        return self.reply('FILE_CLAIM', 'Your claim support case has been recorded. Insurer submission, review and payment are not confirmed. Open Shipment protection & claims to supply evidence and complete insurer filing.', claim_id=str(message_id))
+        link = self.claim_panel_url(message_id)
+        text = ('Your claim support case has been recorded. Insurer submission, review and payment are not confirmed. '
+            + ('Sign in to your workspace on your laptop to upload evidence and complete filing:\n' + link if link
+               else 'Open Shipment protection & claims to supply evidence and complete insurer filing.'))
+        return self.reply('FILE_CLAIM', text, claim_id=str(message_id), **({'claim_panel_url': link} if link else {}))
+
+    def claim_panel_url(self, case_id):
+        from urllib.parse import urlencode
+        base = getattr(self.state.settings, 'auth_recovery_redirect_url', '')
+        try:
+            parsed = urlsplit(base)
+            if (not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment
+                    or (parsed.scheme != 'https' and not (parsed.scheme == 'http' and parsed.hostname in {'127.0.0.1', 'localhost'}))):
+                return None
+            return urljoin(base, '/') + '?' + urlencode({'claim_id': str(case_id)})
+        except ValueError:
+            return None
 
 
 async def signed_whatsapp_message(request, context, form, *, conversational=True):

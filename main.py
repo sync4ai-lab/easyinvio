@@ -342,6 +342,12 @@ class RatingRequest(StrictModel):
     goods_currency: Currency | None = None
     is_return: bool = False
 
+    @classmethod
+    def from_conversation(cls, *, origin, destination, dimensions, weight_kg, currency):
+        """Apply the ordinary rating boundary to explicitly collected parcel facts."""
+        return cls(origin=Address.model_validate(origin), destination=Address.model_validate(destination),
+            dimensions=[Dimensions.model_validate(dimensions)], weights_kg=[weight_kg], currency=currency)
+
     @model_validator(mode='before')
     @classmethod
     def letter_dimensions(cls,value):

@@ -272,7 +272,7 @@ class WhatsAppTests(unittest.TestCase):
         main.app.state.settings.whatsapp_brand_name = "EasyInvio.com"
         self.client = TestClient(main.app)
     def fields(self, **overrides):
-        return {"AccountSid": self.settings.twilio_account_sid, "From": "whatsapp:+447700900123", "To": "whatsapp:+14155238886", "MessageSid": "SM" + "b" * 32, "Body": "Quote 4.5kg from GBR to USA", "NumMedia": "0", **overrides}
+        return {"AccountSid": self.settings.twilio_account_sid, "From": "whatsapp:+447700900123", "To": "whatsapp:+14155238886", "MessageSid": "SM" + "b" * 32, "Body": "Quote 4.5kg from GBR to USA route TEST", "NumMedia": "0", **overrides}
     def post(self, fields, *, signature=None):
         pairs = list(fields.items()) if isinstance(fields, dict) else fields
         signature = signature or main.app.state.twilio_validator.compute_signature(self.settings.twilio_webhook_url, FormData(pairs))
@@ -305,9 +305,9 @@ class WhatsAppTests(unittest.TestCase):
         response = self.post(self.fields(From="whatsapp:+447700900999"))
         self.assertIn("not registered", response.text)
         self.assertEqual(self.observed, [])
-    def test_media_returns_text_instruction_and_bad_iso_returns_help(self):
+    def test_media_returns_text_instruction_and_unknown_location_collects_details(self):
         self.assertIn("Please send text", self.post(self.fields(NumMedia="1")).text)
-        self.assertIn("Quote 4.5kg", self.post(self.fields(Body="Quote 4.5kg from XYZ to USA")).text)
+        self.assertIn("Origin Postcode", self.post(self.fields(Body="Quote 4.5kg from XYZ to USA")).text)
         self.assertEqual(self.observed, [])
     def test_non_sandbox_binding_cannot_be_quoted(self):
         self.connection.state["tenant"]["is_sandbox"] = False

@@ -60,7 +60,7 @@ class Storage:
             return any(row['state'] == 'PROCESSING' and row['scope'] == args for row in self.rows.values())
         if 'SELECT response FROM public.conversational_messages' in sql:
             candidates = [row for row in self.rows.values() if row['scope'] == args and row['state'] == 'COMPLETED'
-                and json.loads(row['response']).get('action_taken') == 'QUOTE']
+                and ("response->>'action_taken'='QUOTE'" not in sql or json.loads(row['response']).get('action_taken') == 'QUOTE')]
             return candidates[-1]['response'] if candidates else None
         raise AssertionError(sql)
 
@@ -148,7 +148,7 @@ async def test_deterministic_quote_uses_real_shortlist_order_and_private_choices
     result = main.RatingResponse(request_id=uuid4(), currency='GBP', quoted_at=now,
         expires_at=now + timedelta(minutes=5), partial=False, rates=rates, issues=[])
     with patch('main.get_rates', AsyncMock(return_value=result)) as rate_service:
-        body = message('Quote 4,5kg from GB to GB')
+        body = message('Quote 4,5kg from GB to GB route TEST')
         reply = await gateway.process(context, body)
         assert reply == await gateway.process(context, body)
     rate_service.assert_awaited_once()
@@ -288,11 +288,11 @@ async def test_model_proposal_cannot_authorize_financial_action(fixture):
 @pytest.mark.asyncio
 async def test_model_extraction_is_bounded_and_rejects_invented_reference(fixture):
     context, _, _, _, _ = fixture
-    runtime = SimpleNamespace(run=AsyncMock(return_value=SimpleNamespace(value=ConversationalIntent(intent='TRACK_PACKAGE', target_reference_id='INVENTED'))))
+    runtime = SimpleNamespace(run=AsyncMock(return_value=SimpleNamespace(value=ConversationalIntent(intent='TRACK_PACKAGE', target_reference_id='INVENTED').model_dump_json())))
     with pytest.raises(ValueError):
         await IngestionWorkerAgent(runtime).conversation(context, 'Where is my shipment?')
     runtime.run.assert_awaited_once()
-    assert runtime.run.await_args.kwargs['output_type'] is ConversationalIntent
+    assert len(runtime.run.await_args.kwargs['tools']) == 1
 
 
 def test_decimal_schema_and_twiml_urls():
