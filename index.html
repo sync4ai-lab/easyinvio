@@ -3981,7 +3981,7 @@ function renderEnterpriseTables() {
   const crmLink = t => /^\d+$/.test(String(t.hubspot_company_id || '')) && /^\d+$/.test(String(t.hubspot_portal_id || '')) ?
     `<a href="https://app.hubspot.com/contacts/${t.hubspot_portal_id}/record/0-2/${t.hubspot_company_id}" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1" aria-label="Open HubSpot company timeline"><i data-lucide="external-link"></i><span>HubSpot</span></a>` :
     '<span class="subtle">Not synchronized</span>';
-  $('#tenant-rows').innerHTML = enterprise.tenants.filter(t => JSON.stringify(t).toLowerCase().includes(query)).map(t => `<tr><td><b>${escapeHTML(t.company_name || t.workspace_slug)}</b><p class="subtle">${escapeHTML(t.workspace_type || 'BUSINESS')} &middot; ${escapeHTML(t.billing_email)} · ${escapeHTML(t.workspace_slug)}</p><span class="mono subtle">${escapeHTML(t.tenant_id)}</span></td><td>${escapeHTML(t.billing_plan)}<br>${escapeHTML(t.default_currency)}</td><td><span class="tag green">${escapeHTML(t.workspace_status)}</span></td><td>${t.is_sandbox ? 'SANDBOX' : 'PRODUCTION'}</td><td><button class="secondary" data-client-margins="${escapeHTML(t.tenant_id)}">Pricing rules</button></td><td>${crmLink(t)}</td></tr>`).join('') || '<tr><td colspan="6">No client accounts match this view.</td></tr>';
+  $('#tenant-rows').innerHTML = enterprise.tenants.filter(t => JSON.stringify(t).toLowerCase().includes(query)).map(t => `<tr><td><b>${escapeHTML(t.company_name || t.workspace_slug)}</b><p class="subtle">${escapeHTML(t.workspace_type || 'BUSINESS')} &middot; ${escapeHTML(t.billing_email)} · ${escapeHTML(t.workspace_slug)}</p><span class="mono subtle">${escapeHTML(t.tenant_id)}</span></td><td>${escapeHTML(t.billing_plan)}<br>${escapeHTML(t.default_currency)}</td><td><span class="tag green">${escapeHTML(t.workspace_status)}</span></td><td>${t.is_sandbox ? 'SANDBOX' : 'PRODUCTION'}</td><td><button class="secondary" data-client-margins="${escapeHTML(t.tenant_id)}">Pricing rules</button><p class="subtle">${t.workspace_type === 'INDIVIDUAL' ? 'Personal account budget preference' : t.seller_classification === 'HIGH_VOLUME_COST_SENSITIVE_SELLER' ? 'High-volume cost-sensitive seller' : 'Balanced carrier strategy'}</p><button type="button" class="secondary" data-seller-strategy="${escapeHTML(t.tenant_id)}" ${t.workspace_type === 'INDIVIDUAL' ? 'disabled' : ''}>${t.workspace_type === 'INDIVIDUAL' ? 'Automatic for personal accounts' : t.seller_classification === 'HIGH_VOLUME_COST_SENSITIVE_SELLER' ? 'Use balanced strategy' : 'Prefer budget carriers'}</button></td><td>${crmLink(t)}</td></tr>`).join('') || '<tr><td colspan="6">No client accounts match this view.</td></tr>';
   const filter = $('#margin-tenant-filter').value;
   $('#margin-tenant-filter').innerHTML = tenantOptions(true);
   $('#margin-tenant-filter').value = filter;
@@ -8589,6 +8589,21 @@ clearSession = function() {
   $('#individual-pricing-form').reset();
   personaClearSessionBase.apply(this, arguments);
 };
+$('#tenant-rows').addEventListener('click', event => {
+  const button = event.target.closest('[data-seller-strategy]');
+  if (!button) return;
+  void busy(button, async () => {
+    enterpriseAdminGuard();
+    if (!state.session) throw Error('Sign in as the platform administrator.');
+    const tenant = enterprise.tenants.find(row => row.tenant_id === button.dataset.sellerStrategy);
+    if (!tenant) throw Error('Refresh the client list before changing its strategy.');
+    const classification = tenant.seller_classification === 'HIGH_VOLUME_COST_SENSITIVE_SELLER' ? 'STANDARD' : 'HIGH_VOLUME_COST_SENSITIVE_SELLER';
+    await api('/api/v1/admin/tenants/' + encodeURIComponent(tenant.tenant_id) + '/seller-classification', {
+      auth:true,method:'PATCH',body:{seller_classification:classification}});
+    await loadEnterpriseView('admin-clients');
+    notify('Carrier preference saved and audited. It applies to new optional recommendations.');
+  });
+});
 </script>
 
 </body>

@@ -41,3 +41,6 @@ supabase/.branches/
 htmlcov/
 tmp/pdfs/
 output/pdf/
+
+# Prospect research and unsent campaign drafts stay local.
+output/sme_leads/

@@ -33,7 +33,7 @@ async def audit(connection, actor, tenant_id, action, target_id, snapshot):
 @router.get('/tenants')
 async def tenants(request: Request, owner=owner_dependency, limit: int=Query(200,ge=1,le=500)):
     async with request.app.state.finance.pool.acquire() as c:
-        rows=await c.fetch('''SELECT tenant_id,company_name,workspace_type,workspace_slug,billing_email,billing_plan,
+        rows=await c.fetch('''SELECT tenant_id,company_name,workspace_type,seller_classification,workspace_slug,billing_email,billing_plan,
             default_currency,workspace_status,billing_status,is_sandbox,created_at,
             company_profile->'hubspot'->>'company_id' AS hubspot_company_id,
             company_profile->'hubspot'->>'portal_id' AS hubspot_portal_id
@@ -228,3 +228,24 @@ async def transactions(request: Request, owner=owner_dependency, tenant_id: UUID
             JOIN public.tenants t USING(tenant_id) WHERE ($1::uuid IS NULL OR l.tenant_id=$1)
             ORDER BY l.created_at DESC,l.id DESC LIMIT 200''',tenant_id)
     return {'transactions':[public_record(r) for r in rows],'limit':200}
+
+
+class SellerClassificationUpdate(InputModel):
+    seller_classification: Literal['STANDARD','HIGH_VOLUME_COST_SENSITIVE_SELLER']
+
+
+@router.patch('/tenants/{tenant_id}/seller-classification')
+async def update_seller_classification(tenant_id: UUID, body: SellerClassificationUpdate, request: Request, owner=owner_dependency):
+    try:
+        async with request.app.state.finance.pool.acquire() as connection:
+            async with connection.transaction():
+                old = await connection.fetchrow('SELECT seller_classification FROM public.tenants WHERE tenant_id=$1 FOR UPDATE', tenant_id)
+                if old is None:
+                    raise HTTPException(404, 'Workspace not found')
+                if old['seller_classification'] != body.seller_classification:
+                    await connection.execute('UPDATE public.tenants SET seller_classification=$2 WHERE tenant_id=$1', tenant_id, body.seller_classification)
+                    await audit(connection,owner,tenant_id,'UPDATE_SELLER_CLASSIFICATION',tenant_id,
+                        {'before':old['seller_classification'],'after':body.seller_classification})
+        return {'tenant_id':str(tenant_id),'seller_classification':body.seller_classification}
+    except asyncpg.PostgresError as error:
+        raise database_error(error) from None

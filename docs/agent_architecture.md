@@ -217,3 +217,34 @@ Publish the updated `docs/identity/email_templates/verification_otp.html` in Sup
 The owner dashboard groups shipping totals by tenants.workspace_type and currency, and ticket/account counts by workspace_type. It displays paired Business/Personal bars for package volume, confirmed labels, gross revenue, stored gross margin, period ticket counts and active accounts. Combined currency totals remain compatible with existing widgets. Reports retain their period and sandbox/production filters; currencies are never added together. Shipping margin is stored gross markup, not net profit. Tax assessment remains the existing excluded-tax behavior: persona alone does not establish jurisdiction, registration status or a tax rate, and no new tax collection is introduced.
 
 Validation: 872 tests passed, one skipped, 14 subtests passed; personal registration/cohort and WhatsApp checkout offline browser checks passed. These checks use synthetic providers/database boundaries. A staging migration, real SMTP verification, payment and carrier/insurance acceptance remain separate operational checks.
+
+
+## Budget carrier strategy and company-level prospect research (migration 041)
+
+Apply `migrations/041_budget_seller_strategy.sql` after 040 before restarting this version. The migration was not executed by implementation checks. It adds the server-owned tenant `seller_classification` flag, extends the existing admin audit action allowlist, and protects both seller_classification and workspace_type from browser database updates. Platform administrators explicitly select Prefer budget carriers in Client Accounts; an authenticated owner-only PATCH endpoint locks the tenant row and audits old/new classifications in the same transaction. Classification is a commercial account preference, not an inferred nationality, demographic attribute or proof of shipment volume. Individual accounts already qualify without a business flag.
+
+Worker 3 lives in `backend/agents/margin_optimizer.py`. The finalized top-ten offers, prices, currencies, order and private booking references remain deterministic. Within the existing 1.5-second optional layer, the worker reads the verified tenant's persona/classification and gives the model the complete shortlist and bounded account strategy. For INDIVIDUAL or HIGH_VOLUME_COST_SENSITIVE_SELLER accounts, code identifies the cheapest available Evri/Royal Mail/Yodel offer satisfying the budget constraints. It must have no active exception or HIGH_DELAY_ALERT, be no more expensive than available non-budget choices, and be at most two estimated days slower than the fastest available non-budget choice. Missing budget delivery estimates do not establish the two-day allowance when enterprise estimates exist. Unknown history is never described as proven reliability. Mixed currencies cannot produce a budget preference.
+
+After a valid model response, deterministic code enforces the eligible preferred index and applies exactly one `EasyInvio Budget Choice` badge. Otherwise normal balanced selection continues. No actual budget carrier returned means no invented budget option. AI disabled, profile lookup failure, model failure or timeout retains the original priced shortlist without adding a badge; existing background troubleshooting persistence is retained. Carrier contracts and route availability remain prerequisites. No preference reorders offers, changes a price, purchases a label or moves wallet credit.
+
+`backend/tools/sme_lead_scraper.py` is a manually invoked research utility, separate from application startup. It uses Companies House's official advanced search API with active-company, location and SIC filters. Defaults are TW6 (Heathrow) and M90 (Manchester Airport), with e-commerce, wholesale and warehousing SIC categories. Local checks enforce exact outward postcode districts, active status and intersecting SIC codes; company-number de-duplication and source URLs preserve provenance. Pagination limits and truncation are explicit. Calls are sequential, at least one second apart, with request budgets, timeouts, bounded backoff and Retry-After handling. API errors produce no completed export. Existing reports require explicit --overwrite.
+
+Set `COMPANIES_HOUSE_API_KEY` in your environment or in a private env file. For example:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.tools.sme_lead_scraper --env-file .env --output output/sme_leads/prospects.json
+```
+
+The JSON contains company-level leads, search completeness information and unsent email drafts. Registered offices do not prove an operating warehouse, SME size, shipping volume or trading corridor. The tool does not request officers, founders, ethnicity, nationality or personal email addresses. To focus on China/India trading corridors, supply explicit company-level public declarations for review:
+
+```text
+company_number,trade_country,evidence_url,storefront_type
+```
+
+Use eight-character company numbers (including leading zeros), trade_country CN or IN, a public HTTPS evidence page, and the company's declared storefront category. Run with `--corridor-evidence path/to/reviewed-company-evidence.csv --require-corridor-evidence` to retain only companies with supplied corridor evidence. Evidence is labelled SUPPLIED_FOR_MANUAL_REVIEW; a URL alone is not independently verified proof. No website crawling or inferred personal-nationality targeting occurs. Without evidence, the result remains a general hub/sector prospect list requiring qualification.
+
+Outreach is company-team-addressed draft text, with no discovered recipient and no sending code. It avoids the unsupported 14-percent margin-loss statistic, unconditional carrier/fee claims and promises of live credit. The proposed fifty-pound demo is explicitly illustrative simulated credit subject to demo setup, not an automatic allocation, withdrawable funds or live-label spending power. No company emails, wallets or account records are modified. Exports under output/sme_leads are ignored by Git.
+
+Sources: [Companies House advanced search](https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference/search/advanced-company-search), [API authentication](https://developer.company-information.service.gov.uk/authentication), [rate limits](https://developer.company-information.service.gov.uk/developer-guidelines), [official SIC list](https://resources.companieshouse.gov.uk/sic/).
+
+Validation: 883 tests passed, one skipped and 14 subtests passed. The offline admin-control/budget-badge browser scenario passed. Discovery tests use synthetic Companies House replies; no real company export, outreach, wallet credit, live booking or migration was performed.

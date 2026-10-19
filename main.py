@@ -1917,7 +1917,7 @@ async def deterministic_lifespan(application: FastAPI):
                         raise RuntimeError(f"Required migration table is missing: public.{table}")
                 if settings.stripe_enabled and await connection.fetchval("SELECT to_regclass('public.payment_carts')") is None:
                     raise RuntimeError('Apply migration 030_card_checkout.sql before enabling card checkout')
-                await connection.execute("SELECT is_sandbox,workspace_type FROM public.tenants LIMIT 0")
+                await connection.execute("SELECT is_sandbox,workspace_type,seller_classification FROM public.tenants LIMIT 0")
                 await connection.execute("SELECT is_sandbox,sandbox_test_token,stripe_payment_intent_id FROM public.wallet_topups LIMIT 0")
                 await connection.execute("SELECT stripe_payment_intent_id FROM public.wallet_ledger LIMIT 0")
                 await connection.execute("SELECT proof_of_delivery_url FROM public.shipments LIMIT 0")

@@ -11,7 +11,8 @@ from fastapi import HTTPException
 from main import ClientRate,RatingResponse
 from backend.agents.config import AgentSettings
 from backend.agents.runtime import AgentRuntime,ModelResult
-from backend.agents.margin_optimizer import MarginOptimizerAgent,StrategicChoice
+from backend.agents.margin_optimizer import MarginOptimizerAgent,StrategicChoice,budget_candidate,BUDGET_BADGE
+from contextlib import asynccontextmanager
 from backend.carrier_consolidation import consolidate_rates
 
 
@@ -117,6 +118,48 @@ class OptimizerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.worker.pending),1)
         gate.set();await self.worker.close()
         self.worker.persist_failure.assert_awaited_once()
+
+
+    async def test_personal_budget_preference_is_enforced_without_changing_finances(self):
+        class Pool:
+            @asynccontextmanager
+            async def acquire(inner):
+                yield SimpleNamespace(fetchrow=AsyncMock(return_value={'workspace_type':'INDIVIDUAL','seller_classification':'STANDARD'}))
+        original=response([rate('Evri','4.50','3.00'),rate('Royal Mail','5.00','3.50'),rate('DHL','12.30','10.00')])
+        original.rates[0].delivery_days=4
+        original.rates[2].delivery_days=2
+        self.runtime.run=AsyncMock(return_value=ModelResult(StrategicChoice(selected_index=2,basis='BALANCED'),20,10,0))
+        result=await self.worker.recommend(self.context,original,Pool())
+        self.assertEqual(result.rates[0].recommendation_badge,BUDGET_BADGE)
+        self.assertEqual(sum(bool(item.recommendation_badge) for item in result.rates),1)
+        self.assertEqual(self.runtime.run.call_args.args[3]['account_strategy']['preferred_budget_index'],0)
+        for before,after in zip(original.rates,result.rates):
+            self.assertEqual(before.model_dump(exclude={'recommendation_badge'}),after.model_dump(exclude={'recommendation_badge'}))
+
+    def test_budget_policy_respects_price_delay_bookability_and_exceptions(self):
+        profile={'workspace_type':'BUSINESS','seller_classification':'HIGH_VOLUME_COST_SENSITIVE_SELLER'}
+        budget=rate('Royal_Mail','4.00','3.00')
+        enterprise=rate('DHL','10.00','8.00')
+        enterprise.delivery_days=1
+        budget.delivery_days=3
+        self.assertEqual(budget_candidate([budget,enterprise],profile),0)
+        self.assertIsNone(budget_candidate([budget,enterprise],{}))
+        for changes in ({'delivery_days':4},{'delivery_days':None},{'active_exceptions':1},
+                        {'route_risk_level':'HIGH_DELAY_ALERT'},{'label_purchase_available':False},
+                        {'client_price_ex_tax':Decimal('11.00')},{'currency':'EUR'}):
+            self.assertIsNone(budget_candidate([budget.model_copy(update=changes),enterprise],profile))
+        self.assertIsNone(budget_candidate([rate('NOTEVRI','3.00','2.00'),enterprise],profile))
+
+    async def test_profile_failure_preserves_unbadged_deterministic_rates(self):
+        class Pool:
+            @asynccontextmanager
+            async def acquire(inner):
+                yield SimpleNamespace(fetchrow=AsyncMock(side_effect=OSError('unavailable')))
+        self.worker.queue_failure=lambda *args:None
+        self.runtime.run=AsyncMock()
+        original=response(self.rates)
+        self.assertIs(await self.worker.recommend(self.context,original,Pool()),original)
+        self.runtime.run.assert_not_awaited()
 
 
 class ColdSelectionTests(unittest.TestCase):
