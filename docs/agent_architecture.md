@@ -1,5 +1,7 @@
 # EasyInvio bounded logistics assistance
 
+For the current consolidated reference, use the [agent manual](platform_overview/agent_reference.md) and [searchable application manual](platform_overview/overview.html). They include persona-aware onboarding/pricing, every current worker contract and TRIGGER_RETURN/headless returns through migration 042. Implementation notes and historical validation results below retain their original scope.
+
 The supervisor coordinates narrow workers around existing services. It is an application state machine, not a model deciding who may spend money. Optional preparation and rate badges do not change FinanceEngine or RLS contexts. The separate Settings catalogs use migration 036. Conversational actions require private receipt migration 038, applied after 037. Standard workflows remain available with AI disabled.
 
 ## Capabilities and boundaries

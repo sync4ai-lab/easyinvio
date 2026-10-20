@@ -1,0 +1,20 @@
+%% Same logical nodes/edges as the SVG; detailed contracts are in the manual.
+flowchart TB
+    input["Return command ingress<br/>Authenticated API/UI/chat<br/>Or enabled timestamp/HMAC gateway"]
+    receipt["Durable original-parent fence<br/>Tenant; actor; source; input digest<br/>One full-parcel return; replay observes"]
+    parent["Original and warehouse<br/>Original customer becomes origin<br/>Active RETURN address/version is checked"]
+    rate["Fresh return comparison<br/>Current approved connections<br/>Lowest exact price; budget wins ties"]
+    payer["Charge bearer<br/>Retailer: native workspace billing<br/>Customer: owner/admin Stripe link"]
+    book["Native booking lifecycle<br/>No label before verified customer pay<br/>Existing locks and financial settlement"]
+    qr["Confirmed drop-off document<br/>Sendcloud labelless / USPS form<br/>Real provider asset; scoped share link"]
+    print["Printable fallback<br/>No universal QR or location promise<br/>Selected carrier eligible locations"]
+    status["Observe and synchronize<br/>Status / GET recovery; no repurchase<br/>Separate store return tracking"]
+    input --> receipt
+    receipt --> parent
+    parent --> rate
+    rate --> payer
+    payer --> book
+    book --> qr
+    book --> print
+    qr --> status
+    print --> status

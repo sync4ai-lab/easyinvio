@@ -1,0 +1,89 @@
+# Integrations and capability boundaries
+
+This catalog separates SDK versions, API contracts and deployment activation. Local package versions are in [versions.json](versions.json); carrier/service availability is a property of the connected account, contract, route, dimensions, goods and environment. A quote is not a guarantee that the same connection may purchase a label.
+
+## Carriers and aggregators
+
+| Integration | Implemented path | Activation and limits |
+| --- | --- | --- |
+| EasyPost | Native quote/shipment/order lifecycle, selected-rate buy, retrieve/refund, tracking/forms, measured parcel/multi-piece and reviewed customs mapping; native returns | Canonical `https://api.easypost.com/v2`, account credentials and verified remote test/production mode; return shipment/rate must be freshly quoted |
+| Sendcloud v3 | Dynamic shipping-option prices, native shipment/return announcement and document retrieval, cancellation request/status, supported customs/order workflows | Canonical `https://panel.sendcloud.sc/api/v3`, public/secret credentials, real contract/option eligibility; ordinary TEST mode cannot purchase billable labels |
+| Sendcloud legacy pricing | Existing configured v2 method/limit price path | A compatibility path, not the preferred contract for new integrations; method limits/prices are not invented |
+| Shippo | Native token-authenticated quotes, transactions, retrieved label status/refunds and supported returns/customs | Canonical configured endpoint and correct test/live token; native return carrier allowlist and cargo limits apply |
+| Regional connections | Existing validated configurable regional rate strategy/registry | No generic assumption of purchase, industrial freight, letter, return or document support without its registered native adapter |
+
+The registry reports capabilities, but the exact provider response and environment still determine bookability. Native parcel adapters do not establish universal road, sea, pallet or oversized freight booking. A manual freight/parcel help request preserves measurements and opens a support workflow instead of inventing a wholesale tariff.
+
+### Paperless returns
+
+Sendcloud rate discovery retains `functionalities.labelless`. A requested paperless return uses `delivery_option=drop_off_labelless` only when the chosen option explicitly supports it. Returned delivery option and actual document determine paperless availability. Printable services remain printable; a carrier QR or labelless label is not synthesized from a tracking URL.
+
+EasyPost USPS Label Broker requires an enabled USPS Returns program. After confirmed purchase, the integration requests `/shipments/{id}/forms` with `form.type=label_qr_code`. This is not a universal `generate_qr_code=true` option. The optional POST is durably fenced; a timeout preserves the purchased label and later GET can retrieve the appended form. FedEx/Canada Post/other QR programs are not automatically implemented by the USPS path.
+
+Shippo and other unsupported QR programs retain printable fallback. A paperless document can only be used at eligible locations for the selected service; it is not an assurance that every post office or depot will accept it.
+
+## Storefronts and marketplaces
+
+Store configuration lives in tenant-bound encrypted workspace connection envelopes, with legacy server connector settings as a compatibility source. Public settings reveal capability/configuration presence rather than private keys. Credentials, seller authorization, live import/delivery/return flags and active operator membership are independent controls.
+
+| Channel | Intake/sync | Signature or authorization | Specific boundary |
+| --- | --- | --- | --- |
+| Shopify | Signed order create/paid webhooks, supported read-only order retrieval, opt-in native fulfillment and reverse-delivery tracking | Shopify HMAC over exact request body plus canonical shop-domain/topic checks; stored access/app credentials | Return tracking requires a verified ReverseFulfillmentOrder reference and correct quantities; a return must not fulfill the outbound order |
+| WooCommerce | Signed supported order webhook normalization and verified SKU weight lookup | WooCommerce body HMAC/topic checks | No universal native return/RMA/refund lifecycle is inferred |
+| Amazon | Signed normalized gateway plus implemented authorized seller notification/order intake using configured marketplaces/region/credentials | Gateway HMAC/timestamp or the explicit native seller intake contract | An arbitrary JSON notification is not proof of SP-API authorization; no universal Amazon return approval is supplied |
+| Manual/CSV | Reviewed orders, source references, row-level errors, measured packages | Workspace JWT/role and schema checks | Import/quote creates no booking; ambiguity is returned for review |
+| Normalized reverse gateway | Same ReturnCommand array for merchant and marketplace backends | Enabled `live_returns`, active configured dispatch member, per-store HMAC/timestamp | This is an explicit reviewed return command contract, not an automatic refund-to-label conversion |
+
+The normalized return endpoint is `/api/v1/integration/return-webhooks/{store_id}`. Its signing bytes are `timestamp + '.' + store_id + '.' + exact_body`, using UTF-8 and the saved webhook secret with HMAC-SHA256 hex output. Headers are X-EasyInvio-Timestamp and X-EasyInvio-Return-Signature; timestamps expire after five minutes. Each body is a bounded array of stable request IDs. Customer-paid checkout requires the configured real role OWNER/ADMIN.
+
+Outgoing store tracking uses durable outboxes. Return quantity/reference and return lifecycle are preserved; unsupported delivery updates remain held for review. Native marketplace return approval, merchant refunds, restocking and exchanges are separate product capabilities.
+
+## Stripe payments
+
+`FinanceEngine`, `payment_gateway.py` and `card_checkout.py` use Stripe Checkout and verified snapshots/webhooks for wallet funding and exact selected-offer card baskets. STRIPE_ENABLED, secret/webhook keys, livemode, return URLs and the existing database/payment mode checks control activation. The SDK version and configured Stripe event/API behavior are different facts; event payload variants are handled by the existing snapshot reconciliation contract.
+
+A client popup or redirect is only navigation. Verified payment precedes credit and eligible label purchasing. Check the cart/top-up receipt before retrying. TEST/LIVE mismatches, wrong amounts/currency and uncertain provider outcomes remain blocked/reviewable. Customer-paid returns use a Stripe link, not a silent debit to the retailer wallet.
+
+## Twilio and conversational ingress
+
+Twilio posts to `/api/v1/integrations/whatsapp/webhook`. RequestValidator verifies the signature against the exact configured public URL, account and request values. `TWILIO_WEBHOOK_URL` includes that endpoint; `BOOKING_PAGE_URL` is the separate dashboard origin for handoff links. An ngrok localhost inspection URL is not the public forwarding URL.
+
+Registered senders resolve through active WhatsApp bindings and real tenant membership. Unregistered senders can enter opt-in persona-aware onboarding when enabled. Stable MessageSid-derived receipts avoid duplicate delivery. TwiML response text is chunked below the messaging limit without splitting links; UI chat returns JSON. Twilio’s bounded webhook deadline means a timeout can leave a durable uncertain action, which must be checked in the workspace rather than blindly resubmitted.
+
+Outbound support WhatsApp delivery is independently gated by SUPPORT_WHATSAPP_ENABLED, verified recipient/consent and either the supported recent inbound service window or approved template Content SID. Returning TwiML to a user’s inbound message does not authorize unsolicited outreach campaigns.
+
+## Supabase Auth and SendGrid
+
+The application calls Supabase Auth’s OTP, verify, password/session and recovery endpoints. The project’s Auth SMTP configuration relays email through SendGrid with the approved sender (the configured operational setup uses operations@easyinvio.com). SMTP server credentials and sender/template configuration belong in Supabase Auth/secret management, not in a second local OTP generator or browser script.
+
+Use the maintained verification and reset templates in `docs/identity/email_templates`. Email OTP length is accepted from six to ten digits; the separate application WhatsApp code is six digits. Email delivery acceptance is not proof of inbox delivery. Unverified identities can exist temporarily in Auth while the workspace remains unprovisioned; email collision/reuse handling must preserve identity ownership, not delete/claim an arbitrary Auth account.
+
+Recovery redirects must be allowlisted and point to the deployed SPA route that understands the fragment/token contract. `localhost:3000` only works if that user’s computer is serving the app there. A safe local configured origin is the actual Uvicorn/dashboard address, not a port guessed from another framework.
+
+## UK tariff search and customs
+
+`customer_checkout.search_tariff` calls the UK Integrated Online Tariff search at `https://www.trade-tariff.service.gov.uk/api/v2/search`, returns normalized official candidates/source URLs and asks clarification for ambiguous goods. Product classification lookup reuses it. Optional AI ranking is constrained to returned candidates; the separate local curated dictionary is not an official worldwide HS database. Destination requirements and final classification remain reviewed shipment facts.
+
+## XCover and XClaim
+
+`shipment_protection.py` separates a deterministic price estimate from provider quote/policy booking. XCOVER_ENABLED, TEST/LIVE environment, real partner/API/signing credentials, verified parcel contract and verified retail pricing must be ready before protection is available. Supported territory, product, currency, goods and timing come from the contracted program, not marketing copy.
+
+`xcover_claims.py` uses separate XClaim program credentials and token/signature handling. It supports configured first-notice-of-loss mapping, evidence upload, creation, GET reconciliation/webhook intake and settlement-source validation. FNOL/settlement mappings must match partner-authoritative fields; unknown fields are not guessed. An approved claim status alone is not proof that the master account received settlement. Wallet payout uses verified payment/currency/reference/payee/receipt/time and an idempotent credit path.
+
+Conversation intake records CLAIM_INGESTED plus an OPEN support ticket after policy/role checks and sends the authenticated evidence-panel link. It does not directly authorize insurer submission or issue money.
+
+## HubSpot CRM
+
+Configured HubSpot integration supports verified account/portal checks, durable CRM synchronization, selected activation/metrics and signed Closed Won provisioning workflows. Private access tokens are account credentials, not intrinsically sandbox keys. HUBSPOT_ENVIRONMENT and expected portal must match the approved account; provisioning additionally requires the app subscription, secret/app identity, exact public URL and selected stage mapping.
+
+Optional upsell stages/pipeline settings do not permit invented deals or promises of customer savings. HubSpot startup/configuration failure can disable optional CRM without granting an alternate onboarding permission. Inspect the CRM outbox before replaying any mutation.
+
+## Companies House research
+
+`backend/tools/sme_lead_scraper.py` is manually invoked, outside the application request lifecycle. It queries the official public-data API with active-company, outward postcode district and SIC filters; default hubs are TW6 and M90. It applies de-duplication, bounded pagination/request pacing and explicit truncation reporting.
+
+COMPANIES_HOUSE_API_KEY authenticates that optional research, not shipping or signup. Exports are company-level candidates requiring review. A registered office does not prove an operating warehouse, volume, SME size or trade corridor. China/India corridor evidence must be supplied as explicit company-level declarations for review, not inferred personal nationality. The utility produces unsent drafts with recipient unset, messages_sent=0 and wallet_changes=0; a proposed demo balance is illustrative, not live funds. Do not commit its real prospect exports.
+
+## Contract references
+
+The source modules retain the implemented API contracts. External contract changes require fresh verification before updating adapters: [EasyPost forms](https://docs.easypost.com/docs/shipments/forms), [USPS Label Broker](https://support.easypost.com/hc/en-us/articles/4410441700493-Generate-USPS-Label-Broker-QR-Codes), [Sendcloud returns](https://sendcloud.dev/docs/returns), [Companies House API](https://developer.company-information.service.gov.uk/), [Supabase Auth](https://supabase.com/docs/guides/auth). These links are references, not a statement that every external service/version was live-tested during documentation generation.

@@ -1,0 +1,551 @@
+{
+  "technical_architecture": [
+    "Technical architecture",
+    "Logical services in one FastAPI application; provider commits are independent of SQL.",
+    [
+      [
+        "clients",
+        "Web and messaging",
+        "SPA; WhatsApp; merchant gateways|Role-aware forms and conversations"
+      ],
+      [
+        "auth",
+        "Identity and ingress",
+        "Auth/JWT; memberships; signatures|Tenant binding; audited assistance"
+      ],
+      [
+        "api",
+        "FastAPI application",
+        "Routers; lifespan; shared clients|Pydantic validation; async pools"
+      ],
+      [
+        "ai",
+        "Optional AI layer",
+        "Supervisor; typed workers; budgets|Grounded advice; no wallet authority"
+      ],
+      [
+        "domain",
+        "Native domain services",
+        "Rating; booking; finance; returns|Customs; claims; dispatch; tracking"
+      ],
+      [
+        "external",
+        "External integrations",
+        "Carriers; Stripe; Auth/SMTP; Twilio|Stores; insurer; CRM; tariff; OpenAI"
+      ],
+      [
+        "help",
+        "Published help corpus",
+        "Versioned guide chunks and citations|Lexical / local 256D vector retrieval"
+      ],
+      [
+        "db",
+        "Supabase PostgreSQL",
+        "Tenant predicates; RLS; row locks|Snapshots; ledger; receipts; audit"
+      ],
+      [
+        "jobs",
+        "Operational workers",
+        "SQL outboxes; polling; realtime|Submitted outcomes and reconciliation"
+      ]
+    ],
+    [
+      [
+        "clients",
+        "auth"
+      ],
+      [
+        "auth",
+        "api"
+      ],
+      [
+        "api",
+        "domain"
+      ],
+      [
+        "ai",
+        "domain"
+      ],
+      [
+        "ai",
+        "help"
+      ],
+      [
+        "domain",
+        "external"
+      ],
+      [
+        "domain",
+        "db"
+      ],
+      [
+        "db",
+        "jobs"
+      ],
+      [
+        "jobs",
+        "external"
+      ]
+    ]
+  ],
+  "functional_architecture": [
+    "Functional architecture",
+    "Business and individual workspaces share one shipping and financial lifecycle.",
+    [
+      [
+        "join",
+        "01 Register and verify",
+        "Business or personal profile|Website / WhatsApp identity proof"
+      ],
+      [
+        "setup",
+        "02 Configure workspace",
+        "Team; addresses; contacts; products|Return warehouse; carrier access"
+      ],
+      [
+        "intake",
+        "03 Bring in orders",
+        "Manual; CSV; stores; marketplace|References and actionable row errors"
+      ],
+      [
+        "prepare",
+        "04 Prepare real shipment",
+        "Measured boxes; goods allocation|Real addresses; customs review"
+      ],
+      [
+        "rate",
+        "05 Compare eligible rates",
+        "Business rules or individual markup|Deterministic top ten; optional badge"
+      ],
+      [
+        "select",
+        "06 Confirm selected offer",
+        "Price; expiry; role; connection|No model authorizes purchase"
+      ],
+      [
+        "pay",
+        "07 Arrange payment",
+        "Workspace reservation or Stripe|Verified events; exact total/currency"
+      ],
+      [
+        "book",
+        "08 Buy and document",
+        "Native label confirmation; capture|PDF/forms; unknown outcomes retained"
+      ],
+      [
+        "track",
+        "09 Track and synchronize",
+        "Milestones; exceptions; eligible POD|Store and support outboxes"
+      ],
+      [
+        "returns",
+        "10 Return full parcel",
+        "Return warehouse; fresh quote|Retailer/customer pay; real QR or print"
+      ],
+      [
+        "resolve",
+        "11 Resolve and reconcile",
+        "Invoice disputes; eligible claims|Evidence; verified settlement"
+      ],
+      [
+        "operate",
+        "12 Operate platform",
+        "Cohort reports; margins; support|Audited client assistance"
+      ]
+    ],
+    [
+      [
+        "join",
+        "setup"
+      ],
+      [
+        "setup",
+        "intake"
+      ],
+      [
+        "intake",
+        "prepare"
+      ],
+      [
+        "prepare",
+        "rate"
+      ],
+      [
+        "rate",
+        "select"
+      ],
+      [
+        "select",
+        "pay"
+      ],
+      [
+        "pay",
+        "book"
+      ],
+      [
+        "book",
+        "track"
+      ],
+      [
+        "track",
+        "returns"
+      ],
+      [
+        "track",
+        "resolve"
+      ],
+      [
+        "track",
+        "operate"
+      ]
+    ]
+  ],
+  "agent_architecture": [
+    "Agent responsibilities",
+    "Typed optional model output proposes facts or advice; native code owns actions.",
+    [
+      [
+        "channels",
+        "Authenticated channels",
+        "Web chat; signed WhatsApp|Real user context; stable message IDs"
+      ],
+      [
+        "gateway",
+        "Conversational gateway",
+        "Typed intents; private turn drafts|Explicit action grammar; role checks"
+      ],
+      [
+        "native",
+        "Native action services",
+        "Quote; book; track; top-up|Claim intake; full-parcel return"
+      ],
+      [
+        "ingest",
+        "Worker 1 Ingestion",
+        "Quote/conversation facts; CSV headers|No invented facts, identifiers or units"
+      ],
+      [
+        "supervisor",
+        "LogisticsSupervisor",
+        "Workflow state; bounded delegation|Runtime: one turn; strict outputs"
+      ],
+      [
+        "customs",
+        "Worker 2 Customs",
+        "Reviewed catalog / supplied candidates|Official tariff ranker; human review"
+      ],
+      [
+        "rag",
+        "HelpRetriever",
+        "Published guide retrieval / citations|Lexical fallback; optional embeddings"
+      ],
+      [
+        "margin",
+        "Worker 3 Margin optimizer",
+        "Immutable priced shortlist|Budget eligibility; optional badge"
+      ],
+      [
+        "delegates",
+        "Workers 4 and 5",
+        "Exact invoice audit; native support|Deterministic delegates; no LLM call"
+      ]
+    ],
+    [
+      [
+        "channels",
+        "gateway"
+      ],
+      [
+        "gateway",
+        "native"
+      ],
+      [
+        "gateway",
+        "supervisor"
+      ],
+      [
+        "supervisor",
+        "ingest"
+      ],
+      [
+        "supervisor",
+        "customs"
+      ],
+      [
+        "supervisor",
+        "rag"
+      ],
+      [
+        "supervisor",
+        "margin"
+      ],
+      [
+        "supervisor",
+        "delegates"
+      ]
+    ]
+  ],
+  "booking_lifecycle": [
+    "Booking and financial outcomes",
+    "A reserved hold, submitted mutation, captured charge and refund are distinct.",
+    [
+      [
+        "offer",
+        "Selected prepared offer",
+        "Tenant; role; goods; exact total|Current expiry and connection snapshot"
+      ],
+      [
+        "check",
+        "Validate environment",
+        "Approved connection; test/live mode|Ready customs; bookability; funding"
+      ],
+      [
+        "lock",
+        "Fence concurrent work",
+        "Advisory lock and idempotency key|Immutable selected price snapshot"
+      ],
+      [
+        "reserve",
+        "Reserve workspace funds",
+        "Wallet/billing row lock|Atomic reservation and ledger state"
+      ],
+      [
+        "submit",
+        "Commit submitted state",
+        "Write-ahead mutation fence|Never blindly duplicate a purchase"
+      ],
+      [
+        "provider",
+        "Native carrier purchase",
+        "Buy once; retain provider reference|Later retrieval uses GET only"
+      ],
+      [
+        "success",
+        "Confirmed success",
+        "Persist label/tracking; capture once|Queue appropriate store tracking"
+      ],
+      [
+        "reject",
+        "Definitive rejection",
+        "Native financial release|New quote before a new purchase"
+      ],
+      [
+        "unknown",
+        "Unknown or interrupted",
+        "Retain reserved credit/reference|GET/poll/review; no blind retry"
+      ]
+    ],
+    [
+      [
+        "offer",
+        "check"
+      ],
+      [
+        "check",
+        "lock"
+      ],
+      [
+        "lock",
+        "reserve"
+      ],
+      [
+        "reserve",
+        "submit"
+      ],
+      [
+        "submit",
+        "provider"
+      ],
+      [
+        "provider",
+        "success"
+      ],
+      [
+        "provider",
+        "reject"
+      ],
+      [
+        "provider",
+        "unknown"
+      ]
+    ]
+  ],
+  "returns_lifecycle": [
+    "Headless reverse logistics",
+    "One return controller retains original shipment, tenant and store identity.",
+    [
+      [
+        "input",
+        "Return command ingress",
+        "Authenticated API/UI/chat|Or enabled timestamp/HMAC gateway"
+      ],
+      [
+        "receipt",
+        "Durable original-parent fence",
+        "Tenant; actor; source; input digest|One full-parcel return; replay observes"
+      ],
+      [
+        "parent",
+        "Original and warehouse",
+        "Original customer becomes origin|Active RETURN address/version is checked"
+      ],
+      [
+        "rate",
+        "Fresh return comparison",
+        "Current approved connections|Lowest exact price; budget wins ties"
+      ],
+      [
+        "payer",
+        "Charge bearer",
+        "Retailer: native workspace billing|Customer: owner/admin Stripe link"
+      ],
+      [
+        "book",
+        "Native booking lifecycle",
+        "No label before verified customer pay|Existing locks and financial settlement"
+      ],
+      [
+        "qr",
+        "Confirmed drop-off document",
+        "Sendcloud labelless / USPS form|Real provider asset; scoped share link"
+      ],
+      [
+        "print",
+        "Printable fallback",
+        "No universal QR or location promise|Selected carrier eligible locations"
+      ],
+      [
+        "status",
+        "Observe and synchronize",
+        "Status / GET recovery; no repurchase|Separate store return tracking"
+      ]
+    ],
+    [
+      [
+        "input",
+        "receipt"
+      ],
+      [
+        "receipt",
+        "parent"
+      ],
+      [
+        "parent",
+        "rate"
+      ],
+      [
+        "rate",
+        "payer"
+      ],
+      [
+        "payer",
+        "book"
+      ],
+      [
+        "book",
+        "qr"
+      ],
+      [
+        "book",
+        "print"
+      ],
+      [
+        "qr",
+        "status"
+      ],
+      [
+        "print",
+        "status"
+      ]
+    ]
+  ],
+  "onboarding_lifecycle": [
+    "Conversational onboarding",
+    "Deterministic state machine; identity proof precedes workspace activation.",
+    [
+      [
+        "ingress",
+        "Signed inbound greeting",
+        "Unbound sender opts into signup|Scoped receipt and delivery fence"
+      ],
+      [
+        "persona",
+        "Choose account persona",
+        "Business or Individual|Server-owned workspace_type"
+      ],
+      [
+        "business",
+        "Business company/profile",
+        "Company and registration number|Required business profile facts"
+      ],
+      [
+        "individual",
+        "Individual email path",
+        "Skip corporate metadata|Personal name after proof"
+      ],
+      [
+        "email",
+        "Collect valid email",
+        "Identity collision checks|Supabase issues email OTP"
+      ],
+      [
+        "phone",
+        "Separate phone challenge",
+        "Six-digit code stored as HMAC|Expiry; resend and attempt budget"
+      ],
+      [
+        "verify",
+        "Verify two proofs",
+        "EMAIL_CODE then PHONE_CODE in chat|Email accepts 6-10 digits; phone six"
+      ],
+      [
+        "provision",
+        "Finalize workspace",
+        "Auth binding plus SQL transaction|Tenant; OWNER; zero GBP wallet"
+      ],
+      [
+        "desktop",
+        "Desktop password setup",
+        "Auth single-use recovery email|Allowlisted app origin; normal login"
+      ]
+    ],
+    [
+      [
+        "ingress",
+        "persona"
+      ],
+      [
+        "persona",
+        "business"
+      ],
+      [
+        "persona",
+        "individual"
+      ],
+      [
+        "business",
+        "email"
+      ],
+      [
+        "individual",
+        "email"
+      ],
+      [
+        "email",
+        "phone"
+      ],
+      [
+        "phone",
+        "verify"
+      ],
+      [
+        "verify",
+        "provision"
+      ],
+      [
+        "provision",
+        "desktop"
+      ]
+    ]
+  ]
+}

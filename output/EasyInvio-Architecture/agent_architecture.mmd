@@ -1,0 +1,19 @@
+%% Same logical nodes/edges as the SVG; detailed contracts are in the manual.
+flowchart TB
+    channels["Authenticated channels<br/>Web chat; signed WhatsApp<br/>Real user context; stable message IDs"]
+    gateway["Conversational gateway<br/>Typed intents; private turn drafts<br/>Explicit action grammar; role checks"]
+    native["Native action services<br/>Quote; book; track; top-up<br/>Claim intake; full-parcel return"]
+    ingest["Worker 1 Ingestion<br/>Quote/conversation facts; CSV headers<br/>No invented facts, identifiers or units"]
+    supervisor["LogisticsSupervisor<br/>Workflow state; bounded delegation<br/>Runtime: one turn; strict outputs"]
+    customs["Worker 2 Customs<br/>Reviewed catalog / supplied candidates<br/>Official tariff ranker; human review"]
+    rag["HelpRetriever<br/>Published guide retrieval / citations<br/>Lexical fallback; optional embeddings"]
+    margin["Worker 3 Margin optimizer<br/>Immutable priced shortlist<br/>Budget eligibility; optional badge"]
+    delegates["Workers 4 and 5<br/>Exact invoice audit; native support<br/>Deterministic delegates; no LLM call"]
+    channels --> gateway
+    gateway --> native
+    gateway --> supervisor
+    supervisor --> ingest
+    supervisor --> customs
+    supervisor --> rag
+    supervisor --> margin
+    supervisor --> delegates

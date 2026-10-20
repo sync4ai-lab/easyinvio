@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1134" viewBox="0 0 1500 1134" role="img">
+<title>Headless reverse logistics</title><desc>One return controller retains original shipment, tenant and store identity.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#64748b"/></marker></defs>
+<rect width="1500" height="1134" fill="#f8fafc"/>
+<text x="48" y="65" style="font:700 34px Arial,sans-serif;fill:#0f172a">EasyInvio | Headless reverse logistics</text>
+<text x="48" y="105" style="font:19px Arial,sans-serif;fill:#475569">One return controller retains original shipment, tenant and store identity.</text>
+<path d="M488 270L526 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 270L1004 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 380L268 438" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M488 548L526 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 548L1004 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 658L268 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 658L746 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M488 826L1004 826" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 826L1004 826" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<g data-node="input"><rect x="48" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Return command ingress</text>
+<text x="70" y="238" style="font:18px Arial,sans-serif;fill:#334155">Authenticated API/UI/chat</text>
+<text x="70" y="262" style="font:18px Arial,sans-serif;fill:#334155">Or enabled timestamp/HMAC gateway</text>
+</g>
+<g data-node="receipt"><rect x="526" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="160" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Durable original-parent fence</text>
+<text x="548" y="238" style="font:18px Arial,sans-serif;fill:#334155">Tenant; actor; source; input digest</text>
+<text x="548" y="262" style="font:18px Arial,sans-serif;fill:#334155">One full-parcel return; replay observes</text>
+</g>
+<g data-node="parent"><rect x="1004" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Original and warehouse</text>
+<text x="1026" y="238" style="font:18px Arial,sans-serif;fill:#334155">Original customer becomes origin</text>
+<text x="1026" y="262" style="font:18px Arial,sans-serif;fill:#334155">Active RETURN address/version is checked</text>
+</g>
+<g data-node="rate"><rect x="48" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Fresh return comparison</text>
+<text x="70" y="516" style="font:18px Arial,sans-serif;fill:#334155">Current approved connections</text>
+<text x="70" y="540" style="font:18px Arial,sans-serif;fill:#334155">Lowest exact price; budget wins ties</text>
+</g>
+<g data-node="payer"><rect x="526" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="438" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Charge bearer</text>
+<text x="548" y="516" style="font:18px Arial,sans-serif;fill:#334155">Retailer: native workspace billing</text>
+<text x="548" y="540" style="font:18px Arial,sans-serif;fill:#334155">Customer: owner/admin Stripe link</text>
+</g>
+<g data-node="book"><rect x="1004" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Native booking lifecycle</text>
+<text x="1026" y="516" style="font:18px Arial,sans-serif;fill:#334155">No label before verified customer pay</text>
+<text x="1026" y="540" style="font:18px Arial,sans-serif;fill:#334155">Existing locks and financial settlement</text>
+</g>
+<g data-node="qr"><rect x="48" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Confirmed drop-off document</text>
+<text x="70" y="794" style="font:18px Arial,sans-serif;fill:#334155">Sendcloud labelless / USPS form</text>
+<text x="70" y="818" style="font:18px Arial,sans-serif;fill:#334155">Real provider asset; scoped share link</text>
+</g>
+<g data-node="print"><rect x="526" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="716" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Printable fallback</text>
+<text x="548" y="794" style="font:18px Arial,sans-serif;fill:#334155">No universal QR or location promise</text>
+<text x="548" y="818" style="font:18px Arial,sans-serif;fill:#334155">Selected carrier eligible locations</text>
+</g>
+<g data-node="status"><rect x="1004" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Observe and synchronize</text>
+<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">Status / GET recovery; no repurchase</text>
+<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">Separate store return tracking</text>
+</g>
+<text x="48" y="1080" style="font:17px Arial,sans-serif;fill:#475569">Logical summary only. Tenant guards, exact money, provider readiness and unknown-outcome reconciliation remain authoritative.</text>
+</svg>

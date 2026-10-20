@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1134" viewBox="0 0 1500 1134" role="img">
+<title>Booking and financial outcomes</title><desc>A reserved hold, submitted mutation, captured charge and refund are distinct.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#64748b"/></marker></defs>
+<rect width="1500" height="1134" fill="#f8fafc"/>
+<text x="48" y="65" style="font:700 34px Arial,sans-serif;fill:#0f172a">EasyInvio | Booking and financial outcomes</text>
+<text x="48" y="105" style="font:19px Arial,sans-serif;fill:#475569">A reserved hold, submitted mutation, captured charge and refund are distinct.</text>
+<path d="M488 270L526 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 270L1004 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 380L268 438" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M488 548L526 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 548L1004 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 658L268 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 658L746 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 658L1224 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<g data-node="offer"><rect x="48" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Selected prepared offer</text>
+<text x="70" y="238" style="font:18px Arial,sans-serif;fill:#334155">Tenant; role; goods; exact total</text>
+<text x="70" y="262" style="font:18px Arial,sans-serif;fill:#334155">Current expiry and connection snapshot</text>
+</g>
+<g data-node="check"><rect x="526" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="160" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Validate environment</text>
+<text x="548" y="238" style="font:18px Arial,sans-serif;fill:#334155">Approved connection; test/live mode</text>
+<text x="548" y="262" style="font:18px Arial,sans-serif;fill:#334155">Ready customs; bookability; funding</text>
+</g>
+<g data-node="lock"><rect x="1004" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Fence concurrent work</text>
+<text x="1026" y="238" style="font:18px Arial,sans-serif;fill:#334155">Advisory lock and idempotency key</text>
+<text x="1026" y="262" style="font:18px Arial,sans-serif;fill:#334155">Immutable selected price snapshot</text>
+</g>
+<g data-node="reserve"><rect x="48" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Reserve workspace funds</text>
+<text x="70" y="516" style="font:18px Arial,sans-serif;fill:#334155">Wallet/billing row lock</text>
+<text x="70" y="540" style="font:18px Arial,sans-serif;fill:#334155">Atomic reservation and ledger state</text>
+</g>
+<g data-node="submit"><rect x="526" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="438" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Commit submitted state</text>
+<text x="548" y="516" style="font:18px Arial,sans-serif;fill:#334155">Write-ahead mutation fence</text>
+<text x="548" y="540" style="font:18px Arial,sans-serif;fill:#334155">Never blindly duplicate a purchase</text>
+</g>
+<g data-node="provider"><rect x="1004" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Native carrier purchase</text>
+<text x="1026" y="516" style="font:18px Arial,sans-serif;fill:#334155">Buy once; retain provider reference</text>
+<text x="1026" y="540" style="font:18px Arial,sans-serif;fill:#334155">Later retrieval uses GET only</text>
+</g>
+<g data-node="success"><rect x="48" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Confirmed success</text>
+<text x="70" y="794" style="font:18px Arial,sans-serif;fill:#334155">Persist label/tracking; capture once</text>
+<text x="70" y="818" style="font:18px Arial,sans-serif;fill:#334155">Queue appropriate store tracking</text>
+</g>
+<g data-node="reject"><rect x="526" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="716" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Definitive rejection</text>
+<text x="548" y="794" style="font:18px Arial,sans-serif;fill:#334155">Native financial release</text>
+<text x="548" y="818" style="font:18px Arial,sans-serif;fill:#334155">New quote before a new purchase</text>
+</g>
+<g data-node="unknown"><rect x="1004" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Unknown or interrupted</text>
+<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">Retain reserved credit/reference</text>
+<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">GET/poll/review; no blind retry</text>
+</g>
+<text x="48" y="1080" style="font:17px Arial,sans-serif;fill:#475569">Logical summary only. Tenant guards, exact money, provider readiness and unknown-outcome reconciliation remain authoritative.</text>
+</svg>

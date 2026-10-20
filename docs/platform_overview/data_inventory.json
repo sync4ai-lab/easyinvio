@@ -1,0 +1,826 @@
+{
+  "migrations": [
+    {
+      "file": "migrations/006_logistics_metadata.sql",
+      "sha256": "96f2f5f1b4339567d175777e6711d8bf4be313687128eab357c55011c5be2cec",
+      "created_tables": [],
+      "alter_table_targets": [
+        "shipments"
+      ],
+      "created_functions": [
+        "guard_logistics_metadata"
+      ]
+    },
+    {
+      "file": "migrations/007_admin_configuration.sql",
+      "sha256": "b0ef972340dbc59331b6344e0d2e6eda7563490976d82f0aa0ee3b198323a2c2",
+      "created_tables": [
+        "admin_configuration_events"
+      ],
+      "alter_table_targets": [
+        "admin_configuration_events",
+        "margin_rules",
+        "tenants"
+      ],
+      "created_functions": [
+        "guard_platform_configuration"
+      ]
+    },
+    {
+      "file": "migrations/008_sandbox_hooks.sql",
+      "sha256": "4483e4aa938e0d102dee5b729f90c15699c9975eab6dba66dcb4e82cf0d561c5",
+      "created_tables": [],
+      "alter_table_targets": [
+        "tenants",
+        "wallet_ledger",
+        "wallet_topups"
+      ],
+      "created_functions": [
+        "guard_sandbox_flags"
+      ]
+    },
+    {
+      "file": "migrations/009_ecommerce_sync.sql",
+      "sha256": "80f00e573115dc966240aa23e6f659d498bb1686425a5460b143d83116fcf19c",
+      "created_tables": [
+        "ecommerce_stores",
+        "ecommerce_tracking_outbox"
+      ],
+      "alter_table_targets": [
+        "ecommerce_stores",
+        "ecommerce_tracking_outbox",
+        "shipments"
+      ],
+      "created_functions": [
+        "guard_ecommerce_import_fields"
+      ]
+    },
+    {
+      "file": "migrations/010_hubspot_crm.sql",
+      "sha256": "848b6051e889aeabf32027a77455bc4f7850a8318d3753679fadf536cf01bfe4",
+      "created_tables": [
+        "hubspot_sync_jobs",
+        "hubspot_tenant_links"
+      ],
+      "alter_table_targets": [
+        "hubspot_sync_jobs",
+        "hubspot_tenant_links"
+      ],
+      "created_functions": [
+        "queue_hubspot_sync"
+      ]
+    },
+    {
+      "file": "migrations/011_tracking_and_support.sql",
+      "sha256": "1d6223c9e2d3ab8900f879427c1601eda1dda5d7a8521fbeb25b7d1d57688bab",
+      "created_tables": [
+        "tracking_events",
+        "support_tickets",
+        "support_message_outbox"
+      ],
+      "alter_table_targets": [
+        "shipments",
+        "support_message_outbox",
+        "support_tickets",
+        "tracking_events"
+      ],
+      "created_functions": [
+        "guard_delivery_proof"
+      ]
+    },
+    {
+      "file": "migrations/012_dashboard_portal.sql",
+      "sha256": "3e62682ff83cb4b7720a9c6cea425dd3bb79216f790d011fa40d856e1f21d759",
+      "created_tables": [],
+      "alter_table_targets": [
+        "support_tickets"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/013_automation_freight.sql",
+      "sha256": "5656bbb81d66184071c977f20c5899356cdfc812a11269b4ce025f691a301a73",
+      "created_tables": [
+        "automation_failures"
+      ],
+      "alter_table_targets": [
+        "automation_failures",
+        "ecommerce_stores",
+        "shipments",
+        "support_tickets"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/014_support_ticket_lifecycle.sql",
+      "sha256": "480e6ff08c83e80e73af0d8af9900106c98978ae059f14238fad2add159d8d13",
+      "created_tables": [],
+      "alter_table_targets": [
+        "support_tickets"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/015_admin_management.sql",
+      "sha256": "fd000305256df721eb9704f1305d2f062bc515217bcaa883a141d3480d0c6899",
+      "created_tables": [
+        "admin_management_events"
+      ],
+      "alter_table_targets": [
+        "admin_management_events"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/016_core_pillars.sql",
+      "sha256": "53928b785982958366e98f04d3213a6ef17ff557508af19eb63cd49dbaf77df2",
+      "created_tables": [],
+      "alter_table_targets": [
+        "ecommerce_tracking_outbox",
+        "margin_rules",
+        "shipments"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/017_support_delivery_and_monitoring.sql",
+      "sha256": "4761dd95076250d9bca73be7b0312cf40ad3538aa55e8480a956f1aea004e7c9",
+      "created_tables": [],
+      "alter_table_targets": [
+        "support_message_outbox",
+        "whatsapp_bindings"
+      ],
+      "created_functions": [
+        "guard_notification_consent"
+      ]
+    },
+    {
+      "file": "migrations/018_hubspot_activation_and_metrics.sql",
+      "sha256": "af0c9f4bc5b23f14a369732e6231cde6f6fdf8a55ee0772ea505b3460c583365",
+      "created_tables": [
+        "hubspot_activation_jobs"
+      ],
+      "alter_table_targets": [
+        "hubspot_activation_jobs",
+        "hubspot_tenant_links"
+      ],
+      "created_functions": [
+        "guard_hubspot_references",
+        "queue_hubspot_wallet_sync"
+      ]
+    },
+    {
+      "file": "migrations/019_stripe_snapshot_reconciliation.sql",
+      "sha256": "b2fc166952b72546610dbc2671ee9676935bb707191469fa62c7abaa500a1124",
+      "created_tables": [
+        "stripe_webhook_events",
+        "stripe_charge_refunds"
+      ],
+      "alter_table_targets": [
+        "stripe_charge_refunds",
+        "stripe_webhook_events",
+        "wallet_ledger",
+        "wallet_topups"
+      ],
+      "created_functions": [
+        "guard_stripe_transaction_trace"
+      ]
+    },
+    {
+      "file": "migrations/020_platform_carriers.sql",
+      "sha256": "97ac0ddf474ed43617eae0063401d1231664a1bc5712f32d963ec846c6a742f1",
+      "created_tables": [
+        "platform_carrier_connections",
+        "platform_carrier_events"
+      ],
+      "alter_table_targets": [
+        "carrier_accounts",
+        "platform_carrier_connections",
+        "platform_carrier_events"
+      ],
+      "created_functions": [
+        "guard_platform_carrier_link",
+        "lock_platform_carrier_catalog",
+        "platform_carrier_changed",
+        "tenant_platform_carriers"
+      ]
+    },
+    {
+      "file": "migrations/021_identity_sessions.sql",
+      "sha256": "776d988b3aa181d7c1ed21483bb2424bfc952df6362e372437a06d3675c351e0",
+      "created_tables": [
+        "app_auth_sessions",
+        "app_user_profiles",
+        "app_login_limits"
+      ],
+      "alter_table_targets": [
+        "app_auth_sessions",
+        "app_login_limits",
+        "app_user_profiles"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/022_carrier_consolidation.sql",
+      "sha256": "84f53c8e001f53d0cfb6c603dd6aa2902d4fa3369faa2572a33ba3e75442ca5f",
+      "created_tables": [],
+      "alter_table_targets": [],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/023_partner_lifecycle.sql",
+      "sha256": "cd15ff83caaf3f821c82478e1164ca7b796c56889d3b7e22768ab0a640c92740",
+      "created_tables": [
+        "partner_unbound_quotes",
+        "partner_shipping_offers",
+        "partner_cancellations"
+      ],
+      "alter_table_targets": [
+        "partner_cancellations",
+        "partner_shipping_offers",
+        "partner_unbound_quotes",
+        "platform_carrier_connections",
+        "wallet_ledger"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/024_native_partner_orders_and_webhooks.sql",
+      "sha256": "3daf9c8110f699fec8ff59de09f56c02d6f7ee839ce43d7a569a86521a8884a5",
+      "created_tables": [
+        "partner_provider_options",
+        "partner_order_jobs"
+      ],
+      "alter_table_targets": [
+        "partner_order_jobs",
+        "partner_provider_options"
+      ],
+      "created_functions": [
+        "queue_native_partner_order"
+      ]
+    },
+    {
+      "file": "migrations/025_pending_label_poll_index.sql",
+      "sha256": "6a25b13b4b94982833e6ad411903580972cdfc50dbe4745feaeac819c3805ec2",
+      "created_tables": [],
+      "alter_table_targets": [],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/026_support_review_activity.sql",
+      "sha256": "e402aef382a584c3dfac0a2693cd18d9b867b4631a94caee29f76db4f7361204",
+      "created_tables": [
+        "support_ticket_activity"
+      ],
+      "alter_table_targets": [
+        "support_ticket_activity",
+        "support_tickets"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/027_workspace_invitations_and_disputes.sql",
+      "sha256": "365ab22927d688c29a0e9c170412291b4eca665a4a32aa00205794dc1e5eed61",
+      "created_tables": [
+        "workspace_invitations",
+        "shipment_dispute_drafts"
+      ],
+      "alter_table_targets": [
+        "shipment_dispute_drafts",
+        "workspace_invitations"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/028_reporting_transit_index.sql",
+      "sha256": "e663948f71ec5cd6de71f658febb9b9590c10837130913f1d61c895b39ccabc6",
+      "created_tables": [],
+      "alter_table_targets": [],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/029_booking_references.sql",
+      "sha256": "07daa7a402adcb0ed086605c5335ecec4be1778db3c92d0cf761d0ea41ea1bf0",
+      "created_tables": [
+        "booking_references"
+      ],
+      "alter_table_targets": [
+        "booking_references"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/030_card_checkout.sql",
+      "sha256": "5c34d361fc90e5cbee39eb7b0512240aa57b2b8311eff962c1cd89ed8cb1740a",
+      "created_tables": [
+        "payment_carts"
+      ],
+      "alter_table_targets": [
+        "payment_carts"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/031_store_connections.sql",
+      "sha256": "8b1789d95701a7368e997e65856039feaaf697fb2faec5640c613ce8a28acb44",
+      "created_tables": [
+        "workspace_store_connections"
+      ],
+      "alter_table_targets": [
+        "workspace_store_connections"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/032_dispatch_events_and_invoice_audits.sql",
+      "sha256": "27dd4a46ab45c3f708d38a2175eadd68a051ab7654d7b9125c89f9bc902ff963",
+      "created_tables": [
+        "workspace_dispatch_events",
+        "billing_disputes",
+        "amazon_order_notifications"
+      ],
+      "alter_table_targets": [
+        "amazon_order_notifications",
+        "billing_disputes",
+        "shipments",
+        "workspace_dispatch_events"
+      ],
+      "created_functions": [
+        "emit_workspace_dispatch_event"
+      ]
+    },
+    {
+      "file": "migrations/033_xcover_claim_cases.sql",
+      "sha256": "5ef40948086b4bd9590c70a5470d62e22a40429d32b5f389daafb1e405ad9c2d",
+      "created_tables": [
+        "insurance_purchases",
+        "insurance_claim_cases",
+        "insurance_settlements",
+        "insurance_claim_evidence",
+        "xclaim_webhook_receipts",
+        "insurance_webhook_receipts"
+      ],
+      "alter_table_targets": [
+        "insurance_claim_cases",
+        "insurance_claim_evidence",
+        "insurance_purchases",
+        "insurance_settlements",
+        "insurance_webhook_receipts",
+        "support_message_outbox",
+        "support_tickets",
+        "wallet_ledger",
+        "xclaim_webhook_receipts"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/034_support_alert_controls.sql",
+      "sha256": "72c0e5dcb9e36dafb50192d1fe37846b6b2e2ea56eeda0f592e20967f69c2082",
+      "created_tables": [],
+      "alter_table_targets": [
+        "whatsapp_bindings"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/035_packages_goods_returns_and_credential_locks.sql",
+      "sha256": "fd96eddc3afa2dc19351c2d6b42d96387a6925b9ebf6fc2655a13f286a9a36be",
+      "created_tables": [
+        "shipment_goods_items"
+      ],
+      "alter_table_targets": [
+        "carrier_accounts",
+        "ecommerce_tracking_outbox",
+        "shipment_goods_items",
+        "shipments"
+      ],
+      "created_functions": [
+        "check_shipment_goods_mass",
+        "classify_store_tracking_job",
+        "freeze_submitted_package_snapshot",
+        "guard_carrier_credential_identity",
+        "lock_goods_parent",
+        "valid_multi_parcel_dimensions"
+      ]
+    },
+    {
+      "file": "migrations/036_tenant_catalogs.sql",
+      "sha256": "0c4d428b9a2b7bb56d5ef4af283e526bf18593a39316557188ec4741bf58a145",
+      "created_tables": [
+        "tenant_catalog_addresses",
+        "tenant_catalog_contacts",
+        "tenant_catalog_products"
+      ],
+      "alter_table_targets": [
+        "tenant_catalog_addresses",
+        "tenant_catalog_contacts",
+        "tenant_catalog_products"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/037_admin_client_assistance.sql",
+      "sha256": "a72826c9e3bf28da4d016c61ea61b1eab7c81b72caf6a83790a504edabd086e4",
+      "created_tables": [
+        "admin_client_assistance_sessions",
+        "admin_client_assistance_events"
+      ],
+      "alter_table_targets": [
+        "admin_client_assistance_events",
+        "admin_client_assistance_sessions"
+      ],
+      "created_functions": [
+        "protect_assistance_event"
+      ]
+    },
+    {
+      "file": "migrations/038_conversational_actions.sql",
+      "sha256": "e1ae3d9ed1a57cfabfb0aecd11ea442efd3b8e0db867eea942baa2d22c62aa8c",
+      "created_tables": [
+        "conversational_messages"
+      ],
+      "alter_table_targets": [
+        "conversational_messages"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/039_whatsapp_onboarding.sql",
+      "sha256": "c1de4af22ae85736fb2635c1fd60544d80acfafc27b93247c2da64a4e52f7ae4",
+      "created_tables": [
+        "whatsapp_registration_queue",
+        "whatsapp_registration_receipts"
+      ],
+      "alter_table_targets": [
+        "tenants",
+        "whatsapp_registration_queue",
+        "whatsapp_registration_receipts"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/040_workspace_personas.sql",
+      "sha256": "bc50f0303fd26e3c404d8e9040f4555905bcccd98292cb72c839d41d98d0e263",
+      "created_tables": [
+        "individual_pricing_settings",
+        "individual_pricing_events",
+        "web_registration_sessions"
+      ],
+      "alter_table_targets": [
+        "individual_pricing_events",
+        "individual_pricing_settings",
+        "tenants",
+        "web_registration_sessions",
+        "whatsapp_registration_queue"
+      ],
+      "created_functions": []
+    },
+    {
+      "file": "migrations/041_budget_seller_strategy.sql",
+      "sha256": "d3f4c82ad3afb9751f60b44e271493d958d8fc5a367469fc18cfcf833887a9e7",
+      "created_tables": [],
+      "alter_table_targets": [
+        "admin_management_events",
+        "tenants"
+      ],
+      "created_functions": [
+        "guard_workspace_strategy"
+      ]
+    },
+    {
+      "file": "migrations/042_headless_returns.sql",
+      "sha256": "ee19968304f9ff9ee3527138fedfde93f39f7a9728eb222f540435c285d77aa7",
+      "created_tables": [
+        "reverse_logistics_requests"
+      ],
+      "alter_table_targets": [
+        "reverse_logistics_requests"
+      ],
+      "created_functions": []
+    }
+  ],
+  "create_table_definitions": [
+    {
+      "name": "admin_configuration_events",
+      "file": "migrations/007_admin_configuration.sql",
+      "line": 10,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.admin_configuration_events (\n    id uuid PRIMARY KEY,\n    actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),\n    operation text NOT NULL CHECK (operation IN ('CREATE_TENANT','CREATE_MARGIN')),\n    request_id uuid NOT NULL,\n    tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n    payload_sha256 text NOT NULL CHECK (length(payload_sha256)=64),\n    response jsonb NOT NULL CHECK (jsonb_typeof(response)='object'),\n    created_at timestamptz NOT NULL DEFAULT now(),\n    UNIQUE(actor_auth_user_id,operation,request_id)\n);"
+    },
+    {
+      "name": "ecommerce_stores",
+      "file": "migrations/009_ecommerce_sync.sql",
+      "line": 15,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.ecommerce_stores (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n  platform text NOT NULL CHECK (platform IN ('SHOPIFY','WOOCOMMERCE')),\n  display_name text NOT NULL CHECK (length(display_name) BETWEEN 1 AND 200),\n  is_active boolean NOT NULL DEFAULT true,\n  created_at timestamptz NOT NULL DEFAULT now(),\n  UNIQUE (tenant_id,id)\n);"
+    },
+    {
+      "name": "ecommerce_tracking_outbox",
+      "file": "migrations/009_ecommerce_sync.sql",
+      "line": 48,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.ecommerce_tracking_outbox (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  tenant_id uuid NOT NULL,\n  shipment_id uuid NOT NULL,\n  store_id uuid NOT NULL,\n  store_order_id text NOT NULL,\n  payload jsonb NOT NULL CHECK (jsonb_typeof(payload)='object'),\n  status text NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','SIMULATED_DELIVERED')),\n  attempts integer NOT NULL DEFAULT 0,\n  response jsonb,\n  created_at timestamptz NOT NULL DEFAULT now(),\n  delivered_at timestamptz,\n  UNIQUE (tenant_id,shipment_id),\n  FOREIGN KEY (tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id),\n  FOREIGN KEY (tenant_id,store_id) REFERENCES public.ecommerce_stores(tenant_id,id)\n);"
+    },
+    {
+      "name": "hubspot_sync_jobs",
+      "file": "migrations/010_hubspot_crm.sql",
+      "line": 3,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.hubspot_sync_jobs (\n  tenant_id uuid PRIMARY KEY REFERENCES public.tenants(tenant_id) ON DELETE CASCADE,\n  revision bigint NOT NULL DEFAULT 1,\n  attempts integer NOT NULL DEFAULT 0,\n  blocked boolean NOT NULL DEFAULT false,\n  next_attempt_at timestamptz NOT NULL DEFAULT now(),\n  last_error text,\n  created_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "hubspot_tenant_links",
+      "file": "migrations/010_hubspot_crm.sql",
+      "line": 12,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.hubspot_tenant_links (\n  tenant_id uuid PRIMARY KEY REFERENCES public.tenants(tenant_id) ON DELETE CASCADE,\n  company_id text NOT NULL UNIQUE,\n  upsell_deal_id text,\n  last_synced_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "tracking_events",
+      "file": "migrations/011_tracking_and_support.sql",
+      "line": 31,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.tracking_events (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  tenant_id uuid NOT NULL,\n  shipment_id uuid NOT NULL,\n  integration_key_id text NOT NULL,\n  event_id text NOT NULL,\n  body_sha256 text NOT NULL,\n  status text NOT NULL CHECK(status IN ('IN_TRANSIT','DELIVERED','EXCEPTION')),\n  occurred_at timestamptz NOT NULL,\n  received_at timestamptz NOT NULL DEFAULT now(),\n  raw_error text NOT NULL DEFAULT '',\n  response jsonb NOT NULL,\n  support_pending boolean NOT NULL DEFAULT false,\n  UNIQUE(tenant_id,integration_key_id,event_id),\n  UNIQUE(tenant_id,id),\n  FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "support_tickets",
+      "file": "migrations/011_tracking_and_support.sql",
+      "line": 48,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.support_tickets (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, shipment_id uuid NOT NULL,\n  tracking_event_id uuid NOT NULL UNIQUE,\n  status text NOT NULL CHECK(status IN ('OPEN','RESOLVED')),\n  ai_summary text NOT NULL, ai_method text NOT NULL, prompt_version text NOT NULL,\n  created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(tenant_id,id),\n  FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id),\n  FOREIGN KEY(tenant_id,tracking_event_id) REFERENCES public.tracking_events(tenant_id,id)\n);"
+    },
+    {
+      "name": "support_message_outbox",
+      "file": "migrations/011_tracking_and_support.sql",
+      "line": 57,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.support_message_outbox (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, ticket_id uuid NOT NULL,\n  recipient_e164 text NOT NULL, body text NOT NULL,\n  channel text NOT NULL DEFAULT 'TWILIO_WHATSAPP',\n  status text NOT NULL DEFAULT 'STAGED' CHECK(status IN ('STAGED','SENT','FAILED','CANCELLED')),\n  created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(tenant_id,ticket_id,recipient_e164),\n  FOREIGN KEY(tenant_id,ticket_id) REFERENCES public.support_tickets(tenant_id,id)\n);"
+    },
+    {
+      "name": "automation_failures",
+      "file": "migrations/013_automation_freight.sql",
+      "line": 15,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.automation_failures (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n  idempotency_key uuid NOT NULL,order_reference text NOT NULL,shipment_id uuid,error_code text NOT NULL,\n  created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(tenant_id,idempotency_key),UNIQUE(tenant_id,id),\n  FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "admin_management_events",
+      "file": "migrations/015_admin_management.sql",
+      "line": 3,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.admin_management_events (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),\n tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n action text NOT NULL CHECK(action IN ('CREATE_CARRIER','UPDATE_CARRIER','RETIRE_CARRIER','UPDATE_MARGIN','RETIRE_MARGIN')),\n target_id uuid NOT NULL,\n snapshot jsonb NOT NULL CHECK(jsonb_typeof(snapshot)='object'),\n created_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "hubspot_activation_jobs",
+      "file": "migrations/018_hubspot_activation_and_metrics.sql",
+      "line": 9,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.hubspot_activation_jobs (\n  portal_id bigint NOT NULL CHECK(portal_id>0),\n  deal_id text NOT NULL CHECK(deal_id ~ '^[0-9]+$'),\n  tenant_id uuid REFERENCES public.tenants(tenant_id),\n  attempts integer NOT NULL DEFAULT 0 CHECK(attempts>=0),\n  blocked boolean NOT NULL DEFAULT false,\n  next_attempt_at timestamptz NOT NULL DEFAULT now(),\n  last_error text,\n  created_at timestamptz NOT NULL DEFAULT now(),\n  completed_at timestamptz,\n  PRIMARY KEY(portal_id,deal_id)\n);"
+    },
+    {
+      "name": "stripe_webhook_events",
+      "file": "migrations/019_stripe_snapshot_reconciliation.sql",
+      "line": 34,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (\n  event_id text PRIMARY KEY CHECK(event_id ~ '^evt_'),\n  event_type text NOT NULL CHECK(event_type IN ('checkout.session.completed','charge.refunded','charge.failed')),\n  api_version text,\n  livemode boolean NOT NULL,\n  payload jsonb NOT NULL CHECK(jsonb_typeof(payload)='object'),\n  payload_sha256 text NOT NULL,\n  status text NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','DONE','RECONCILIATION_REQUIRED')),\n  attempts integer NOT NULL DEFAULT 0,\n  next_attempt_at timestamptz NOT NULL DEFAULT now(),\n  last_error text,\n  result jsonb,\n  created_at timestamptz NOT NULL DEFAULT now(),\n  completed_at timestamptz\n);"
+    },
+    {
+      "name": "stripe_charge_refunds",
+      "file": "migrations/019_stripe_snapshot_reconciliation.sql",
+      "line": 55,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.stripe_charge_refunds (\n  charge_id text PRIMARY KEY CHECK(charge_id ~ '^ch_'),\n  tenant_id uuid NOT NULL,\n  topup_id uuid NOT NULL,\n  payment_intent_id text NOT NULL,\n  applied_refund_minor bigint NOT NULL DEFAULT 0 CHECK(applied_refund_minor>=0),\n  updated_at timestamptz NOT NULL DEFAULT now(),\n  FOREIGN KEY(tenant_id,topup_id) REFERENCES public.wallet_topups(tenant_id,id)\n);"
+    },
+    {
+      "name": "platform_carrier_connections",
+      "file": "migrations/020_platform_carriers.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.platform_carrier_connections(\n id uuid PRIMARY KEY, account_name text NOT NULL, aggregator text NOT NULL CHECK(aggregator IN ('EASYPOST','REGIONAL')),\n regional_provider_code text, api_base_url text NOT NULL, upstream_account_id text,\n environment text NOT NULL CHECK(environment IN ('TEST','LIVE')),\n credentials_ciphertext bytea NOT NULL, credential_key_id text NOT NULL,\n priority integer NOT NULL CHECK(priority BETWEEN 0 AND 1000000),\n timeout_seconds integer NOT NULL CHECK(timeout_seconds BETWEEN 1 AND 120),\n is_active boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "platform_carrier_events",
+      "file": "migrations/020_platform_carriers.sql",
+      "line": 18,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.platform_carrier_events(\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(), actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),\n connection_id uuid NOT NULL REFERENCES public.platform_carrier_connections(id),\n action text NOT NULL CHECK(action IN ('SAVE','RETIRE')), snapshot jsonb NOT NULL,\n created_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "app_auth_sessions",
+      "file": "migrations/021_identity_sessions.sql",
+      "line": 3,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.app_auth_sessions(\n id uuid PRIMARY KEY,auth_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,\n tenant_id uuid REFERENCES public.tenants(tenant_id),provider_token bytea NOT NULL,key_id text NOT NULL,\n expires_at timestamptz NOT NULL,created_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "app_user_profiles",
+      "file": "migrations/021_identity_sessions.sql",
+      "line": 9,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.app_user_profiles(\n auth_user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,\n full_name text NOT NULL DEFAULT '' CHECK(length(full_name)<=200),\n phone_e164 text CHECK(phone_e164 ~ '^\\+[1-9][0-9]{7,14}$'),updated_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "app_login_limits",
+      "file": "migrations/021_identity_sessions.sql",
+      "line": 14,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.app_login_limits(\n bucket text PRIMARY KEY,window_start timestamptz NOT NULL DEFAULT now(),attempts integer NOT NULL CHECK(attempts>0)\n);"
+    },
+    {
+      "name": "partner_unbound_quotes",
+      "file": "migrations/023_partner_lifecycle.sql",
+      "line": 5,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.partner_unbound_quotes(\n tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n request_id uuid NOT NULL,\n request_payload jsonb NOT NULL CHECK(jsonb_typeof(request_payload)='object'),\n quote_payload jsonb NOT NULL CHECK(jsonb_typeof(quote_payload)='object'),\n expires_at timestamptz NOT NULL,\n PRIMARY KEY(tenant_id,request_id)\n);"
+    },
+    {
+      "name": "partner_shipping_offers",
+      "file": "migrations/023_partner_lifecycle.sql",
+      "line": 17,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.partner_shipping_offers(\n tenant_id uuid NOT NULL,\n offer_id uuid NOT NULL,\n shipment_id uuid NOT NULL,\n rate_snapshot jsonb NOT NULL CHECK(jsonb_typeof(rate_snapshot)='object'),\n expires_at timestamptz NOT NULL,\n created_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,offer_id),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "partner_cancellations",
+      "file": "migrations/023_partner_lifecycle.sql",
+      "line": 35,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.partner_cancellations(\n tenant_id uuid NOT NULL,\n shipment_id uuid NOT NULL,\n state text NOT NULL DEFAULT 'PENDING' CHECK(state IN ('PENDING','CREDITED')),\n created_at timestamptz NOT NULL DEFAULT now(),\n updated_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,shipment_id),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "partner_provider_options",
+      "file": "migrations/024_native_partner_orders_and_webhooks.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.partner_provider_options(\n platform_connection_id uuid PRIMARY KEY REFERENCES public.platform_carrier_connections(id),\n order_sync_enabled boolean NOT NULL DEFAULT false,\n sendcloud_integration_id bigint CHECK(sendcloud_integration_id>0),\n webhook_enabled boolean NOT NULL DEFAULT false,\n webhook_auth text NOT NULL DEFAULT 'HMAC' CHECK(webhook_auth IN ('HMAC','URL_TOKEN')),\n webhook_secret bytea,\n credential_key_id text,\n pod_allowed_hosts jsonb NOT NULL DEFAULT '[]' CHECK(jsonb_typeof(pod_allowed_hosts)='array'),\n sendcloud_status_map jsonb NOT NULL DEFAULT '{}' CHECK(jsonb_typeof(sendcloud_status_map)='object'),\n updated_at timestamptz NOT NULL DEFAULT now(),\n CHECK(NOT webhook_enabled OR (webhook_secret IS NOT NULL AND credential_key_id IS NOT NULL))\n);"
+    },
+    {
+      "name": "partner_order_jobs",
+      "file": "migrations/024_native_partner_orders_and_webhooks.sql",
+      "line": 17,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.partner_order_jobs(\n tenant_id uuid NOT NULL,\n shipment_id uuid NOT NULL,\n carrier_account_id uuid NOT NULL,\n payload jsonb NOT NULL CHECK(jsonb_typeof(payload)='object'),\n state text NOT NULL DEFAULT 'PENDING' CHECK(state IN ('PENDING','SENDING','SYNCED','FAILED','RECONCILIATION_REQUIRED','SUPERSEDED')),\n remote_object_id text,\n remote_object_type text,\n attempts integer NOT NULL DEFAULT 0 CHECK(attempts>=0),\n last_error text,\n created_at timestamptz NOT NULL DEFAULT now(),\n updated_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,shipment_id,carrier_account_id),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id),\n FOREIGN KEY(tenant_id,carrier_account_id) REFERENCES public.carrier_accounts(tenant_id,id)\n);"
+    },
+    {
+      "name": "support_ticket_activity",
+      "file": "migrations/026_support_review_activity.sql",
+      "line": 6,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.support_ticket_activity (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n tenant_id uuid NOT NULL,\n ticket_id uuid NOT NULL,\n actor_auth_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,\n actor_name text NOT NULL CHECK(length(actor_name)<=200),\n activity_type text NOT NULL CHECK(activity_type IN ('INTERNAL_NOTE','INTERNAL_REVIEW','RESOLVED')),\n note text NOT NULL DEFAULT '' CHECK(length(note)<=2000),\n created_at timestamptz NOT NULL DEFAULT now(),\n FOREIGN KEY(tenant_id,ticket_id) REFERENCES public.support_tickets(tenant_id,id)\n);"
+    },
+    {
+      "name": "workspace_invitations",
+      "file": "migrations/027_workspace_invitations_and_disputes.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.workspace_invitations(\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n email text NOT NULL CHECK(length(email)<=254),first_name text NOT NULL CHECK(length(first_name) BETWEEN 1 AND 100),\n last_name text NOT NULL CHECK(length(last_name) BETWEEN 1 AND 100),role text NOT NULL CHECK(role IN ('DISPATCHER','ACCOUNTANT')),\n invited_by uuid NOT NULL REFERENCES auth.users(id),auth_user_id uuid REFERENCES auth.users(id),\n status text NOT NULL DEFAULT 'SENDING' CHECK(status IN ('SENDING','PENDING','FAILED','ACCEPTED','CANCELLED')),\n created_at timestamptz NOT NULL DEFAULT now(),expires_at timestamptz NOT NULL DEFAULT now()+interval '24 hours',accepted_at timestamptz\n);"
+    },
+    {
+      "name": "shipment_dispute_drafts",
+      "file": "migrations/027_workspace_invitations_and_disputes.sql",
+      "line": 14,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.shipment_dispute_drafts(\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL,shipment_id uuid NOT NULL,\n content text NOT NULL CHECK(length(content) BETWEEN 10 AND 12000),updated_by uuid NOT NULL REFERENCES auth.users(id),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),\n UNIQUE(tenant_id,shipment_id),FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "booking_references",
+      "file": "migrations/029_booking_references.sql",
+      "line": 5,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.booking_references(\n tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),request_id uuid NOT NULL,\n invoice_reference text NOT NULL UNIQUE,created_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,request_id)\n);"
+    },
+    {
+      "name": "payment_carts",
+      "file": "migrations/030_card_checkout.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.payment_carts(\n id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n requested_by uuid NOT NULL REFERENCES auth.users(id),\n offers jsonb NOT NULL CHECK(jsonb_typeof(offers)='array' AND jsonb_array_length(offers) BETWEEN 1 AND 100),\n amount numeric(14,2) NOT NULL CHECK(amount>=1 AND amount<=10000),currency text NOT NULL CHECK(currency IN ('GBP','EUR','USD')),\n status text NOT NULL DEFAULT 'CREATING' CHECK(status IN ('CREATING','AWAITING_PAYMENT','BOOKING','COMPLETED','REVIEW_REQUIRED')),\n results jsonb,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "workspace_store_connections",
+      "file": "migrations/031_store_connections.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.workspace_store_connections (\n tenant_id uuid NOT NULL,\n store_id uuid NOT NULL,\n credentials_ciphertext bytea NOT NULL,\n credential_key_id text NOT NULL,\n updated_by uuid NOT NULL REFERENCES auth.users(id),\n updated_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,store_id),\n FOREIGN KEY(tenant_id,store_id) REFERENCES public.ecommerce_stores(tenant_id,id)\n);"
+    },
+    {
+      "name": "workspace_dispatch_events",
+      "file": "migrations/032_dispatch_events_and_invoice_audits.sql",
+      "line": 44,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.workspace_dispatch_events (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n shipment_id uuid NOT NULL,\n status text NOT NULL,\n created_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "billing_disputes",
+      "file": "migrations/032_dispatch_events_and_invoice_audits.sql",
+      "line": 69,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.billing_disputes (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n tenant_id uuid NOT NULL,\n shipment_id uuid NOT NULL,\n invoice_reference text NOT NULL CHECK(length(invoice_reference) BETWEEN 1 AND 100),\n line_sha256 text NOT NULL CHECK(length(line_sha256)=64),\n findings jsonb NOT NULL CHECK(jsonb_typeof(findings)='array'),\n baseline jsonb NOT NULL CHECK(jsonb_typeof(baseline)='object'),\n invoice_line jsonb NOT NULL CHECK(jsonb_typeof(invoice_line)='object'),\n confidence_level integer NOT NULL CHECK(confidence_level=100),\n estimated_overcharge numeric(14,2) NOT NULL CHECK(estimated_overcharge>=0),\n currency text NOT NULL CHECK(currency IN ('GBP','EUR','USD')),\n email_draft text NOT NULL CHECK(length(email_draft)<=12000),\n status text NOT NULL DEFAULT 'DRAFT' CHECK(status IN ('DRAFT','SUBMITTED','RESOLVED')),\n created_by uuid NOT NULL REFERENCES auth.users(id),\n created_at timestamptz NOT NULL DEFAULT now(),\n UNIQUE(tenant_id,invoice_reference,shipment_id),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "amazon_order_notifications",
+      "file": "migrations/032_dispatch_events_and_invoice_audits.sql",
+      "line": 88,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.amazon_order_notifications (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL,store_id uuid NOT NULL,\n notification_id text NOT NULL CHECK(length(notification_id) BETWEEN 1 AND 150),\n order_id text NOT NULL CHECK(order_id ~ '^[0-9]{3}-[0-9]{7}-[0-9]{7}$'),\n body_sha256 text NOT NULL CHECK(length(body_sha256)=64),\n status text NOT NULL DEFAULT 'RECEIVED' CHECK(status IN ('RECEIVED','IMPORTED','IGNORED','REVIEW_REQUIRED')),\n attempts integer NOT NULL DEFAULT 0,next_attempt_at timestamptz NOT NULL DEFAULT now(),\n last_error_code text,created_at timestamptz NOT NULL DEFAULT now(),\n UNIQUE(tenant_id,store_id,notification_id),\n FOREIGN KEY(tenant_id,store_id) REFERENCES public.ecommerce_stores(tenant_id,id)\n);"
+    },
+    {
+      "name": "insurance_purchases",
+      "file": "migrations/033_xcover_claim_cases.sql",
+      "line": 5,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.insurance_purchases (\n id uuid PRIMARY KEY,tenant_id uuid NOT NULL,shipment_id uuid NOT NULL,offer_id uuid NOT NULL,\n declared_value numeric(12,2) NOT NULL CHECK(declared_value>0 AND declared_value<=5000),\n premium numeric(12,2),tax_amount numeric(12,2),total_charge numeric(12,2),reported_commission numeric(12,2),\n package_id text,quote_id uuid,terms_url text,\n state text NOT NULL CHECK(state IN ('QUOTE_PENDING','QUOTED','RESERVED','POLICY_SUBMITTED','INSURED','FAILED','RECONCILIATION_REQUIRED')),\n requested_by uuid NOT NULL REFERENCES auth.users(id),expires_at timestamptz NOT NULL,\n terms_accepted_at timestamptz,terms_accepted_by uuid REFERENCES auth.users(id),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),\n UNIQUE(tenant_id,id),UNIQUE(tenant_id,shipment_id),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id),\n CHECK(state IN ('QUOTE_PENDING','RECONCILIATION_REQUIRED') OR\n  (premium IS NOT NULL AND tax_amount IS NOT NULL AND total_charge IS NOT NULL AND\n  premium>=1.20 AND tax_amount>=0 AND total_charge=premium+tax_amount AND package_id IS NOT NULL AND quote_id IS NOT NULL AND terms_url IS NOT NULL)),\n CHECK(reported_commission IS NULL OR (reported_commission>=0 AND reported_commission<=premium))\n);"
+    },
+    {
+      "name": "insurance_claim_cases",
+      "file": "migrations/033_xcover_claim_cases.sql",
+      "line": 44,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.insurance_claim_cases (\n id uuid PRIMARY KEY, tenant_id uuid NOT NULL, shipment_id uuid NOT NULL,\n policy_id text NOT NULL CHECK(length(policy_id) BETWEEN 1 AND 150),\n reason text NOT NULL CHECK(reason IN ('PARCEL_LOST','PARCEL_DAMAGED')),\n state text NOT NULL DEFAULT 'CLAIM_INGESTED' CHECK(state IN ('CLAIM_INGESTED','SUBMISSION_PENDING','SUBMISSION_SUBMITTED','INSURER_SUBMITTED','UNDER_INSURER_REVIEW','ACTION_REQUIRED','DECLINED','CLOSED','INSURER_PAYMENT_REPORTED','RECONCILIATION_REQUIRED','REFUND_APPROVED_AND_CREDITED')),\n submission_payload jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(submission_payload)='object'),\n upstream_claim_id uuid,upstream_claim_reference text,insurer_status text,last_error_code text,\n updated_at timestamptz NOT NULL DEFAULT now(),\n notes text NOT NULL CHECK(length(notes) BETWEEN 10 AND 2000),\n created_by uuid NOT NULL REFERENCES auth.users(id),\n payload_sha256 text NOT NULL CHECK(payload_sha256 ~ '^[a-f0-9]{64}$'),\n created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(tenant_id,id),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "insurance_settlements",
+      "file": "migrations/033_xcover_claim_cases.sql",
+      "line": 62,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.insurance_settlements (\n id uuid PRIMARY KEY,tenant_id uuid NOT NULL,case_id uuid NOT NULL,shipment_id uuid NOT NULL,\n approved_amount numeric(12,2) NOT NULL CHECK(approved_amount>0 AND approved_amount<=5000),\n currency text NOT NULL CHECK(currency='GBP'),insurer_payment_reference text NOT NULL UNIQUE CHECK(length(insurer_payment_reference) BETWEEN 5 AND 150),\n received_at timestamptz NOT NULL,verified_by uuid REFERENCES auth.users(id),\n verification_source text NOT NULL DEFAULT 'PLATFORM_OPERATOR' CHECK(verification_source IN ('PLATFORM_OPERATOR','XCLAIM_API')),\n provider_response_sha256 text,\n created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(tenant_id,id),UNIQUE(tenant_id,case_id),\n FOREIGN KEY(tenant_id,case_id) REFERENCES public.insurance_claim_cases(tenant_id,id),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id),\n CHECK((verification_source='PLATFORM_OPERATOR' AND verified_by IS NOT NULL)\n  OR (verification_source='XCLAIM_API' AND provider_response_sha256 ~ '^[a-f0-9]{64}$' AND provider_response_sha256 IS NOT NULL))\n);"
+    },
+    {
+      "name": "insurance_claim_evidence",
+      "file": "migrations/033_xcover_claim_cases.sql",
+      "line": 91,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.insurance_claim_evidence (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, case_id uuid NOT NULL,\n content_type text NOT NULL CHECK(content_type IN ('image/jpeg','image/png')),\n content_sha256 text NOT NULL CHECK(content_sha256 ~ '^[a-f0-9]{64}$'),\n content bytea NOT NULL CHECK(octet_length(content) BETWEEN 1 AND 5000000),\n upstream_file_id uuid,upload_state text NOT NULL DEFAULT 'PENDING' CHECK(upload_state IN ('PENDING','SUBMITTED','CONFIRMED')),\n created_at timestamptz NOT NULL DEFAULT now(),\n FOREIGN KEY(tenant_id,case_id) REFERENCES public.insurance_claim_cases(tenant_id,id)\n);"
+    },
+    {
+      "name": "xclaim_webhook_receipts",
+      "file": "migrations/033_xcover_claim_cases.sql",
+      "line": 101,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.xclaim_webhook_receipts (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL,case_id uuid NOT NULL,\n body_sha256 text NOT NULL CHECK(body_sha256 ~ '^[a-f0-9]{64}$'),\n event text NOT NULL CHECK(event IN ('claim.status-update','claim.status-category-update','claim.deleted')),\n created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(tenant_id,body_sha256),\n FOREIGN KEY(tenant_id,case_id) REFERENCES public.insurance_claim_cases(tenant_id,id)\n);"
+    },
+    {
+      "name": "insurance_webhook_receipts",
+      "file": "migrations/033_xcover_claim_cases.sql",
+      "line": 108,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.insurance_webhook_receipts (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, shipment_id uuid NOT NULL,\n policy_id text NOT NULL CHECK(length(policy_id) BETWEEN 1 AND 150),\n body_sha256 text NOT NULL CHECK(body_sha256 ~ '^[a-f0-9]{64}$'),\n event text NOT NULL CHECK(event IN ('BOOKING_CREATED','BOOKING_UPDATED','BOOKING_CANCELLED')),\n verified_status text NOT NULL CHECK(verified_status IN ('CONFIRMED','CANCELLED')),\n created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(tenant_id,body_sha256),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "shipment_goods_items",
+      "file": "migrations/035_packages_goods_returns_and_credential_locks.sql",
+      "line": 80,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.shipment_goods_items (\n tenant_id uuid NOT NULL,shipment_id uuid NOT NULL,item_index integer NOT NULL CHECK(item_index BETWEEN 1 AND 1000),\n package_index integer CHECK(package_index BETWEEN 1 AND 100),\n description text NOT NULL CHECK(length(btrim(description)) BETWEEN 1 AND 500),\n quantity integer NOT NULL CHECK(quantity BETWEEN 1 AND 100000),\n unit_weight_kg numeric(12,3) NOT NULL CHECK(unit_weight_kg>0 AND unit_weight_kg<=30000),\n unit_value numeric(14,2) NOT NULL CHECK(unit_value>=0 AND unit_value<=999999999999.99),currency text NOT NULL CHECK(currency IN ('GBP','EUR','USD')),\n sku text CHECK(length(sku)<=200),hs_code text CHECK(hs_code ~ '^([0-9]{6}|[0-9]{8}|[0-9]{10})$'),\n origin_country text NOT NULL CHECK(origin_country ~ '^[A-Z]{2}$'),\n total_net_weight_kg numeric(18,3) GENERATED ALWAYS AS (quantity*unit_weight_kg) STORED,\n total_value numeric(20,2) GENERATED ALWAYS AS (quantity*unit_value) STORED,\n PRIMARY KEY(tenant_id,shipment_id,item_index),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "tenant_catalog_addresses",
+      "file": "migrations/036_tenant_catalogs.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.tenant_catalog_addresses (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n label text NOT NULL CHECK(length(btrim(label)) BETWEEN 1 AND 100),\n address_role text NOT NULL CHECK(address_role IN ('SENDER','RETURN','PICKUP','INVOICE')),\n address jsonb NOT NULL CHECK(jsonb_typeof(address)='object' AND address ?& ARRAY['name','line1','city','postal_code','country_code']),\n is_default boolean NOT NULL DEFAULT false,version integer NOT NULL DEFAULT 1 CHECK(version>0),\n created_by uuid NOT NULL REFERENCES auth.users(id),updated_by uuid NOT NULL REFERENCES auth.users(id),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),archived_at timestamptz,\n UNIQUE(tenant_id,id),CHECK(archived_at IS NULL OR NOT is_default)\n);"
+    },
+    {
+      "name": "tenant_catalog_contacts",
+      "file": "migrations/036_tenant_catalogs.sql",
+      "line": 17,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.tenant_catalog_contacts (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n label text NOT NULL CHECK(length(btrim(label)) BETWEEN 1 AND 100),\n address jsonb NOT NULL CHECK(jsonb_typeof(address)='object' AND address ?& ARRAY['name','line1','city','postal_code','country_code']),\n version integer NOT NULL DEFAULT 1 CHECK(version>0),created_by uuid NOT NULL REFERENCES auth.users(id),updated_by uuid NOT NULL REFERENCES auth.users(id),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),archived_at timestamptz,\n UNIQUE(tenant_id,id)\n);"
+    },
+    {
+      "name": "tenant_catalog_products",
+      "file": "migrations/036_tenant_catalogs.sql",
+      "line": 26,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.tenant_catalog_products (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n sku text NOT NULL CHECK(length(btrim(sku)) BETWEEN 1 AND 200),description text NOT NULL CHECK(length(btrim(description)) BETWEEN 3 AND 500),\n unit_weight_kg numeric(12,3) NOT NULL CHECK(unit_weight_kg>0 AND unit_weight_kg<=30000),\n unit_value numeric(14,2) NOT NULL CHECK(unit_value>0 AND unit_value<=1000000),currency text NOT NULL CHECK(currency IN ('GBP','EUR','USD')),\n hs_code text CHECK(hs_code ~ '^([0-9]{6}|[0-9]{8}|[0-9]{10})$'),origin_country text NOT NULL CHECK(origin_country ~ '^[A-Z]{2}$'),\n hs_reviewed_at timestamptz,hs_reviewed_by uuid REFERENCES auth.users(id),\n version integer NOT NULL DEFAULT 1 CHECK(version>0),created_by uuid NOT NULL REFERENCES auth.users(id),updated_by uuid NOT NULL REFERENCES auth.users(id),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),archived_at timestamptz,\n UNIQUE(tenant_id,id),CHECK((hs_reviewed_at IS NULL AND hs_reviewed_by IS NULL) OR\n (hs_reviewed_at IS NOT NULL AND hs_reviewed_by IS NOT NULL AND hs_code IS NOT NULL))\n);"
+    },
+    {
+      "name": "admin_client_assistance_sessions",
+      "file": "migrations/037_admin_client_assistance.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.admin_client_assistance_sessions (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),\n tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n operator_membership_id uuid NOT NULL,\n bearer_sha256 text NOT NULL CHECK(bearer_sha256 ~ '^[a-f0-9]{64}$'),\n reason text NOT NULL CHECK(length(btrim(reason)) BETWEEN 10 AND 500),\n created_at timestamptz NOT NULL DEFAULT now(),\n expires_at timestamptz NOT NULL CHECK(expires_at>created_at),revoked_at timestamptz,\n UNIQUE(tenant_id,id),UNIQUE(id,actor_auth_user_id),\n FOREIGN KEY(tenant_id,operator_membership_id) REFERENCES public.users(tenant_id,id)\n);"
+    },
+    {
+      "name": "admin_client_assistance_events",
+      "file": "migrations/037_admin_client_assistance.sql",
+      "line": 17,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.admin_client_assistance_events (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n session_id uuid NOT NULL REFERENCES public.admin_client_assistance_sessions(id),\n actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),tenant_id uuid NOT NULL,\n event_type text NOT NULL CHECK(event_type IN ('SESSION_STARTED','SESSION_ENDED','REQUEST_STARTED','REQUEST_FINISHED')),\n request_id uuid,method text,path text,status_code integer CHECK(status_code BETWEEN 100 AND 599),\n detail jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(detail)='object'),\n created_at timestamptz NOT NULL DEFAULT now(),\n FOREIGN KEY(tenant_id,session_id) REFERENCES public.admin_client_assistance_sessions(tenant_id,id),\n FOREIGN KEY(session_id,actor_auth_user_id) REFERENCES public.admin_client_assistance_sessions(id,actor_auth_user_id),\n CHECK((event_type IN ('SESSION_STARTED','SESSION_ENDED') AND request_id IS NULL)\n  OR (event_type IN ('REQUEST_STARTED','REQUEST_FINISHED') AND request_id IS NOT NULL AND method IS NOT NULL AND path IS NOT NULL))\n);"
+    },
+    {
+      "name": "conversational_messages",
+      "file": "migrations/038_conversational_actions.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.conversational_messages (\n id uuid PRIMARY KEY,\n tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n auth_user_id uuid NOT NULL REFERENCES auth.users(id),\n channel text NOT NULL CHECK(channel IN ('WHATSAPP','WEB_CHAT')),\n input_sha256 text NOT NULL CHECK(input_sha256 ~ '^[a-f0-9]{64}$'),\n state text NOT NULL DEFAULT 'PROCESSING' CHECK(state IN ('PROCESSING','COMPLETED','REVIEW_REQUIRED')),\n response jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(response)='object'),\n created_at timestamptz NOT NULL DEFAULT now(),\n completed_at timestamptz,\n UNIQUE(tenant_id,id)\n);"
+    },
+    {
+      "name": "whatsapp_registration_queue",
+      "file": "migrations/039_whatsapp_onboarding.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.whatsapp_registration_queue (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n phone_e164 text NOT NULL CHECK(phone_e164 ~ '^\\+[1-9][0-9]{7,14}$'),\n receiver_e164 text NOT NULL CHECK(receiver_e164 ~ '^\\+[1-9][0-9]{7,14}$'),\n current_state text NOT NULL CHECK(current_state IN\n ('PENDING_COMPANY','PENDING_PROFILE','PENDING_EMAIL','SENDING_EMAIL','PENDING_OTP','PROVISIONING','VERIFIED','LOCKED','EXPIRED','CANCELLED','RECONCILIATION_REQUIRED')),\n company_name text CHECK(length(company_name) BETWEEN 1 AND 200),\n company_reg_number text CHECK(company_reg_number ~ '^[A-Z0-9]{2,100}$'),\n country_code text CHECK(country_code ~ '^[A-Z]{2}$'),\n profile jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(profile)='object'),\n email_address text CHECK(length(email_address)<=254 AND email_address ~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'),\n phone_otp_hmac text CHECK(phone_otp_hmac ~ '^[a-f0-9]{64}$'),\n otp_expires_at timestamptz, attempts integer NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 5),\n send_attempts integer NOT NULL DEFAULT 0 CHECK(send_attempts BETWEEN 0 AND 3),\n last_sent_at timestamptz, auth_user_id uuid REFERENCES auth.users(id),\n tenant_id uuid NOT NULL DEFAULT gen_random_uuid(), member_id uuid NOT NULL DEFAULT gen_random_uuid(),\n busy_message_sid text, lease_until timestamptz,\n expires_at timestamptz NOT NULL DEFAULT now()+interval '30 minutes',\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),\n CHECK(expires_at>created_at)\n);"
+    },
+    {
+      "name": "whatsapp_registration_receipts",
+      "file": "migrations/039_whatsapp_onboarding.sql",
+      "line": 31,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.whatsapp_registration_receipts (\n message_sid text PRIMARY KEY CHECK(message_sid ~ '^SM[0-9a-fA-F]{32}$'),\n phone_e164 text NOT NULL,receiver_e164 text NOT NULL,\n input_hmac text NOT NULL CHECK(input_hmac ~ '^[a-f0-9]{64}$'),\n reply_ciphertext bytea, key_id text,\n created_at timestamptz NOT NULL DEFAULT now(),\n CHECK((reply_ciphertext IS NULL)=(key_id IS NULL))\n);"
+    },
+    {
+      "name": "individual_pricing_settings",
+      "file": "migrations/040_workspace_personas.sql",
+      "line": 14,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.individual_pricing_settings (\n singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),\n individual_global_markup_percent numeric(5,2) NOT NULL DEFAULT 20.00 CHECK(individual_global_markup_percent>=0),\n version integer NOT NULL DEFAULT 1 CHECK(version>0),\n updated_by uuid REFERENCES auth.users(id),updated_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "individual_pricing_events",
+      "file": "migrations/040_workspace_personas.sql",
+      "line": 21,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.individual_pricing_events (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),request_id uuid NOT NULL,\n previous_percent numeric(5,2) NOT NULL,new_percent numeric(5,2) NOT NULL,\n previous_version integer NOT NULL,version integer NOT NULL UNIQUE,\n created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(actor_auth_user_id,request_id)\n);"
+    },
+    {
+      "name": "web_registration_sessions",
+      "file": "migrations/040_workspace_personas.sql",
+      "line": 31,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.web_registration_sessions (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),secret_sha256 text NOT NULL CHECK(secret_sha256 ~ '^[a-f0-9]{64}$'),\n email_address text NOT NULL,workspace_type text NOT NULL CHECK(workspace_type IN ('BUSINESS','INDIVIDUAL')),\n profile jsonb NOT NULL CHECK(jsonb_typeof(profile)='object'),\n state text NOT NULL CHECK(state IN ('SENDING_EMAIL','PENDING_OTP','PROVISIONING','VERIFIED','RECONCILIATION_REQUIRED')),\n attempts integer NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 5),\n tenant_id uuid NOT NULL DEFAULT gen_random_uuid(),auth_user_id uuid REFERENCES auth.users(id),\n created_at timestamptz NOT NULL DEFAULT now(),expires_at timestamptz NOT NULL DEFAULT now()+interval '15 minutes'\n);"
+    },
+    {
+      "name": "reverse_logistics_requests",
+      "file": "migrations/042_headless_returns.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE IF NOT EXISTS public.reverse_logistics_requests (\n tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n id uuid NOT NULL,\n original_shipment_id uuid NOT NULL,\n requested_by uuid NOT NULL REFERENCES auth.users(id),\n source text NOT NULL CHECK(source IN ('API','WEB_CHAT','WHATSAPP','STOREFRONT','MARKETPLACE')),\n charge_bearer text NOT NULL CHECK(charge_bearer IN ('RETAILER_PAY','CUSTOMER_PAY')),\n input_sha256 text NOT NULL CHECK(input_sha256 ~ '^[a-f0-9]{64}$'),\n state text NOT NULL DEFAULT 'PROCESSING' CHECK(state IN ('PROCESSING','BOOKED','PAYMENT_REQUIRED','REVIEW_REQUIRED')),\n return_shipment_id uuid,\n response jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(response)='object'),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,id),\n UNIQUE(tenant_id,original_shipment_id),\n FOREIGN KEY(tenant_id,original_shipment_id) REFERENCES public.shipments(tenant_id,id),\n FOREIGN KEY(tenant_id,return_shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    }
+  ],
+  "scope": "Exact repository CREATE TABLE blocks; not live introspection or a final flattened schema after all ALTERs.",
+  "baseline_not_fully_in_repository": [
+    "tenants",
+    "users",
+    "carrier_accounts",
+    "margin_rules",
+    "shipments",
+    "wallets",
+    "wallet_topups",
+    "wallet_reservations",
+    "wallet_ledger",
+    "whatsapp_bindings",
+    "whatsapp_routes",
+    "whatsapp_quote_choices",
+    "whatsapp_receipts"
+  ]
+}

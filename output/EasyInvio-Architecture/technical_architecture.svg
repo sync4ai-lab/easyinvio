@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1134" viewBox="0 0 1500 1134" role="img">
+<title>Technical architecture</title><desc>Logical services in one FastAPI application; provider commits are independent of SQL.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#64748b"/></marker></defs>
+<rect width="1500" height="1134" fill="#f8fafc"/>
+<text x="48" y="65" style="font:700 34px Arial,sans-serif;fill:#0f172a">EasyInvio | Technical architecture</text>
+<text x="48" y="105" style="font:19px Arial,sans-serif;fill:#475569">Logical services in one FastAPI application; provider commits are independent of SQL.</text>
+<path d="M488 270L526 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 270L1004 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 380L746 438" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M488 548L526 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M268 658L268 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 548L1004 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M746 658L746 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 826L1004 826" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 716L1224 658" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<g data-node="clients"><rect x="48" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Web and messaging</text>
+<text x="70" y="238" style="font:18px Arial,sans-serif;fill:#334155">SPA; WhatsApp; merchant gateways</text>
+<text x="70" y="262" style="font:18px Arial,sans-serif;fill:#334155">Role-aware forms and conversations</text>
+</g>
+<g data-node="auth"><rect x="526" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="160" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Identity and ingress</text>
+<text x="548" y="238" style="font:18px Arial,sans-serif;fill:#334155">Auth/JWT; memberships; signatures</text>
+<text x="548" y="262" style="font:18px Arial,sans-serif;fill:#334155">Tenant binding; audited assistance</text>
+</g>
+<g data-node="api"><rect x="1004" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">FastAPI application</text>
+<text x="1026" y="238" style="font:18px Arial,sans-serif;fill:#334155">Routers; lifespan; shared clients</text>
+<text x="1026" y="262" style="font:18px Arial,sans-serif;fill:#334155">Pydantic validation; async pools</text>
+</g>
+<g data-node="ai"><rect x="48" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Optional AI layer</text>
+<text x="70" y="516" style="font:18px Arial,sans-serif;fill:#334155">Supervisor; typed workers; budgets</text>
+<text x="70" y="540" style="font:18px Arial,sans-serif;fill:#334155">Grounded advice; no wallet authority</text>
+</g>
+<g data-node="domain"><rect x="526" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="438" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Native domain services</text>
+<text x="548" y="516" style="font:18px Arial,sans-serif;fill:#334155">Rating; booking; finance; returns</text>
+<text x="548" y="540" style="font:18px Arial,sans-serif;fill:#334155">Customs; claims; dispatch; tracking</text>
+</g>
+<g data-node="external"><rect x="1004" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">External integrations</text>
+<text x="1026" y="516" style="font:18px Arial,sans-serif;fill:#334155">Carriers; Stripe; Auth/SMTP; Twilio</text>
+<text x="1026" y="540" style="font:18px Arial,sans-serif;fill:#334155">Stores; insurer; CRM; tariff; OpenAI</text>
+</g>
+<g data-node="help"><rect x="48" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Published help corpus</text>
+<text x="70" y="794" style="font:18px Arial,sans-serif;fill:#334155">Versioned guide chunks and citations</text>
+<text x="70" y="818" style="font:18px Arial,sans-serif;fill:#334155">Lexical / local 256D vector retrieval</text>
+</g>
+<g data-node="db"><rect x="526" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="716" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Supabase PostgreSQL</text>
+<text x="548" y="794" style="font:18px Arial,sans-serif;fill:#334155">Tenant predicates; RLS; row locks</text>
+<text x="548" y="818" style="font:18px Arial,sans-serif;fill:#334155">Snapshots; ledger; receipts; audit</text>
+</g>
+<g data-node="jobs"><rect x="1004" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Operational workers</text>
+<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">SQL outboxes; polling; realtime</text>
+<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">Submitted outcomes and reconciliation</text>
+</g>
+<text x="48" y="1080" style="font:17px Arial,sans-serif;fill:#475569">Logical summary only. Tenant guards, exact money, provider readiness and unknown-outcome reconciliation remain authoritative.</text>
+</svg>

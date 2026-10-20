@@ -1,0 +1,25 @@
+%% Same logical nodes/edges as the SVG; detailed contracts are in the manual.
+flowchart TB
+    join["01 Register and verify<br/>Business or personal profile<br/>Website / WhatsApp identity proof"]
+    setup["02 Configure workspace<br/>Team; addresses; contacts; products<br/>Return warehouse; carrier access"]
+    intake["03 Bring in orders<br/>Manual; CSV; stores; marketplace<br/>References and actionable row errors"]
+    prepare["04 Prepare real shipment<br/>Measured boxes; goods allocation<br/>Real addresses; customs review"]
+    rate["05 Compare eligible rates<br/>Business rules or individual markup<br/>Deterministic top ten; optional badge"]
+    select["06 Confirm selected offer<br/>Price; expiry; role; connection<br/>No model authorizes purchase"]
+    pay["07 Arrange payment<br/>Workspace reservation or Stripe<br/>Verified events; exact total/currency"]
+    book["08 Buy and document<br/>Native label confirmation; capture<br/>PDF/forms; unknown outcomes retained"]
+    track["09 Track and synchronize<br/>Milestones; exceptions; eligible POD<br/>Store and support outboxes"]
+    returns["10 Return full parcel<br/>Return warehouse; fresh quote<br/>Retailer/customer pay; real QR or print"]
+    resolve["11 Resolve and reconcile<br/>Invoice disputes; eligible claims<br/>Evidence; verified settlement"]
+    operate["12 Operate platform<br/>Cohort reports; margins; support<br/>Audited client assistance"]
+    join --> setup
+    setup --> intake
+    intake --> prepare
+    prepare --> rate
+    rate --> select
+    select --> pay
+    pay --> book
+    book --> track
+    track --> returns
+    track --> resolve
+    track --> operate

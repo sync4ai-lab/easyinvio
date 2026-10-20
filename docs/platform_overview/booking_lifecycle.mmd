@@ -1,0 +1,19 @@
+%% Same logical nodes/edges as the SVG; detailed contracts are in the manual.
+flowchart TB
+    offer["Selected prepared offer<br/>Tenant; role; goods; exact total<br/>Current expiry and connection snapshot"]
+    check["Validate environment<br/>Approved connection; test/live mode<br/>Ready customs; bookability; funding"]
+    lock["Fence concurrent work<br/>Advisory lock and idempotency key<br/>Immutable selected price snapshot"]
+    reserve["Reserve workspace funds<br/>Wallet/billing row lock<br/>Atomic reservation and ledger state"]
+    submit["Commit submitted state<br/>Write-ahead mutation fence<br/>Never blindly duplicate a purchase"]
+    provider["Native carrier purchase<br/>Buy once; retain provider reference<br/>Later retrieval uses GET only"]
+    success["Confirmed success<br/>Persist label/tracking; capture once<br/>Queue appropriate store tracking"]
+    reject["Definitive rejection<br/>Native financial release<br/>New quote before a new purchase"]
+    unknown["Unknown or interrupted<br/>Retain reserved credit/reference<br/>GET/poll/review; no blind retry"]
+    offer --> check
+    check --> lock
+    lock --> reserve
+    reserve --> submit
+    submit --> provider
+    provider --> success
+    provider --> reject
+    provider --> unknown

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1134" viewBox="0 0 1500 1134" role="img">
+<title>Conversational onboarding</title><desc>Deterministic state machine; identity proof precedes workspace activation.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#64748b"/></marker></defs>
+<rect width="1500" height="1134" fill="#f8fafc"/>
+<text x="48" y="65" style="font:700 34px Arial,sans-serif;fill:#0f172a">EasyInvio | Conversational onboarding</text>
+<text x="48" y="105" style="font:19px Arial,sans-serif;fill:#475569">Deterministic state machine; identity proof precedes workspace activation.</text>
+<path d="M488 270L526 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 270L1004 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M746 380L268 438" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 380L746 438" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M488 548L526 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 548L1004 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1224 658L268 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M488 826L526 826" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 826L1004 826" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<g data-node="ingress"><rect x="48" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Signed inbound greeting</text>
+<text x="70" y="238" style="font:18px Arial,sans-serif;fill:#334155">Unbound sender opts into signup</text>
+<text x="70" y="262" style="font:18px Arial,sans-serif;fill:#334155">Scoped receipt and delivery fence</text>
+</g>
+<g data-node="persona"><rect x="526" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="160" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Choose account persona</text>
+<text x="548" y="238" style="font:18px Arial,sans-serif;fill:#334155">Business or Individual</text>
+<text x="548" y="262" style="font:18px Arial,sans-serif;fill:#334155">Server-owned workspace_type</text>
+</g>
+<g data-node="business"><rect x="1004" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Business company/profile</text>
+<text x="1026" y="238" style="font:18px Arial,sans-serif;fill:#334155">Company and registration number</text>
+<text x="1026" y="262" style="font:18px Arial,sans-serif;fill:#334155">Required business profile facts</text>
+</g>
+<g data-node="individual"><rect x="48" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Individual email path</text>
+<text x="70" y="516" style="font:18px Arial,sans-serif;fill:#334155">Skip corporate metadata</text>
+<text x="70" y="540" style="font:18px Arial,sans-serif;fill:#334155">Personal name after proof</text>
+</g>
+<g data-node="email"><rect x="526" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="438" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Collect valid email</text>
+<text x="548" y="516" style="font:18px Arial,sans-serif;fill:#334155">Identity collision checks</text>
+<text x="548" y="540" style="font:18px Arial,sans-serif;fill:#334155">Supabase issues email OTP</text>
+</g>
+<g data-node="phone"><rect x="1004" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Separate phone challenge</text>
+<text x="1026" y="516" style="font:18px Arial,sans-serif;fill:#334155">Six-digit code stored as HMAC</text>
+<text x="1026" y="540" style="font:18px Arial,sans-serif;fill:#334155">Expiry; resend and attempt budget</text>
+</g>
+<g data-node="verify"><rect x="48" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Verify two proofs</text>
+<text x="70" y="794" style="font:18px Arial,sans-serif;fill:#334155">EMAIL_CODE then PHONE_CODE in chat</text>
+<text x="70" y="818" style="font:18px Arial,sans-serif;fill:#334155">Email accepts 6-10 digits; phone six</text>
+</g>
+<g data-node="provision"><rect x="526" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="716" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Finalize workspace</text>
+<text x="548" y="794" style="font:18px Arial,sans-serif;fill:#334155">Auth binding plus SQL transaction</text>
+<text x="548" y="818" style="font:18px Arial,sans-serif;fill:#334155">Tenant; OWNER; zero GBP wallet</text>
+</g>
+<g data-node="desktop"><rect x="1004" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Desktop password setup</text>
+<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">Auth single-use recovery email</text>
+<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">Allowlisted app origin; normal login</text>
+</g>
+<text x="48" y="1080" style="font:17px Arial,sans-serif;fill:#475569">Logical summary only. Tenant guards, exact money, provider readiness and unknown-outcome reconciliation remain authoritative.</text>
+</svg>

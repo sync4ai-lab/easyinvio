@@ -1,0 +1,20 @@
+%% Same logical nodes/edges as the SVG; detailed contracts are in the manual.
+flowchart TB
+    ingress["Signed inbound greeting<br/>Unbound sender opts into signup<br/>Scoped receipt and delivery fence"]
+    persona["Choose account persona<br/>Business or Individual<br/>Server-owned workspace_type"]
+    business["Business company/profile<br/>Company and registration number<br/>Required business profile facts"]
+    individual["Individual email path<br/>Skip corporate metadata<br/>Personal name after proof"]
+    email["Collect valid email<br/>Identity collision checks<br/>Supabase issues email OTP"]
+    phone["Separate phone challenge<br/>Six-digit code stored as HMAC<br/>Expiry; resend and attempt budget"]
+    verify["Verify two proofs<br/>EMAIL_CODE then PHONE_CODE in chat<br/>Email accepts 6-10 digits; phone six"]
+    provision["Finalize workspace<br/>Auth binding plus SQL transaction<br/>Tenant; OWNER; zero GBP wallet"]
+    desktop["Desktop password setup<br/>Auth single-use recovery email<br/>Allowlisted app origin; normal login"]
+    ingress --> persona
+    persona --> business
+    persona --> individual
+    business --> email
+    individual --> email
+    email --> phone
+    phone --> verify
+    verify --> provision
+    provision --> desktop

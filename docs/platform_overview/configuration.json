@@ -1,0 +1,949 @@
+{
+  "source_fields": [
+    {
+      "file": "main.py",
+      "line": 123,
+      "class": "Settings",
+      "field": "sendcloud_methods",
+      "environment_name": "SENDCLOUD_METHODS",
+      "annotation": "dict[UUID, list[SendcloudMethod]]",
+      "default_expression": "Field(default_factory=dict)"
+    },
+    {
+      "file": "main.py",
+      "line": 128,
+      "class": "Settings",
+      "field": "supabase_url",
+      "environment_name": "SUPABASE_URL",
+      "annotation": "str",
+      "default_expression": "required"
+    },
+    {
+      "file": "main.py",
+      "line": 129,
+      "class": "Settings",
+      "field": "supabase_publishable_key",
+      "environment_name": "SUPABASE_PUBLISHABLE_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "required"
+    },
+    {
+      "file": "main.py",
+      "line": 130,
+      "class": "Settings",
+      "field": "supabase_service_role_key",
+      "environment_name": "SUPABASE_SERVICE_ROLE_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "required"
+    },
+    {
+      "file": "main.py",
+      "line": 131,
+      "class": "Settings",
+      "field": "database_url",
+      "environment_name": "DATABASE_URL",
+      "annotation": "SecretStr",
+      "default_expression": "required"
+    },
+    {
+      "file": "main.py",
+      "line": 132,
+      "class": "Settings",
+      "field": "database_ca_file",
+      "environment_name": "DATABASE_CA_FILE",
+      "annotation": "str | None",
+      "default_expression": "None"
+    },
+    {
+      "file": "main.py",
+      "line": 133,
+      "class": "Settings",
+      "field": "database_tls_strict",
+      "environment_name": "DATABASE_TLS_STRICT",
+      "annotation": "bool",
+      "default_expression": "True"
+    },
+    {
+      "file": "main.py",
+      "line": 134,
+      "class": "Settings",
+      "field": "automation_purchase_enabled",
+      "environment_name": "AUTOMATION_PURCHASE_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "main.py",
+      "line": 135,
+      "class": "Settings",
+      "field": "partner_document_allowed_hosts",
+      "environment_name": "PARTNER_DOCUMENT_ALLOWED_HOSTS",
+      "annotation": "list[str]",
+      "default_expression": "['easypost-files.s3.amazonaws.com', 'easypost-files.s3.us-west-2.amazonaws.com', 'deliver.goshippo.com', 'shippo-delivery.s3.amazonaws.com', 'panel.sendcloud.sc']"
+    },
+    {
+      "file": "main.py",
+      "line": 137,
+      "class": "Settings",
+      "field": "freight_kg_per_m3",
+      "environment_name": "FREIGHT_KG_PER_M3",
+      "annotation": "Decimal",
+      "default_expression": "Field(default=Decimal('333'), gt=0, le=10000)"
+    },
+    {
+      "file": "main.py",
+      "line": 138,
+      "class": "Settings",
+      "field": "freight_kg_per_loading_metre",
+      "environment_name": "FREIGHT_KG_PER_LOADING_METRE",
+      "annotation": "Decimal",
+      "default_expression": "Field(default=Decimal('1750'), gt=0, le=30000)"
+    },
+    {
+      "file": "main.py",
+      "line": 139,
+      "class": "Settings",
+      "field": "freight_deck_width_m",
+      "environment_name": "FREIGHT_DECK_WIDTH_M",
+      "annotation": "Decimal",
+      "default_expression": "Field(default=Decimal('2.4'), gt=0, le=5)"
+    },
+    {
+      "file": "main.py",
+      "line": 140,
+      "class": "Settings",
+      "field": "jwt_algorithm",
+      "environment_name": "JWT_ALGORITHM",
+      "annotation": "Literal['ES256', 'RS256']",
+      "default_expression": "'ES256'"
+    },
+    {
+      "file": "main.py",
+      "line": 141,
+      "class": "Settings",
+      "field": "jwt_audience",
+      "environment_name": "JWT_AUDIENCE",
+      "annotation": "str",
+      "default_expression": "'authenticated'"
+    },
+    {
+      "file": "main.py",
+      "line": 142,
+      "class": "Settings",
+      "field": "credential_keys",
+      "environment_name": "CREDENTIAL_KEYS",
+      "annotation": "dict[str, SecretStr]",
+      "default_expression": "Field(default_factory=dict)"
+    },
+    {
+      "file": "main.py",
+      "line": 143,
+      "class": "Settings",
+      "field": "regional_allowed_origins",
+      "environment_name": "REGIONAL_ALLOWED_ORIGINS",
+      "annotation": "list[str]",
+      "default_expression": "Field(min_length=1)"
+    },
+    {
+      "file": "main.py",
+      "line": 144,
+      "class": "Settings",
+      "field": "provider_environment",
+      "environment_name": "PROVIDER_ENVIRONMENT",
+      "annotation": "Literal['TEST', 'LIVE']",
+      "default_expression": "'TEST'"
+    },
+    {
+      "file": "main.py",
+      "line": 145,
+      "class": "Settings",
+      "field": "provider_deadline_seconds",
+      "environment_name": "PROVIDER_DEADLINE_SECONDS",
+      "annotation": "int",
+      "default_expression": "Field(default=35, ge=5, le=120)"
+    },
+    {
+      "file": "main.py",
+      "line": 146,
+      "class": "Settings",
+      "field": "max_parallel_provider_requests",
+      "environment_name": "MAX_PARALLEL_PROVIDER_REQUESTS",
+      "annotation": "int",
+      "default_expression": "Field(default=20, ge=1, le=100)"
+    },
+    {
+      "file": "main.py",
+      "line": 147,
+      "class": "Settings",
+      "field": "max_accounts_per_tenant",
+      "environment_name": "MAX_ACCOUNTS_PER_TENANT",
+      "annotation": "int",
+      "default_expression": "Field(default=8, ge=2, le=30)"
+    },
+    {
+      "file": "main.py",
+      "line": 148,
+      "class": "Settings",
+      "field": "quote_ttl_seconds",
+      "environment_name": "QUOTE_TTL_SECONDS",
+      "annotation": "int",
+      "default_expression": "Field(default=300, ge=30, le=900)"
+    },
+    {
+      "file": "main.py",
+      "line": 149,
+      "class": "Settings",
+      "field": "db_pool_max_size",
+      "environment_name": "DB_POOL_MAX_SIZE",
+      "annotation": "int",
+      "default_expression": "Field(default=10, ge=2, le=50)"
+    },
+    {
+      "file": "main.py",
+      "line": 150,
+      "class": "Settings",
+      "field": "platform_admin_user_ids",
+      "environment_name": "PLATFORM_ADMIN_USER_IDS",
+      "annotation": "list[UUID]",
+      "default_expression": "Field(default_factory=list)"
+    },
+    {
+      "file": "main.py",
+      "line": 151,
+      "class": "Settings",
+      "field": "database_environment",
+      "environment_name": "DATABASE_ENVIRONMENT",
+      "annotation": "Literal['SANDBOX', 'LIVE']",
+      "default_expression": "'LIVE'"
+    },
+    {
+      "file": "main.py",
+      "line": 152,
+      "class": "Settings",
+      "field": "sandbox_hooks_enabled",
+      "environment_name": "SANDBOX_HOOKS_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "main.py",
+      "line": 154,
+      "class": "Settings",
+      "field": "auth_jwt_secret",
+      "environment_name": "AUTH_JWT_SECRET",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "main.py",
+      "line": 155,
+      "class": "Settings",
+      "field": "auth_recovery_redirect_url",
+      "environment_name": "AUTH_RECOVERY_REDIRECT_URL",
+      "annotation": "str",
+      "default_expression": "'http://127.0.0.1:8000/'"
+    },
+    {
+      "file": "main.py",
+      "line": 156,
+      "class": "Settings",
+      "field": "stripe_enabled",
+      "environment_name": "STRIPE_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "main.py",
+      "line": 157,
+      "class": "Settings",
+      "field": "stripe_secret_key",
+      "environment_name": "STRIPE_SECRET_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "main.py",
+      "line": 158,
+      "class": "Settings",
+      "field": "stripe_webhook_secret",
+      "environment_name": "STRIPE_WEBHOOK_SECRET",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "main.py",
+      "line": 159,
+      "class": "Settings",
+      "field": "stripe_livemode",
+      "environment_name": "STRIPE_LIVEMODE",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "main.py",
+      "line": 160,
+      "class": "Settings",
+      "field": "checkout_success_url",
+      "environment_name": "CHECKOUT_SUCCESS_URL",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "main.py",
+      "line": 161,
+      "class": "Settings",
+      "field": "checkout_cancel_url",
+      "environment_name": "CHECKOUT_CANCEL_URL",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "main.py",
+      "line": 163,
+      "class": "Settings",
+      "field": "whatsapp_brand_name",
+      "environment_name": "WHATSAPP_BRAND_NAME",
+      "annotation": "str",
+      "default_expression": "Field(default='EasyInvio.com', min_length=1, max_length=80)"
+    },
+    {
+      "file": "main.py",
+      "line": 164,
+      "class": "Settings",
+      "field": "twilio_enabled",
+      "environment_name": "TWILIO_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "main.py",
+      "line": 165,
+      "class": "Settings",
+      "field": "whatsapp_onboarding_enabled",
+      "environment_name": "WHATSAPP_ONBOARDING_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "main.py",
+      "line": 166,
+      "class": "Settings",
+      "field": "whatsapp_onboarding_daily_limit",
+      "environment_name": "WHATSAPP_ONBOARDING_DAILY_LIMIT",
+      "annotation": "int",
+      "default_expression": "Field(default=100, ge=1, le=10000)"
+    },
+    {
+      "file": "main.py",
+      "line": 167,
+      "class": "Settings",
+      "field": "twilio_account_sid",
+      "environment_name": "TWILIO_ACCOUNT_SID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "main.py",
+      "line": 168,
+      "class": "Settings",
+      "field": "twilio_auth_token",
+      "environment_name": "TWILIO_AUTH_TOKEN",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "main.py",
+      "line": 169,
+      "class": "Settings",
+      "field": "twilio_whatsapp_number",
+      "environment_name": "TWILIO_WHATSAPP_NUMBER",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "main.py",
+      "line": 170,
+      "class": "Settings",
+      "field": "twilio_whatsapp_sandbox_enabled",
+      "environment_name": "TWILIO_WHATSAPP_SANDBOX_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "main.py",
+      "line": 171,
+      "class": "Settings",
+      "field": "twilio_webhook_url",
+      "environment_name": "TWILIO_WEBHOOK_URL",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "main.py",
+      "line": 172,
+      "class": "Settings",
+      "field": "booking_page_url",
+      "environment_name": "BOOKING_PAGE_URL",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "main.py",
+      "line": 173,
+      "class": "Settings",
+      "field": "quote_link_secret",
+      "environment_name": "QUOTE_LINK_SECRET",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "main.py",
+      "line": 174,
+      "class": "Settings",
+      "field": "whatsapp_deadline_seconds",
+      "environment_name": "WHATSAPP_DEADLINE_SECONDS",
+      "annotation": "int",
+      "default_expression": "Field(default=12, ge=5, le=12)"
+    },
+    {
+      "file": "main.py",
+      "line": 175,
+      "class": "Settings",
+      "field": "whatsapp_provider_seconds",
+      "environment_name": "WHATSAPP_PROVIDER_SECONDS",
+      "annotation": "int",
+      "default_expression": "Field(default=7, ge=1, le=8)"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 7,
+      "class": "AgentSettings",
+      "field": "logistics_agents_enabled",
+      "environment_name": "LOGISTICS_AGENTS_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 8,
+      "class": "AgentSettings",
+      "field": "openai_api_key",
+      "environment_name": "OPENAI_API_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 9,
+      "class": "AgentSettings",
+      "field": "logistics_agent_model",
+      "environment_name": "LOGISTICS_AGENT_MODEL",
+      "annotation": "str",
+      "default_expression": "'gpt-4o-mini'"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 10,
+      "class": "AgentSettings",
+      "field": "logistics_embedding_model",
+      "environment_name": "LOGISTICS_EMBEDDING_MODEL",
+      "annotation": "str",
+      "default_expression": "'text-embedding-3-small'"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 11,
+      "class": "AgentSettings",
+      "field": "logistics_agent_timeout_seconds",
+      "environment_name": "LOGISTICS_AGENT_TIMEOUT_SECONDS",
+      "annotation": "float",
+      "default_expression": "Field(default=6, ge=1, le=20)"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 12,
+      "class": "AgentSettings",
+      "field": "logistics_agent_concurrency",
+      "environment_name": "LOGISTICS_AGENT_CONCURRENCY",
+      "annotation": "int",
+      "default_expression": "Field(default=4, ge=1, le=16)"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 13,
+      "class": "AgentSettings",
+      "field": "logistics_agent_output_tokens",
+      "environment_name": "LOGISTICS_AGENT_OUTPUT_TOKENS",
+      "annotation": "int",
+      "default_expression": "Field(default=600, ge=128, le=1200)"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 14,
+      "class": "AgentSettings",
+      "field": "logistics_agent_tokens_per_minute",
+      "environment_name": "LOGISTICS_AGENT_TOKENS_PER_MINUTE",
+      "annotation": "int",
+      "default_expression": "Field(default=100000, ge=10000, le=1000000)"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 15,
+      "class": "AgentSettings",
+      "field": "logistics_agent_requests_per_minute",
+      "environment_name": "LOGISTICS_AGENT_REQUESTS_PER_MINUTE",
+      "annotation": "int",
+      "default_expression": "Field(default=20, ge=1, le=100)"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 16,
+      "class": "AgentSettings",
+      "field": "logistics_agent_cache_entries",
+      "environment_name": "LOGISTICS_AGENT_CACHE_ENTRIES",
+      "annotation": "int",
+      "default_expression": "Field(default=256, ge=16, le=2000)"
+    },
+    {
+      "file": "backend/dispatch_pdf.py",
+      "line": 28,
+      "class": "PrintSettings",
+      "field": "carrier_pdf_hosts",
+      "environment_name": "CARRIER_PDF_HOSTS",
+      "annotation": "list[str]",
+      "default_expression": "Field(default_factory=list)"
+    },
+    {
+      "file": "backend/ecommerce_connectors.py",
+      "line": 85,
+      "class": "StoreConnectorSettings",
+      "field": "ecommerce_connectors",
+      "environment_name": "ECOMMERCE_CONNECTORS",
+      "annotation": "dict[UUID, StoreConnector]",
+      "default_expression": "Field(default_factory=dict)"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 32,
+      "class": "HubSpotSettings",
+      "field": "hubspot_enabled",
+      "environment_name": "HUBSPOT_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 33,
+      "class": "HubSpotSettings",
+      "field": "hubspot_access_token",
+      "environment_name": "HUBSPOT_ACCESS_TOKEN",
+      "annotation": "SecretStr | None",
+      "default_expression": "None"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 34,
+      "class": "HubSpotSettings",
+      "field": "hubspot_expected_portal_id",
+      "environment_name": "HUBSPOT_EXPECTED_PORTAL_ID",
+      "annotation": "int | None",
+      "default_expression": "Field(default=None, ge=1)"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 35,
+      "class": "HubSpotSettings",
+      "field": "hubspot_environment",
+      "environment_name": "HUBSPOT_ENVIRONMENT",
+      "annotation": "str",
+      "default_expression": "Field(default='SANDBOX', pattern='^(SANDBOX|PRODUCTION)$')"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 36,
+      "class": "HubSpotSettings",
+      "field": "hubspot_provisioning_enabled",
+      "environment_name": "HUBSPOT_PROVISIONING_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 37,
+      "class": "HubSpotSettings",
+      "field": "hubspot_webhook_client_secret",
+      "environment_name": "HUBSPOT_WEBHOOK_CLIENT_SECRET",
+      "annotation": "SecretStr | None",
+      "default_expression": "None"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 38,
+      "class": "HubSpotSettings",
+      "field": "hubspot_webhook_url",
+      "environment_name": "HUBSPOT_WEBHOOK_URL",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 39,
+      "class": "HubSpotSettings",
+      "field": "hubspot_webhook_app_id",
+      "environment_name": "HUBSPOT_WEBHOOK_APP_ID",
+      "annotation": "int | None",
+      "default_expression": "Field(default=None, ge=1)"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 40,
+      "class": "HubSpotSettings",
+      "field": "hubspot_closed_won_stage_ids",
+      "environment_name": "HUBSPOT_CLOSED_WON_STAGE_IDS",
+      "annotation": "list[str]",
+      "default_expression": "Field(default_factory=lambda: ['closedwon'])"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 41,
+      "class": "HubSpotSettings",
+      "field": "hubspot_upsell_enabled",
+      "environment_name": "HUBSPOT_UPSELL_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 42,
+      "class": "HubSpotSettings",
+      "field": "hubspot_upsell_pipeline_id",
+      "environment_name": "HUBSPOT_UPSELL_PIPELINE_ID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/hubspot_crm.py",
+      "line": 43,
+      "class": "HubSpotSettings",
+      "field": "hubspot_upsell_stage_id",
+      "environment_name": "HUBSPOT_UPSELL_STAGE_ID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 91,
+      "class": "XCoverSettings",
+      "field": "enabled",
+      "environment_name": "XCOVER_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 92,
+      "class": "XCoverSettings",
+      "field": "environment",
+      "environment_name": "XCOVER_ENVIRONMENT",
+      "annotation": "Literal['TEST', 'LIVE']",
+      "default_expression": "'TEST'"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 93,
+      "class": "XCoverSettings",
+      "field": "partner_id",
+      "environment_name": "XCOVER_PARTNER_ID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 94,
+      "class": "XCoverSettings",
+      "field": "api_key",
+      "environment_name": "XCOVER_API_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 95,
+      "class": "XCoverSettings",
+      "field": "signing_secret",
+      "environment_name": "XCOVER_SIGNING_SECRET",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 96,
+      "class": "XCoverSettings",
+      "field": "parcel_contract_verified",
+      "environment_name": "XCOVER_PARCEL_CONTRACT_VERIFIED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 97,
+      "class": "XCoverSettings",
+      "field": "retail_pricing_verified",
+      "environment_name": "XCOVER_RETAIL_PRICING_VERIFIED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 98,
+      "class": "XCoverSettings",
+      "field": "claims_enabled",
+      "environment_name": "XCOVER_CLAIMS_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 99,
+      "class": "XCoverSettings",
+      "field": "claims_partner_code",
+      "environment_name": "XCOVER_CLAIMS_PARTNER_CODE",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 100,
+      "class": "XCoverSettings",
+      "field": "claims_api_key",
+      "environment_name": "XCOVER_CLAIMS_API_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 101,
+      "class": "XCoverSettings",
+      "field": "claims_api_password",
+      "environment_name": "XCOVER_CLAIMS_API_PASSWORD",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 102,
+      "class": "XCoverSettings",
+      "field": "claims_webhook_secret",
+      "environment_name": "XCOVER_CLAIMS_WEBHOOK_SECRET",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 103,
+      "class": "XCoverSettings",
+      "field": "claims_webhook_url",
+      "environment_name": "XCOVER_CLAIMS_WEBHOOK_URL",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 104,
+      "class": "XCoverSettings",
+      "field": "claims_live_api_origin",
+      "environment_name": "XCOVER_CLAIMS_LIVE_API_ORIGIN",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 105,
+      "class": "XCoverSettings",
+      "field": "claims_fnol_bindings",
+      "environment_name": "XCOVER_CLAIMS_FNOL_BINDINGS",
+      "annotation": "dict[str, dict[str, str]]",
+      "default_expression": "Field(default_factory=dict)"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 106,
+      "class": "XCoverSettings",
+      "field": "claims_settlement_mapping",
+      "environment_name": "XCOVER_CLAIMS_SETTLEMENT_MAPPING",
+      "annotation": "dict[str, str]",
+      "default_expression": "Field(default_factory=dict)"
+    },
+    {
+      "file": "backend/shipment_protection.py",
+      "line": 107,
+      "class": "XCoverSettings",
+      "field": "claims_master_payee_id",
+      "environment_name": "XCOVER_CLAIMS_MASTER_PAYEE_ID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/support_delivery.py",
+      "line": 26,
+      "class": "DeliverySettings",
+      "field": "support_whatsapp_enabled",
+      "environment_name": "SUPPORT_WHATSAPP_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/support_delivery.py",
+      "line": 27,
+      "class": "DeliverySettings",
+      "field": "support_whatsapp_content_sid",
+      "environment_name": "SUPPORT_WHATSAPP_CONTENT_SID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/support_delivery.py",
+      "line": 29,
+      "class": "DeliverySettings",
+      "field": "support_whatsapp_status_url",
+      "environment_name": "SUPPORT_WHATSAPP_STATUS_URL",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/tracking_and_support.py",
+      "line": 52,
+      "class": "TrackingSettings",
+      "field": "tracking_webhook_keys",
+      "environment_name": "TRACKING_WEBHOOK_KEYS",
+      "annotation": "dict[str, TrackingKey]",
+      "default_expression": "Field(default_factory=dict)"
+    },
+    {
+      "file": "backend/whatsapp_bot.py",
+      "line": 26,
+      "class": "WhatsAppConfiguration",
+      "field": "twilio_account_sid",
+      "environment_name": "TWILIO_ACCOUNT_SID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/whatsapp_bot.py",
+      "line": 27,
+      "class": "WhatsAppConfiguration",
+      "field": "twilio_auth_token",
+      "environment_name": "TWILIO_AUTH_TOKEN",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/whatsapp_bot.py",
+      "line": 28,
+      "class": "WhatsAppConfiguration",
+      "field": "twilio_whatsapp_number",
+      "environment_name": "TWILIO_WHATSAPP_NUMBER",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/whatsapp_bot.py",
+      "line": 29,
+      "class": "WhatsAppConfiguration",
+      "field": "whatsapp_brand_name",
+      "environment_name": "WHATSAPP_BRAND_NAME",
+      "annotation": "str",
+      "default_expression": "'EasyInvio.com'"
+    }
+  ],
+  "example_variable_names": [
+    "SUPABASE_URL",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "DATABASE_URL",
+    "CREDENTIAL_KEYS",
+    "REGIONAL_ALLOWED_ORIGINS",
+    "PARTNER_DOCUMENT_ALLOWED_HOSTS",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "CHECKOUT_SUCCESS_URL",
+    "CHECKOUT_CANCEL_URL",
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN",
+    "TWILIO_WHATSAPP_NUMBER",
+    "TWILIO_WEBHOOK_URL",
+    "BOOKING_PAGE_URL",
+    "QUOTE_LINK_SECRET",
+    "JWT_ALGORITHM",
+    "JWT_AUDIENCE",
+    "STRIPE_LIVEMODE",
+    "PROVIDER_ENVIRONMENT",
+    "DATABASE_ENVIRONMENT",
+    "SANDBOX_HOOKS_ENABLED",
+    "TWILIO_WHATSAPP_SANDBOX_ENABLED",
+    "PORT",
+    "FRONTEND_ALLOWED_ORIGINS",
+    "PLATFORM_ADMIN_USER_IDS",
+    "HUBSPOT_ENABLED",
+    "HUBSPOT_ACCESS_TOKEN",
+    "HUBSPOT_EXPECTED_PORTAL_ID",
+    "HUBSPOT_ENVIRONMENT",
+    "HUBSPOT_UPSELL_ENABLED",
+    "HUBSPOT_UPSELL_PIPELINE_ID",
+    "HUBSPOT_UPSELL_STAGE_ID",
+    "STRIPE_ENABLED",
+    "TWILIO_ENABLED",
+    "DATABASE_TLS_STRICT",
+    "TRACKING_WEBHOOK_KEYS",
+    "AUTOMATION_PURCHASE_ENABLED",
+    "FREIGHT_KG_PER_M3",
+    "FREIGHT_KG_PER_LOADING_METRE",
+    "FREIGHT_DECK_WIDTH_M",
+    "ECOMMERCE_CONNECTORS",
+    "SENDCLOUD_METHODS",
+    "CARRIER_PDF_HOSTS",
+    "SUPPORT_WHATSAPP_ENABLED",
+    "SUPPORT_WHATSAPP_CONTENT_SID",
+    "SUPPORT_WHATSAPP_STATUS_URL",
+    "HUBSPOT_PROVISIONING_ENABLED",
+    "HUBSPOT_WEBHOOK_CLIENT_SECRET",
+    "HUBSPOT_WEBHOOK_APP_ID",
+    "HUBSPOT_WEBHOOK_URL",
+    "HUBSPOT_CLOSED_WON_STAGE_IDS",
+    "NGROK_AUTHTOKEN",
+    "WHATSAPP_BRAND_NAME",
+    "AUTH_JWT_SECRET",
+    "AUTH_RECOVERY_REDIRECT_URL",
+    "XCOVER_ENABLED",
+    "XCOVER_ENVIRONMENT",
+    "XCOVER_PARTNER_ID",
+    "XCOVER_API_KEY",
+    "XCOVER_SIGNING_SECRET",
+    "XCOVER_PARCEL_CONTRACT_VERIFIED",
+    "XCOVER_RETAIL_PRICING_VERIFIED",
+    "XCOVER_CLAIMS_ENABLED",
+    "XCOVER_CLAIMS_PARTNER_CODE",
+    "XCOVER_CLAIMS_API_KEY",
+    "XCOVER_CLAIMS_API_PASSWORD",
+    "XCOVER_CLAIMS_WEBHOOK_SECRET",
+    "XCOVER_CLAIMS_WEBHOOK_URL",
+    "XCOVER_CLAIMS_LIVE_API_ORIGIN",
+    "XCOVER_CLAIMS_FNOL_BINDINGS",
+    "XCOVER_CLAIMS_SETTLEMENT_MAPPING",
+    "XCOVER_CLAIMS_MASTER_PAYEE_ID",
+    "LOGISTICS_AGENTS_ENABLED",
+    "OPENAI_API_KEY",
+    "LOGISTICS_AGENT_MODEL",
+    "LOGISTICS_EMBEDDING_MODEL",
+    "LOGISTICS_AGENT_TIMEOUT_SECONDS",
+    "LOGISTICS_AGENT_CONCURRENCY",
+    "LOGISTICS_AGENT_OUTPUT_TOKENS",
+    "LOGISTICS_AGENT_TOKENS_PER_MINUTE",
+    "LOGISTICS_AGENT_REQUESTS_PER_MINUTE",
+    "LOGISTICS_AGENT_CACHE_ENTRIES",
+    "WHATSAPP_ONBOARDING_ENABLED",
+    "WHATSAPP_ONBOARDING_DAILY_LIMIT",
+    "COMPANIES_HOUSE_API_KEY"
+  ],
+  "privacy": "Source expressions and example variable names only. No settings class was instantiated; no private .env values were read."
+}

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1134" viewBox="0 0 1500 1134" role="img">
+<title>Agent responsibilities</title><desc>Typed optional model output proposes facts or advice; native code owns actions.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#64748b"/></marker></defs>
+<rect width="1500" height="1134" fill="#f8fafc"/>
+<text x="48" y="65" style="font:700 34px Arial,sans-serif;fill:#0f172a">EasyInvio | Agent responsibilities</text>
+<text x="48" y="105" style="font:19px Arial,sans-serif;fill:#475569">Typed optional model output proposes facts or advice; native code owns actions.</text>
+<path d="M488 270L526 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 270L1004 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M746 380L746 438" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M526 548L488 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M966 548L1004 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M746 658L268 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M746 658L746 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M746 658L1224 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<g data-node="channels"><rect x="48" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Authenticated channels</text>
+<text x="70" y="238" style="font:18px Arial,sans-serif;fill:#334155">Web chat; signed WhatsApp</text>
+<text x="70" y="262" style="font:18px Arial,sans-serif;fill:#334155">Real user context; stable message IDs</text>
+</g>
+<g data-node="gateway"><rect x="526" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="160" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Conversational gateway</text>
+<text x="548" y="238" style="font:18px Arial,sans-serif;fill:#334155">Typed intents; private turn drafts</text>
+<text x="548" y="262" style="font:18px Arial,sans-serif;fill:#334155">Explicit action grammar; role checks</text>
+</g>
+<g data-node="native"><rect x="1004" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="160" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Native action services</text>
+<text x="1026" y="238" style="font:18px Arial,sans-serif;fill:#334155">Quote; book; track; top-up</text>
+<text x="1026" y="262" style="font:18px Arial,sans-serif;fill:#334155">Claim intake; full-parcel return</text>
+</g>
+<g data-node="ingest"><rect x="48" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Worker 1 Ingestion</text>
+<text x="70" y="516" style="font:18px Arial,sans-serif;fill:#334155">Quote/conversation facts; CSV headers</text>
+<text x="70" y="540" style="font:18px Arial,sans-serif;fill:#334155">No invented facts, identifiers or units</text>
+</g>
+<g data-node="supervisor"><rect x="526" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="438" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">LogisticsSupervisor</text>
+<text x="548" y="516" style="font:18px Arial,sans-serif;fill:#334155">Workflow state; bounded delegation</text>
+<text x="548" y="540" style="font:18px Arial,sans-serif;fill:#334155">Runtime: one turn; strict outputs</text>
+</g>
+<g data-node="customs"><rect x="1004" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="438" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Worker 2 Customs</text>
+<text x="1026" y="516" style="font:18px Arial,sans-serif;fill:#334155">Reviewed catalog / supplied candidates</text>
+<text x="1026" y="540" style="font:18px Arial,sans-serif;fill:#334155">Official tariff ranker; human review</text>
+</g>
+<g data-node="rag"><rect x="48" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="48" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="70" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">HelpRetriever</text>
+<text x="70" y="794" style="font:18px Arial,sans-serif;fill:#334155">Published guide retrieval / citations</text>
+<text x="70" y="818" style="font:18px Arial,sans-serif;fill:#334155">Lexical fallback; optional embeddings</text>
+</g>
+<g data-node="margin"><rect x="526" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="526" y="716" width="6" height="220" rx="3" fill="#4f46e5"/>
+<text x="548" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Worker 3 Margin optimizer</text>
+<text x="548" y="794" style="font:18px Arial,sans-serif;fill:#334155">Immutable priced shortlist</text>
+<text x="548" y="818" style="font:18px Arial,sans-serif;fill:#334155">Budget eligibility; optional badge</text>
+</g>
+<g data-node="delegates"><rect x="1004" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
+<rect x="1004" y="716" width="6" height="220" rx="3" fill="#059669"/>
+<text x="1026" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Workers 4 and 5</text>
+<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">Exact invoice audit; native support</text>
+<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">Deterministic delegates; no LLM call</text>
+</g>
+<text x="48" y="1080" style="font:17px Arial,sans-serif;fill:#475569">Logical summary only. Tenant guards, exact money, provider readiness and unknown-outcome reconciliation remain authoritative.</text>
+</svg>
