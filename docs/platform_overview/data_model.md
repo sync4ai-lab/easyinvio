@@ -74,11 +74,14 @@ State labels in this overview are not a replacement for exact CHECK constraints 
 | 040 | BUSINESS/INDIVIDUAL personas, individual global policy/audit, web verification receipts and signup state extension |
 | 041 | Explicit cost-sensitive seller strategy and server-owned persona/classification guard |
 | 042 | Private full-parcel reverse-logistics command receipts and parent/replay fencing |
+| 043 | Encrypted signed WhatsApp inbox and ordered REST reply outbox; uncertain-action/send fences |
 
-Earlier checked-in migrations 006–029 add metadata, admin/configuration, sandbox controls, stores/CRM, tracking/support, reports, identity, carriers, native lifecycle and booking references. The generated migration catalog lists all filenames/source hashes; migration numbering must continue after 042 rather than reuse the historical prompt’s proposed 027/028 numbers.
+Earlier checked-in migrations 006–029 add metadata, admin/configuration, sandbox controls, stores/CRM, tracking/support, reports, identity, carriers, native lifecycle and booking references. The generated migration catalog lists all filenames/source hashes; migration numbering must continue after 043 rather than reuse the historical prompt’s proposed 027/028 numbers.
 
 ## Access, audit and retention
 
 Private tables revoke ordinary browser roles; trusted backend access still requires explicit tenant predicates. Assistance and individual pricing events are append-only under their declared triggers. Wallet ledger and financial snapshots follow the existing financial invariants. Credential/encrypted receipt fields require key-version management; never export decrypted secrets into documentation or logs.
 
 Retention must cover structured conversation drafts/quote choices, deliberately submitted claim notes/evidence, encrypted onboarding receipts, expired sessions, uploaded invoice data and support delivery/audit records. Runtime model caching is not a substitute for a retention policy. Backup/restore, key retention, data deletion and legal retention are deployment policies that must be defined by the operator; no automatic cleanup should delete unresolved financial evidence.
+
+The WhatsApp queue contains encrypted raw inputs/replies, not a browser-readable transcript. Unresolved PROCESSING/SENDING/REVIEW_REQUIRED rows require reconciliation; payload/key/PAF snapshot retention must be explicitly managed.

@@ -22,7 +22,7 @@
 <g data-node="auth"><rect x="526" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="526" y="160" width="6" height="220" rx="3" fill="#4f46e5"/>
 <text x="548" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Identity and ingress</text>
-<text x="548" y="238" style="font:18px Arial,sans-serif;fill:#334155">Auth/JWT; memberships; signatures</text>
+<text x="548" y="238" style="font:18px Arial,sans-serif;fill:#334155">Auth/JWT; signed WhatsApp queue</text>
 <text x="548" y="262" style="font:18px Arial,sans-serif;fill:#334155">Tenant binding; audited assistance</text>
 </g>
 <g data-node="api"><rect x="1004" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
@@ -46,7 +46,7 @@
 <g data-node="external"><rect x="1004" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="1004" y="438" width="6" height="220" rx="3" fill="#059669"/>
 <text x="1026" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">External integrations</text>
-<text x="1026" y="516" style="font:18px Arial,sans-serif;fill:#334155">Carriers; Stripe; Auth/SMTP; Twilio</text>
+<text x="1026" y="516" style="font:18px Arial,sans-serif;fill:#334155">Carriers; Stripe; PAF; Auth; Twilio</text>
 <text x="1026" y="540" style="font:18px Arial,sans-serif;fill:#334155">Stores; insurer; CRM; tariff; OpenAI</text>
 </g>
 <g data-node="help"><rect x="48" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
@@ -64,8 +64,8 @@
 <g data-node="jobs"><rect x="1004" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="1004" y="716" width="6" height="220" rx="3" fill="#059669"/>
 <text x="1026" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Operational workers</text>
-<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">SQL outboxes; polling; realtime</text>
-<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">Submitted outcomes and reconciliation</text>
+<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">Ordered WhatsApp; SQL outboxes</text>
+<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">Polling; realtime; reconciliation</text>
 </g>
 <text x="48" y="1080" style="font:17px Arial,sans-serif;fill:#475569">Logical summary only. Tenant guards, exact money, provider readiness and unknown-outcome reconciliation remain authoritative.</text>
 </svg>

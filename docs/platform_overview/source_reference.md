@@ -1,10 +1,10 @@
 # Source and test catalog
 
-Repository module/class/function locations are listed below. Source links reference the recorded revision. Diagnostic/apply/seed scripts can have live effects; review before execution. Hashes are in source_map.json.
+Repository module/class/function locations are listed below. Source links reference the recorded revision. Diagnostic/apply/seed scripts can have live effects; review before execution. Source fingerprints in source_map.json normalize CRLF to LF for portable checkouts; artifact hashes remain exact bytes.
 
 ## main.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/main.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L1)
 
 EasyInvio.com: combined rating, financial controls and WhatsApp service.
 
@@ -36,49 +36,49 @@ the subsequent label-purchase component. RegionalStrategy defines its actual
 wire contract; use an adapter matching the selected regional provider's API.
 
 - `Settings` (line 122): `whatsapp_e164`, `sandbox_modes`, `supabase_origin`, `regional_origins`, `checkout_return_url`, `fixed_https_url`, `encryption_keys`, `link_secret`.
-- `StrictModel` (line 271): .
-- `Dimensions` (line 285): `validate_input`.
-- `Address` (line 296): `trim`, `country`.
-- `RatingRequest` (line 329): `from_conversation`, `letter_dimensions`, `weights`, `matching_arrays`.
-- `ProviderFees` (line 394): `decimal_values`.
-- `WholesaleRate` (line 406): `cost_input`, `reconcile_fees`, `codes`.
-- `ClientRate` (line 441): .
-- `ProviderIssue` (line 472): .
-- `RatingResponse` (line 480): .
-- `MarginRule` (line 491): `flat_type`, `codes`, `bounds`.
-- `TopupRequest` (line 547): `amount_input`.
-- `TopupResponse` (line 557): .
-- `TenantContext` (line 564): .
-- `CarrierAccount` (line 573): .
-- `PriceResult` (line 585): .
-- `BookingPermit` (line 593): .
-- `ParsedQuote` (line 603): .
-- `RuleRepository` (line 666): `load`.
-- `MemoryRuleRepository` (line 671): `__init__`, `load`.
-- `SupabaseRepository` (line 684): `__init__`, `select`, `load`, `accounts`.
-- `MarginEvaluator` (line 800): `matches`, `specificity`, `evaluate`.
-- `ProviderFailure` (line 872): `__init__`.
-- `RateStrategy` (line 878): `__init__`, `post`, `rates`.
-- `EasyPostStrategy` (line 916): `address`, `rates`.
-- `RegionalStrategy` (line 1018): `rates`.
-- `SendcloudStrategy` (line 1057): `__init__`, `rates`.
-- `RatingService` (line 1075): `__init__`, `run_provider`, `quote`.
-- `FinanceEngine` (line 1261): `__init__`, `lock_tenant`, `lock_wallet`, `append_ledger`, `reserve`, `locked_reservation`, `verified_test_booking`, `mark_submitted`, `finish_booking`, `check_payment_environment`, `authorize_label_preview`, `create_checkout`, `credit_session`.
-- `WhatsAppService` (line 1739): `__init__`, `resolve_sender`, `sign_choice`, `process`.
+- `StrictModel` (line 273): .
+- `Dimensions` (line 287): `validate_input`.
+- `Address` (line 298): `trim`, `country`.
+- `RatingRequest` (line 331): `from_conversation`, `letter_dimensions`, `weights`, `matching_arrays`.
+- `ProviderFees` (line 396): `decimal_values`.
+- `WholesaleRate` (line 408): `cost_input`, `reconcile_fees`, `codes`.
+- `ClientRate` (line 443): .
+- `ProviderIssue` (line 474): .
+- `RatingResponse` (line 482): .
+- `MarginRule` (line 493): `flat_type`, `codes`, `bounds`.
+- `TopupRequest` (line 549): `amount_input`.
+- `TopupResponse` (line 559): .
+- `TenantContext` (line 566): .
+- `CarrierAccount` (line 575): .
+- `PriceResult` (line 587): .
+- `BookingPermit` (line 595): .
+- `ParsedQuote` (line 605): .
+- `RuleRepository` (line 668): `load`.
+- `MemoryRuleRepository` (line 673): `__init__`, `load`.
+- `SupabaseRepository` (line 686): `__init__`, `select`, `load`, `accounts`.
+- `MarginEvaluator` (line 802): `matches`, `specificity`, `evaluate`.
+- `ProviderFailure` (line 874): `__init__`.
+- `RateStrategy` (line 880): `__init__`, `post`, `rates`.
+- `EasyPostStrategy` (line 918): `address`, `rates`.
+- `RegionalStrategy` (line 1020): `rates`.
+- `SendcloudStrategy` (line 1059): `__init__`, `rates`.
+- `RatingService` (line 1077): `__init__`, `run_provider`, `quote`.
+- `FinanceEngine` (line 1263): `__init__`, `lock_tenant`, `lock_wallet`, `append_ledger`, `reserve`, `locked_reservation`, `verified_test_booking`, `mark_submitted`, `finish_booking`, `check_payment_environment`, `authorize_label_preview`, `create_checkout`, `credit_session`.
+- `WhatsAppService` (line 1741): `__init__`, `resolve_sender`, `sign_choice`, `process`.
 
-Top-level functions: `decimal_input` (line 275), `parse_json` (line 610), `streamed_json` (line 620), `money` (line 629), `to_minor_units` (line 635), `from_minor_units` (line 646), `encrypt_carrier_credentials` (line 654), `borrow_finance_connection` (line 1253), `country_to_alpha2` (line 1693), `parse_quote` (line 1701), `twiml` (line 1715), `xml_response` (line 1721), `decode_json` (line 1725), `rls_context` (line 1729), `deterministic_lifespan` (line 1882), `lifespan` (line 2078), `branded_carrier_transport` (line 2111), `preview_guard` (line 2135), `validate_tenant_query` (line 2149), `authenticate` (line 2167), `wallet_risk_interceptor` (line 2243), `health` (line 2261), `frontend` (line 2267), `public_config` (line 2272), `get_rates` (line 2281), `carrier_performance` (line 2341), `create_wallet_topup` (line 2359), `limited_body` (line 2370), `stripe_webhook` (line 2380), `inbound_whatsapp` (line 2426), `resolve_quote_choice` (line 2462), `verify_local_logic` (line 2537).
+Top-level functions: `decimal_input` (line 277), `parse_json` (line 612), `streamed_json` (line 622), `money` (line 631), `to_minor_units` (line 637), `from_minor_units` (line 648), `encrypt_carrier_credentials` (line 656), `borrow_finance_connection` (line 1255), `country_to_alpha2` (line 1695), `parse_quote` (line 1703), `twiml` (line 1717), `xml_response` (line 1723), `decode_json` (line 1727), `rls_context` (line 1731), `deterministic_lifespan` (line 1884), `lifespan` (line 2093), `branded_carrier_transport` (line 2126), `preview_guard` (line 2150), `validate_tenant_query` (line 2164), `authenticate` (line 2182), `wallet_risk_interceptor` (line 2258), `health` (line 2276), `frontend` (line 2282), `public_config` (line 2287), `get_rates` (line 2296), `carrier_performance` (line 2356), `create_wallet_topup` (line 2374), `limited_body` (line 2385), `stripe_webhook` (line 2395), `inbound_whatsapp` (line 2441), `resolve_quote_choice` (line 2447), `verify_local_logic` (line 2522).
 
 Public SQL object references: `margin_rules`, `partner_unbound_quotes`, `payment_carts`, `shipments`, `tenants`, `users`, `wallet_ledger`, `wallet_reservations`, `wallet_topups`, `wallets`, `whatsapp_bindings`, `whatsapp_quote_choices`, `whatsapp_receipts`, `whatsapp_routes`.
 
 ## backend/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/__init__.py#L1)
 
 EasyInvio logistics extensions.
 
 ## backend/admin_management.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/admin_management.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L1)
 
 Owner-only, audited management of existing tenant-scoped configuration.
 
@@ -92,7 +92,7 @@ Public SQL object references: `admin_management_events`, `carrier_accounts`, `ma
 
 ## backend/admin_portal.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/admin_portal.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_portal.py#L1)
 
 Platform-owner administration and database-backed tenant pricing.
 
@@ -117,7 +117,7 @@ Public SQL object references: `admin_configuration_events`, `carrier_accounts`, 
 
 ## backend/advanced_logistics.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/advanced_logistics.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L1)
 
 Decimal dimensional pricing, declaration metadata and bounded CSV order imports.
 
@@ -132,45 +132,45 @@ Public SQL object references: `shipments`, `wallets`.
 
 ## backend/agents/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/__init__.py#L1)
 
 Bounded AI assistance around EasyInvio's existing authorised services.
 
 ## backend/agents/config.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/config.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L1)
 
 - `AgentSettings` (line 5): `available`.
 ## backend/agents/conversation_context.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/conversation_context.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/conversation_context.py#L1)
 
 Bounded typed conversation drafts and deterministic location extraction.
 
-- `ConversationDraft` (line 25): `active`.
+- `ConversationDraft` (line 26): `active`.
 
-Top-level functions: `explicit_country` (line 13), `location` (line 40), `explicit_quote` (line 80), `merge_quote` (line 101), `collect_reply` (line 115).
+Top-level functions: `explicit_country` (line 14), `location` (line 45), `explicit_quote` (line 85), `merge_quote` (line 106), `collect_reply` (line 124).
 
 ## backend/agents/conversational_gateway.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/conversational_gateway.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/conversational_gateway.py#L1)
 
 One authenticated action dispatcher for signed WhatsApp and session-bound web chat.
 
 Models extract proposals only. Money, carrier purchases and claim intake remain
 owned by deterministic services. Durable receipts fence uncertain action retries.
 
-- `ConversationMessage` (line 33): .
-- `ConversationStore` (line 67): `__init__`, `receipt`, `finish`, `latest_quote`, `latest_turn`.
-- `ConversationalActionGateway` (line 146): `__init__`, `reply`, `interpret`, `process`, `public`, `pending_reply`, `draft_prompt`, `execute`, `quote`, `trigger_return`, `shipment`, `claim`, `claim_panel_url`.
+- `ConversationMessage` (line 34): .
+- `ConversationStore` (line 68): `__init__`, `receipt`, `finish`, `latest_quote`, `latest_turn`.
+- `ConversationalActionGateway` (line 147): `__init__`, `reply`, `interpret`, `process`, `public`, `pending_reply`, `draft_prompt`, `execute`, `quote`, `collect_uk_premise`, `trigger_return`, `shipment`, `claim`, `claim_panel_url`.
 
-Top-level functions: `decoded` (line 40), `message_xml` (line 44), `signed_whatsapp_message` (line 575), `build_router` (line 585).
+Top-level functions: `decoded` (line 41), `message_xml` (line 45), `signed_whatsapp_message` (line 614), `build_router` (line 624).
 
 Public SQL object references: `admin_client_assistance_sessions`, `conversational_messages`, `insurance_claim_cases`, `partner_unbound_quotes`, `shipments`, `support_tickets`, `tenants`, `tracking_events`, `users`, `wallets`, `whatsapp_bindings`, `whatsapp_quote_choices`, `whatsapp_routes`.
 
 ## backend/agents/margin_optimizer.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/margin_optimizer.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/margin_optimizer.py#L1)
 
 Optional strategic advice over immutable, already-priced top-ten offers.
 
@@ -183,7 +183,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `tenants
 
 ## backend/agents/models.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/models.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/models.py#L1)
 
 - `StrictOutput` (line 9): .
 - `QuoteIntent` (line 13): .
@@ -198,7 +198,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `tenants
 - `HelpQuestion` (line 104): .
 ## backend/agents/rag_support.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/rag_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/rag_support.py#L1)
 
 Versioned local documentation retrieval; customer queries are never written to disk.
 
@@ -210,7 +210,7 @@ Top-level functions: `words` (line 62), `redacted_question` (line 67).
 
 ## backend/agents/routes.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/routes.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L1)
 
 Authenticated AI preparation and documentation; no general-purpose action tools.
 
@@ -221,7 +221,7 @@ Top-level functions: `build_router` (line 17).
 
 ## backend/agents/runtime.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/runtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/runtime.py#L1)
 
 No durable customer prompts, no model retries, bounded SDK runs and measured usage.
 
@@ -230,7 +230,7 @@ No durable customer prompts, no model retries, bounded SDK runs and measured usa
 - `AgentRuntime` (line 47): `__init__`, `available`, `key`, `reserve`, `record`, `run`, `embed`, `close`.
 ## backend/agents/supervisor.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/supervisor.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/supervisor.py#L1)
 
 Bounded orchestration around existing, authoritative logistics services.
 
@@ -240,7 +240,7 @@ Top-level functions: `supervisor` (line 111).
 
 ## backend/agents/workers.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/workers.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/workers.py#L1)
 
 Specialists have narrow capabilities; no worker can buy labels or alter a wallet.
 
@@ -250,13 +250,13 @@ Specialists have narrow capabilities; no worker can buy labels or alter a wallet
 - `ProactiveClaimsSupportAgent` (line 264): `__init__`, `receive_tracking`, `stage`.
 ## backend/aggregator_lifecycle.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/aggregator_lifecycle.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/aggregator_lifecycle.py#L1)
 
 Backward-compatible imports for the explicit three-provider engine.
 
 ## backend/aggregator_registry.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/aggregator_registry.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/aggregator_registry.py#L1)
 
 Explicit aggregator capabilities: shared interface, provider-specific wire contracts.
 
@@ -266,7 +266,7 @@ Top-level functions: `identify_aggregator` (line 23), `public_capabilities` (lin
 
 ## backend/ai_engine.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/ai_engine.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ai_engine.py#L1)
 
 Explainable mock ML and tenant-scoped invoice auditing.
 
@@ -285,7 +285,7 @@ Public SQL object references: `shipments`, `tenants`.
 
 ## backend/apply_automation_migration.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/apply_automation_migration.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_automation_migration.py#L1)
 
 Apply the additive freight/support compatibility migration in sandbox.
 
@@ -294,7 +294,7 @@ Top-level functions: `run` (line 9).
 
 ## backend/apply_partner_lifecycle.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/apply_partner_lifecycle.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_partner_lifecycle.py#L1)
 
 Explicit sandbox-only migration runner; contains no credentials or seed data.
 
@@ -303,7 +303,7 @@ Top-level functions: `run` (line 12).
 
 ## backend/apply_tracking_migration.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/apply_tracking_migration.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_tracking_migration.py#L1)
 
 Apply only the additive tracking/support migration to configured Supabase.
 
@@ -312,7 +312,7 @@ Top-level functions: `run` (line 9).
 
 ## backend/automation_freight_engine.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/automation_freight_engine.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_freight_engine.py#L1)
 
 Cargo-aware bulk rating, confirmed EasyPost purchase and customs bundles.
 
@@ -334,7 +334,7 @@ Public SQL object references: `automation_failures`, `ecommerce_stores`, `partne
 
 ## backend/automation_three_partners.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/automation_three_partners.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L1)
 
 Native partner lifecycle contracts behind EasyInvio's private account boundary.
 
@@ -364,7 +364,7 @@ Public SQL object references: `carrier_accounts`, `partner_cancellations`, `part
 
 ## backend/booking_receipt.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/booking_receipt.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/booking_receipt.py#L1)
 
 Printable booking receipt from confirmed, tenant-owned shipment records.
 
@@ -373,7 +373,7 @@ Top-level functions: `receipt_pdf` (line 11).
 
 ## backend/build_rigorous_seed.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/build_rigorous_seed.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/build_rigorous_seed.py#L1)
 
 Generate complete SQL fixture scripts without embedding usable credentials.
 
@@ -384,7 +384,7 @@ Public SQL object references: `carrier_accounts`, `ecommerce_stores`, `fixture_s
 
 ## backend/bulk_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/bulk_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/bulk_checkout.py#L1)
 
 Review persisted rates and explicitly buy selected offers for CSV or store orders.
 
@@ -398,7 +398,7 @@ Public SQL object references: `partner_shipping_offers`, `shipments`, `tenants`,
 
 ## backend/card_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/card_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/card_checkout.py#L1)
 
 Card-funded label baskets over the atomic wallet booking ledger.
 
@@ -410,7 +410,7 @@ Public SQL object references: `partner_shipping_offers`, `payment_carts`, `shipm
 
 ## backend/carrier_access.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/carrier_access.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/carrier_access.py#L1)
 
 Historical carrier access is limited to a verified shipment lifecycle.
 
@@ -421,7 +421,7 @@ Public SQL object references: `shipments`, `tenant_catalog_addresses`.
 
 ## backend/carrier_consolidation.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/carrier_consolidation.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/carrier_consolidation.py#L1)
 
 Private carrier consolidation, tenant-local history and branded public payloads.
 
@@ -432,7 +432,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tracking_events`
 
 ## backend/check_hubspot.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/check_hubspot.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/check_hubspot.py#L1)
 
 Read-only deployment preflight. Never enables a worker or creates records.
 
@@ -444,13 +444,13 @@ Top-level functions: `check` (line 13).
 
 ## backend/check_setup.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/check_setup.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/check_setup.py#L1)
 
 Report invalid environment variable names without exposing their values.
 
 ## backend/client_assistance.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/client_assistance.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/client_assistance.py#L1)
 
 Verified platform operators acting in a tenant, with durable request audit events.
 
@@ -464,7 +464,7 @@ Public SQL object references: `admin_client_assistance_events`, `admin_client_as
 
 ## backend/conversational_claims.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/conversational_claims.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/conversational_claims.py#L1)
 
 One-time completion of an authenticated, unsubmitted chat claim draft.
 
@@ -475,7 +475,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 
 ## backend/credential_rotation.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/credential_rotation.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/credential_rotation.py#L1)
 
 Fresh-admin replacement of sealed, tenant-bound credentials; never unlock.
 
@@ -487,7 +487,7 @@ Public SQL object references: `carrier_accounts`.
 
 ## backend/customer_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/customer_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/customer_checkout.py#L1)
 
 Tenant-authorized checkout of private offers and confirmed invoice PDFs.
 
@@ -501,7 +501,7 @@ Public SQL object references: `booking_references`, `easyinvio_booking_reference
 
 ## backend/dashboard_portal.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/dashboard_portal.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L1)
 
 Server-verified portal roles, owner analytics and support dashboard actions.
 
@@ -516,7 +516,7 @@ Public SQL object references: `app_user_profiles`, `automation_failures`, `ecomm
 
 ## backend/database_tls.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/database_tls.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/database_tls.py#L1)
 
 Verified PostgreSQL TLS with explicit legacy-CA compatibility.
 
@@ -525,7 +525,7 @@ Top-level functions: `database_tls_context` (line 5).
 
 ## backend/delivery_quality.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/delivery_quality.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/delivery_quality.py#L1)
 
 Tenant-bound tracking readiness; status transport and quality are separate.
 
@@ -536,7 +536,7 @@ Public SQL object references: `carrier_accounts`, `partner_provider_options`, `s
 
 ## backend/dispatch_pdf.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/dispatch_pdf.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_pdf.py#L1)
 
 Bounded, tenant-authorized print bundles of confirmed carrier PDFs.
 
@@ -549,7 +549,7 @@ Top-level functions: `invoice_pdf` (line 48), `fetch_pdf` (line 99), `merge_pdfs
 
 ## backend/dispatch_realtime.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/dispatch_realtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_realtime.py#L1)
 
 Commit-time Postgres notifications fan out to authenticated tenant sockets.
 
@@ -559,7 +559,7 @@ Top-level functions: `build_router` (line 53).
 
 ## backend/dispatch_workspace.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/dispatch_workspace.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L1)
 
 Operational marketplace inbox. No credentials or financial ledger are exposed.
 
@@ -574,7 +574,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/ecommerce_connectors.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/ecommerce_connectors.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_connectors.py#L1)
 
 Native signed intake and opt-in Shopify fulfillment delivery.
 
@@ -589,7 +589,7 @@ Top-level functions: `single_header` (line 88), `receive_store_webhook` (line 95
 
 ## backend/ecommerce_inbound.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/ecommerce_inbound.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_inbound.py#L1)
 
 Authenticated Shopify intake and Amazon AWS API-destination order notifications.
 
@@ -601,7 +601,7 @@ Public SQL object references: `amazon_order_notifications`, `ecommerce_stores`.
 
 ## backend/ecommerce_sync.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/ecommerce_sync.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L1)
 
 Tenant-scoped imports and durable fulfillment delivery.
 
@@ -623,7 +623,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/help_center.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/help_center.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/help_center.py#L1)
 
 Public, authored customer guidance with no account access or external actions.
 
@@ -633,7 +633,7 @@ Top-level functions: `guide_source` (line 228), `rendered_guide` (line 238), `re
 
 ## backend/hubspot_crm.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/hubspot_crm.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L1)
 
 Optional HubSpot CRM synchronization with durable PostgreSQL jobs.
 
@@ -652,7 +652,7 @@ Public SQL object references: `hubspot_sync_jobs`, `hubspot_tenant_links`, `ship
 
 ## backend/hubspot_provisioning.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/hubspot_provisioning.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_provisioning.py#L1)
 
 Signed HubSpot deal events and durable, idempotent workspace provisioning.
 
@@ -667,7 +667,7 @@ Public SQL object references: `hubspot_activation_jobs`, `hubspot_tenant_links`,
 
 ## backend/identity.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/identity.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L1)
 
 Password-verified, revocable HS256 app sessions around Supabase Auth identity.
 
@@ -683,7 +683,7 @@ Public SQL object references: `admin_client_assistance_sessions`, `app_auth_sess
 
 ## backend/inspect_seed_schema.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/inspect_seed_schema.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/inspect_seed_schema.py#L1)
 
 Export only schema metadata needed for relational sandbox fixtures.
 
@@ -692,7 +692,7 @@ Top-level functions: `run` (line 10).
 
 ## backend/invoice_upload.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/invoice_upload.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/invoice_upload.py#L1)
 
 Bounded statement parsing and reproducible comparisons against server snapshots.
 
@@ -704,7 +704,7 @@ Public SQL object references: `billing_disputes`, `shipments`.
 
 ## backend/label_availability.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/label_availability.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/label_availability.py#L1)
 
 Known purchase gates checked before payment; live carrier acceptance is separate.
 
@@ -713,7 +713,7 @@ Top-level functions: `label_availability` (line 5), `require_label_purchase` (li
 
 ## backend/multi_label.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/multi_label.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/multi_label.py#L1)
 
 A group is confirmed only when every native package label is confirmed.
 
@@ -722,7 +722,7 @@ Top-level functions: `bundle_labels` (line 5).
 
 ## backend/order_csv.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/order_csv.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/order_csv.py#L1)
 
 Versioned CSV orders, tenant-scoped persistence and customs review.
 
@@ -738,7 +738,7 @@ Public SQL object references: `ecommerce_stores`, `shipments`, `tenants`, `users
 
 ## backend/package_guidance.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/package_guidance.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_guidance.py#L1)
 
 Route-scoped package guidance; reference limits never certify carrier eligibility.
 
@@ -750,7 +750,7 @@ Top-level functions: `evaluate_package` (line 66), `build_router` (line 134).
 
 ## backend/package_sets.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/package_sets.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_sets.py#L1)
 
 Exact physical package snapshots; carrier APIs receive individual boxes.
 
@@ -760,9 +760,22 @@ Top-level functions: `package_charge` (line 21), `validate_goods_allocation` (li
 
 Public SQL object references: `shipment_goods_items`, `shipments`.
 
+## backend/paf_lookup.py
+
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/paf_lookup.py#L1)
+
+Asynchronous licensed PAF lookup boundary. Postcode syntax is not delivery proof.
+
+- `PAFLookupUnavailable` (line 14): .
+- `PAFPremise` (line 25): `address`, `label`.
+- `PAFClient` (line 50): `lookup`.
+- `IdealPostcodesClient` (line 54): `__init__`, `lookup`.
+
+Top-level functions: `uk_postcode` (line 18).
+
 ## backend/payment_gateway.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/payment_gateway.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/payment_gateway.py#L1)
 
 Environment-validated Checkout gateway over the shared, atomic wallet ledger service.
 
@@ -776,7 +789,7 @@ Public SQL object references: `shipments`, `stripe_charge_refunds`, `stripe_webh
 
 ## backend/platform_carriers.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/platform_carriers.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L1)
 
 Owner-managed shared provider connections; tenant shipments retain isolated FKs.
 
@@ -788,7 +801,7 @@ Public SQL object references: `carrier_accounts`, `platform_carrier_connections`
 
 ## backend/rate_diagnostics.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/rate_diagnostics.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/rate_diagnostics.py#L1)
 
 Safe rate diagnostics; never expose upstream response bodies or credentials.
 
@@ -801,7 +814,7 @@ Public SQL object references: `automation_failures`, `support_tickets`.
 
 ## backend/repair_local_config.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/repair_local_config.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/repair_local_config.py#L1)
 
 Repair identifiable dotenv formatting without printing credential values.
 
@@ -810,7 +823,7 @@ Top-level functions: `run` (line 12).
 
 ## backend/return_documents.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/return_documents.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/return_documents.py#L1)
 
 Optional carrier drop-off documents; never a second label purchase.
 
@@ -821,7 +834,7 @@ Public SQL object references: `shipments`.
 
 ## backend/return_ingress.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/return_ingress.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/return_ingress.py#L1)
 
 Signed normalized return commands from merchant and marketplace gateways.
 
@@ -835,7 +848,7 @@ Public SQL object references: `ecommerce_stores`, `tenants`, `users`.
 
 ## backend/reverse_logistics.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/reverse_logistics.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/reverse_logistics.py#L1)
 
 Authenticated, durable full-parcel returns over the existing booking ledger.
 
@@ -851,22 +864,22 @@ Public SQL object references: `reverse_logistics_requests`, `shipments`, `tenant
 
 ## backend/sandbox_hooks.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/sandbox_hooks.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sandbox_hooks.py#L1)
 
 Real Stripe test-mode hooks and strict signed Twilio Sandbox requests.
 
 - `InputModel` (line 30): .
 - `TestTopupInput` (line 34): .
 - `SandboxBillingService` (line 110): `__init__`, `check_tenant`, `check_topup`, `response`, `test_topup`.
-- `WhatsAppSandboxSetup` (line 269): .
+- `WhatsAppSandboxSetup` (line 270): .
 
-Top-level functions: `require_prepaid_funds` (line 39), `zero_balance_probe` (line 54), `require_sandbox_environment` (line 66), `simulate_stripe_test_payment` (line 75), `authenticated_twilio_form` (line 225), `build_router` (line 280).
+Top-level functions: `require_prepaid_funds` (line 39), `zero_balance_probe` (line 54), `require_sandbox_environment` (line 66), `simulate_stripe_test_payment` (line 75), `authenticated_twilio_form` (line 225), `build_router` (line 281).
 
 Public SQL object references: `tenants`, `users`, `wallet_topups`, `wallets`, `whatsapp_bindings`, `whatsapp_routes`.
 
 ## backend/seed_rigorous_data.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/seed_rigorous_data.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/seed_rigorous_data.py#L1)
 
 Apply or rollback-verify the complete relational seed in one transaction.
 
@@ -877,7 +890,7 @@ Public SQL object references: `carrier_accounts`, `fixture_seed_runs`, `shipment
 
 ## backend/sendcloud_adapter.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/sendcloud_adapter.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sendcloud_adapter.py#L1)
 
 Read-only Sendcloud v2 rates for explicitly configured contract methods.
 
@@ -892,7 +905,7 @@ Public SQL object references: `strip`.
 
 ## backend/shipment_protection.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/shipment_protection.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L1)
 
 XCover premium arithmetic and explicit integration readiness.
 
@@ -918,7 +931,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 
 ## backend/store_connections.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/store_connections.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_connections.py#L1)
 
 Write-only merchant setup; encrypted envelopes are bound to tenant and store.
 
@@ -930,7 +943,7 @@ Public SQL object references: `amazon_order_notifications`, `ecommerce_stores`, 
 
 ## backend/store_returns.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/store_returns.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_returns.py#L1)
 
 Native return tracking without forward fulfillment, refunds or restocking.
 
@@ -942,7 +955,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/support_alert_controls.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/support_alert_controls.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_alert_controls.py#L1)
 
 Platform delivery controls separate from the recipient's verified consent.
 
@@ -954,7 +967,7 @@ Public SQL object references: `tenants`, `whatsapp_bindings`.
 
 ## backend/support_delivery.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/support_delivery.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_delivery.py#L1)
 
 Opt-in WhatsApp notification delivery with a durable uncertain-send fence.
 
@@ -971,7 +984,7 @@ Public SQL object references: `shipments`, `support_message_outbox`, `support_ti
 
 ## backend/support_workflow.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/support_workflow.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_workflow.py#L1)
 
 Explicit internal review ownership and tenant-scoped append-only activity.
 
@@ -982,7 +995,7 @@ Public SQL object references: `app_user_profiles`, `support_ticket_activity`, `s
 
 ## backend/tenant_catalogs.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/tenant_catalogs.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L1)
 
 Private, versioned tenant registries. No bookings, wallet changes or AI calls.
 
@@ -997,7 +1010,7 @@ Public SQL object references: `tenant_catalog_addresses`, `tenant_catalog_produc
 
 ## backend/test_supabase_transaction.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/test_supabase_transaction.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/test_supabase_transaction.py#L1)
 
 Explicit, persisted sandbox connectivity test. Creates no payments or labels.
 
@@ -1008,13 +1021,13 @@ Public SQL object references: `margin_rules`, `tenants`, `wallets`.
 
 ## backend/tools/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/tools/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tools/__init__.py#L1)
 
 Explicitly invoked operational utilities; never run as application startup jobs.
 
 ## backend/tools/sme_lead_scraper.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/tools/sme_lead_scraper.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tools/sme_lead_scraper.py#L1)
 
 Company-level UK logistics prospect discovery and unsent outreach drafts.
 
@@ -1028,7 +1041,7 @@ Top-level functions: `district` (line 39), `company_number` (line 46), `public_u
 
 ## backend/tracking_and_support.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/tracking_and_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tracking_and_support.py#L1)
 
 Signed, tenant/account-scoped tracking and durable support staging.
 
@@ -1046,7 +1059,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `support_message_
 
 ## backend/verify_automation_sandbox.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/verify_automation_sandbox.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_automation_sandbox.py#L1)
 
 Persist one clearly identified invalid-order support test; no carrier calls.
 
@@ -1057,7 +1070,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `wallets
 
 ## backend/verify_automation_writepath.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/verify_automation_writepath.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_automation_writepath.py#L1)
 
 Real PostgreSQL write-path probe with controlled rates and final rollback.
 
@@ -1073,7 +1086,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tenants`, `users
 
 ## backend/verify_supabase.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/verify_supabase.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_supabase.py#L1)
 
 Read-only connection/schema probe. Never log credentials or raw server errors.
 
@@ -1084,7 +1097,7 @@ Public SQL object references: `status_code`.
 
 ## backend/verify_tracking_support.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/verify_tracking_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_tracking_support.py#L1)
 
 Real sandbox schema, tenant-scoped report and durable ticket-worker verification.
 
@@ -1095,7 +1108,7 @@ Public SQL object references: `shipments`.
 
 ## backend/web_registration.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/web_registration.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/web_registration.py#L1)
 
 Email-verified public account creation; passwords and OTPs are never stored locally.
 
@@ -1108,7 +1121,7 @@ Public SQL object references: `app_user_profiles`, `tenants`, `users`, `wallets`
 
 ## backend/webhook_security.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/webhook_security.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/webhook_security.py#L1)
 
 Query-secret redaction and optional trusted-proxy-aware webhook IP policy.
 
@@ -1118,20 +1131,20 @@ Top-level functions: `redact_query_secrets` (line 11), `install_webhook_log_reda
 
 ## backend/whatsapp_bot.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/whatsapp_bot.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_bot.py#L1)
 
 Signed WhatsApp ingress into the shared authenticated conversational gateway.
 
 Booking commands return a signed selection link to authenticated web checkout.
 Payment and label purchase require confirmation in the workspace.
 
-- `WhatsAppConfiguration` (line 24): .
+- `WhatsAppConfiguration` (line 20): .
 
-Top-level functions: `initialize_whatsapp` (line 32), `xml_message` (line 45), `format_quotes` (line 64), `whatsapp_webhook` (line 91).
+Top-level functions: `initialize_whatsapp` (line 28), `xml_message` (line 41), `format_quotes` (line 60), `whatsapp_webhook` (line 87).
 
 ## backend/whatsapp_ingress.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/whatsapp_ingress.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_ingress.py#L1)
 
 Local ingress for tunneling only signed Twilio callbacks, never the app UI/API.
 
@@ -1140,7 +1153,7 @@ Top-level functions: `lifespan` (line 11), `identify_gateway` (line 23), `forwar
 
 ## backend/whatsapp_onboarding.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/whatsapp_onboarding.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_onboarding.py#L1)
 
 Signed-phone registration with separate email proof and native Auth identities.
 
@@ -1154,9 +1167,22 @@ Top-level functions: `now` (line 45), `decoded` (line 49), `onboarding_manager` 
 
 Public SQL object references: `app_user_profiles`, `tenants`, `users`, `wallets`, `whatsapp_bindings`, `whatsapp_registration_queue`, `whatsapp_registration_receipts`.
 
+## backend/whatsapp_queue.py
+
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_queue.py#L1)
+
+Durable WhatsApp ingress and REST delivery; no carrier work in the HTTP ack.
+
+- `OutboundPart` (line 29): .
+- `WhatsAppQueue` (line 96): `__init__`, `encrypt`, `enqueue`, `claim`, `mark`, `stage`, `dispatch`, `send_failure`, `drain`, `worker`.
+
+Top-level functions: `inbound_digest` (line 35), `reply_parts` (line 41), `return_media` (line 50), `process_inbound` (line 72), `accept_whatsapp` (line 232).
+
+Public SQL object references: `whatsapp_inbound_queue`, `whatsapp_reply_outbox`.
+
 ## backend/workspace_personas.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/workspace_personas.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_personas.py#L1)
 
 Shared account profiles and exact consumer pricing; no parallel wallets.
 
@@ -1168,7 +1194,7 @@ Public SQL object references: `individual_pricing_settings`.
 
 ## backend/workspace_settings.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/workspace_settings.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L1)
 
 Tenant-owned settings, verified email invitations and durable dispute drafts.
 
@@ -1184,7 +1210,7 @@ Public SQL object references: `app_auth_sessions`, `app_login_limits`, `carrier_
 
 ## backend/xcover_claims.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/xcover_claims.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/xcover_claims.py#L1)
 
 Native XClaim JWT, FNOL, evidence, async claims and signed status events.
 
@@ -1298,6 +1324,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 - `tests/test_order_csv.py`
 - `tests/test_owner_monitoring_browser.py`
 - `tests/test_package_guidance.py`
+- `tests/test_paf_lookup.py`
 - `tests/test_partner_dispatch_security.py`
 - `tests/test_password_recovery.py`
 - `tests/test_password_recovery_browser.py`
@@ -1325,6 +1352,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 - `tests/test_whatsapp_bot.py`
 - `tests/test_whatsapp_ingress.py`
 - `tests/test_whatsapp_onboarding.py`
+- `tests/test_whatsapp_queue.py`
 - `tests/test_workspace_personas.py`
 - `tests/test_workspace_settings.py`
 - `tests/test_xclaim.py`

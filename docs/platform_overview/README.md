@@ -1,6 +1,6 @@
 # EasyInvio application manual
 
-This is the maintained architecture and onboarding reference for EasyInvio.com. It describes the implementation in this repository, including business and individual workspaces, conversational onboarding, carrier selection, payments, protection, claims and headless returns through migration 042. Open [overview.html](overview.html) for a searchable offline edition with diagrams and API tables. Read [llm_handoff.md](llm_handoff.md) before changing code with an LLM.
+This is the maintained architecture and onboarding reference for EasyInvio.com. It describes the implementation in this repository, including business and individual workspaces, conversational onboarding, carrier selection, payments, protection, claims, headless returns, queued WhatsApp transport and UK PAF selection through migration 043. Open [overview.html](overview.html) for a searchable offline edition with diagrams and API tables. Read [llm_handoff.md](llm_handoff.md) before changing code with an LLM.
 
 The source is `docs/platform_overview`. The generated distribution is `output/EasyInvio-Architecture`; `output/EasyInvio-Architecture.zip` contains the same manual. Changes belong in the source chapters and generator, followed by regeneration. Do not edit only the distribution.
 

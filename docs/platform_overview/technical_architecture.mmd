@@ -1,14 +1,14 @@
 %% Same logical nodes/edges as the SVG; detailed contracts are in the manual.
 flowchart TB
     clients["Web and messaging<br/>SPA; WhatsApp; merchant gateways<br/>Role-aware forms and conversations"]
-    auth["Identity and ingress<br/>Auth/JWT; memberships; signatures<br/>Tenant binding; audited assistance"]
+    auth["Identity and ingress<br/>Auth/JWT; signed WhatsApp queue<br/>Tenant binding; audited assistance"]
     api["FastAPI application<br/>Routers; lifespan; shared clients<br/>Pydantic validation; async pools"]
     ai["Optional AI layer<br/>Supervisor; typed workers; budgets<br/>Grounded advice; no wallet authority"]
     domain["Native domain services<br/>Rating; booking; finance; returns<br/>Customs; claims; dispatch; tracking"]
-    external["External integrations<br/>Carriers; Stripe; Auth/SMTP; Twilio<br/>Stores; insurer; CRM; tariff; OpenAI"]
+    external["External integrations<br/>Carriers; Stripe; PAF; Auth; Twilio<br/>Stores; insurer; CRM; tariff; OpenAI"]
     help["Published help corpus<br/>Versioned guide chunks and citations<br/>Lexical / local 256D vector retrieval"]
     db["Supabase PostgreSQL<br/>Tenant predicates; RLS; row locks<br/>Snapshots; ledger; receipts; audit"]
-    jobs["Operational workers<br/>SQL outboxes; polling; realtime<br/>Submitted outcomes and reconciliation"]
+    jobs["Operational workers<br/>Ordered WhatsApp; SQL outboxes<br/>Polling; realtime; reconciliation"]
     clients --> auth
     auth --> api
     api --> domain

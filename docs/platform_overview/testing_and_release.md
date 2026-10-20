@@ -56,3 +56,9 @@ Tests removed from one revised file do not become passing evidence. Concurrency,
 ## Documentation checks
 
 The architecture generator validates current OpenAPI/source mappings, schema references, chapter links, file hashes, diagrams and distribution parity without applying migrations or running lifespan. Its browser review checks searchable navigation, tables, code blocks, diagrams, links and mobile overflow. For documentation-only changes, diff review and `git diff --check` are the required project checks; application tests are needed if code behavior also changes.
+
+## Queued WhatsApp/PAF change verification, 21 October 2026
+
+The scoped offline regression run passed **222 tests** across test_whatsapp_queue, test_paf_lookup, test_conversation_context, test_conversational_gateway, test_whatsapp_bot, test_sandbox_hooks, test_whatsapp_onboarding, test_whatsapp_ingress, test_agents, test_headless_returns and test_identity, with two existing collection warnings. Compilation and diff checks also passed. Fake DB/HTTP/Twilio services validate empty signed acknowledgement, encrypted events, replay/conflict handling, PAF mapping and both UK endpoints, immutable TTL, media parameters, uncertain/definite send fencing and READY recovery.
+
+No migration, live PAF lookup, carrier purchase, payment or WhatsApp send was executed. These tests do not prove actual PostgreSQL lock contention or the sub-500 ms production latency percentile. Staging acceptance must apply 043, provision licensed PAF, verify actual signature/REST account permissions, measure acknowledgement under load, exercise crash/reconciliation and confirm Twilio can fetch/deliver the signed carrier document.

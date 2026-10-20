@@ -63,3 +63,9 @@ The native action methods, not an LLM tool, create checkout links, confirm a sel
 Typed Workflow states RECEIVED, VALIDATING, NEEDS_INPUT, READY, EXECUTING, COMPLETED and REVIEW_REQUIRED describe orchestration. They do not replace domain states or prove that an external purchase/policy/claim completed. Failure handling must preserve the authoritative native service’s outcome and financial reservation.
 
 To extend an agent: define a strict output schema; ground supplied facts; admit the minimal source-backed candidates; bound time/tokens/concurrency; decide a deterministic fallback; add tests for malformed outputs, invented IDs and permissions; and route consequential actions through existing authorized methods. Do not expose SQL, arbitrary HTTP, wallet writes or label purchase as unrestricted model tools.
+
+## Queued transport and address facts
+
+Signed WhatsApp ingress is decoupled by `WhatsAppQueue` and migration 043. The deterministic worker, not a model, resolves the active binding and invokes the same gateway with the stable MessageSid-derived request ID. Raw events and staged replies are encrypted; a canonical signed-field SHA-256 protects inbox reuse while the existing conversational digest remains unchanged. The original inbound timestamp is carried into the service-window record.
+
+Dynamic UK address collection calls `PAFClient` and stores validated `PAFPremise` candidates, paging offset and selected UDPRNs in the private draft. Numeric selection is restricted to the displayed page and matching postcode. The model cannot invent/select a different premise or replace postal data. Contact name is collected separately. Pagination/selection never extend the original fifteen-minute deadline.

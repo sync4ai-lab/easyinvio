@@ -48,7 +48,15 @@ A client popup or redirect is only navigation. Verified payment precedes credit 
 
 Twilio posts to `/api/v1/integrations/whatsapp/webhook`. RequestValidator verifies the signature against the exact configured public URL, account and request values. `TWILIO_WEBHOOK_URL` includes that endpoint; `BOOKING_PAGE_URL` is the separate dashboard origin for handoff links. An ngrok localhost inspection URL is not the public forwarding URL.
 
-Registered senders resolve through active WhatsApp bindings and real tenant membership. Unregistered senders can enter opt-in persona-aware onboarding when enabled. Stable MessageSid-derived receipts avoid duplicate delivery. TwiML response text is chunked below the messaging limit without splitting links; UI chat returns JSON. Twilio’s bounded webhook deadline means a timeout can leave a durable uncertain action, which must be checked in the workspace rather than blindly resubmitted.
+After signature validation, both WhatsApp webhook URLs commit an encrypted raw event to the migration 043 inbox and return empty `<Response/>`. A 450 ms application budget targets acknowledgement below 500 ms under healthy infrastructure; production percentiles need staging measurement. Carrier/onboarding/agent calls run in lifespan-owned `WhatsAppQueue` workers, not in the webhook. SQL row locks and unique MessageSid enforce ordered per-phone processing and duplicate/conflicting-content handling. Canonical SHA-256 covers all signed field pairs; the existing scoped conversational receipt remains unchanged.
+
+Registered senders resolve through active bindings and real membership when a worker executes. Unregistered senders enter opt-in onboarding when enabled. Reply parts are encrypted and staged before a Twilio REST call in `asyncio.to_thread`; automatic SDK retries are off. SENDING/PROCESSING and unknown outcomes are fenced for reconciliation. ACCEPTED records REST acceptance, not delivery. READY can resume unsent parts without replaying the action. Original ingress time governs the free-form messaging window.
+
+Confirmed paperless returns attach a separate `media_url` using the same shipment's signed public HTTPS document proxy. No QR means printable/link fallback. Twilio must reach the public proxy and receive a supported real carrier image/PDF; delivery, file-size and account restrictions still need live acceptance.
+
+### Licensed UK address lookup
+
+`PAFClient` is the asynchronous adapter boundary; `IdealPostcodesClient` uses a fixed HTTPS endpoint, server-only `IDEAL_POSTCODES_API_KEY`, PAF dataset filtering and bounded postcode pagination. Dynamic GB WhatsApp quotes present eight premises per page, accept a displayed number/More/Back, preserve provider-formatted lines and post town, then collect the contact name. Failed/unconfigured lookup never inserts a guessed UK street. Explicit saved routes and ordinary web/non-GB collection retain their existing paths. PAF access/licensing and retention are operational prerequisites, not carrier eligibility guarantees.
 
 Outbound support WhatsApp delivery is independently gated by SUPPORT_WHATSAPP_ENABLED, verified recipient/consent and either the supported recent inbound service window or approved template Content SID. Returning TwiML to a user’s inbound message does not authorize unsolicited outreach campaigns.
 

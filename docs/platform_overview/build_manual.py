@@ -42,14 +42,14 @@ PACKAGES={'API framework':'fastapi','ASGI server':'uvicorn','ASGI foundation':'s
 DIAGRAMS={
  'technical_architecture':('Technical architecture','Logical services in one FastAPI application; provider commits are independent of SQL.',[
   ('clients','Web and messaging','SPA; WhatsApp; merchant gateways|Role-aware forms and conversations'),
-  ('auth','Identity and ingress','Auth/JWT; memberships; signatures|Tenant binding; audited assistance'),
+  ('auth','Identity and ingress','Auth/JWT; signed WhatsApp queue|Tenant binding; audited assistance'),
   ('api','FastAPI application','Routers; lifespan; shared clients|Pydantic validation; async pools'),
   ('ai','Optional AI layer','Supervisor; typed workers; budgets|Grounded advice; no wallet authority'),
   ('domain','Native domain services','Rating; booking; finance; returns|Customs; claims; dispatch; tracking'),
-  ('external','External integrations','Carriers; Stripe; Auth/SMTP; Twilio|Stores; insurer; CRM; tariff; OpenAI'),
+  ('external','External integrations','Carriers; Stripe; PAF; Auth; Twilio|Stores; insurer; CRM; tariff; OpenAI'),
   ('help','Published help corpus','Versioned guide chunks and citations|Lexical / local 256D vector retrieval'),
   ('db','Supabase PostgreSQL','Tenant predicates; RLS; row locks|Snapshots; ledger; receipts; audit'),
-  ('jobs','Operational workers','SQL outboxes; polling; realtime|Submitted outcomes and reconciliation')],
+  ('jobs','Operational workers','Ordered WhatsApp; SQL outboxes|Polling; realtime; reconciliation')],
   [('clients','auth'),('auth','api'),('api','domain'),('ai','domain'),('ai','help'),('domain','external'),('domain','db'),('db','jobs'),('jobs','external')]),
  'functional_architecture':('Functional architecture','Business and individual workspaces share one shipping and financial lifecycle.',[
   ('join','01 Register and verify','Business or personal profile|Website / WhatsApp identity proof'),
@@ -119,6 +119,10 @@ def dump(name,value):
 def sha(path):
     import hashlib
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def source_sha(path):
+    import hashlib
+    return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
 
 def rel(path):return Path(path).resolve().relative_to(PROJECT).as_posix()
 def cell(value):return str(value).replace('|','&#124;').replace('\n',' ')
@@ -236,10 +240,10 @@ def build_sources(revision):
                     'instructions':node.args[2].value if isinstance(node.args[2],ast.Constant) else ast.unparse(node.args[2]),
                     'output_type':next((ast.unparse(k.value) for k in node.keywords if k.arg=='output_type'),None),
                     'tools':next((ast.unparse(k.value) for k in node.keywords if k.arg=='tools'),None)})
-        modules.append({'file':file,'sha256':sha(path),'docstring':ast.get_docstring(tree),'classes':classes,'functions':functions,
+        modules.append({'file':file,'sha256':source_sha(path),'docstring':ast.get_docstring(tree),'classes':classes,'functions':functions,
             'referenced_public_sql_objects':sorted(set(re.findall(r'\bpublic\.([a-z_][a-z0-9_]*)',text,re.I))),'source_url':link(file,1,revision)})
-    tests=[{'file':rel(p),'sha256':sha(p)} for p in sorted((PROJECT/'tests').iterdir()) if p.is_file() and p.suffix in {'.py','.cjs','.sql'}]
-    dump('source_map.json',{'modules':modules,'test_and_probe_files':tests,'note':'Diagnostic/probe filenames do not authorize execution. Review side effects first.'})
+    tests=[{'file':rel(p),'sha256':source_sha(p)} for p in sorted((PROJECT/'tests').iterdir()) if p.is_file() and p.suffix in {'.py','.cjs','.sql'}]
+    dump('source_map.json',{'modules':modules,'test_and_probe_files':tests,'hash_format':'SHA-256 with CRLF normalized to LF','note':'Diagnostic/probe filenames do not authorize execution. Review side effects first.'})
     from backend.agents import models
     from pydantic import BaseModel
     schemas={n:v.model_json_schema() for n,v in vars(models).items() if isinstance(v,type) and issubclass(v,BaseModel) and v.__module__==models.__name__}
@@ -256,7 +260,7 @@ def build_sources(revision):
     lines+=['','## Environment example variable names','',', '.join('`'+name+'`' for name in names),'']
     write('configuration_reference.md','\n'.join(lines))
     lines=['# Source and test catalog','',
-      'Repository module/class/function locations are listed below. Source links reference the recorded revision. Diagnostic/apply/seed scripts can have live effects; review before execution. Hashes are in source_map.json.','']
+      'Repository module/class/function locations are listed below. Source links reference the recorded revision. Diagnostic/apply/seed scripts can have live effects; review before execution. Source fingerprints in source_map.json normalize CRLF to LF for portable checkouts; artifact hashes remain exact bytes.','']
     for r in modules:
         lines+=['## '+r['file'],'',f'[Open source]({r["source_url"]})','']
         if r['docstring']:lines += [r['docstring'],'']
@@ -287,14 +291,14 @@ def build_data(revision):
     migrations=[];tables=[]
     for path in sorted((PROJECT/'migrations').glob('*.sql')):
         text=path.read_text(encoding='utf-8-sig');file=rel(path)
-        row={'file':file,'sha256':sha(path),'created_tables':[],
+        row={'file':file,'sha256':source_sha(path),'created_tables':[],
             'alter_table_targets':sorted(set(re.findall(r'ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:public\.)?([a-z_][a-z0-9_]*)',text,re.I))),
             'created_functions':sorted(set(re.findall(r'CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?([a-z_][a-z0-9_]*)',text,re.I)))}
         for m in re.finditer(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?([a-z_][a-z0-9_]*)\s*(\()',text,re.I):
             tables.append({'name':m[1],'file':file,'line':text.count('\n',0,m.start())+1,'create_definition':text[m.start():m.start(2)]+balanced(text,m.start(2))+';'})
             row['created_tables'].append(m[1])
         migrations.append(row)
-    dump('data_inventory.json',{'migrations':migrations,'create_table_definitions':tables,
+    dump('data_inventory.json',{'migrations':migrations,'hash_format':'SHA-256 with CRLF normalized to LF','create_table_definitions':tables,
       'scope':'Exact repository CREATE TABLE blocks; not live introspection or a final flattened schema after all ALTERs.',
       'baseline_not_fully_in_repository':['tenants','users','carrier_accounts','margin_rules','shipments','wallets','wallet_topups','wallet_reservations','wallet_ledger','whatsapp_bindings','whatsapp_routes','whatsapp_quote_choices','whatsapp_receipts']})
     lines=['# Migration and data dictionary','',
@@ -383,7 +387,7 @@ def build_html(version,count,revision):
     for name,(title,_,_,_) in DIAGRAMS.items():
         figures.append(f'<figure><h3>{escape(title)}</h3><img src="{name}.svg" alt="{escape(title)}" loading="lazy"><figcaption><a href="{name}.svg" download>SVG</a> · <a href="{name}.png" download>PNG</a> · <a href="{name}.mmd" download>Mermaid source</a></figcaption></figure>')
     stack=''.join(f'<tr><td>{escape(purpose)}</td><td>{escape(package)}</td><td>{escape(version["local_environment"][package])}</td></tr>' for purpose,package in PACKAGES.items())
-    html='''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EasyInvio application manual</title><style>'''+CSS+'''</style></head><body><a class="skip" href="#manual-content">Skip navigation</a><aside><strong>EasyInvio.com</strong><p>Application manual</p><nav>'''+''.join(nav)+'''<a href="#architecture-diagrams">Architecture diagrams</a><a href="#technology-versions">Technology versions</a></nav></aside><main id="manual-content"><h1>EasyInvio application manual</h1><p class="intro">Functional and technical architecture, implemented agents, APIs, integrations, data ownership, financial safeguards and operating procedures for engineers and LLM collaborators.</p><p class="notice">Source revision <code>'''+escape(revision)+'''</code>. Migration coverage through 042. Provider activation and live acceptance are environment-specific. No secrets or customer exports are included.</p><div class="downloads"><a href="manual.md" download>Complete Markdown manual</a><a href="openapi.json" download>OpenAPI JSON</a><a href="api_inventory.json" download>API inventory</a><a href="versions.json" download>Versions</a><button id="print-manual" type="button">Print or save PDF</button></div><section class="search"><label for="manual-search">Search the manual</label><input id="manual-search" type="search" placeholder="Try TRIGGER_RETURN, OTP, wallet, Worker 3, or an API path"><p id="search-status" role="status" aria-live="polite"></p><ol id="search-results"></ol></section><section id="technology-versions"><h2>Technology and local versions</h2><p>Python '''+escape(version['python'])+''' in the documentation interpreter; '''+str(count)+''' OpenAPI operations. Installed versions are not deployed-server versions. Full declarations/lock entries are in versions.json.</p><div class="table-wrap"><table><thead><tr><th>Purpose</th><th>Package</th><th>Installed version</th></tr></thead><tbody>'''+stack+'''</tbody></table></div></section><section id="architecture-diagrams"><h2>Architecture diagrams</h2><p>Logical summaries generated from the same node/edge definitions as the Mermaid files. Detailed guards and field contracts remain in the chapters.</p>'''+''.join(figures)+'''</section>'''+''.join(articles)+'''</main><script>'''+JS+'''</script></body></html>'''
+    html='''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EasyInvio application manual</title><style>'''+CSS+'''</style></head><body><a class="skip" href="#manual-content">Skip navigation</a><aside><strong>EasyInvio.com</strong><p>Application manual</p><nav>'''+''.join(nav)+'''<a href="#architecture-diagrams">Architecture diagrams</a><a href="#technology-versions">Technology versions</a></nav></aside><main id="manual-content"><h1>EasyInvio application manual</h1><p class="intro">Functional and technical architecture, implemented agents, APIs, integrations, data ownership, financial safeguards and operating procedures for engineers and LLM collaborators.</p><p class="notice">Source revision <code>'''+escape(revision)+'''</code>. Migration coverage through 043. Provider activation and live acceptance are environment-specific. No secrets or customer exports are included.</p><div class="downloads"><a href="manual.md" download>Complete Markdown manual</a><a href="openapi.json" download>OpenAPI JSON</a><a href="api_inventory.json" download>API inventory</a><a href="versions.json" download>Versions</a><button id="print-manual" type="button">Print or save PDF</button></div><section class="search"><label for="manual-search">Search the manual</label><input id="manual-search" type="search" placeholder="Try TRIGGER_RETURN, OTP, wallet, Worker 3, or an API path"><p id="search-status" role="status" aria-live="polite"></p><ol id="search-results"></ol></section><section id="technology-versions"><h2>Technology and local versions</h2><p>Python '''+escape(version['python'])+''' in the documentation interpreter; '''+str(count)+''' OpenAPI operations. Installed versions are not deployed-server versions. Full declarations/lock entries are in versions.json.</p><div class="table-wrap"><table><thead><tr><th>Purpose</th><th>Package</th><th>Installed version</th></tr></thead><tbody>'''+stack+'''</tbody></table></div></section><section id="architecture-diagrams"><h2>Architecture diagrams</h2><p>Logical summaries generated from the same node/edge definitions as the Mermaid files. Detailed guards and field contracts remain in the chapters.</p>'''+''.join(figures)+'''</section>'''+''.join(articles)+'''</main><script>'''+JS+'''</script></body></html>'''
     write('overview.html',html)
     write('manual.md','\n\n'.join(['# EasyInvio complete application manual',f'Source revision: `{revision}`. Read README.md for scope and generation rules.',*[(ROOT/n).read_text(encoding='utf-8') for n,_ in CHAPTERS]])+'\n')
 
@@ -422,13 +426,13 @@ def validate(export=False):
     current_sources={rel(p) for p in [PROJECT/'main.py',*sorted((PROJECT/'backend').rglob('*.py'))]}
     if current_sources!={r['file'] for r in source['modules']}:raise ValueError('Source module inventory changed; rebuild the manual')
     for row in [*source['modules'],*source['test_and_probe_files']]:
-        if not (PROJECT/row['file']).is_file() or sha(PROJECT/row['file'])!=row['sha256']:
+        if not (PROJECT/row['file']).is_file() or source_sha(PROJECT/row['file'])!=row['sha256']:
             raise ValueError('Source/test changed; rebuild manual: '+row['file'])
     data=json.loads((ROOT/'data_inventory.json').read_text(encoding='utf-8'))
     if {rel(p) for p in (PROJECT/'migrations').glob('*.sql')}!={r['file'] for r in data['migrations']}:
         raise ValueError('Migration inventory changed; rebuild the manual')
     for row in data['migrations']:
-        if sha(PROJECT/row['file'])!=row['sha256']:raise ValueError('Migration changed: '+row['file'])
+        if source_sha(PROJECT/row['file'])!=row['sha256']:raise ValueError('Migration changed: '+row['file'])
     parser=Links();parser.feed((ROOT/'overview.html').read_text(encoding='utf-8'))
     if len(parser.ids)!=len(set(parser.ids)):raise ValueError('Duplicate HTML anchors')
     for href in parser.links:

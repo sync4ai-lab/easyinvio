@@ -188,7 +188,7 @@
     },
     {
       "file": "migrations/020_platform_carriers.sql",
-      "sha256": "97ac0ddf474ed43617eae0063401d1231664a1bc5712f32d963ec846c6a742f1",
+      "sha256": "b5453a5b6776c9859218fdef8e9a33301a4b68f92bb7a070237c55f32a7e05d9",
       "created_tables": [
         "platform_carrier_connections",
         "platform_carrier_events"
@@ -207,7 +207,7 @@
     },
     {
       "file": "migrations/021_identity_sessions.sql",
-      "sha256": "776d988b3aa181d7c1ed21483bb2424bfc952df6362e372437a06d3675c351e0",
+      "sha256": "9c522bdba8fff9468f5e24121ba708881ef91a9e475f3afe82f58864ed15b2a8",
       "created_tables": [
         "app_auth_sessions",
         "app_user_profiles",
@@ -222,7 +222,7 @@
     },
     {
       "file": "migrations/022_carrier_consolidation.sql",
-      "sha256": "84f53c8e001f53d0cfb6c603dd6aa2902d4fa3369faa2572a33ba3e75442ca5f",
+      "sha256": "ffe4e740ef31192b6eaba6f8eef3c62868ee424ed0f32c419ada08af67c6f3c2",
       "created_tables": [],
       "alter_table_targets": [],
       "created_functions": []
@@ -280,7 +280,7 @@
     },
     {
       "file": "migrations/027_workspace_invitations_and_disputes.sql",
-      "sha256": "365ab22927d688c29a0e9c170412291b4eca665a4a32aa00205794dc1e5eed61",
+      "sha256": "0205320f17ecfd0f2917f2407d42a249d3b159ebd4947078aee3aa1af5db60c5",
       "created_tables": [
         "workspace_invitations",
         "shipment_dispute_drafts"
@@ -293,14 +293,14 @@
     },
     {
       "file": "migrations/028_reporting_transit_index.sql",
-      "sha256": "e663948f71ec5cd6de71f658febb9b9590c10837130913f1d61c895b39ccabc6",
+      "sha256": "3b2052f5b99b9a4199bb0e3bd33deb4271d4d3e1041a797f932a95f7e7ab4a33",
       "created_tables": [],
       "alter_table_targets": [],
       "created_functions": []
     },
     {
       "file": "migrations/029_booking_references.sql",
-      "sha256": "07daa7a402adcb0ed086605c5335ecec4be1778db3c92d0cf761d0ea41ea1bf0",
+      "sha256": "ed01a9a5c798a395bcb0a1e09b30c49966e4c722c6a9bbfb5dd0cb6cfd54db71",
       "created_tables": [
         "booking_references"
       ],
@@ -311,7 +311,7 @@
     },
     {
       "file": "migrations/030_card_checkout.sql",
-      "sha256": "5c34d361fc90e5cbee39eb7b0512240aa57b2b8311eff962c1cd89ed8cb1740a",
+      "sha256": "30b28ea1738e68b766e70a61979a54308b9bbb6d9f27f7703bcbe726c08ee50d",
       "created_tables": [
         "payment_carts"
       ],
@@ -333,7 +333,7 @@
     },
     {
       "file": "migrations/032_dispatch_events_and_invoice_audits.sql",
-      "sha256": "27dd4a46ab45c3f708d38a2175eadd68a051ab7654d7b9125c89f9bc902ff963",
+      "sha256": "b8d49212c12dfd1b50068d1baf71a7628ce199c68e1dd3193606634557989933",
       "created_tables": [
         "workspace_dispatch_events",
         "billing_disputes",
@@ -446,7 +446,7 @@
     },
     {
       "file": "migrations/039_whatsapp_onboarding.sql",
-      "sha256": "c1de4af22ae85736fb2635c1fd60544d80acfafc27b93247c2da64a4e52f7ae4",
+      "sha256": "9c0f781d390287899c57aa46fdfa1023f68e1e798124630c6de5c35ab831e425",
       "created_tables": [
         "whatsapp_registration_queue",
         "whatsapp_registration_receipts"
@@ -460,7 +460,7 @@
     },
     {
       "file": "migrations/040_workspace_personas.sql",
-      "sha256": "bc50f0303fd26e3c404d8e9040f4555905bcccd98292cb72c839d41d98d0e263",
+      "sha256": "738b9c1299312b94d1c3ba2adc0bcd766f44548e73c6115c27d79cd223bff372",
       "created_tables": [
         "individual_pricing_settings",
         "individual_pricing_events",
@@ -477,7 +477,7 @@
     },
     {
       "file": "migrations/041_budget_seller_strategy.sql",
-      "sha256": "d3f4c82ad3afb9751f60b44e271493d958d8fc5a367469fc18cfcf833887a9e7",
+      "sha256": "510e3ebe02a021282d23f878f2e09a34be28da9e3976f71ee7d1e674ffd4ad61",
       "created_tables": [],
       "alter_table_targets": [
         "admin_management_events",
@@ -497,8 +497,22 @@
         "reverse_logistics_requests"
       ],
       "created_functions": []
+    },
+    {
+      "file": "migrations/043_whatsapp_async_ingress.sql",
+      "sha256": "2967edee4d6077af6bfb4cc16bbb139b09550093e313dab4c4abc5a34b440223",
+      "created_tables": [
+        "whatsapp_inbound_queue",
+        "whatsapp_reply_outbox"
+      ],
+      "alter_table_targets": [
+        "whatsapp_inbound_queue",
+        "whatsapp_reply_outbox"
+      ],
+      "created_functions": []
     }
   ],
+  "hash_format": "SHA-256 with CRLF normalized to LF",
   "create_table_definitions": [
     {
       "name": "admin_configuration_events",
@@ -805,6 +819,18 @@
       "file": "migrations/042_headless_returns.sql",
       "line": 4,
       "create_definition": "CREATE TABLE IF NOT EXISTS public.reverse_logistics_requests (\n tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n id uuid NOT NULL,\n original_shipment_id uuid NOT NULL,\n requested_by uuid NOT NULL REFERENCES auth.users(id),\n source text NOT NULL CHECK(source IN ('API','WEB_CHAT','WHATSAPP','STOREFRONT','MARKETPLACE')),\n charge_bearer text NOT NULL CHECK(charge_bearer IN ('RETAILER_PAY','CUSTOMER_PAY')),\n input_sha256 text NOT NULL CHECK(input_sha256 ~ '^[a-f0-9]{64}$'),\n state text NOT NULL DEFAULT 'PROCESSING' CHECK(state IN ('PROCESSING','BOOKED','PAYMENT_REQUIRED','REVIEW_REQUIRED')),\n return_shipment_id uuid,\n response jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(response)='object'),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,id),\n UNIQUE(tenant_id,original_shipment_id),\n FOREIGN KEY(tenant_id,original_shipment_id) REFERENCES public.shipments(tenant_id,id),\n FOREIGN KEY(tenant_id,return_shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "whatsapp_inbound_queue",
+      "file": "migrations/043_whatsapp_async_ingress.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE public.whatsapp_inbound_queue (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n message_sid text NOT NULL UNIQUE CHECK(message_sid ~ '^SM[0-9a-fA-F]{32}$'),\n sender_e164 text NOT NULL CHECK(sender_e164 ~ '^\\+[1-9][0-9]{7,14}$'),\n receiver_e164 text NOT NULL CHECK(receiver_e164 ~ '^\\+[1-9][0-9]{7,14}$'),\n input_sha256 text NOT NULL CHECK(input_sha256 ~ '^[a-f0-9]{64}$'),\n payload_ciphertext bytea NOT NULL, key_id text NOT NULL,\n state text NOT NULL DEFAULT 'STAGED' CHECK(state IN ('STAGED','PROCESSING','READY','ACCEPTED','FAILED','REVIEW_REQUIRED')),\n created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),\n error_code text\n);"
+    },
+    {
+      "name": "whatsapp_reply_outbox",
+      "file": "migrations/043_whatsapp_async_ingress.sql",
+      "line": 18,
+      "create_definition": "CREATE TABLE public.whatsapp_reply_outbox (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n inbound_id bigint NOT NULL REFERENCES public.whatsapp_inbound_queue(id),\n part_index integer NOT NULL CHECK(part_index>=0),\n payload_ciphertext bytea NOT NULL, key_id text NOT NULL,\n state text NOT NULL DEFAULT 'STAGED' CHECK(state IN ('STAGED','SENDING','ACCEPTED','FAILED','REVIEW_REQUIRED')),\n provider_message_sid text UNIQUE CHECK(provider_message_sid ~ '^SM[0-9a-fA-F]{32}$'),\n updated_at timestamptz NOT NULL DEFAULT now(), error_code text,\n UNIQUE(inbound_id,part_index)\n);"
     }
   ],
   "scope": "Exact repository CREATE TABLE blocks; not live introspection or a final flattened schema after all ALTERs.",

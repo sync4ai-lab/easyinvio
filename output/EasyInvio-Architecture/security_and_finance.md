@@ -70,3 +70,9 @@ Twilio requests need valid account/signature and an exact public callback URL. P
 Fernet-encrypted server credential envelopes are bound to their configured workspace/connection identities. A saved quote includes connection identity/fingerprint; rotating credentials requires new quotes for new purchases. Historical connection access is permitted only in verified lifecycle paths and is not a general bypass for disabled accounts.
 
 Never commit `.env`, key files, JWTs, webhook secrets, customer exports, raw database dumps or provider bodies containing credentials. Logs use bounded diagnostic codes and redact query secrets. Seed/probe scripts and SQL are not safe read-only operations merely because they are in the repository. No financial retry should be added as a generic HTTP retry decorator.
+
+## Encrypted conversational transport
+
+Migration 043 stores exact signed inbound form bytes and outgoing parts under the existing Fernet key ring; both can contain OTPs and personal details. Ordinary browser roles have no table access. Keep required historical keys for outstanding rows and establish retention for completed payloads and review evidence. The canonical inbox SHA-256 includes every signed field/value/count while tolerating equivalent field ordering. Same SID/different content is rejected.
+
+Queue claims and SENDING markers commit before external calls. A timeout never authorizes an action or outbound-message replay. PROCESSING/SENDING/REVIEW_REQUIRED can block subsequent messages on that thread until reconciled. READY resumes unsent parts only. Free-form messages older than 23h59m are rejected, and backlog processing does not extend the original inbound messaging window. A return media URL must be this application's HTTPS scoped proxy with a valid token for that same shipment; carrier document allowlists and token expiry still apply.

@@ -11,7 +11,7 @@
       [
         "auth",
         "Identity and ingress",
-        "Auth/JWT; memberships; signatures|Tenant binding; audited assistance"
+        "Auth/JWT; signed WhatsApp queue|Tenant binding; audited assistance"
       ],
       [
         "api",
@@ -31,7 +31,7 @@
       [
         "external",
         "External integrations",
-        "Carriers; Stripe; Auth/SMTP; Twilio|Stores; insurer; CRM; tariff; OpenAI"
+        "Carriers; Stripe; PAF; Auth; Twilio|Stores; insurer; CRM; tariff; OpenAI"
       ],
       [
         "help",
@@ -46,7 +46,7 @@
       [
         "jobs",
         "Operational workers",
-        "SQL outboxes; polling; realtime|Submitted outcomes and reconciliation"
+        "Ordered WhatsApp; SQL outboxes|Polling; realtime; reconciliation"
       ]
     ],
     [

@@ -109,3 +109,9 @@ The code contains successive wrappers/extensions around shared UI functions. Bef
 Uvicorn serves the API and root HTML; a separate local frontend helper is optional. Public integrations need a reachable HTTPS origin and correctly configured callback URLs. ngrok is a local development ingress helper, not evidence of a production hosting architecture. Supabase custom SMTP is configured in Auth, not implemented as a second direct SendGrid mail engine.
 
 Environment values, production host details, deployed PostgreSQL/Supabase versions, active contracts, external quotas and carrier coverage are deployment facts. The generated inventory deliberately reads source declarations and installed package metadata rather than private environment files or live provider databases.
+
+## Queued WhatsApp and PAF execution (migration 043)
+
+`app.state.whatsapp_queue` owns the encrypted inbox/outbox and Twilio REST client. `WHATSAPP_QUEUE_WORKERS` supplies 2 worker slots by default (1?8 per process). `app.state.paf` owns the shared asynchronous Ideal Postcodes adapter. Startup checks the two queue tables when Twilio is enabled; the key ring is mandatory. Webhook handlers delegate to `accept_whatsapp`, which authenticates and commits without any carrier lookup. Workers resolve identity and run `ConversationalActionGateway`/onboarding after the database claim commits. No database connection is retained during provider work or outbound REST.
+
+Each phone/receiving-number thread is serialized using ordered eligible heads and `FOR UPDATE SKIP LOCKED`. Different threads and instances can progress independently. READY responses resume only unsent parts; PROCESSING/SENDING/REVIEW_REQUIRED are durable fences, not expiring leases that authorize replay. Encrypted raw events/replies require key rotation and retention controls. The targeted sub-500 ms ack must be load-tested against actual PostgreSQL/pool/network conditions.

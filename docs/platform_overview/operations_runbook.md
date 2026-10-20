@@ -123,3 +123,11 @@ Dispatch sockets authenticate through the first JSON message, not URL query toke
 Stop the intended development server with Ctrl+C; lifespan cancels workers and closes clients/pools. A cancelled local coroutine does not undo a provider-side mutation. Review durable submitted/processing states after interruptions. Rolling out credentials, migrations or new pricing requires the existing compare/version/audit safeguards and an explicit deployment plan.
 
 Keep source documentation, generated references, diagrams and the ZIP synchronized with the generator. Follow project AGENTS.md for authorized checks/commits/pushes. Git synchronization alone does not authorize production deployment or database changes.
+
+## WhatsApp inbox/outbox activation and incident handling
+
+Apply 043 after 042 through the authorized migration process. Configure a valid CREDENTIAL_KEYS ring, normal Twilio account/token/number/canonical webhook URL, and a licensed IDEAL_POSTCODES_API_KEY for dynamic UK chat addresses. WHATSAPP_QUEUE_WORKERS defaults to 2 (1?8 per process). Restart the application; no separate Python worker command is needed. Do not apply SQL or charge/send anything merely to regenerate documentation.
+
+Successful inbound HTTP now returns exactly `<Response/>`. Check whatsapp_inbound_queue and whatsapp_reply_outbox states plus Twilio logs for the actual reply. Missing tables prevent Twilio-enabled startup. Failed enqueue returns 503 for same-SID redelivery. Inspect thread ordering: unresolved PROCESSING/SENDING/REVIEW_REQUIRED blocks later messages for that sender/receiver. Never reset these states or blindly resend; reconcile action receipts, reservations/shipments and outbound SIDs through an authorized audited process. ACCEPTED means REST acceptance, not device delivery. READY can resume only unsent STAGED parts.
+
+For PAF failures, check licence/key/account availability without logging the secret. Confirm complete postcode/country and select from the presented list. No manual street fallback is manufactured in dynamic GB chat. Preserve the configured fifteen-minute draft deadline. Public HTTPS BOOKING_PAGE_URL and approved document hosts are required for Twilio QR image/PDF fetching; a localhost dashboard cannot serve media to Twilio. Proactive support-notification delivery remains a separate outbox/callback contract.

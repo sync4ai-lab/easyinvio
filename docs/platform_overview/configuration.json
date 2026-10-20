@@ -382,6 +382,24 @@
       "file": "main.py",
       "line": 172,
       "class": "Settings",
+      "field": "whatsapp_queue_workers",
+      "environment_name": "WHATSAPP_QUEUE_WORKERS",
+      "annotation": "int",
+      "default_expression": "Field(default=2, ge=1, le=8)"
+    },
+    {
+      "file": "main.py",
+      "line": 173,
+      "class": "Settings",
+      "field": "ideal_postcodes_api_key",
+      "environment_name": "IDEAL_POSTCODES_API_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "main.py",
+      "line": 174,
+      "class": "Settings",
       "field": "booking_page_url",
       "environment_name": "BOOKING_PAGE_URL",
       "annotation": "str",
@@ -389,7 +407,7 @@
     },
     {
       "file": "main.py",
-      "line": 173,
+      "line": 175,
       "class": "Settings",
       "field": "quote_link_secret",
       "environment_name": "QUOTE_LINK_SECRET",
@@ -398,7 +416,7 @@
     },
     {
       "file": "main.py",
-      "line": 174,
+      "line": 176,
       "class": "Settings",
       "field": "whatsapp_deadline_seconds",
       "environment_name": "WHATSAPP_DEADLINE_SECONDS",
@@ -407,7 +425,7 @@
     },
     {
       "file": "main.py",
-      "line": 175,
+      "line": 177,
       "class": "Settings",
       "field": "whatsapp_provider_seconds",
       "environment_name": "WHATSAPP_PROVIDER_SECONDS",
@@ -821,7 +839,7 @@
     },
     {
       "file": "backend/whatsapp_bot.py",
-      "line": 26,
+      "line": 22,
       "class": "WhatsAppConfiguration",
       "field": "twilio_account_sid",
       "environment_name": "TWILIO_ACCOUNT_SID",
@@ -830,7 +848,7 @@
     },
     {
       "file": "backend/whatsapp_bot.py",
-      "line": 27,
+      "line": 23,
       "class": "WhatsAppConfiguration",
       "field": "twilio_auth_token",
       "environment_name": "TWILIO_AUTH_TOKEN",
@@ -839,7 +857,7 @@
     },
     {
       "file": "backend/whatsapp_bot.py",
-      "line": 28,
+      "line": 24,
       "class": "WhatsAppConfiguration",
       "field": "twilio_whatsapp_number",
       "environment_name": "TWILIO_WHATSAPP_NUMBER",
@@ -848,7 +866,7 @@
     },
     {
       "file": "backend/whatsapp_bot.py",
-      "line": 29,
+      "line": 25,
       "class": "WhatsAppConfiguration",
       "field": "whatsapp_brand_name",
       "environment_name": "WHATSAPP_BRAND_NAME",
@@ -872,6 +890,8 @@
     "TWILIO_AUTH_TOKEN",
     "TWILIO_WHATSAPP_NUMBER",
     "TWILIO_WEBHOOK_URL",
+    "WHATSAPP_QUEUE_WORKERS",
+    "IDEAL_POSTCODES_API_KEY",
     "BOOKING_PAGE_URL",
     "QUOTE_LINK_SECRET",
     "JWT_ALGORITHM",

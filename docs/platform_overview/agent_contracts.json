@@ -726,6 +726,91 @@
           ],
           "title": "ConversationalIntent",
           "type": "object"
+        },
+        "PAFPremise": {
+          "additionalProperties": false,
+          "properties": {
+            "udprn": {
+              "pattern": "^\\d{1,12}$",
+              "title": "Udprn",
+              "type": "string"
+            },
+            "postcode": {
+              "title": "Postcode",
+              "type": "string"
+            },
+            "line1": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Line1",
+              "type": "string"
+            },
+            "line2": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Line2"
+            },
+            "post_town": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Post Town",
+              "type": "string"
+            },
+            "organisation": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Organisation"
+            },
+            "building_number": {
+              "default": "",
+              "title": "Building Number",
+              "type": "string"
+            },
+            "building_name": {
+              "default": "",
+              "title": "Building Name",
+              "type": "string"
+            },
+            "sub_building_name": {
+              "default": "",
+              "title": "Sub Building Name",
+              "type": "string"
+            },
+            "dependent_thoroughfare": {
+              "default": "",
+              "title": "Dependent Thoroughfare",
+              "type": "string"
+            },
+            "thoroughfare": {
+              "default": "",
+              "title": "Thoroughfare",
+              "type": "string"
+            }
+          },
+          "required": [
+            "udprn",
+            "postcode",
+            "line1",
+            "post_town"
+          ],
+          "title": "PAFPremise",
+          "type": "object"
         }
       },
       "additionalProperties": false,
@@ -798,6 +883,41 @@
           ],
           "default": null,
           "title": "Assistance Id"
+        },
+        "paf_prefix": {
+          "anyOf": [
+            {
+              "pattern": "^(origin|destination)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Paf Prefix"
+        },
+        "paf_options": {
+          "items": {
+            "$ref": "#/$defs/PAFPremise"
+          },
+          "maxItems": 1100,
+          "title": "Paf Options",
+          "type": "array"
+        },
+        "paf_offset": {
+          "default": 0,
+          "maximum": 1096,
+          "minimum": 0,
+          "title": "Paf Offset",
+          "type": "integer"
+        },
+        "paf_selected": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Paf Selected",
+          "type": "object"
         }
       },
       "required": [

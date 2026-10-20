@@ -2,7 +2,7 @@
   "modules": [
     {
       "file": "main.py",
-      "sha256": "c7e64038b28596bdff92ec242b384fb56efd87f29cef48486491eaccc5897407",
+      "sha256": "707bca9acab386a1db1f2d07fbd21b10ded625f6127d1cba0d7514cae29f2958",
       "docstring": "EasyInvio.com: combined rating, financial controls and WhatsApp service.\n\nPython 3.12 or newer. Install dependencies:\n    python -m pip install fastapi 'uvicorn[standard]' httpx pydantic         pydantic-settings 'PyJWT[crypto]' cryptography asyncpg 'stripe>=13,<15'         'twilio>=9,<10' 'pycountry>=24.6,<25'\n\nRun local checks without credentials:\n    python main.py --self-test\n\nStart after configuring environment variables and applying Steps 2, 4 and 5 SQL:\n    python main.py\n\nRequired environment variables (or entries in a local .env file):\n    SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY\n    DATABASE_URL, CREDENTIAL_KEYS, REGIONAL_ALLOWED_ORIGINS\n    STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET\n    CHECKOUT_SUCCESS_URL, CHECKOUT_CANCEL_URL\n    TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER\n    TWILIO_WEBHOOK_URL, BOOKING_PAGE_URL, QUOTE_LINK_SECRET\n\nCREDENTIAL_KEYS is a JSON object mapping key IDs to Fernet keys.\nREGIONAL_ALLOWED_ORIGINS is a JSON array of approved HTTPS API origins.\nOptional: JWT_ALGORITHM=ES256, STRIPE_LIVEMODE=false,\nPROVIDER_ENVIRONMENT=TEST, DATABASE_CA_FILE, PORT=8000.\n\nThis module does not purchase carrier labels or implement a booking frontend.\nwallet_risk_interceptor, mark_submitted and finish_booking are the hooks for\nthe subsequent label-purchase component. RegionalStrategy defines its actual\nwire contract; use an adapter matching the selected regional provider's API.",
       "classes": [
         {
@@ -11,476 +11,476 @@
           "methods": [
             {
               "name": "whatsapp_e164",
-              "line": 179,
+              "line": 181,
               "async": false
             },
             {
               "name": "sandbox_modes",
-              "line": 183,
+              "line": 185,
               "async": false
             },
             {
               "name": "supabase_origin",
-              "line": 207,
+              "line": 209,
               "async": false
             },
             {
               "name": "regional_origins",
-              "line": 219,
+              "line": 221,
               "async": false
             },
             {
               "name": "checkout_return_url",
-              "line": 234,
+              "line": 236,
               "async": false
             },
             {
               "name": "fixed_https_url",
-              "line": 245,
+              "line": 247,
               "async": false
             },
             {
               "name": "encryption_keys",
-              "line": 258,
+              "line": 260,
               "async": false
             },
             {
               "name": "link_secret",
-              "line": 265,
+              "line": 267,
               "async": false
             }
           ]
         },
         {
           "name": "StrictModel",
-          "line": 271,
+          "line": 273,
           "methods": []
         },
         {
           "name": "Dimensions",
-          "line": 285,
+          "line": 287,
           "methods": [
             {
               "name": "validate_input",
-              "line": 292,
+              "line": 294,
               "async": false
             }
           ]
         },
         {
           "name": "Address",
-          "line": 296,
+          "line": 298,
           "methods": [
             {
               "name": "trim",
-              "line": 312,
+              "line": 314,
               "async": false
             },
             {
               "name": "country",
-              "line": 321,
+              "line": 323,
               "async": false
             }
           ]
         },
         {
           "name": "RatingRequest",
-          "line": 329,
+          "line": 331,
           "methods": [
             {
               "name": "from_conversation",
-              "line": 346,
+              "line": 348,
               "async": false
             },
             {
               "name": "letter_dimensions",
-              "line": 353,
+              "line": 355,
               "async": false
             },
             {
               "name": "weights",
-              "line": 360,
+              "line": 362,
               "async": false
             },
             {
               "name": "matching_arrays",
-              "line": 367,
+              "line": 369,
               "async": false
             }
           ]
         },
         {
           "name": "ProviderFees",
-          "line": 394,
+          "line": 396,
           "methods": [
             {
               "name": "decimal_values",
-              "line": 402,
+              "line": 404,
               "async": false
             }
           ]
         },
         {
           "name": "WholesaleRate",
-          "line": 406,
+          "line": 408,
           "methods": [
             {
               "name": "cost_input",
-              "line": 421,
+              "line": 423,
               "async": false
             },
             {
               "name": "reconcile_fees",
-              "line": 425,
+              "line": 427,
               "async": false
             },
             {
               "name": "codes",
-              "line": 434,
+              "line": 436,
               "async": false
             }
           ]
         },
         {
           "name": "ClientRate",
-          "line": 441,
+          "line": 443,
           "methods": []
         },
         {
           "name": "ProviderIssue",
-          "line": 472,
+          "line": 474,
           "methods": []
         },
         {
           "name": "RatingResponse",
-          "line": 480,
+          "line": 482,
           "methods": []
         },
         {
           "name": "MarginRule",
-          "line": 491,
+          "line": 493,
           "methods": [
             {
               "name": "flat_type",
-              "line": 517,
+              "line": 519,
               "async": false
             },
             {
               "name": "codes",
-              "line": 522,
+              "line": 524,
               "async": false
             },
             {
               "name": "bounds",
-              "line": 526,
+              "line": 528,
               "async": false
             }
           ]
         },
         {
           "name": "TopupRequest",
-          "line": 547,
+          "line": 549,
           "methods": [
             {
               "name": "amount_input",
-              "line": 553,
+              "line": 555,
               "async": false
             }
           ]
         },
         {
           "name": "TopupResponse",
-          "line": 557,
+          "line": 559,
           "methods": []
         },
         {
           "name": "TenantContext",
-          "line": 564,
+          "line": 566,
           "methods": []
         },
         {
           "name": "CarrierAccount",
-          "line": 573,
+          "line": 575,
           "methods": []
         },
         {
           "name": "PriceResult",
-          "line": 585,
+          "line": 587,
           "methods": []
         },
         {
           "name": "BookingPermit",
-          "line": 593,
+          "line": 595,
           "methods": []
         },
         {
           "name": "ParsedQuote",
-          "line": 603,
+          "line": 605,
           "methods": []
         },
         {
           "name": "RuleRepository",
-          "line": 666,
+          "line": 668,
           "methods": [
             {
               "name": "load",
-              "line": 667,
+              "line": 669,
               "async": true
             }
           ]
         },
         {
           "name": "MemoryRuleRepository",
-          "line": 671,
+          "line": 673,
           "methods": [
             {
               "name": "__init__",
-              "line": 674,
+              "line": 676,
               "async": false
             },
             {
               "name": "load",
-              "line": 677,
+              "line": 679,
               "async": true
             }
           ]
         },
         {
           "name": "SupabaseRepository",
-          "line": 684,
+          "line": 686,
           "methods": [
             {
               "name": "__init__",
-              "line": 685,
+              "line": 687,
               "async": false
             },
             {
               "name": "select",
-              "line": 688,
+              "line": 690,
               "async": true
             },
             {
               "name": "load",
-              "line": 721,
+              "line": 723,
               "async": true
             },
             {
               "name": "accounts",
-              "line": 736,
+              "line": 738,
               "async": true
             }
           ]
         },
         {
           "name": "MarginEvaluator",
-          "line": 800,
+          "line": 802,
           "methods": [
             {
               "name": "matches",
-              "line": 802,
+              "line": 804,
               "async": false
             },
             {
               "name": "specificity",
-              "line": 832,
+              "line": 834,
               "async": false
             },
             {
               "name": "evaluate",
-              "line": 840,
+              "line": 842,
               "async": false
             }
           ]
         },
         {
           "name": "ProviderFailure",
-          "line": 872,
+          "line": 874,
           "methods": [
             {
               "name": "__init__",
-              "line": 873,
+              "line": 875,
               "async": false
             }
           ]
         },
         {
           "name": "RateStrategy",
-          "line": 878,
+          "line": 880,
           "methods": [
             {
               "name": "__init__",
-              "line": 879,
+              "line": 881,
               "async": false
             },
             {
               "name": "post",
-              "line": 882,
+              "line": 884,
               "async": true
             },
             {
               "name": "rates",
-              "line": 912,
+              "line": 914,
               "async": true
             }
           ]
         },
         {
           "name": "EasyPostStrategy",
-          "line": 916,
+          "line": 918,
           "methods": [
             {
               "name": "address",
-              "line": 918,
+              "line": 920,
               "async": false
             },
             {
               "name": "rates",
-              "line": 927,
+              "line": 929,
               "async": true
             }
           ]
         },
         {
           "name": "RegionalStrategy",
-          "line": 1018,
+          "line": 1020,
           "methods": [
             {
               "name": "rates",
-              "line": 1027,
+              "line": 1029,
               "async": true
             }
           ]
         },
         {
           "name": "SendcloudStrategy",
-          "line": 1057,
+          "line": 1059,
           "methods": [
             {
               "name": "__init__",
-              "line": 1058,
+              "line": 1060,
               "async": false
             },
             {
               "name": "rates",
-              "line": 1062,
+              "line": 1064,
               "async": true
             }
           ]
         },
         {
           "name": "RatingService",
-          "line": 1075,
+          "line": 1077,
           "methods": [
             {
               "name": "__init__",
-              "line": 1076,
+              "line": 1078,
               "async": false
             },
             {
               "name": "run_provider",
-              "line": 1082,
+              "line": 1084,
               "async": true
             },
             {
               "name": "quote",
-              "line": 1130,
+              "line": 1132,
               "async": true
             }
           ]
         },
         {
           "name": "FinanceEngine",
-          "line": 1261,
+          "line": 1263,
           "methods": [
             {
               "name": "__init__",
-              "line": 1262,
+              "line": 1264,
               "async": false
             },
             {
               "name": "lock_tenant",
-              "line": 1265,
+              "line": 1267,
               "async": true
             },
             {
               "name": "lock_wallet",
-              "line": 1290,
+              "line": 1292,
               "async": true
             },
             {
               "name": "append_ledger",
-              "line": 1302,
+              "line": 1304,
               "async": true
             },
             {
               "name": "reserve",
-              "line": 1321,
+              "line": 1323,
               "async": true
             },
             {
               "name": "locked_reservation",
-              "line": 1386,
+              "line": 1388,
               "async": true
             },
             {
               "name": "verified_test_booking",
-              "line": 1399,
+              "line": 1401,
               "async": false
             },
             {
               "name": "mark_submitted",
-              "line": 1404,
+              "line": 1406,
               "async": true
             },
             {
               "name": "finish_booking",
-              "line": 1428,
+              "line": 1430,
               "async": true
             },
             {
               "name": "check_payment_environment",
-              "line": 1510,
+              "line": 1512,
               "async": false
             },
             {
               "name": "authorize_label_preview",
-              "line": 1521,
+              "line": 1523,
               "async": true
             },
             {
               "name": "create_checkout",
-              "line": 1547,
+              "line": 1549,
               "async": true
             },
             {
               "name": "credit_session",
-              "line": 1627,
+              "line": 1629,
               "async": true
             }
           ]
         },
         {
           "name": "WhatsAppService",
-          "line": 1739,
+          "line": 1741,
           "methods": [
             {
               "name": "__init__",
-              "line": 1740,
+              "line": 1742,
               "async": false
             },
             {
               "name": "resolve_sender",
-              "line": 1743,
+              "line": 1745,
               "async": true
             },
             {
               "name": "sign_choice",
-              "line": 1764,
+              "line": 1766,
               "async": false
             },
             {
               "name": "process",
-              "line": 1771,
+              "line": 1773,
               "async": true
             }
           ]
@@ -489,162 +489,162 @@
       "functions": [
         {
           "name": "decimal_input",
-          "line": 275,
+          "line": 277,
           "async": false
         },
         {
           "name": "parse_json",
-          "line": 610,
+          "line": 612,
           "async": false
         },
         {
           "name": "streamed_json",
-          "line": 620,
+          "line": 622,
           "async": true
         },
         {
           "name": "money",
-          "line": 629,
+          "line": 631,
           "async": false
         },
         {
           "name": "to_minor_units",
-          "line": 635,
+          "line": 637,
           "async": false
         },
         {
           "name": "from_minor_units",
-          "line": 646,
+          "line": 648,
           "async": false
         },
         {
           "name": "encrypt_carrier_credentials",
-          "line": 654,
+          "line": 656,
           "async": false
         },
         {
           "name": "borrow_finance_connection",
-          "line": 1253,
+          "line": 1255,
           "async": true
         },
         {
           "name": "country_to_alpha2",
-          "line": 1693,
+          "line": 1695,
           "async": false
         },
         {
           "name": "parse_quote",
-          "line": 1701,
+          "line": 1703,
           "async": false
         },
         {
           "name": "twiml",
-          "line": 1715,
+          "line": 1717,
           "async": false
         },
         {
           "name": "xml_response",
-          "line": 1721,
+          "line": 1723,
           "async": false
         },
         {
           "name": "decode_json",
-          "line": 1725,
+          "line": 1727,
           "async": false
         },
         {
           "name": "rls_context",
-          "line": 1729,
+          "line": 1731,
           "async": true
         },
         {
           "name": "deterministic_lifespan",
-          "line": 1882,
+          "line": 1884,
           "async": true
         },
         {
           "name": "lifespan",
-          "line": 2078,
+          "line": 2093,
           "async": true
         },
         {
           "name": "branded_carrier_transport",
-          "line": 2111,
+          "line": 2126,
           "async": true
         },
         {
           "name": "preview_guard",
-          "line": 2135,
+          "line": 2150,
           "async": true
         },
         {
           "name": "validate_tenant_query",
-          "line": 2149,
+          "line": 2164,
           "async": false
         },
         {
           "name": "authenticate",
-          "line": 2167,
+          "line": 2182,
           "async": true
         },
         {
           "name": "wallet_risk_interceptor",
-          "line": 2243,
+          "line": 2258,
           "async": true
         },
         {
           "name": "health",
-          "line": 2261,
+          "line": 2276,
           "async": true
         },
         {
           "name": "frontend",
-          "line": 2267,
+          "line": 2282,
           "async": true
         },
         {
           "name": "public_config",
-          "line": 2272,
+          "line": 2287,
           "async": true
         },
         {
           "name": "get_rates",
-          "line": 2281,
+          "line": 2296,
           "async": true
         },
         {
           "name": "carrier_performance",
-          "line": 2341,
+          "line": 2356,
           "async": true
         },
         {
           "name": "create_wallet_topup",
-          "line": 2359,
+          "line": 2374,
           "async": true
         },
         {
           "name": "limited_body",
-          "line": 2370,
+          "line": 2385,
           "async": true
         },
         {
           "name": "stripe_webhook",
-          "line": 2380,
+          "line": 2395,
           "async": true
         },
         {
           "name": "inbound_whatsapp",
-          "line": 2426,
+          "line": 2441,
           "async": true
         },
         {
           "name": "resolve_quote_choice",
-          "line": 2462,
+          "line": 2447,
           "async": true
         },
         {
           "name": "verify_local_logic",
-          "line": 2537,
+          "line": 2522,
           "async": false
         }
       ],
@@ -664,7 +664,7 @@
         "whatsapp_receipts",
         "whatsapp_routes"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/main.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L1"
     },
     {
       "file": "backend/__init__.py",
@@ -673,11 +673,11 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/__init__.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/__init__.py#L1"
     },
     {
       "file": "backend/admin_management.py",
-      "sha256": "7102d0988d5df528740bde2b8ac3b7453c7d13132ca8474362bd6694aa776c60",
+      "sha256": "95a1e239a9e469a810789888a5daec95a6afee325aeacf113997c01755454a94",
       "docstring": "Owner-only, audited management of existing tenant-scoped configuration.",
       "classes": [
         {
@@ -776,11 +776,11 @@
         "tenants",
         "wallet_ledger"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/admin_management.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L1"
     },
     {
       "file": "backend/admin_portal.py",
-      "sha256": "e1741a0dec0e150fcf1437c922007b77a365bb4e3b55d87466d71d7e53c31bd1",
+      "sha256": "7c436f73d702c1e687bff1e3de6c37e078bd0f48035eead62473cf8b89c629bf",
       "docstring": "Platform-owner administration and database-backed tenant pricing.\n\nUses the application's trusted asyncpg pool. Platform permissions come from\nserver configuration, never from customer roles or client-supplied metadata.\nCall get_client_calibrated_rate with await; PostgreSQL access is asynchronous.",
       "classes": [
         {
@@ -1016,11 +1016,11 @@
         "users",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/admin_portal.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_portal.py#L1"
     },
     {
       "file": "backend/advanced_logistics.py",
-      "sha256": "9356fb4b141fe0232b4c7f987a846bd1b32a9fc3cc9d18ab85c21232f7d63698",
+      "sha256": "db9c34e0425d235f0b477c5c1d901de136666bbc8fc3d5889389aa1f958d3842",
       "docstring": "Decimal dimensional pricing, declaration metadata and bounded CSV order imports.",
       "classes": [
         {
@@ -1114,7 +1114,7 @@
         "shipments",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/advanced_logistics.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L1"
     },
     {
       "file": "backend/agents/__init__.py",
@@ -1123,7 +1123,7 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/__init__.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/__init__.py#L1"
     },
     {
       "file": "backend/agents/config.py",
@@ -1144,20 +1144,20 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/config.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L1"
     },
     {
       "file": "backend/agents/conversation_context.py",
-      "sha256": "a6d3e7c46fde638edb1481ba5c4955918938db981800e58171966d2f67502292",
+      "sha256": "2faf210f43f32d821d224de5ebc329409e01c6bf620a7685882202eff6b71e27",
       "docstring": "Bounded typed conversation drafts and deterministic location extraction.",
       "classes": [
         {
           "name": "ConversationDraft",
-          "line": 25,
+          "line": 26,
           "methods": [
             {
               "name": "active",
-              "line": 35,
+              "line": 40,
               "async": false
             }
           ]
@@ -1166,141 +1166,146 @@
       "functions": [
         {
           "name": "explicit_country",
-          "line": 13,
+          "line": 14,
           "async": false
         },
         {
           "name": "location",
-          "line": 40,
+          "line": 45,
           "async": false
         },
         {
           "name": "explicit_quote",
-          "line": 80,
+          "line": 85,
           "async": false
         },
         {
           "name": "merge_quote",
-          "line": 101,
+          "line": 106,
           "async": false
         },
         {
           "name": "collect_reply",
-          "line": 115,
+          "line": 124,
           "async": false
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/conversation_context.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/conversation_context.py#L1"
     },
     {
       "file": "backend/agents/conversational_gateway.py",
-      "sha256": "fba0e49581c1c11ed5f49264ced22bbbd55531c1c528313eebbb0c75fbacfafc",
+      "sha256": "b0ad59e53b7da5b8277ec150953dcbaee32fe0cc2bf0d8555f2c375845af46b2",
       "docstring": "One authenticated action dispatcher for signed WhatsApp and session-bound web chat.\n\nModels extract proposals only. Money, carrier purchases and claim intake remain\nowned by deterministic services. Durable receipts fence uncertain action retries.",
       "classes": [
         {
           "name": "ConversationMessage",
-          "line": 33,
+          "line": 34,
           "methods": []
         },
         {
           "name": "ConversationStore",
-          "line": 67,
+          "line": 68,
           "methods": [
             {
               "name": "__init__",
-              "line": 68,
+              "line": 69,
               "async": false
             },
             {
               "name": "receipt",
-              "line": 72,
+              "line": 73,
               "async": true
             },
             {
               "name": "finish",
-              "line": 125,
+              "line": 126,
               "async": true
             },
             {
               "name": "latest_quote",
-              "line": 131,
+              "line": 132,
               "async": true
             },
             {
               "name": "latest_turn",
-              "line": 138,
+              "line": 139,
               "async": true
             }
           ]
         },
         {
           "name": "ConversationalActionGateway",
-          "line": 146,
+          "line": 147,
           "methods": [
             {
               "name": "__init__",
-              "line": 147,
+              "line": 148,
               "async": false
             },
             {
               "name": "reply",
-              "line": 156,
+              "line": 157,
               "async": false
             },
             {
               "name": "interpret",
-              "line": 159,
+              "line": 160,
               "async": true
             },
             {
               "name": "process",
-              "line": 202,
+              "line": 203,
               "async": true
             },
             {
               "name": "public",
-              "line": 267,
+              "line": 268,
               "async": false
             },
             {
               "name": "pending_reply",
-              "line": 270,
+              "line": 271,
               "async": false
             },
             {
               "name": "draft_prompt",
-              "line": 274,
+              "line": 275,
               "async": false
             },
             {
               "name": "execute",
-              "line": 287,
+              "line": 296,
               "async": true
             },
             {
               "name": "quote",
-              "line": 390,
+              "line": 399,
+              "async": true
+            },
+            {
+              "name": "collect_uk_premise",
+              "line": 501,
               "async": true
             },
             {
               "name": "trigger_return",
-              "line": 483,
+              "line": 522,
               "async": true
             },
             {
               "name": "shipment",
-              "line": 510,
+              "line": 549,
               "async": true
             },
             {
               "name": "claim",
-              "line": 521,
+              "line": 560,
               "async": true
             },
             {
               "name": "claim_panel_url",
-              "line": 562,
+              "line": 601,
               "async": false
             }
           ]
@@ -1309,22 +1314,22 @@
       "functions": [
         {
           "name": "decoded",
-          "line": 40,
+          "line": 41,
           "async": false
         },
         {
           "name": "message_xml",
-          "line": 44,
+          "line": 45,
           "async": false
         },
         {
           "name": "signed_whatsapp_message",
-          "line": 575,
+          "line": 614,
           "async": true
         },
         {
           "name": "build_router",
-          "line": 585,
+          "line": 624,
           "async": false
         }
       ],
@@ -1343,11 +1348,11 @@
         "whatsapp_quote_choices",
         "whatsapp_routes"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/conversational_gateway.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/conversational_gateway.py#L1"
     },
     {
       "file": "backend/agents/margin_optimizer.py",
-      "sha256": "4c7b364fd7622905ecbf709a79d4bee93dc88a0b00c908125eb3c1156c8e919c",
+      "sha256": "cecac0fd0bf928c89d0b69542886a3ed466d42379a10d07151a87a8248bd3362",
       "docstring": "Optional strategic advice over immutable, already-priced top-ten offers.",
       "classes": [
         {
@@ -1399,11 +1404,11 @@
         "support_tickets",
         "tenants"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/margin_optimizer.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/margin_optimizer.py#L1"
     },
     {
       "file": "backend/agents/models.py",
-      "sha256": "c6a021f1552c81906a7a5757855eb1e84c2a329ea7d423b6bfac285a115ebf0e",
+      "sha256": "ca02b31e8fc66cd22957b435831c07a7d73d27f7d637a26527b4111d819a6960",
       "docstring": null,
       "classes": [
         {
@@ -1476,7 +1481,7 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/models.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/models.py#L1"
     },
     {
       "file": "backend/agents/rag_support.py",
@@ -1564,7 +1569,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/rag_support.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/rag_support.py#L1"
     },
     {
       "file": "backend/agents/routes.py",
@@ -1590,7 +1595,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/routes.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L1"
     },
     {
       "file": "backend/agents/runtime.py",
@@ -1672,7 +1677,7 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/runtime.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/runtime.py#L1"
     },
     {
       "file": "backend/agents/supervisor.py",
@@ -1729,11 +1734,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/supervisor.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/supervisor.py#L1"
     },
     {
       "file": "backend/agents/workers.py",
-      "sha256": "c44ba78797194dfbe339386da345420f9a9534ac4e6f516dc0c3836f8943a8a8",
+      "sha256": "da435ff608f54fe1fbdfc5e97b8de6fd0bb10c6905ed2450379d681e27ea1fda",
       "docstring": "Specialists have narrow capabilities; no worker can buy labels or alter a wallet.",
       "classes": [
         {
@@ -1838,20 +1843,20 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/agents/workers.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/workers.py#L1"
     },
     {
       "file": "backend/aggregator_lifecycle.py",
-      "sha256": "6ec33bfb1457f9d8c1fd02fbc6a6a79662fc21030b06716c35b1298dab92eb4e",
+      "sha256": "8d37afaeece6ba936551b8b4e95b148b570fb869b8be117e8e751b1e99f3a384",
       "docstring": "Backward-compatible imports for the explicit three-provider engine.",
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/aggregator_lifecycle.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/aggregator_lifecycle.py#L1"
     },
     {
       "file": "backend/aggregator_registry.py",
-      "sha256": "f1f31f963a6b5a02b9010a86cd5e8cb51a2012f01af2794032fb56121b86e3aa",
+      "sha256": "b0ab6297db6671ee4fda52fd55b7afb2f7f12be8aa3786b6aebf0048ab8546c0",
       "docstring": "Explicit aggregator capabilities: shared interface, provider-specific wire contracts.",
       "classes": [
         {
@@ -1873,11 +1878,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/aggregator_registry.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/aggregator_registry.py#L1"
     },
     {
       "file": "backend/ai_engine.py",
-      "sha256": "06ea5b57ccf2c14e8f365bf49674ea74a6a2c774cc04768d95f0811a0a77e55a",
+      "sha256": "1d8756cecdd5feebaa1f9983aa3d4130b054f0c79cd532c1fe4e88af994bafce",
       "docstring": "Explainable mock ML and tenant-scoped invoice auditing.\n\nPredictions are suggestions, not certified tariff classifications. No external\nAI service receives shipment descriptions. Currency and confidence use Decimal.",
       "classes": [
         {
@@ -1969,7 +1974,7 @@
         "shipments",
         "tenants"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/ai_engine.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ai_engine.py#L1"
     },
     {
       "file": "backend/apply_automation_migration.py",
@@ -1984,11 +1989,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/apply_automation_migration.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_automation_migration.py#L1"
     },
     {
       "file": "backend/apply_partner_lifecycle.py",
-      "sha256": "05a7eadf1f6670f05e75f160015dc29eddaf4da1fafef6d3fe3b3215e0f13ead",
+      "sha256": "f307939d00603d1fb47a931e61be841742a4cb7b48c822041aea01499a2dbc46",
       "docstring": "Explicit sandbox-only migration runner; contains no credentials or seed data.",
       "classes": [],
       "functions": [
@@ -1999,7 +2004,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/apply_partner_lifecycle.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_partner_lifecycle.py#L1"
     },
     {
       "file": "backend/apply_tracking_migration.py",
@@ -2014,11 +2019,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/apply_tracking_migration.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_tracking_migration.py#L1"
     },
     {
       "file": "backend/automation_freight_engine.py",
-      "sha256": "4d0875f1444bfc55284a8135efcb1eba62738b6347ff5b208b7386a11b577594",
+      "sha256": "6435caad46a9843fa894ad550f1baff482a8616fbdbdaaedf51b2bc3a57ff01e",
       "docstring": "Cargo-aware bulk rating, confirmed EasyPost purchase and customs bundles.\n\nFreight tariff factors are contract settings, not a universal NMFC class.\nRegional purchasing is enabled only through an explicitly registered adapter.",
       "classes": [
         {
@@ -2200,11 +2205,11 @@
         "wallet_reservations",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/automation_freight_engine.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_freight_engine.py#L1"
     },
     {
       "file": "backend/automation_three_partners.py",
-      "sha256": "6da7b71110afe3f97f455b064911a10a0f671cf46b7bbed03c7700450383f924",
+      "sha256": "27d8f88bb0d588dc88443095ac9800d0d61fc715c9d1e89b0ecf6e2da28cd1d5",
       "docstring": "Native partner lifecycle contracts behind EasyInvio's private account boundary.\n\nMutating HTTP requests are never retried automatically. A timeout is an unknown\noutcome, not a rejected purchase. Return snapshots must contain a newly quoted\nreturn service; a forward price is never reused as a return authorization.",
       "classes": [
         {
@@ -2815,11 +2820,11 @@
         "wallet_reservations",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/automation_three_partners.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L1"
     },
     {
       "file": "backend/booking_receipt.py",
-      "sha256": "07f686dcc54c46ef1e3e47323cc64c3862240268beed6bbf753394c8db23b3d6",
+      "sha256": "9a943558702fded09dca73e939e63c14fdeebd7a2ef3915c88b757a578597a69",
       "docstring": "Printable booking receipt from confirmed, tenant-owned shipment records.",
       "classes": [],
       "functions": [
@@ -2830,7 +2835,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/booking_receipt.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/booking_receipt.py#L1"
     },
     {
       "file": "backend/build_rigorous_seed.py",
@@ -2861,11 +2866,11 @@
         "wallets",
         "whatsapp_bindings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/build_rigorous_seed.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/build_rigorous_seed.py#L1"
     },
     {
       "file": "backend/bulk_checkout.py",
-      "sha256": "fc2155a53cbfc74d48a339f490f9457c4f86673507ab438bcd0944b826afe125",
+      "sha256": "f57099b404f6cf832586217402872cec4754da6631aeea5dd307075f8eb67f1d",
       "docstring": "Review persisted rates and explicitly buy selected offers for CSV or store orders.",
       "classes": [
         {
@@ -2930,11 +2935,11 @@
         "wallet_reservations",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/bulk_checkout.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/bulk_checkout.py#L1"
     },
     {
       "file": "backend/card_checkout.py",
-      "sha256": "1caf25a832c40a6eb44472388c6363925e5ebd00dfc502c643a63b2fec7250bf",
+      "sha256": "474ec4b72b4bc044f64f73bf7f3e2159087dd20761b684846cf20763cea24465",
       "docstring": "Card-funded label baskets over the atomic wallet booking ledger.",
       "classes": [
         {
@@ -2982,7 +2987,7 @@
         "users",
         "wallet_topups"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/card_checkout.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/card_checkout.py#L1"
     },
     {
       "file": "backend/carrier_access.py",
@@ -3005,11 +3010,11 @@
         "shipments",
         "tenant_catalog_addresses"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/carrier_access.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/carrier_access.py#L1"
     },
     {
       "file": "backend/carrier_consolidation.py",
-      "sha256": "5824cbe202eb71c3e9cbc1c61f49284f4d79555ba15986ed4bcb1dc2824cc938",
+      "sha256": "018ea0689328f5084bf8bdea5e22f842583f4576b979a34222fed6700b623dfa",
       "docstring": "Private carrier consolidation, tenant-local history and branded public payloads.",
       "classes": [],
       "functions": [
@@ -3059,7 +3064,7 @@
         "shipments",
         "tracking_events"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/carrier_consolidation.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/carrier_consolidation.py#L1"
     },
     {
       "file": "backend/check_hubspot.py",
@@ -3074,7 +3079,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/check_hubspot.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/check_hubspot.py#L1"
     },
     {
       "file": "backend/check_setup.py",
@@ -3083,11 +3088,11 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/check_setup.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/check_setup.py#L1"
     },
     {
       "file": "backend/client_assistance.py",
-      "sha256": "87611c22fadb928697f9d23f7415268315a1fec5e0e84290758b62cce4c69b79",
+      "sha256": "55e37ea06fc5114baabb0d9e4ced1b44e868f29ff4c189eff66da607a07326e7",
       "docstring": "Verified platform operators acting in a tenant, with durable request audit events.",
       "classes": [
         {
@@ -3176,11 +3181,11 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/client_assistance.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/client_assistance.py#L1"
     },
     {
       "file": "backend/conversational_claims.py",
-      "sha256": "6a2409f53d6bd0097b75415659a3b115a8ab9bc18023b6a400527ea967d74f4f",
+      "sha256": "950f650d7d60b85726125e7d46ac4a9f813cae5fc224be920bf56ed2ee742e9d",
       "docstring": "One-time completion of an authenticated, unsubmitted chat claim draft.",
       "classes": [],
       "functions": [
@@ -3197,11 +3202,11 @@
         "support_tickets",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/conversational_claims.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/conversational_claims.py#L1"
     },
     {
       "file": "backend/credential_rotation.py",
-      "sha256": "1744f66660b15c77eec0ff963bbc151eaa485a44eaffc76d9d1cc61960c6b928",
+      "sha256": "b406128b4f3b73283443154112de4e2c8ae17777409d93654fd79e799b7ab8f9",
       "docstring": "Fresh-admin replacement of sealed, tenant-bound credentials; never unlock.",
       "classes": [
         {
@@ -3225,11 +3230,11 @@
       "referenced_public_sql_objects": [
         "carrier_accounts"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/credential_rotation.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/credential_rotation.py#L1"
     },
     {
       "file": "backend/customer_checkout.py",
-      "sha256": "b98ee061addfb8e4f4eb970a9c3907ed73bcd881338db3c926344bafbd2f2c3f",
+      "sha256": "bd48bb1f8048922d73c11d934f5d8f762e2a43d332ed5505761d6a52bbe05560",
       "docstring": "Tenant-authorized checkout of private offers and confirmed invoice PDFs.",
       "classes": [
         {
@@ -3283,11 +3288,11 @@
         "tenants",
         "wallet_reservations"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/customer_checkout.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/customer_checkout.py#L1"
     },
     {
       "file": "backend/dashboard_portal.py",
-      "sha256": "9f8b72c1b1d1379c6a5d51ae2bcbed76fc1bd8e6283e1026a4c4f6925effaa8c",
+      "sha256": "26b9ee2f6146ff02aab82de80a108683e9677c0c687ad0f90cc285b803f9992f",
       "docstring": "Server-verified portal roles, owner analytics and support dashboard actions.",
       "classes": [
         {
@@ -3331,7 +3336,7 @@
         "wallet_topups",
         "workspace_store_connections"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/dashboard_portal.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L1"
     },
     {
       "file": "backend/database_tls.py",
@@ -3346,7 +3351,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/database_tls.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/database_tls.py#L1"
     },
     {
       "file": "backend/delivery_quality.py",
@@ -3371,11 +3376,11 @@
         "shipments",
         "tracking_events"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/delivery_quality.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/delivery_quality.py#L1"
     },
     {
       "file": "backend/dispatch_pdf.py",
-      "sha256": "2ac4ccd4b3a6d43baafc9c0b05219344b3b71fcb8e0b2e165bfabb64dc8c35a5",
+      "sha256": "55214a239675de2a47f470f329163566244c8be3af127a5ced34888408270ec1",
       "docstring": "Bounded, tenant-authorized print bundles of confirmed carrier PDFs.\n\nNever manufactures a carrier label or renders ZPL as a pretend shipping label.\nOnly exact operator-approved HTTPS hosts are fetched, without redirects.",
       "classes": [
         {
@@ -3413,11 +3418,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/dispatch_pdf.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_pdf.py#L1"
     },
     {
       "file": "backend/dispatch_realtime.py",
-      "sha256": "c65d3891e6b60287c17cd9bde3eff6072c191e74777cc8137422a037789d4ea0",
+      "sha256": "4003f304f0a2f5e411de6d95663b929b9395e17d9a93da2b524bd80ba94a5d1b",
       "docstring": "Commit-time Postgres notifications fan out to authenticated tenant sockets.",
       "classes": [
         {
@@ -3455,11 +3460,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/dispatch_realtime.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_realtime.py#L1"
     },
     {
       "file": "backend/dispatch_workspace.py",
-      "sha256": "fc17beea43b6f0702cadd60b8ae975c2d981383497826a0b545d2f4adc47d195",
+      "sha256": "4ebdf74541a6a3f2acbdde745880b01430649dbdd058c6cf27f8b4a40ecc2285",
       "docstring": "Operational marketplace inbox. No credentials or financial ledger are exposed.\n\nWebhooks are the default ingestion path. Explicitly enabled Shopify polling is\nread-only; packing/customs preparation and purchase remain separate actions.",
       "classes": [
         {
@@ -3505,11 +3510,11 @@
         "ecommerce_tracking_outbox",
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/dispatch_workspace.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L1"
     },
     {
       "file": "backend/ecommerce_connectors.py",
-      "sha256": "ef32bd8ce308671cca24ce11d75c643c57e841201a1e44a812043df52035dfd9",
+      "sha256": "fc0dac7093aa0378cca3ced2904c7b229b622ecb1f2494d515e545eff3bdae47",
       "docstring": "Native signed intake and opt-in Shopify fulfillment delivery.\n\nCredentials remain server configuration. Amazon intake is a signed adapter\ngateway, not a claim to implement Amazon SP-API/SNS authentication.",
       "classes": [
         {
@@ -3588,11 +3593,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/ecommerce_connectors.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_connectors.py#L1"
     },
     {
       "file": "backend/ecommerce_inbound.py",
-      "sha256": "b45be0c96b999d188b0a0f389da1565cf5b67fac3067e1f42d91d13ab340872f",
+      "sha256": "b90063ffd0089ebfdda7d3a6d7b91547d8f30340e35b43398d631fd96a8f8668",
       "docstring": "Authenticated Shopify intake and Amazon AWS API-destination order notifications.",
       "classes": [
         {
@@ -3643,11 +3648,11 @@
         "amazon_order_notifications",
         "ecommerce_stores"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/ecommerce_inbound.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_inbound.py#L1"
     },
     {
       "file": "backend/ecommerce_sync.py",
-      "sha256": "4b19e6e0d0339f27df4a92135f3f1e5b6123d6bb70cd43291be14ef1668005f1",
+      "sha256": "8272162e8e2be16c721cb7a4a38c179a776e0b224d1ab94b0f03490b00fc17b3",
       "docstring": "Tenant-scoped imports and durable fulfillment delivery.\n\nNormalized JWT intake and native signed intake share the database write path.\nDelivery defaults to an explicit simulation; server-configured Shopify delivery\nuses a durable send fence and remote reconciliation. Other outbound platforms\nstill require adapters. See ecommerce_connectors.py and the core pillar report.",
       "classes": [
         {
@@ -3784,11 +3789,11 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/ecommerce_sync.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L1"
     },
     {
       "file": "backend/help_center.py",
-      "sha256": "a14ef825a6c7e91d1df8f3939452512e236c4fe499d7e425da901c043871879b",
+      "sha256": "ca7c820d8682e191ae09693ab7a0484e41eb0f55a9ecb19e00cf0d5c3369b328",
       "docstring": "Public, authored customer guidance with no account access or external actions.",
       "classes": [
         {
@@ -3845,11 +3850,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/help_center.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/help_center.py#L1"
     },
     {
       "file": "backend/hubspot_crm.py",
-      "sha256": "4111d47a4e02892c4a23e93be3919f6ac3478e5ebd54d3db8766d118263ea1bf",
+      "sha256": "6f674dda88a7fdcd4eaec207c9873d443b740bc8674543abb6037f90ff776725",
       "docstring": "Optional HubSpot CRM synchronization with durable PostgreSQL jobs.\n\nNo credential prefix denotes test mode in HubSpot: pat-* tokens access the\naccount that issued them. Use a separate developer/test account for testing.",
       "classes": [
         {
@@ -4046,7 +4051,7 @@
         "tenants",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/hubspot_crm.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L1"
     },
     {
       "file": "backend/hubspot_provisioning.py",
@@ -4097,11 +4102,11 @@
         "tenants",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/hubspot_provisioning.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_provisioning.py#L1"
     },
     {
       "file": "backend/identity.py",
-      "sha256": "3ad203ed720c053f9d29f7c0acfc49c3011ade8738b702e9192a74959067ac3e",
+      "sha256": "604e8e492f2da79a5f153ceafd645e6b6b792382e67a6d75db8288f1666e22f2",
       "docstring": "Password-verified, revocable HS256 app sessions around Supabase Auth identity.",
       "classes": [
         {
@@ -4206,7 +4211,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/identity.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L1"
     },
     {
       "file": "backend/inspect_seed_schema.py",
@@ -4221,11 +4226,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/inspect_seed_schema.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/inspect_seed_schema.py#L1"
     },
     {
       "file": "backend/invoice_upload.py",
-      "sha256": "e83f989ad38dd4207fc7d06b13c99fbe818ecc0f14c0130bda283cd7620dfc54",
+      "sha256": "29e9a94c1571f403831ae5df9062505d2423c7131afa8c7ece3461275c44320a",
       "docstring": "Bounded statement parsing and reproducible comparisons against server snapshots.",
       "classes": [
         {
@@ -4271,7 +4276,7 @@
         "billing_disputes",
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/invoice_upload.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/invoice_upload.py#L1"
     },
     {
       "file": "backend/label_availability.py",
@@ -4291,11 +4296,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/label_availability.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/label_availability.py#L1"
     },
     {
       "file": "backend/multi_label.py",
-      "sha256": "1753b216fddc02d6d6fcc06a4c8fb1f36e96479f9d041a7c6b94f90fb57f9597",
+      "sha256": "2a4584d1d55b869e4f9e191e47a8f3c2298ada311d244fef613ed4ff09d3fc64",
       "docstring": "A group is confirmed only when every native package label is confirmed.",
       "classes": [],
       "functions": [
@@ -4306,7 +4311,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/multi_label.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/multi_label.py#L1"
     },
     {
       "file": "backend/order_csv.py",
@@ -4399,7 +4404,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/order_csv.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/order_csv.py#L1"
     },
     {
       "file": "backend/package_guidance.py",
@@ -4457,7 +4462,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/package_guidance.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_guidance.py#L1"
     },
     {
       "file": "backend/package_sets.py",
@@ -4497,11 +4502,75 @@
         "shipment_goods_items",
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/package_sets.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_sets.py#L1"
+    },
+    {
+      "file": "backend/paf_lookup.py",
+      "sha256": "f7d1eb0c69a863ee0def9251b071b93dbb5b220bd672c461309c01b89389c1fc",
+      "docstring": "Asynchronous licensed PAF lookup boundary. Postcode syntax is not delivery proof.",
+      "classes": [
+        {
+          "name": "PAFLookupUnavailable",
+          "line": 14,
+          "methods": []
+        },
+        {
+          "name": "PAFPremise",
+          "line": 25,
+          "methods": [
+            {
+              "name": "address",
+              "line": 39,
+              "async": false
+            },
+            {
+              "name": "label",
+              "line": 46,
+              "async": false
+            }
+          ]
+        },
+        {
+          "name": "PAFClient",
+          "line": 50,
+          "methods": [
+            {
+              "name": "lookup",
+              "line": 51,
+              "async": true
+            }
+          ]
+        },
+        {
+          "name": "IdealPostcodesClient",
+          "line": 54,
+          "methods": [
+            {
+              "name": "__init__",
+              "line": 56,
+              "async": false
+            },
+            {
+              "name": "lookup",
+              "line": 59,
+              "async": true
+            }
+          ]
+        }
+      ],
+      "functions": [
+        {
+          "name": "uk_postcode",
+          "line": 18,
+          "async": false
+        }
+      ],
+      "referenced_public_sql_objects": [],
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/paf_lookup.py#L1"
     },
     {
       "file": "backend/payment_gateway.py",
-      "sha256": "086a187f38abee86fe1213169f14fef27d4838369eaceb985085a1a09a4c35ec",
+      "sha256": "75412343e32c69fbdce3903ff20245b8eaccaa9a160b1c30509656deeeea6a8f",
       "docstring": "Environment-validated Checkout gateway over the shared, atomic wallet ledger service.",
       "classes": [
         {
@@ -4634,11 +4703,11 @@
         "wallet_topups",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/payment_gateway.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/payment_gateway.py#L1"
     },
     {
       "file": "backend/platform_carriers.py",
-      "sha256": "4b2443ae51fcd13b4124f344ae256d3c4ff5a02ab38aeaf1be04bc72994817aa",
+      "sha256": "40b1c7078c507ca06095ed4d855d490621d9213f26ed74bf369c59cc098e809a",
       "docstring": "Owner-managed shared provider connections; tenant shipments retain isolated FKs.",
       "classes": [
         {
@@ -4696,7 +4765,7 @@
         "shipments",
         "tenants"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/platform_carriers.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L1"
     },
     {
       "file": "backend/rate_diagnostics.py",
@@ -4742,7 +4811,7 @@
         "automation_failures",
         "support_tickets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/rate_diagnostics.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/rate_diagnostics.py#L1"
     },
     {
       "file": "backend/repair_local_config.py",
@@ -4757,7 +4826,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/repair_local_config.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/repair_local_config.py#L1"
     },
     {
       "file": "backend/return_documents.py",
@@ -4789,7 +4858,7 @@
       "referenced_public_sql_objects": [
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/return_documents.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/return_documents.py#L1"
     },
     {
       "file": "backend/return_ingress.py",
@@ -4808,7 +4877,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/return_ingress.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/return_ingress.py#L1"
     },
     {
       "file": "backend/reverse_logistics.py",
@@ -4875,11 +4944,11 @@
         "shipments",
         "tenant_catalog_addresses"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/reverse_logistics.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/reverse_logistics.py#L1"
     },
     {
       "file": "backend/sandbox_hooks.py",
-      "sha256": "eaa6cdb9f9f952fc794b619bae3f959f7075f04b50da97e99469434a02b41895",
+      "sha256": "cec05336fa9d6c7eb553d63ba9b0d75881045cb34dd648f2f448d5c0b9dd33b7",
       "docstring": "Real Stripe test-mode hooks and strict signed Twilio Sandbox requests.",
       "classes": [
         {
@@ -4925,7 +4994,7 @@
         },
         {
           "name": "WhatsAppSandboxSetup",
-          "line": 269,
+          "line": 270,
           "methods": []
         }
       ],
@@ -4957,7 +5026,7 @@
         },
         {
           "name": "build_router",
-          "line": 280,
+          "line": 281,
           "async": false
         }
       ],
@@ -4969,7 +5038,7 @@
         "whatsapp_bindings",
         "whatsapp_routes"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/sandbox_hooks.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sandbox_hooks.py#L1"
     },
     {
       "file": "backend/seed_rigorous_data.py",
@@ -4991,11 +5060,11 @@
         "users",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/seed_rigorous_data.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/seed_rigorous_data.py#L1"
     },
     {
       "file": "backend/sendcloud_adapter.py",
-      "sha256": "3fd4733e03920e92c122420d1af410970cf73e178a94548402b8d7b1fbd5a397",
+      "sha256": "4d2ee6c7243ba2be3d0eeedb85b35ff6380e86f92e0f63032ff46276e09744a3",
       "docstring": "Read-only Sendcloud v2 rates for explicitly configured contract methods.\n\nNo label creation occurs here. Methods need verified cargo/dimension limits;\nneither an unknown tariff nor an unavailable price is turned into a quote.",
       "classes": [
         {
@@ -5030,11 +5099,11 @@
       "referenced_public_sql_objects": [
         "strip"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/sendcloud_adapter.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sendcloud_adapter.py#L1"
     },
     {
       "file": "backend/shipment_protection.py",
-      "sha256": "e8904ced887e9b2f0327b6ebca6d41f89860d7a49fb9d579c7fa573630420038",
+      "sha256": "7c8d5e400bbb5570c4942eefdc5f47385f92f53e2182cc95e36f10e2b52ff56f",
       "docstring": "XCover premium arithmetic and explicit integration readiness.\n\nDocumented parcel API: https://xcover-api-docs.covergenius.com/parcel_insurance.html\nPaid checkout remains gated until partner credentials and product settings\nare configured. Native headless claims use the separate XClaim JWT/FNOL/upload\nAPI in backend/xcover_claims.py. Portal referral remains available while\npartner claims credentials or insurer form bindings are not configured.",
       "classes": [
         {
@@ -5329,11 +5398,11 @@
         "whatsapp_bindings",
         "workspace_dispatch_events"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/shipment_protection.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L1"
     },
     {
       "file": "backend/store_connections.py",
-      "sha256": "4782fef6d30766518387442d50231a8d8ab63146f589311193f7cbbd0bfb03f1",
+      "sha256": "2a065788bb49be8c71a47e4b7a8f1867dd99e2018cd0c32f4d413d976415961d",
       "docstring": "Write-only merchant setup; encrypted envelopes are bound to tenant and store.",
       "classes": [
         {
@@ -5364,11 +5433,11 @@
         "ecommerce_stores",
         "workspace_store_connections"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/store_connections.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_connections.py#L1"
     },
     {
       "file": "backend/store_returns.py",
-      "sha256": "a5a5ec93d21144abf291d1569f2dfd50ae502ee6cba06578923be593db98a7b1",
+      "sha256": "0dff59a96f310ef43ea5698251da77169e8b7d80fbb107faa63a668b7781fd71",
       "docstring": "Native return tracking without forward fulfillment, refunds or restocking.",
       "classes": [
         {
@@ -5400,7 +5469,7 @@
         "ecommerce_tracking_outbox",
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/store_returns.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_returns.py#L1"
     },
     {
       "file": "backend/support_alert_controls.py",
@@ -5424,7 +5493,7 @@
         "tenants",
         "whatsapp_bindings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/support_alert_controls.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_alert_controls.py#L1"
     },
     {
       "file": "backend/support_delivery.py",
@@ -5489,11 +5558,11 @@
         "users",
         "whatsapp_bindings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/support_delivery.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_delivery.py#L1"
     },
     {
       "file": "backend/support_workflow.py",
-      "sha256": "d9e057f8b87042744761b7a2a1df02e561affdfae2e958a799ca2cf22228fc8e",
+      "sha256": "3ca9a3fa0937e14f0364e69bce3c42add8adee09d7ecb0dc6b51409859952eea",
       "docstring": "Explicit internal review ownership and tenant-scoped append-only activity.",
       "classes": [],
       "functions": [
@@ -5514,7 +5583,7 @@
         "support_tickets",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/support_workflow.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_workflow.py#L1"
     },
     {
       "file": "backend/tenant_catalogs.py",
@@ -5610,7 +5679,7 @@
         "tenant_catalog_addresses",
         "tenant_catalog_products"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/tenant_catalogs.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L1"
     },
     {
       "file": "backend/test_supabase_transaction.py",
@@ -5629,7 +5698,7 @@
         "tenants",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/test_supabase_transaction.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/test_supabase_transaction.py#L1"
     },
     {
       "file": "backend/tools/__init__.py",
@@ -5638,11 +5707,11 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/tools/__init__.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tools/__init__.py#L1"
     },
     {
       "file": "backend/tools/sme_lead_scraper.py",
-      "sha256": "7437f16e72ab1fc9102b7c66c9d41d817ffb5643546aae33ac78a8d44b9b9551",
+      "sha256": "fdac860934b39bac17198bbe839f4e15e8f73a1c7b0eda33a0896a12d7fdf726",
       "docstring": "Company-level UK logistics prospect discovery and unsent outreach drafts.\n\nUses the official Companies House API, not officer records or inferred ethnicity.\nRun: python -m backend.tools.sme_lead_scraper --help",
       "classes": [
         {
@@ -5710,11 +5779,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/tools/sme_lead_scraper.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tools/sme_lead_scraper.py#L1"
     },
     {
       "file": "backend/tracking_and_support.py",
-      "sha256": "54c245306aa00b2bd1afa020243b714953e309ec0c9c01bf9099f44c9e8676bd",
+      "sha256": "4961493f9a309d2d462dc44cd524949cf95b45b2103d2d1ed35f826c026898e0",
       "docstring": "Signed, tenant/account-scoped tracking and durable support staging.\n\nProvider adapters normalize their webhook into TrackingEvent and sign the raw\nbody. No arbitrary delivery URL is fetched and no LLM receives carrier text.",
       "classes": [
         {
@@ -5824,7 +5893,7 @@
         "wallet_topups",
         "whatsapp_bindings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/tracking_and_support.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tracking_and_support.py#L1"
     },
     {
       "file": "backend/verify_automation_sandbox.py",
@@ -5843,7 +5912,7 @@
         "support_tickets",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/verify_automation_sandbox.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_automation_sandbox.py#L1"
     },
     {
       "file": "backend/verify_automation_writepath.py",
@@ -5901,7 +5970,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/verify_automation_writepath.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_automation_writepath.py#L1"
     },
     {
       "file": "backend/verify_supabase.py",
@@ -5918,7 +5987,7 @@
       "referenced_public_sql_objects": [
         "status_code"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/verify_supabase.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_supabase.py#L1"
     },
     {
       "file": "backend/verify_tracking_support.py",
@@ -5935,11 +6004,11 @@
       "referenced_public_sql_objects": [
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/verify_tracking_support.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_tracking_support.py#L1"
     },
     {
       "file": "backend/web_registration.py",
-      "sha256": "bd3b2cedcdd37273c275b6dc42e826b64e901fbe4374f16800818018de5ef2aa",
+      "sha256": "5578e1211ece4a5dc8f35c31bd64e0b3e437223c7e5c384180689648ccb4e1ed",
       "docstring": "Email-verified public account creation; passwords and OTPs are never stored locally.",
       "classes": [
         {
@@ -5984,11 +6053,11 @@
         "wallets",
         "web_registration_sessions"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/web_registration.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/web_registration.py#L1"
     },
     {
       "file": "backend/webhook_security.py",
-      "sha256": "2d2272b06eed18f7c315805c21d55f59c4e2ddf922bf0b10a65b94f4c066d9de",
+      "sha256": "96919ef50084c217648534149ec5e475892c092e40bf7c40fe83e49b7c4d8770",
       "docstring": "Query-secret redaction and optional trusted-proxy-aware webhook IP policy.",
       "classes": [
         {
@@ -6021,43 +6090,43 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/webhook_security.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/webhook_security.py#L1"
     },
     {
       "file": "backend/whatsapp_bot.py",
-      "sha256": "4335a4bf1c6a531ebed87d6b1de22e1ea388719b67d56f7f606ac14ca7d67178",
+      "sha256": "5675e8966fa73df4033dda59bba8dec35be01651ad69150900ca5abef46f14ee",
       "docstring": "Signed WhatsApp ingress into the shared authenticated conversational gateway.\n\nBooking commands return a signed selection link to authenticated web checkout.\nPayment and label purchase require confirmation in the workspace.",
       "classes": [
         {
           "name": "WhatsAppConfiguration",
-          "line": 24,
+          "line": 20,
           "methods": []
         }
       ],
       "functions": [
         {
           "name": "initialize_whatsapp",
-          "line": 32,
+          "line": 28,
           "async": false
         },
         {
           "name": "xml_message",
-          "line": 45,
+          "line": 41,
           "async": false
         },
         {
           "name": "format_quotes",
-          "line": 64,
+          "line": 60,
           "async": false
         },
         {
           "name": "whatsapp_webhook",
-          "line": 91,
+          "line": 87,
           "async": true
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/whatsapp_bot.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_bot.py#L1"
     },
     {
       "file": "backend/whatsapp_ingress.py",
@@ -6092,11 +6161,11 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/whatsapp_ingress.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_ingress.py#L1"
     },
     {
       "file": "backend/whatsapp_onboarding.py",
-      "sha256": "a52aa695bfe255280bac450719fc096ef442211897f4b26146f603f2e2baa259",
+      "sha256": "0d0621b0dbfb2cbf654ae71e41ef33d1c3c1f31dc8fbc6acef76d670087346ae",
       "docstring": "Signed-phone registration with separate email proof and native Auth identities.\n\nNo model handles identity or verification codes. Provider IO occurs outside SQL\ntransactions. An uncertain Auth verification is fenced for operator review.",
       "classes": [
         {
@@ -6248,7 +6317,107 @@
         "whatsapp_registration_queue",
         "whatsapp_registration_receipts"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/whatsapp_onboarding.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_onboarding.py#L1"
+    },
+    {
+      "file": "backend/whatsapp_queue.py",
+      "sha256": "b7c5c8f405f9cd16c6da21ee44e165f5efc125660c0ef84174e36f15090959de",
+      "docstring": "Durable WhatsApp ingress and REST delivery; no carrier work in the HTTP ack.",
+      "classes": [
+        {
+          "name": "OutboundPart",
+          "line": 29,
+          "methods": []
+        },
+        {
+          "name": "WhatsAppQueue",
+          "line": 96,
+          "methods": [
+            {
+              "name": "__init__",
+              "line": 97,
+              "async": false
+            },
+            {
+              "name": "encrypt",
+              "line": 106,
+              "async": false
+            },
+            {
+              "name": "enqueue",
+              "line": 109,
+              "async": true
+            },
+            {
+              "name": "claim",
+              "line": 124,
+              "async": true
+            },
+            {
+              "name": "mark",
+              "line": 137,
+              "async": true
+            },
+            {
+              "name": "stage",
+              "line": 141,
+              "async": true
+            },
+            {
+              "name": "dispatch",
+              "line": 150,
+              "async": true
+            },
+            {
+              "name": "send_failure",
+              "line": 184,
+              "async": true
+            },
+            {
+              "name": "drain",
+              "line": 191,
+              "async": true
+            },
+            {
+              "name": "worker",
+              "line": 220,
+              "async": true
+            }
+          ]
+        }
+      ],
+      "functions": [
+        {
+          "name": "inbound_digest",
+          "line": 35,
+          "async": false
+        },
+        {
+          "name": "reply_parts",
+          "line": 41,
+          "async": false
+        },
+        {
+          "name": "return_media",
+          "line": 50,
+          "async": false
+        },
+        {
+          "name": "process_inbound",
+          "line": 72,
+          "async": true
+        },
+        {
+          "name": "accept_whatsapp",
+          "line": 232,
+          "async": true
+        }
+      ],
+      "referenced_public_sql_objects": [
+        "whatsapp_inbound_queue",
+        "whatsapp_reply_outbox"
+      ],
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_queue.py#L1"
     },
     {
       "file": "backend/workspace_personas.py",
@@ -6282,11 +6451,11 @@
       "referenced_public_sql_objects": [
         "individual_pricing_settings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/workspace_personas.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_personas.py#L1"
     },
     {
       "file": "backend/workspace_settings.py",
-      "sha256": "fc8d6a77a82161135a135b72fc02d5a5d340f0b58fdbdffe88d4b7f3979a267c",
+      "sha256": "d10fc3b26b1590c81172868f98d5799215731b07ed47ad7e97992827299efc05",
       "docstring": "Tenant-owned settings, verified email invitations and durable dispute drafts.",
       "classes": [
         {
@@ -6356,7 +6525,7 @@
         "users",
         "workspace_invitations"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/workspace_settings.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L1"
     },
     {
       "file": "backend/xcover_claims.py",
@@ -6489,13 +6658,13 @@
         "tenants",
         "xclaim_webhook_receipts"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/10b4eefebeb4183d4fdc79c8ccb87891af7366c3/backend/xcover_claims.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/xcover_claims.py#L1"
     }
   ],
   "test_and_probe_files": [
     {
       "file": "tests/aggregator_lifecycle_database_probe.py",
-      "sha256": "6c2f8498643db8e5ba65f6576d224425a177b2eb5467d05cf6b568978fb8e83b"
+      "sha256": "696d78b1aa21b715d8be5ab2836f4f9dfa55a2bd6836dc0032b51310751f4b11"
     },
     {
       "file": "tests/apply_support_migration.py",
@@ -6511,19 +6680,19 @@
     },
     {
       "file": "tests/bulk_dispatch_browser.py",
-      "sha256": "d791f04fad43e006cf580215355a1fc04f90956e778b431c8a713a7a177f2203"
+      "sha256": "cd229ed52b1e628d05758d442cf893ce89361498078c3a64e980439c73fe47bb"
     },
     {
       "file": "tests/card_checkout_browser.py",
-      "sha256": "d458a07a7e62d4b1024a5c3366889f42e417e62ac2faebd037627c1f4c90887f"
+      "sha256": "ecd9fbe5fe4babb4321dce337720ca31142a0e63cdfac1c73bc6ca312b7459ee"
     },
     {
       "file": "tests/card_checkout_database_probe.py",
-      "sha256": "22ca0d328fcc4981302627506b8345f0b329da351c7eeb4484eeaf60ae8ea468"
+      "sha256": "96211d444444bbdbcf1f5a27599a2c1c07ca9774e18a58acefe7a316157f4c50"
     },
     {
       "file": "tests/carrier_consolidation_database_probe.py",
-      "sha256": "ccea31541943575c59b5beb55ae9dcee0b771d2a6c800c1f7cf85a4c46a7ebb5"
+      "sha256": "1923ebd4d8577770d37c24e93692cd195edb0280015eee54386bfd3d4959d0ef"
     },
     {
       "file": "tests/client_assistance_browser.py",
@@ -6547,7 +6716,7 @@
     },
     {
       "file": "tests/conversational_chat_browser.py",
-      "sha256": "c6730b629a43e12afb07c3c332de7732665b5d7ea3e4e7b48c4b82411f6df4ee"
+      "sha256": "7a96b7f6c3676325d1176f84aa7c101a8f89950b2197256ce973874b4392a2a2"
     },
     {
       "file": "tests/core_pillars_database_probe.py",
@@ -6559,15 +6728,15 @@
     },
     {
       "file": "tests/customer_checkout_browser.py",
-      "sha256": "c202ec99f07aa27feab2456bd15741c5fe3bb86ff15c3d33fdb825283133b8ea"
+      "sha256": "a1351f586395e818db546eeb0d397977b7a21b44bebb4f222e9d47e3743d5d7d"
     },
     {
       "file": "tests/customer_checkout_database_probe.py",
-      "sha256": "b598f34894cd8c2227c06891a707d324c44e1c460a509041916efd52ce9490f9"
+      "sha256": "1d33e700feaae25612b40f93ec03ca23f436dbc499b1f8d115d914e7f008a564"
     },
     {
       "file": "tests/delivery_quality_browser.py",
-      "sha256": "75e33c283fc59d5cfbb95060fa62cfc9bf0d19b898f2a589746b4df173a80cd5"
+      "sha256": "3becb385a8517d56f4b8b14f47104fe882ab0033fe9f7838fbb9a573d82f8d82"
     },
     {
       "file": "tests/disabled_provider_database_probe.py",
@@ -6591,19 +6760,19 @@
     },
     {
       "file": "tests/frontend_contract.cjs",
-      "sha256": "028b0b78adee3c7e1b5eae3983869c0a7707501a27e51554178c2d4c59a93574"
+      "sha256": "3466dea55b51b39a5a921d5ea44137b54d6ecd6d9e8154f39b57850cb260aa0b"
     },
     {
       "file": "tests/headless_returns_browser.py",
-      "sha256": "592c1dd72979c6551af7a236f1f16265b9f2b8138c962f5100ac650440469966"
+      "sha256": "37d8eaca3d42bae6a7989e301fbae7a69b197756b343e139462e60d2114f6a90"
     },
     {
       "file": "tests/help_center_browser.py",
-      "sha256": "b34c6c5adee4ef7f8fd9ae0e99dbf36f6071920596ea59b1cdd9cb4916f0ab1b"
+      "sha256": "63883dc8818a81b936e8e8fb6c95b6d187e67e61f47ced8b5c5943bfde541da4"
     },
     {
       "file": "tests/hubspot_database_probe.py",
-      "sha256": "d620f76c343b047b87312c216d8a709b647fa1065af3b4fc0d7695dfe785558a"
+      "sha256": "c9c8dfa3420d3020df222679722f27df554c3985479cd8bb53815f745ab68b70"
     },
     {
       "file": "tests/identity_database_probe.py",
@@ -6615,27 +6784,27 @@
     },
     {
       "file": "tests/multi_piece_browser.py",
-      "sha256": "48927c2837c1c6b5dd0895393efae4eb476d180d84591f95e3b548a58d7802a9"
+      "sha256": "48cd11e7bd436b7624df2ac787e892b4c00623af59f7389884ef8bd08cdf401f"
     },
     {
       "file": "tests/overview_cleanup_browser.py",
-      "sha256": "49925b6f0fd9d761433214b6bcced1ccf383b46dec1695609e9c5646d2a24728"
+      "sha256": "01f2fc4557f5e2c44ddf9900c338acf2864792d678bcb0bed937f0f1e5b39d30"
     },
     {
       "file": "tests/package_guidance_browser.py",
-      "sha256": "ed4a4987fb02dce2862b99c6065180fb07dd836e559aeed929190f8c249929e5"
+      "sha256": "d6aa0c8f4bdccc34b0617a6fc395d451272c9a1bbcb4771ad8091a98f0634662"
     },
     {
       "file": "tests/packaging_sizes_browser.py",
-      "sha256": "e9b0d9d614c18800aa95dbb85719d60903ae42cdfdd73ba06881bf0073ea8b6a"
+      "sha256": "37a80615720edb01eb5d814fb1052128610f1600bd3a033c64585edfa3e83afe"
     },
     {
       "file": "tests/payment_checkout_recovery_browser.py",
-      "sha256": "0bfb3582f70de7d539cc405a8ef8077ea10c42a465646470c8312c7e810c16d5"
+      "sha256": "1717609c1e2caf7addb122265d4cefca6a5362a281466a05cbd7d466a06bb0b6"
     },
     {
       "file": "tests/payment_database_probe.py",
-      "sha256": "1fe55446d7a93c5913a18649489cbf80660d5ff5a520e4bf8cb73229caa85482"
+      "sha256": "12c19a88a39c2f249253bea31f5e06f256aeb076adbeb69fec3925531574aa01"
     },
     {
       "file": "tests/platform_carriers_database_probe.py",
@@ -6643,7 +6812,7 @@
     },
     {
       "file": "tests/quote_connection_browser.py",
-      "sha256": "f63bf316ed6f8e9b14b87526caf4070afc05f6af465c50bc29f39eb6afdca044"
+      "sha256": "13b9ba65351f273cab753a94b19642814c27981f7df1db87cd4513afb5c64a65"
     },
     {
       "file": "tests/report_uat_remediation.py",
@@ -6651,15 +6820,15 @@
     },
     {
       "file": "tests/reporting_browser.py",
-      "sha256": "5accdf3186795bf97d3d6f28b962e6659c9f2cffa532df994ff73936abff023c"
+      "sha256": "6fecd190074b1913cb3ec97aa12a9e60a6b9451899f7225993fdbd2507f90427"
     },
     {
       "file": "tests/reporting_database_probe.py",
-      "sha256": "8707c6fe183f89b938e160770464a2fc26631f63a80183ad837335749c826ade"
+      "sha256": "983a8dae0f2905cbd185a2708b72f4bd6bf1f93174af0cc4592d0f5a2d69990a"
     },
     {
       "file": "tests/schema_upgrade_database_probe.py",
-      "sha256": "bee0c854ce4cf356181a014039d8536de234be2f8f81a40a157d19d0fa603d7c"
+      "sha256": "21fb3c6cc221185a1d2ee5f63a07ddeb98f8d5e1997ad753d949046143027e89"
     },
     {
       "file": "tests/sendcloud_pending_database_probe.py",
@@ -6671,7 +6840,7 @@
     },
     {
       "file": "tests/shipment_phone_browser.py",
-      "sha256": "531dcca64b747bfbca8f2ace3c2aabe9a88cf818e3ef4978572d438946c7c7a8"
+      "sha256": "a1f2c25ee24e78eb30d917595a3eda785a089f0f5ad5560f45204ee31e9d10f7"
     },
     {
       "file": "tests/smoke_http.py",
@@ -6679,15 +6848,15 @@
     },
     {
       "file": "tests/store_connections_database_probe.py",
-      "sha256": "fa08fd99f5dbf38acfa4b6cd601130c2a727f1f5473737d6276cb67e2313861f"
+      "sha256": "9b63d760e84f674df23dba47d78b78351a6f6fc53c9dae4199e0f4a97d9a2901"
     },
     {
       "file": "tests/store_integrations_browser.py",
-      "sha256": "4a05585af793c3a541b62c67f95729f3e5829c4845995c6b2171f2dfb46346fa"
+      "sha256": "23efd76446807501a57e955b98f6ba6ae29f7ad87dffe945ede8ed78d349c81d"
     },
     {
       "file": "tests/stripe_snapshot_database_probe.py",
-      "sha256": "327e02760bb23e5c12c89256daa2f55f231a4090ceb86a1b70e439fa67335543"
+      "sha256": "74cac4f9b52125ff02fc6ada08cf72b71efab23367efd87f7bc8f7002b04728b"
     },
     {
       "file": "tests/support_alert_controls_database_probe.py",
@@ -6699,15 +6868,15 @@
     },
     {
       "file": "tests/support_workflow_browser.py",
-      "sha256": "d5ea6c058f63990ceed187818812c27468ee54643b7c01e158a1eb150ca5aecf"
+      "sha256": "64864736a6372bcfbd53297a65b130aad04e039626ea0cd020e0ad26069e2e5d"
     },
     {
       "file": "tests/support_workflow_database_probe.py",
-      "sha256": "350e352d1e39a3a4526b09cd0b7267e78a70a2b4ccc3fa18f41902d5e81eeb5a"
+      "sha256": "a2904d96bdb50f1142b07dc18624077449181650fccdbe755b7b227074718bd8"
     },
     {
       "file": "tests/support_workflow_readiness.py",
-      "sha256": "004a77cfcca859084d5dd67084b1b8338eff76fe6caa0183659f9a9f69334455"
+      "sha256": "80904dd64b5a0a3e8be22dc79728b9d8d103d1e4d527db64c94027427a77bc01"
     },
     {
       "file": "tests/tenant_catalogs_browser.py",
@@ -6723,7 +6892,7 @@
     },
     {
       "file": "tests/test_admin_portal.py",
-      "sha256": "41e7582d9d3dcf304000b29c32de123ea56f543fbcf72e299091514189afe08c"
+      "sha256": "d2b2ebdaf759cd203aa03c6d978f938f5abc2a432fc2862ecfdf8eb45f91582e"
     },
     {
       "file": "tests/test_agents.py",
@@ -6731,27 +6900,27 @@
     },
     {
       "file": "tests/test_aggregator_lifecycle.py",
-      "sha256": "d1d5e0403bb7276d8a4eca6d489fa6418f6e0df17d07801210ffb6a48f61ca28"
+      "sha256": "a1171bb696bd4be2699a0b52076414a9015ed7caa3d25e0abe8d93f5fe8f3e63"
     },
     {
       "file": "tests/test_automation_freight.py",
-      "sha256": "53564ac339f771e15ab7f14cb98ba195e175a33ad0486ec1ab068fb358115061"
+      "sha256": "d071377340265bc5835479271717bcf0b68eb38e52fe005d87c48d89be9e1b5a"
     },
     {
       "file": "tests/test_bulk_checkout.py",
-      "sha256": "ded8fc38cc07a8509ae6e4d47f5d22f718ee486d2fd0b44aa0e276cf92da5753"
+      "sha256": "af613fdffd795401462c00a69f47b194b4f607192cbd43e7f1586ba5a6e249d2"
     },
     {
       "file": "tests/test_carrier_consolidation.py",
-      "sha256": "43ba54ba47a55d412b2d497b1b7d8b553d1f4c7b13553a48c1aaa1e15cf277c9"
+      "sha256": "4ddaba0e8daf60087c0e54e98aa292d7e0187345caa4cd8ab1fa895e338e4bac"
     },
     {
       "file": "tests/test_carrier_consolidation_browser.py",
-      "sha256": "3b8d38c56a806aa05e048c37c182a097f8fd857f726930ba1e2cb8821670ad6b"
+      "sha256": "8f7c501f616f09ae2f8c44490166e0fa9bd2a00bea4f2d13c56869b86bd1ff9e"
     },
     {
       "file": "tests/test_carrier_disable.py",
-      "sha256": "133286f7b8fbad9ea874404ab774f52a10191f3355b1ca5b117300ad92c8debf"
+      "sha256": "e9305e010656d9ac9fe73925efbe29ce1fdd2752191f3476871f86fa50e040fa"
     },
     {
       "file": "tests/test_checkout_carrier_rejection.py",
@@ -6763,11 +6932,11 @@
     },
     {
       "file": "tests/test_conversation_context.py",
-      "sha256": "f3e9fd31979171947841d9d9765441d8b9188c69221d975426e5f21171cb587b"
+      "sha256": "637acf74387006e03a4832766ebd674aef5f56977f7266eeec04edf50bb89fb1"
     },
     {
       "file": "tests/test_conversational_gateway.py",
-      "sha256": "ca219cc5bc06787cc07f0a383f683af6a6062b98b7efa656ff9f83781470cb44"
+      "sha256": "21d4a05d30861250cfcd072af8f8c85de5911fd33ed7741ba2dc0b057478a51a"
     },
     {
       "file": "tests/test_core_pillars.py",
@@ -6775,19 +6944,19 @@
     },
     {
       "file": "tests/test_csv_browser.py",
-      "sha256": "d628eab4e82343c4abc97ebb3d413aafb685340e57b92d5600ef75795ebcd6df"
+      "sha256": "5b05b567d713f0f7ab556296a4ace8a44ec75f4d15a8515b1018d385f5178573"
     },
     {
       "file": "tests/test_customer_checkout.py",
-      "sha256": "fad391db58587eaf18782e377126cc60672c5c7b4836ff225cf329982cc3f27e"
+      "sha256": "1acc4d9059e90b21c13e69c1dc40a35f84e8c253710e1dc9ae2d3e00eda14857"
     },
     {
       "file": "tests/test_dashboard_portal.py",
-      "sha256": "28e488d7ce568abe3d35e16494ab62ef53bb813282c8215066b5212fff902e30"
+      "sha256": "1f6496a2acdffba247d05e416256e2e8d1fa295cebb892657ad895822d6be183"
     },
     {
       "file": "tests/test_delivery_quality_and_protection.py",
-      "sha256": "ac672d9cf662a06803d269a4827118ebaa3305dee4309d1978b8f0e291f25067"
+      "sha256": "892ecc7f76904b55890237103e1f3af42e714c971cbf333b8fc608452a37e182"
     },
     {
       "file": "tests/test_dispatch_workspace.py",
@@ -6795,19 +6964,19 @@
     },
     {
       "file": "tests/test_dispatcher_browser.py",
-      "sha256": "bd915e7fb4e1e10570774cd118d56b8140d24bfa221750d3d8dd6147e830aeb3"
+      "sha256": "f18e1385b26101405dec02d3d3c45d95b9a1c12424e2ef8d5e1b484b5fc59002"
     },
     {
       "file": "tests/test_easyinvio_complete_matrix.py",
-      "sha256": "db00b11a301a9cd26ecc26168249d9dbc7b3a906c1864b40743e812f7dee7744"
+      "sha256": "f3940e484a0298ed17c1e323c3d12f1009acf16a75ead448df8f84804835cd6c"
     },
     {
       "file": "tests/test_ecommerce_sync.py",
-      "sha256": "02f354ea5a9f566c302bf49d3e9404c0934e471457c00a8077fa335edd1b7a77"
+      "sha256": "a93013d891ec20c15d8aa4cade59be40291624b73cfcf586a43c4f5ca671cccf"
     },
     {
       "file": "tests/test_enterprise_browser.py",
-      "sha256": "197897b1a2363500ad14437f4e5fb9957a3924ef201e08ff0704fdbdca7c1505"
+      "sha256": "2c1c74ac9a694078e2432dee45e531f8c848ced0c404e00bc6c55a4ea8eeef24"
     },
     {
       "file": "tests/test_enterprise_security.py",
@@ -6819,7 +6988,7 @@
     },
     {
       "file": "tests/test_help_center.py",
-      "sha256": "d1bd3cbe1cc17881b585673d3e7bb191aa0a37f1298fa78f82ee61b22e4f90bc"
+      "sha256": "962ed9e8b92b22766cc2bdcc255a4ed5d9c050fc11240c827bcdd65ad2a8490e"
     },
     {
       "file": "tests/test_hubspot_activation.py",
@@ -6831,7 +7000,7 @@
     },
     {
       "file": "tests/test_hubspot_crm.py",
-      "sha256": "7451bdf3ea7330a0d5e4b241fd4f16018726b6e20bd99e835787ce6af0891168"
+      "sha256": "be51e492af7170824a2f2affb5bc1734be3d84b1ed173c17a7c4cf89edc63a9b"
     },
     {
       "file": "tests/test_identity.py",
@@ -6839,11 +7008,11 @@
     },
     {
       "file": "tests/test_identity_browser.py",
-      "sha256": "ade645864e7b7953035884c5aeeee63ee01d06f21dc5cdeb93eae9de4e753aa5"
+      "sha256": "0402abcb3ea89300102f2af2b58713976c2c183a983f5b3e1d4bd16a4d202319"
     },
     {
       "file": "tests/test_integration_remediation.py",
-      "sha256": "f1a9759765d47e972d14d8fc14420b5e95da2e2606ad9ff359483e14f03f8cb4"
+      "sha256": "7757cc882838ae365f95071870633fce85e537493c8359f5bd39ef6304183cd6"
     },
     {
       "file": "tests/test_label_failure_operations.py",
@@ -6851,11 +7020,11 @@
     },
     {
       "file": "tests/test_logistics.py",
-      "sha256": "66b8e10a3214ae9c465be00b9fc16a6d0cf686919fbcfcacb812380cea545635"
+      "sha256": "68d1e4f046270753cedd3f64585b622c4443ce42cf31efcf96da1a766270e72c"
     },
     {
       "file": "tests/test_margin_optimizer.py",
-      "sha256": "1fb76fcef91c437b14e1ef092b2f2e5d1ea37b743990c974bfe218cd1ec1fe40"
+      "sha256": "23218d1f374d395855e9ed347447a7987c4f68e2a9b696cec16a34e222bdd320"
     },
     {
       "file": "tests/test_modern_logistics.py",
@@ -6863,11 +7032,11 @@
     },
     {
       "file": "tests/test_multi_piece_flow.py",
-      "sha256": "116280e452e22c9559c0154e7e7504998e5c25835109b52e6e96a8499caa2919"
+      "sha256": "a5e43f22bbcef776caf675925f000981ec3e2b0aec49fb8d0617cb2c4fd25993"
     },
     {
       "file": "tests/test_native_provider_browser.py",
-      "sha256": "5b6b9ecdecaf2aef64cf4b135717f0b7df94664bde6155a68a403487c057a014"
+      "sha256": "3a24ed2bbdcf3923e251380f0de1969839ef7964a4c733c6419f9e01699c68a4"
     },
     {
       "file": "tests/test_optional_integrations.py",
@@ -6883,39 +7052,43 @@
     },
     {
       "file": "tests/test_package_guidance.py",
-      "sha256": "5a3bae324ecb0dac1b35c6d22c1676fb90fc9f1daf62a851d37bb0590d6c17c7"
+      "sha256": "65d6ee551d789459663de7a7d446a537e92fbfdf2be44374d7580950cc39519a"
+    },
+    {
+      "file": "tests/test_paf_lookup.py",
+      "sha256": "84ff2495e9e0fabd8dd319b81d55d2668a42c4be3e1020e7a0408352d0e2ea37"
     },
     {
       "file": "tests/test_partner_dispatch_security.py",
-      "sha256": "1c1d08ca9f958ffb5dd8394b4812c3a99b9fa4ef6f713af3c9dd03bdaef6e2bd"
+      "sha256": "9290315d8d55350bd44ef82187485c4b7cf081951a32eab23d4ff823b383330f"
     },
     {
       "file": "tests/test_password_recovery.py",
-      "sha256": "14a11bdc050dc9960afdfe6ea83c247e5ba04b2453d288a2a6273a9bf0a9c6b9"
+      "sha256": "597eb219e0bb6d35521e0dc2198159e589e1354dc5e15f49dece2577e8707462"
     },
     {
       "file": "tests/test_password_recovery_browser.py",
-      "sha256": "eb807639e575430d9b294bd3526079770052ce5156c7b2d143abfc9c519b497d"
+      "sha256": "679dd59a666006c8c1907366a491a39287e3afd30f2cb592cee602645056d15e"
     },
     {
       "file": "tests/test_payment_browser.py",
-      "sha256": "6f47b9403640e81fb892bbb418879febb4e23d52459b3bc5138e6a56b7dfb0db"
+      "sha256": "f130914d5756f4b9318a922f970321e357dbbff15bde28b03a3e4defd081aa14"
     },
     {
       "file": "tests/test_payment_gateway.py",
-      "sha256": "ae56583955f4481f810cac9a2a010e9cb9ef71047191143f454aba21eb7bfa97"
+      "sha256": "3164a2bd757e340fa55eb9e4d092f4ccc5ca03405dee27233d61a2295475151e"
     },
     {
       "file": "tests/test_payment_recovery.py",
-      "sha256": "e37279d19f0a0e7790335fe61d8d0f73650531403809906ace21eaa1805c0c56"
+      "sha256": "d68a5c8fb2d333c9473910b8882a82b53799a72f8fba443155efc1b17e2c2a78"
     },
     {
       "file": "tests/test_platform_carriers.py",
-      "sha256": "a221e5bfaacc1164ad2e7f2c6ab2e67978f5fd872e26fe88876ecba9b9ff362b"
+      "sha256": "44ae64eefd79f64fa0590c5d5fbef15f0a8e6b9c1ad1eddc1af10741a74fe9fb"
     },
     {
       "file": "tests/test_quote_integrity.py",
-      "sha256": "c477af1b88f1564ba75de16a67c445d7cc4845164ffb397fe2cfdca03a293d21"
+      "sha256": "bc6627ebc15837d6881fdda6141c982019a301b327f9475a3a1a7f6f4fa7839e"
     },
     {
       "file": "tests/test_quote_support.py",
@@ -6927,7 +7100,7 @@
     },
     {
       "file": "tests/test_sandbox_hooks.py",
-      "sha256": "e301e2b5c23b51633c7f683b25035dd73c630bf67a4cf61e02726d20b4738af0"
+      "sha256": "bbe7872f99829bc8b7f71d5ba3c7c54ce122ac7ad8ed802bd02ab2b81189ac37"
     },
     {
       "file": "tests/test_seller_strategy.py",
@@ -6935,7 +7108,7 @@
     },
     {
       "file": "tests/test_sendcloud_v3.py",
-      "sha256": "0065c4fc75f9c972e21a7562343fe765b53f4566e154d1378df342e07c3df4cb"
+      "sha256": "d1465f76a54c9e5c465bd4beda4db612e7cc2fd38110edb7d8ddc37b21c3c9f5"
     },
     {
       "file": "tests/test_sme_lead_scraper.py",
@@ -6943,7 +7116,7 @@
     },
     {
       "file": "tests/test_store_connections.py",
-      "sha256": "8806a18195e42862b7843883ab19c9de661560cadbda7d3c51acfedd5c089ccf"
+      "sha256": "34b870a8ec3273132715087f2abb27fa8d552054bb3f66e2323be67daa32a796"
     },
     {
       "file": "tests/test_stripe_listener_setup.py",
@@ -6959,7 +7132,7 @@
     },
     {
       "file": "tests/test_tenant_catalogs.py",
-      "sha256": "963bd82660aa8970ec888848527f454423cc7dac50bde2a14aeab0fbc7cc8bcf"
+      "sha256": "58f8fac4b1164b24a1b909ecbf54cabc64a9dc0d4dc3cce7caea6e0a6a8fb57c"
     },
     {
       "file": "tests/test_three_partner_native.py",
@@ -6967,7 +7140,7 @@
     },
     {
       "file": "tests/test_tracking_and_support.py",
-      "sha256": "31968a92848c460c49d095e24b4b69a68e1379757f64aa4577ae9a9b3c054659"
+      "sha256": "7746fff95d89976ab75d2c4f4bc16281e1c6ba31da97b864631e21c6e2b043a9"
     },
     {
       "file": "tests/test_transactional_remediation.py",
@@ -6983,7 +7156,7 @@
     },
     {
       "file": "tests/test_whatsapp_bot.py",
-      "sha256": "d528daf51ad25aee9154a1217d7fcf13a4a48ef14905f1aaf71454482fb58e83"
+      "sha256": "4bb370c3aaeb4ec23216b487e813e69729a293b98d162a66196c256be767e849"
     },
     {
       "file": "tests/test_whatsapp_ingress.py",
@@ -6991,15 +7164,19 @@
     },
     {
       "file": "tests/test_whatsapp_onboarding.py",
-      "sha256": "5f653b869ba5df117c612e2a3c9d27647aa15bbefd786f7221c75bb49d867677"
+      "sha256": "0462d40ceb464dc59a963a0d7e52382787ce3ef2cefd92d43f395f33f84e65ad"
+    },
+    {
+      "file": "tests/test_whatsapp_queue.py",
+      "sha256": "acab956e675615cfa974f171779737806220da430c1639051eaa2335e616c1c7"
     },
     {
       "file": "tests/test_workspace_personas.py",
-      "sha256": "0e5a988866e6b8ce366e1fb39ce3323b3537e1c5ffbab34e3b4341d3258f174d"
+      "sha256": "62d2758780d34ea21a17b02b39f4f47c8267dd3ac291b9449ace81e713882522"
     },
     {
       "file": "tests/test_workspace_settings.py",
-      "sha256": "6a742e5f269f4fd31bbe5b56534b003dab5349ac48121fcec407d7fd7330a184"
+      "sha256": "b39825f26ec6660c052623b5957f7fec8dc5c64b3dddd840a48b38a75a524d90"
     },
     {
       "file": "tests/test_xclaim.py",
@@ -7011,7 +7188,7 @@
     },
     {
       "file": "tests/three_partner_database_probe.py",
-      "sha256": "7a811c6a117a697f3f5c617c97dd38a151bef7db16a1f18551ab8b7924b1bc66"
+      "sha256": "3293d7c8be250ebbc4624d6f6ed9cbed988bacfcd9d45a1a2c95682cb1110403"
     },
     {
       "file": "tests/transactional_remediation_browser.py",
@@ -7019,15 +7196,15 @@
     },
     {
       "file": "tests/transactional_remediation_database_probe.py",
-      "sha256": "407eb7766f4757e8b88001e5ae00cc98a47b39ef2c0fa76b80934fd10858ed53"
+      "sha256": "ab4153ae7a35dfb10b115c9b78db919bb9fe0aa0dfca3d2b93598eafe97e2df9"
     },
     {
       "file": "tests/uat_automation_suite.py",
-      "sha256": "b1a603865906337903a75463f35d947bf59e2e328229da7781efcc1d4f25359a"
+      "sha256": "ffe986cf6767c668ae272c4eee77b7de25ccf5c2816e9889791da4509c6579e3"
     },
     {
       "file": "tests/uat_browser_probe.py",
-      "sha256": "2d2e3194df8d5b1239ef5a2a2c253f8c103606346992210fa9744338892d1934"
+      "sha256": "98902e6cfc6cc97a4597b6d77835115091191732f419f973a10950ac7504190a"
     },
     {
       "file": "tests/uat_bulk_isolation_probe.py",
@@ -7067,7 +7244,7 @@
     },
     {
       "file": "tests/whatsapp_checkout_browser.py",
-      "sha256": "4368a9d3d98b71db6d7a86612c8664b2a09ac2208614636e4284df806fab50eb"
+      "sha256": "7e96a73ded9e787a0abcae848794616adf21dcdc3b5764a8bbedef444197b13e"
     },
     {
       "file": "tests/whatsapp_database_probe.py",
@@ -7079,11 +7256,11 @@
     },
     {
       "file": "tests/workspace_settings_browser.py",
-      "sha256": "889830fcca53c4c180ecadc40098a1d05984839ed5e5eaf026ad55007b2b519d"
+      "sha256": "daac2e403b759c50381a5e12308607fb31c1004fbdf71c0444566f4f85bd4839"
     },
     {
       "file": "tests/workspace_settings_database_probe.py",
-      "sha256": "ef450821fe36c7fa24f18aae5ccfed09c3de8d8259307ab30da2442c4518bdeb"
+      "sha256": "cf1c7045c2f0ebf9fab22d4bcb7b4356cb96376f7d22e2c3c578ff39638c9674"
     },
     {
       "file": "tests/write_uat_report.py",
@@ -7095,8 +7272,9 @@
     },
     {
       "file": "tests/xcover_database_probe.py",
-      "sha256": "63efe05c9379f00830d0ed118c93ec045108b1ec90df219076e05271a55caae6"
+      "sha256": "48120faaf912b23083383f5d49fbf15e8163a17b41a21d5d0d337031bdc64a7a"
     }
   ],
+  "hash_format": "SHA-256 with CRLF normalized to LF",
   "note": "Diagnostic/probe filenames do not authorize execution. Review side effects first."
 }
