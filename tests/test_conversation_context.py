@@ -32,6 +32,9 @@ async def test_complete_dynamic_quote_survives_gateway_recreation_and_has_no_inv
     context, storage, state, gateway, app = fixture
     state.settings.twilio_whatsapp_number = '+14155238886'
     state.rating = SimpleNamespace(quote=AsyncMock(return_value=quote_result()))
+    from backend.paf_lookup import PAFPremise
+    state.paf = SimpleNamespace(lookup=AsyncMock(return_value=[PAFPremise(udprn='12345', postcode='LS1 2TW',
+        line1='1 Real Road', post_town='Leeds', building_number='1')]))
     original_execute = storage.execute
     async def execute(sql, *args):
         if 'UPDATE public.whatsapp_bindings' in sql:
@@ -49,10 +52,10 @@ async def test_complete_dynamic_quote_survives_gateway_recreation_and_has_no_inv
         assert first['status'] == 'NEEDS_INPUT' and 'Origin Postcode' in first['conversational_reply']
         assert '_pending' not in first
         assert first == await process(gateway, original)
-        for text, prompt in [
-            ('LS1 2TW, 75001', 'countries'), ('GB, FR', 'dimensions'),
-            ('30 x 20 x 10', 'pickup contact'), ('Alex; 1 Real Road; Leeds', 'delivery contact'),
-        ]:
+        turns = [('LS1 2TW, 75001', 'countries')]
+        turns += ([('GB, FR', 'premise number'), ('1', 'pickup contact'), ('Alex', 'dimensions'), ('30 x 20 x 10', 'delivery contact')]
+            if channel == 'WHATSAPP' else [('GB, FR', 'dimensions'), ('30 x 20 x 10', 'pickup contact'), ('Alex; 1 Real Road; Leeds', 'delivery contact')])
+        for text, prompt in turns:
             gateway = ConversationalActionGateway(gateway.request)
             result = await process(gateway, turn(text))
             assert prompt in result['conversational_reply']

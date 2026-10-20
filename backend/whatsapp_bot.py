@@ -3,19 +3,15 @@
 Booking commands return a signed selection link to authenticated web checkout.
 Payment and label purchase require confirmation in the workspace.
 """
-import asyncio
 import logging
 import re
 from decimal import Decimal
 from typing import Any
 
-import asyncpg
-from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import SecretStr, ValidationError
+from fastapi import APIRouter, Request, Response
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from twilio.twiml.messaging_response import MessagingResponse
-
-from backend.sandbox_hooks import authenticated_twilio_form
 
 logger = logging.getLogger("easyinvio.whatsapp")
 WEBHOOK_PATH = "/api/v1/integrations/whatsapp/webhook"
@@ -89,39 +85,5 @@ router = APIRouter(tags=["WhatsApp conversational logistics"])
 
 @router.post(WEBHOOK_PATH)
 async def whatsapp_webhook(request: Request) -> Response:
-    settings = getattr(request.app.state, "settings", None)
-    if settings is None or not settings.twilio_enabled:
-        raise HTTPException(503, "Twilio integration is disabled")
-    # Official RequestValidator uses the exact configured external HTTPS URL,
-    # every form field, and the account's auth token; proxy headers are untrusted.
-    form = await authenticated_twilio_form(request)
-    service = request.app.state.whatsapp
-    sender, receiver = form["From"].removeprefix("whatsapp:"), form["To"].removeprefix("whatsapp:")
-    brand = getattr(settings, "whatsapp_brand_name", "EasyInvio.com")
-    try:
-        async with asyncio.timeout(settings.whatsapp_deadline_seconds):
-            from backend.whatsapp_onboarding import onboarding_manager
-            signup = await onboarding_manager(request)
-            if signup is not None:
-                replay = await signup.replay(form)
-                if replay is not None:
-                    return Response(content=replay, media_type='application/xml')
-            context = await service.resolve_sender(sender, receiver)
-            if context is None:
-                if signup is not None and form['NumMedia'] == '0':
-                    return Response(content=await signup.handle(form), media_type='application/xml')
-                return Response(content=xml_message(f"Your mobile number is not registered to an active {brand} workspace. Ask your owner to verify your number."), status_code=403, media_type='application/xml')
-            elif form["NumMedia"] != "0":
-                xml = xml_message("Please send text: Quote 4.5kg from GB to US")
-            else:
-                from backend.agents.conversational_gateway import signed_whatsapp_message
-                xml = await signed_whatsapp_message(request, context, form)
-    except TimeoutError:
-        xml = xml_message("The action could not be confirmed in time. Check Shipments, Wallet or Support before sending the action again.")
-    except HTTPException as exc:
-        xml = xml_message("The assistant could not confirm this action. Check your workspace before trying again." if exc.status_code == 503
-                          else "This action needs review. Check your workspace or contact your administrator.")
-    except (ValueError, ValidationError, asyncpg.PostgresError):
-        logger.error("WhatsApp saved-route or database processing failed")
-        xml = xml_message("Ask your workspace admin to check the saved route and carrier configuration.")
-    return Response(content=xml, media_type="application/xml")
+    from backend.whatsapp_queue import accept_whatsapp
+    return await accept_whatsapp(request)

@@ -12,6 +12,7 @@ import logging
 import re
 from contextlib import asynccontextmanager
 from decimal import Decimal
+from datetime import datetime
 from typing import Literal
 from urllib.parse import urlsplit, urljoin
 from uuid import UUID, NAMESPACE_URL, uuid4, uuid5
@@ -199,7 +200,7 @@ class ConversationalActionGateway:
                 logger.info('conversation_parser_fallback')
         return ConversationalIntent(intent='HELP')
 
-    async def process(self, context, body: ConversationMessage, *, verified_whatsapp=False):
+    async def process(self, context, body: ConversationMessage, *, verified_whatsapp=False, received_at: datetime | None = None):
         if context.role not in ROLES or self.pool is None:
             raise HTTPException(403, 'An active registered workspace session is required')
         if body.channel == 'WHATSAPP' and not verified_whatsapp:
@@ -213,10 +214,10 @@ class ConversationalActionGateway:
                 return self.public(cached)
             if body.channel == 'WHATSAPP':
                 async with self.pool.acquire() as connection:
-                    await connection.execute('''UPDATE public.whatsapp_bindings b SET last_inbound_at=now()
+                    await connection.execute('''UPDATE public.whatsapp_bindings b SET last_inbound_at=greatest(b.last_inbound_at,coalesce($5::timestamptz,now()))
                     FROM public.users u WHERE b.tenant_id=$1 AND b.user_id=u.id AND u.tenant_id=b.tenant_id
                     AND u.auth_user_id=$2 AND b.sender_e164=$3 AND b.receiver_e164=$4 AND b.is_active AND u.is_active''',
-                    context.tenant_id, context.user_id, body.sender_id, self.state.settings.twilio_whatsapp_number)
+                    context.tenant_id, context.user_id, body.sender_id, self.state.settings.twilio_whatsapp_number, received_at)
             self.draft = None
             previous = await self.store.latest_turn(context, body.channel)
             self.previous = previous or {}
@@ -235,7 +236,7 @@ class ConversationalActionGateway:
                 new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|return|topup|help|commands)\b|\btop\s+up\b', body.message_body, re.I)
                 if self.draft and not new_command:
                     if self.draft.action == 'QUOTE':
-                        collect_reply(self.draft, body.message_body)
+                        collect_reply(self.draft, body.message_body, require_paf=body.channel == 'WHATSAPP')
                     elif self.draft.waiting_for == 'reference':
                         reference = body.message_body.strip()
                         if not re.fullmatch(r'[A-Za-z0-9_-]{1,200}', reference):
@@ -272,6 +273,11 @@ class ConversationalActionGateway:
 
     @staticmethod
     def draft_prompt(draft):
+        if draft.waiting_for == 'paf_selection':
+            options = draft.paf_options[draft.paf_offset:draft.paf_offset + 8]
+            return ('Choose the ' + ('pickup' if draft.paf_prefix == 'origin' else 'delivery') + ' premise number:\n'
+                + '\n'.join(f'{index}: {option.label}' for index, option in enumerate(options, draft.paf_offset + 1))
+                + '\nReply with a displayed number, More, Back or Cancel.')
         prompts = {
             'postcodes': 'I can check that quote for you. Please reply with Origin Postcode, Destination Postcode.',
             'countries': 'Please confirm the two countries as Origin Country, Destination Country, for example GB, FR. A postcode alone can be ambiguous.',
@@ -279,6 +285,9 @@ class ConversationalActionGateway:
             'dimensions': 'What are the measured parcel dimensions? Reply length x width x height in cm, for example 30 x 20 x 10.',
             'origin_address': 'Please give the pickup contact name; street address; city. Add a fourth field for state/province when required.',
             'destination_address': 'Please give the delivery contact name; street address; city. Add a fourth field for state/province when required.',
+            'origin_contact': 'What is the pickup contact name for the selected premise?',
+            'destination_contact': 'What is the delivery contact name for the selected premise?',
+            'paf_retry': 'Reply Retry to check the UK postcode again, or Cancel to start a new quote.',
             'retry': 'Reply Retry to request rates again, or Cancel to clear the draft.',
             'reference': 'Please reply with the shipment or tracking reference. I will check only your workspace.',
         }
@@ -409,9 +418,15 @@ class ConversationalActionGateway:
                 draft.intent = intent.model_copy(update={'route_code': None})
                 intent = draft.intent
         if rating is None:
+            if draft.waiting_for == 'paf_selection' and draft.paf_options:
+                return self.pending_reply(draft, self.draft_prompt(draft))
+            if draft.waiting_for in {'origin_contact', 'destination_contact'}:
+                return self.pending_reply(draft, self.draft_prompt(draft))
             required = [
                 ('postcodes', not intent.origin_postal_code or not intent.destination_postal_code),
                 ('countries', not intent.origin_country or not intent.destination_country),
+                ('origin_address', body.channel == 'WHATSAPP' and intent.origin_country == 'GB' and draft.origin_address is None),
+                ('destination_address', body.channel == 'WHATSAPP' and intent.destination_country == 'GB' and draft.destination_address is None),
                 ('weight', not intent.weight_kg),
                 ('dimensions', draft.dimensions is None),
                 ('origin_address', draft.origin_address is None),
@@ -419,6 +434,9 @@ class ConversationalActionGateway:
             ]
             for field, missing in required:
                 if missing:
+                    if (field in {'origin_address', 'destination_address'} and body.channel == 'WHATSAPP'
+                            and getattr(intent, field.removesuffix('_address') + '_country') == 'GB'):
+                        return await self.collect_uk_premise(draft, field.removesuffix('_address'))
                     draft.waiting_for = field
                     return self.pending_reply(draft, self.draft_prompt(draft))
             async with self.pool.acquire() as connection:
@@ -479,6 +497,27 @@ class ConversationalActionGateway:
             lines.append('TEST environment: no live label or live payment is promised.')
         lines.append(f'Options expire at {result.expires_at.isoformat()}. Complete packing and customs review is required for international goods.')
         return self.reply('QUOTE', '\n'.join(lines), _choices=choices)
+
+    async def collect_uk_premise(self, draft: ConversationDraft, prefix: str):
+        from backend.paf_lookup import PAFLookupUnavailable, uk_postcode
+        try:
+            postcode = uk_postcode(getattr(draft.intent, prefix + '_postal_code'))
+            client = getattr(self.state, 'paf', None)
+            if client is None:
+                raise PAFLookupUnavailable('UK address lookup is not configured. Use Create a shipment or contact support.')
+            options = await client.lookup(postcode)
+            if not options:
+                draft.waiting_for = 'postcodes'
+                return self.pending_reply(draft, 'No PAF premises were found for that UK postcode. Check it and reply with Origin Postcode, Destination Postcode.')
+            draft.paf_prefix, draft.paf_options, draft.paf_offset = prefix, options, 0
+            draft.waiting_for = 'paf_selection'
+            return self.pending_reply(draft, self.draft_prompt(draft))
+        except PAFLookupUnavailable as error:
+            draft.waiting_for = 'paf_retry'
+            return self.pending_reply(draft, str(error))
+        except ValueError:
+            draft.waiting_for = 'postcodes'
+            return self.pending_reply(draft, 'Enter a complete UK postcode. Reply with Origin Postcode, Destination Postcode.')
 
     async def trigger_return(self, context, body, intent, message_id):
         if context.role not in DISPATCH_ROLES:

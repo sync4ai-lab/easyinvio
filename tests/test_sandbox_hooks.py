@@ -250,6 +250,7 @@ class BillingTests(unittest.IsolatedAsyncioTestCase):
 
 class WhatsAppTests(unittest.TestCase):
     def setUp(self):
+        self.original_app_state = dict(main.app.state._state)
         self.tenant, self.user = uuid4(), uuid4()
         self.connection = Connection(self.tenant, self.user)
         self.settings = settings()
@@ -270,13 +271,40 @@ class WhatsAppTests(unittest.TestCase):
         main.app.state.finance = SimpleNamespace(pool=self.pool)
         main.app.state.logistics_supervisor = None
         main.app.state.settings.whatsapp_brand_name = "EasyInvio.com"
+        self.queued = {}
+        self.worker_replies = {}
+        async def enqueue(raw, form):
+            self.queued.setdefault(form['MessageSid'], form)
+        main.app.state.whatsapp_queue = SimpleNamespace(enqueue=enqueue)
         self.client = TestClient(main.app)
+    def tearDown(self):
+        self.client.close()
+        main.app.state._state.clear()
+        main.app.state._state.update(self.original_app_state)
     def fields(self, **overrides):
         return {"AccountSid": self.settings.twilio_account_sid, "From": "whatsapp:+447700900123", "To": "whatsapp:+14155238886", "MessageSid": "SM" + "b" * 32, "Body": "Quote 4.5kg from GBR to USA route TEST", "NumMedia": "0", **overrides}
     def post(self, fields, *, signature=None):
         pairs = list(fields.items()) if isinstance(fields, dict) else fields
         signature = signature or main.app.state.twilio_validator.compute_signature(self.settings.twilio_webhook_url, FormData(pairs))
-        return self.client.post("/webhooks/twilio/whatsapp", content=urlencode(pairs), headers={"Content-Type": "application/x-www-form-urlencoded", "X-Twilio-Signature": signature})
+        response = self.client.post("/webhooks/twilio/whatsapp", content=urlencode(pairs), headers={"Content-Type": "application/x-www-form-urlencoded", "X-Twilio-Signature": signature})
+        return self.complete_response(response, dict(pairs))
+    def complete_response(self, response, fields):
+        """Legacy business assertions inspect the separate worker result after an empty HTTP ack."""
+        if response.status_code != 200:
+            return response
+        self.assertEqual(response.text, '<Response/>')
+        sid = fields['MessageSid']
+        if sid not in self.worker_replies:
+            from backend.whatsapp_queue import process_inbound
+            from starlette.requests import Request
+            import httpx
+            request = Request({'type':'http', 'app':main.app, 'method':'POST', 'path':'/internal/test-worker','headers':[]})
+            parts = asyncio.run(process_inbound(request, self.queued[sid]))
+            root = ElementTree.Element('Response')
+            for part in parts:
+                ElementTree.SubElement(root, 'Message').text = part.body
+            self.worker_replies[sid] = httpx.Response(200, text=ElementTree.tostring(root, encoding='unicode'), headers={'content-type':'application/xml'})
+        return self.worker_replies[sid]
     def test_signed_query_exact_decimal_pricing_and_duplicate_receipt(self):
         response = self.post(self.fields(FutureTwilioParameter="must be included in signature"))
         self.assertEqual(response.status_code, 200, response.text)
@@ -307,7 +335,7 @@ class WhatsAppTests(unittest.TestCase):
         self.assertEqual(self.observed, [])
     def test_media_returns_text_instruction_and_unknown_location_collects_details(self):
         self.assertIn("Please send text", self.post(self.fields(NumMedia="1")).text)
-        self.assertIn("Origin Postcode", self.post(self.fields(Body="Quote 4.5kg from XYZ to USA")).text)
+        self.assertIn("Origin Postcode", self.post(self.fields(MessageSid='SM'+'d'*32, Body="Quote 4.5kg from XYZ to USA")).text)
         self.assertEqual(self.observed, [])
     def test_non_sandbox_binding_cannot_be_quoted(self):
         self.connection.state["tenant"]["is_sandbox"] = False

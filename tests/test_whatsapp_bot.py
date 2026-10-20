@@ -21,8 +21,9 @@ class ConversationalWebhookTests(WhatsAppTests):
         pairs = list(fields.items()) if isinstance(fields, dict) else fields
         signature = signature or main.app.state.twilio_validator.compute_signature(
             self.settings.twilio_webhook_url, FormData(pairs))
-        return self.client.post(WEBHOOK_PATH, content=urlencode(pairs),
+        response = self.client.post(WEBHOOK_PATH, content=urlencode(pairs),
             headers={"Content-Type": "application/x-www-form-urlencoded", "X-Twilio-Signature": signature})
+        return self.complete_response(response, dict(pairs))
 
     def test_signed_query_exact_decimal_pricing_and_duplicate_receipt(self):
         response = self.post(self.fields(Body="Quote 4.5kg from GB to US route TEST"))

@@ -8,6 +8,7 @@ from pydantic import Field
 
 from backend.agents.models import ConversationalIntent, StrictOutput
 from backend.ai_engine import country_code, strict_decimal
+from backend.paf_lookup import PAFPremise, uk_postcode
 
 
 def explicit_country(value):
@@ -31,6 +32,10 @@ class ConversationDraft(StrictOutput):
     dimensions: dict | None = None
     expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=15))
     assistance_id: str | None = None
+    paf_prefix: str | None = Field(default=None, pattern=r'^(origin|destination)$')
+    paf_options: list[PAFPremise] = Field(default_factory=list, max_length=1100)
+    paf_offset: int = Field(default=0, ge=0, le=1096)
+    paf_selected: dict[str, str] = Field(default_factory=dict)
 
     def active(self, context):
         return (self.expires_at.tzinfo is not None and self.expires_at > datetime.now(timezone.utc)
@@ -109,10 +114,14 @@ def merge_quote(draft, proposed):
         if any(values[prefix + '_' + key] != getattr(draft.intent, prefix + '_' + key)
                for key in ('country', 'postal_code', 'city')):
             setattr(draft, prefix + '_address', None)
+            draft.paf_selected.pop(prefix, None)
+            if draft.paf_prefix == prefix:
+                draft.paf_options = []
+                draft.paf_prefix = None
     draft.intent = ConversationalIntent(**values)
 
 
-def collect_reply(draft, text):
+def collect_reply(draft, text, *, require_paf=False):
     """Consume only the field format that was explicitly requested last turn."""
     from main import Address, Dimensions
     field = draft.waiting_for
@@ -139,8 +148,38 @@ def collect_reply(draft, text):
         if not parts:
             raise ValueError('Reply with measured length x width x height in cm, for example 30 x 20 x 10.')
         draft.dimensions = Dimensions(**dict(zip(('length_cm', 'width_cm', 'height_cm'), parts.groups()))).model_dump(mode='json')
+    elif field == 'paf_selection':
+        if text.strip().lower() in {'more', 'next'}:
+            if draft.paf_offset + 8 >= len(draft.paf_options):
+                raise ValueError('No further premises. Choose a displayed number.')
+            draft.paf_offset += 8
+        elif text.strip().lower() in {'back', 'previous'}:
+            draft.paf_offset = max(0, draft.paf_offset - 8)
+        else:
+            if not re.fullmatch(r'[1-9][0-9]{0,3}', text.strip()):
+                raise ValueError('Choose a displayed premise number, More, Back or Cancel.')
+            index = int(text.strip()) - 1
+            if not draft.paf_offset <= index < min(draft.paf_offset + 8, len(draft.paf_options)):
+                raise ValueError('Choose a number from the displayed premises.')
+            selected = draft.paf_options[index]
+            prefix = draft.paf_prefix
+            if prefix not in {'origin', 'destination'} or selected.postcode != uk_postcode(getattr(draft.intent, prefix + '_postal_code')):
+                raise ValueError('The address selection has expired. Start a new quote.')
+            setattr(draft, prefix + '_address', selected.address('Contact required').model_dump(mode='json'))
+            draft.paf_selected[prefix] = selected.udprn
+            draft.paf_options = []
+            draft.waiting_for = prefix + '_contact'
+    elif field in {'origin_contact', 'destination_contact'}:
+        prefix = field.removesuffix('_contact')
+        if not text.strip() or ';' in text or any(ord(c) < 32 for c in text):
+            raise ValueError('Reply with only the actual contact name.')
+        address = Address.model_validate(getattr(draft, prefix + '_address') | {'name': text.strip()})
+        setattr(draft, prefix + '_address', address.model_dump(mode='json'))
+        draft.waiting_for = ''
     elif field in {'origin_address', 'destination_address'}:
         prefix = field.removesuffix('_address')
+        if require_paf and getattr(draft.intent, prefix + '_country') == 'GB':
+            raise ValueError('Select the UK premise from address lookup first.')
         parts = [part.strip() for part in text.split(';')]
         if len(parts) not in (3, 4):
             raise ValueError('Reply with contact name; street address; city. Add any state/province after the city with a fourth semicolon-separated field.')
@@ -148,6 +187,6 @@ def collect_reply(draft, text):
             postal_code=getattr(draft.intent, prefix + '_postal_code'), country_code=getattr(draft.intent, prefix + '_country'),
             state=parts[3] if len(parts) == 4 else None)
         setattr(draft, field, address.model_dump(mode='json'))
-    elif field == 'retry' and text.strip().lower() != 'retry':
+    elif field in {'retry', 'paf_retry'} and text.strip().lower() != 'retry':
         raise ValueError('Reply Retry or Cancel.')
     return draft

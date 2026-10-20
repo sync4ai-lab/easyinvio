@@ -377,7 +377,8 @@ def test_opt_in_hooks_only_enrol_signed_unregistered_senders(path):
         fields = harness.fields(From='whatsapp:+447700900999', Body='Register')
         def post(fields, signature=None):
             signed = signature or main.app.state.twilio_validator.compute_signature(harness.settings.twilio_webhook_url, FormData(fields))
-            return harness.client.post(path, content=urlencode(fields), headers={'Content-Type': 'application/x-www-form-urlencoded', 'X-Twilio-Signature': signed})
+            response = harness.client.post(path, content=urlencode(fields), headers={'Content-Type': 'application/x-www-form-urlencoded', 'X-Twilio-Signature': signed})
+            return harness.complete_response(response, fields)
         assert post(fields, signature='bad').status_code == 403
         manager.handle.assert_not_awaited()
         assert 'Register here' in post(fields).text

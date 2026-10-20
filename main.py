@@ -169,6 +169,8 @@ class Settings(BaseSettings):
     twilio_whatsapp_number: str = ""
     twilio_whatsapp_sandbox_enabled: bool = False
     twilio_webhook_url: str = ""
+    whatsapp_queue_workers: int = Field(default=2, ge=1, le=8)
+    ideal_postcodes_api_key: SecretStr = SecretStr("")
     booking_page_url: str = ""
     quote_link_secret: SecretStr = SecretStr("")
     whatsapp_deadline_seconds: int = Field(default=12, ge=5, le=12)
@@ -1923,6 +1925,10 @@ async def deterministic_lifespan(application: FastAPI):
                         raise RuntimeError(f"Required migration table is missing: public.{table}")
                 if settings.stripe_enabled and await connection.fetchval("SELECT to_regclass('public.payment_carts')") is None:
                     raise RuntimeError('Apply migration 030_card_checkout.sql before enabling card checkout')
+                if settings.twilio_enabled:
+                    for table in ('whatsapp_inbound_queue', 'whatsapp_reply_outbox'):
+                        if await connection.fetchval('SELECT to_regclass($1)', 'public.' + table) is None:
+                            raise RuntimeError('Apply migration 043_whatsapp_async_ingress.sql before enabling Twilio')
                 await connection.execute("SELECT is_sandbox,workspace_type,seller_classification FROM public.tenants LIMIT 0")
                 await connection.execute("SELECT is_sandbox,sandbox_test_token,stripe_payment_intent_id FROM public.wallet_topups LIMIT 0")
                 await connection.execute("SELECT stripe_payment_intent_id FROM public.wallet_ledger LIMIT 0")
@@ -1940,6 +1946,8 @@ async def deterministic_lifespan(application: FastAPI):
                 application.state.settings = settings
                 application.state.repository = repository
                 application.state.rating = rating
+                from backend.paf_lookup import IdealPostcodesClient
+                application.state.paf = IdealPostcodesClient(http_client, settings.ideal_postcodes_api_key)
                 application.state.finance = FinanceEngine(pool, settings, stripe_client)
                 from backend.shipment_protection import XCoverClient, load_xcover_settings, ProtectionService
                 application.state.xcover = XCoverClient(http_client, load_xcover_settings())
@@ -1966,6 +1974,8 @@ async def deterministic_lifespan(application: FastAPI):
                 application.state.admin_portal = AdminService(pool)
                 application.state.whatsapp = WhatsAppService(pool, settings, rating)
                 application.state.twilio_validator = RequestValidator(settings.twilio_auth_token.get_secret_value()) if settings.twilio_enabled else None
+                from backend.whatsapp_queue import WhatsAppQueue
+                application.state.whatsapp_queue = WhatsAppQueue(pool, settings, application) if settings.twilio_enabled else None
                 application.state.jwks = PyJWKClient(
                     f"{settings.supabase_url}/auth/v1/.well-known/jwks.json",
                     cache_jwk_set=True, lifespan=300, timeout=5,
@@ -1987,6 +1997,8 @@ async def deterministic_lifespan(application: FastAPI):
                 amazon_inbound_task = asyncio.create_task(application.state.amazon_inbound.worker())
                 support_task = asyncio.create_task(application.state.tracking_support.worker())
                 notification_task = asyncio.create_task(application.state.support_delivery.worker())
+                whatsapp_tasks = [asyncio.create_task(application.state.whatsapp_queue.worker(), name=f'whatsapp-queue-{index}')
+                    for index in range(settings.whatsapp_queue_workers)] if settings.twilio_enabled else []
                 from backend.payment_gateway import SnapshotWebhookService
                 application.state.payment_snapshots = SnapshotWebhookService(application.state.finance)
                 payment_task = asyncio.create_task(application.state.payment_snapshots.worker()) if settings.stripe_enabled else None
@@ -2005,6 +2017,9 @@ async def deterministic_lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    for task in whatsapp_tasks:
+                        task.cancel()
+                    await asyncio.gather(*whatsapp_tasks, return_exceptions=True)
                     if claims_task is not None:
                         claims_task.cancel()
                         try:
@@ -2424,38 +2439,8 @@ app.include_router(conversational_router(authenticate))
 
 @app.post("/webhooks/twilio/whatsapp")
 async def inbound_whatsapp(request: Request) -> Response:
-    settings = request.app.state.settings
-    if not settings.twilio_enabled:
-        raise HTTPException(503, "Twilio integration is disabled")
-    form = await authenticated_twilio_form(request)
-    sender, receiver = PHONE_PATTERN.fullmatch(form["From"]), PHONE_PATTERN.fullmatch(form["To"])
-    try:
-        async with asyncio.timeout(settings.whatsapp_deadline_seconds):
-            from backend.whatsapp_onboarding import onboarding_manager
-            signup = await onboarding_manager(request)
-            if signup is not None:
-                replay = await signup.replay(form)
-                if replay is not None:
-                    return xml_response(replay)
-            context = await request.app.state.whatsapp.resolve_sender(sender.group(1), receiver.group(1))
-            if context is None:
-                if signup is not None and form.get('NumMedia', '0') == '0':
-                    return xml_response(await signup.handle(form))
-                return Response(content=twiml("This number is not registered for EasyInvio.com dispatch.\n"
-                    "Ask your workspace owner to verify and register your WhatsApp number, then resend."), media_type='application/xml', status_code=403)
-            if form.get("NumMedia", "0") != "0":
-                return xml_response(twiml("Please send text: Quote 4.5kg from GBR to USA"))
-            from backend.agents.conversational_gateway import signed_whatsapp_message
-            return xml_response(await signed_whatsapp_message(request, context, form))
-    except TimeoutError:
-        return xml_response(twiml("The action could not be confirmed in time. Check Shipments, Wallet or Support before sending the action again."))
-    except HTTPException as exc:
-        text = ("The assistant could not confirm this action. Check your workspace before trying again." if exc.status_code == 503
-                else "This action needs review. Check your workspace or contact your administrator.")
-        return xml_response(twiml(text))
-    except (ValueError, ValidationError, asyncpg.PostgresError):
-        logger.error("WhatsApp route or DB processing failure")
-        return xml_response(twiml("Ask your workspace admin to check the saved route and carrier configuration."))
+    from backend.whatsapp_queue import accept_whatsapp
+    return await accept_whatsapp(request)
 
 
 @app.get("/v1/whatsapp/quote-choice")

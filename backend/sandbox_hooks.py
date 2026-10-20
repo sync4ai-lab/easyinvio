@@ -263,6 +263,7 @@ async def authenticated_twilio_form(request: Request) -> FormData:
     for name in ("SmsSid", "SmsMessageSid"):
         if name in form and (len(form.getlist(name)) != 1 or form[name] != form["MessageSid"]):
             raise HTTPException(400, "Inconsistent message identifiers")
+    request.state.twilio_raw_body = bytes(raw)
     return form
 
 
