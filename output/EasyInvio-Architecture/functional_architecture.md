@@ -96,15 +96,17 @@ Claims intake verifies the workspace, shipment, role and confirmed policy. Conve
 
 ## Returns
 
-The headless return API, manual manifest control, chat commands and signed merchant/marketplace gateway use one `ReverseLogisticsService`. The original outbound shipment must belong to the active workspace; store-triggered requests also bind to the configured store. A default active RETURN warehouse replaces the original seller destination, and the original customer delivery address becomes the return origin.
+The headless return API, chat commands and signed merchant/marketplace gateway use `ReverseLogisticsService`; manual manifest controls use `ReturnReviewService` over the same native preparation, parent receipt, booking and payment ledgers. The original outbound shipment must belong to the active workspace and have recorded delivery; store triggers also bind to the configured store. A default active RETURN warehouse becomes the return destination and the original customer delivery address becomes its origin.
 
-This workflow returns the entire originally measured single parcel. Partial goods, changed packaging and grouped multi-piece returns need separate review. Fresh return quotes use current approved connections. Lowest exact customer price wins, with budget networks winning equal-price ties; incomplete provider results stop automatic selection. New customs consent is required for international returns.
+The manual flow opens a RETURN SHIPMENT panel in Create shipment with saved packing and goods for self-service review/editing and fresh customs consent. Up to ten current services are sorted by exact price with budget tie preference; partial provider results are disclosed before explicit selection. The automated command retains its original single-parcel maximum-price authorization. Grouped multi-piece return purchase remains unsupported. Expired prices require fresh comparison; preparation never buys postage.
 
 RETAILER_PAY delegates to normal booking/billing. CUSTOMER_PAY creates an OWNER/ADMIN-authorized Stripe checkout and waits for verified payment. A durable receipt fences one full-parcel return per original shipment, including interrupted requests. Repeated delivery of the same command observes status; another key cannot bypass it.
 
 Paperless documents are advertised only when supplied/confirmed by the provider. Sendcloud labelless-capable options and EasyPost USPS Label Broker have separate contracts. Otherwise the response requires a printed label. A shared 24-hour application link grants one drop-off document, not workspace access. Eligible carrier locations, not every post office/depot, determine where it can be used.
 
 Returns do not imply merchant refund, restocking, product exchange, insurer cover or universal native marketplace RMA handling. Store tracking retains a separate return lifecycle; Shopify reverse-delivery updates need a verified native return reference.
+
+Optional customer notices use migration 046 private review/delivery tables and separately enabled SendGrid Mail Send and approved Twilio utility templates. Customer permission and original customer contacts are required. Customer-pay notices contain a payment link first; label notices require verified payment plus confirmed postage for the selected offer. Signed 24-hour document links recheck these conditions on every download. Durable delivery receipts distinguish queued, sending, provider-accepted, failed and uncertain outcomes; ambiguous sends never automatically repeat. Supabase Auth SMTP is not reused as application mail credentials.
 
 ## Conversations and public help
 

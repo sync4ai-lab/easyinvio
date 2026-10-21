@@ -721,6 +721,60 @@
       "default_expression": "False"
     },
     {
+      "file": "backend/return_delivery.py",
+      "line": 25,
+      "class": "ReturnDeliverySettings",
+      "field": "return_email_enabled",
+      "environment_name": "RETURN_EMAIL_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/return_delivery.py",
+      "line": 26,
+      "class": "ReturnDeliverySettings",
+      "field": "return_sendgrid_api_key",
+      "environment_name": "RETURN_SENDGRID_API_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/return_delivery.py",
+      "line": 27,
+      "class": "ReturnDeliverySettings",
+      "field": "return_email_from",
+      "environment_name": "RETURN_EMAIL_FROM",
+      "annotation": "str",
+      "default_expression": "'operations@easyinvio.com'"
+    },
+    {
+      "file": "backend/return_delivery.py",
+      "line": 28,
+      "class": "ReturnDeliverySettings",
+      "field": "return_whatsapp_enabled",
+      "environment_name": "RETURN_WHATSAPP_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/return_delivery.py",
+      "line": 29,
+      "class": "ReturnDeliverySettings",
+      "field": "return_whatsapp_content_sid",
+      "environment_name": "RETURN_WHATSAPP_CONTENT_SID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/return_delivery.py",
+      "line": 30,
+      "class": "ReturnDeliverySettings",
+      "field": "return_whatsapp_messaging_service_sid",
+      "environment_name": "RETURN_WHATSAPP_MESSAGING_SERVICE_SID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
       "file": "backend/shipment_protection.py",
       "line": 91,
       "class": "XCoverSettings",
@@ -1044,7 +1098,13 @@
     "LOGISTICS_AGENT_CACHE_ENTRIES",
     "WHATSAPP_ONBOARDING_ENABLED",
     "WHATSAPP_ONBOARDING_DAILY_LIMIT",
-    "COMPANIES_HOUSE_API_KEY"
+    "COMPANIES_HOUSE_API_KEY",
+    "RETURN_EMAIL_ENABLED",
+    "RETURN_SENDGRID_API_KEY",
+    "RETURN_EMAIL_FROM",
+    "RETURN_WHATSAPP_ENABLED",
+    "RETURN_WHATSAPP_CONTENT_SID",
+    "RETURN_WHATSAPP_MESSAGING_SERVICE_SID"
   ],
   "privacy": "Source expressions and example variable names only. No settings class was instantiated; no private .env values were read."
 }

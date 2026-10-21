@@ -87,17 +87,17 @@ DIAGRAMS={
   ('reject','Definitive rejection','Native financial release|New quote before a new purchase'),
   ('unknown','Unknown or interrupted','Retain reserved credit/reference|GET/poll/review; no blind retry')],
   [('offer','check'),('check','lock'),('lock','reserve'),('reserve','submit'),('submit','provider'),('provider','success'),('provider','reject'),('provider','unknown')]),
- 'returns_lifecycle':('Headless reverse logistics','One return controller retains original shipment, tenant and store identity.',[
-  ('input','Return command ingress','Authenticated API/UI/chat|Or enabled timestamp/HMAC gateway'),
+ 'returns_lifecycle':('Reviewed reverse logistics','Manual review and automated commands share native booking and payment fences.',[
+  ('input','Return ingress','Authenticated UI/API/chat|Delivered original; tenant/store scoped'),
   ('receipt','Durable original-parent fence','Tenant; actor; source; input digest|One full-parcel return; replay observes'),
-  ('parent','Original and warehouse','Original customer becomes origin|Active RETURN address/version is checked'),
-  ('rate','Fresh return comparison','Current approved connections|Lowest exact price; budget wins ties'),
+  ('parent','Restore and review','Original customer becomes origin|RETURN warehouse/version; edit packing/customs'),
+  ('rate','Fresh return comparison','Manual: select an unexpired offer|Auto: authorized price cap and complete rates'),
   ('payer','Charge bearer','Retailer: native workspace billing|Customer: owner/admin Stripe link'),
   ('book','Native booking lifecycle','No label before verified customer pay|Existing locks and financial settlement'),
   ('qr','Confirmed drop-off document','Sendcloud labelless / USPS form|Real provider asset; scoped share link'),
   ('print','Printable fallback','No universal QR or location promise|Selected carrier eligible locations'),
-  ('status','Observe and synchronize','Status / GET recovery; no repurchase|Separate store return tracking')],
-  [('input','receipt'),('receipt','parent'),('parent','rate'),('rate','payer'),('payer','book'),('book','qr'),('book','print'),('qr','status'),('print','status')]),
+  ('status','Customer instructions / observe','Private email/WhatsApp receipts; opted in|Payment link first; label after payment')],
+  [('input','parent'),('parent','rate'),('rate','receipt'),('receipt','payer'),('payer','book'),('book','qr'),('book','print'),('qr','status'),('print','status')]),
  'onboarding_lifecycle':('Conversational onboarding','Deterministic state machine; identity proof precedes workspace activation.',[
   ('ingress','Signed inbound greeting','Unbound sender opts into signup|Scoped receipt and delivery fence'),
   ('persona','Choose account persona','Business or Individual|Server-owned workspace_type'),

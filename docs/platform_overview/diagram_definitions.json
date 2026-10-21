@@ -371,13 +371,13 @@
     ]
   ],
   "returns_lifecycle": [
-    "Headless reverse logistics",
-    "One return controller retains original shipment, tenant and store identity.",
+    "Reviewed reverse logistics",
+    "Manual review and automated commands share native booking and payment fences.",
     [
       [
         "input",
-        "Return command ingress",
-        "Authenticated API/UI/chat|Or enabled timestamp/HMAC gateway"
+        "Return ingress",
+        "Authenticated UI/API/chat|Delivered original; tenant/store scoped"
       ],
       [
         "receipt",
@@ -386,13 +386,13 @@
       ],
       [
         "parent",
-        "Original and warehouse",
-        "Original customer becomes origin|Active RETURN address/version is checked"
+        "Restore and review",
+        "Original customer becomes origin|RETURN warehouse/version; edit packing/customs"
       ],
       [
         "rate",
         "Fresh return comparison",
-        "Current approved connections|Lowest exact price; budget wins ties"
+        "Manual: select an unexpired offer|Auto: authorized price cap and complete rates"
       ],
       [
         "payer",
@@ -416,17 +416,13 @@
       ],
       [
         "status",
-        "Observe and synchronize",
-        "Status / GET recovery; no repurchase|Separate store return tracking"
+        "Customer instructions / observe",
+        "Private email/WhatsApp receipts; opted in|Payment link first; label after payment"
       ]
     ],
     [
       [
         "input",
-        "receipt"
-      ],
-      [
-        "receipt",
         "parent"
       ],
       [
@@ -435,6 +431,10 @@
       ],
       [
         "rate",
+        "receipt"
+      ],
+      [
+        "receipt",
         "payer"
       ],
       [

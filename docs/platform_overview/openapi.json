@@ -4498,7 +4498,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReviewRequest"
+                "$ref": "#/components/schemas/backend__tracking_workspace__ReviewRequest"
               }
             }
           }
@@ -4554,7 +4554,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReviewRequest"
+                "$ref": "#/components/schemas/backend__tracking_workspace__ReviewRequest"
               }
             }
           }
@@ -6232,6 +6232,238 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/v1/shipping/returns/{shipment_id}/preparation-context": {
+      "get": {
+        "tags": [
+          "Private partner lifecycle"
+        ],
+        "summary": "Context",
+        "operationId": "context_api_v1_shipping_returns__shipment_id__preparation_context_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "shipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Shipment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shipping/returns/review": {
+      "post": {
+        "tags": [
+          "Private partner lifecycle"
+        ],
+        "summary": "Review",
+        "operationId": "review_api_v1_shipping_returns_review_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/backend__return_review__ReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/shipping/returns/reviews/{request_id}/select": {
+      "post": {
+        "tags": [
+          "Private partner lifecycle"
+        ],
+        "summary": "Select",
+        "operationId": "select_api_v1_shipping_returns_reviews__request_id__select_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectReturn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shipping/returns/reviews/{request_id}": {
+      "get": {
+        "tags": [
+          "Private partner lifecycle"
+        ],
+        "summary": "Status",
+        "operationId": "status_api_v1_shipping_returns_reviews__request_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shipping/returns/customer-document": {
+      "get": {
+        "tags": [
+          "Private partner lifecycle"
+        ],
+        "summary": "Document",
+        "operationId": "document_api_v1_shipping_returns_customer_document_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/shipping/confirm-booking": {
@@ -13889,6 +14121,140 @@
         ],
         "title": "ReturnCommand"
       },
+      "ReturnDelivery": {
+        "properties": {
+          "email": {
+            "type": "boolean",
+            "title": "Email",
+            "default": false
+          },
+          "whatsapp": {
+            "type": "boolean",
+            "title": "Whatsapp",
+            "default": false
+          },
+          "customer_permission_confirmed": {
+            "type": "boolean",
+            "title": "Customer Permission Confirmed",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReturnDelivery"
+      },
+      "ReturnEdits": {
+        "properties": {
+          "cargo": {
+            "$ref": "#/components/schemas/Cargo"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Goods"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Items"
+          },
+          "customs_signer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customs Signer"
+          },
+          "hs_codes_reviewed": {
+            "type": "boolean",
+            "title": "Hs Codes Reviewed",
+            "default": false
+          },
+          "sender_eori": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Eori"
+          },
+          "recipient_eori": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient Eori"
+          },
+          "sender_vat": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Vat"
+          },
+          "recipient_vat": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient Vat"
+          },
+          "customs_currency": {
+            "type": "string",
+            "pattern": "^(GBP|EUR|USD)$",
+            "title": "Customs Currency",
+            "default": "GBP"
+          },
+          "incoterm": {
+            "type": "string",
+            "pattern": "^(DAP|DDP|FCA|EXW)$",
+            "title": "Incoterm",
+            "default": "DAP"
+          },
+          "postal_form": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(CN22|CN23)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Form"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cargo",
+          "items"
+        ],
+        "title": "ReturnEdits"
+      },
       "ReturnReference": {
         "properties": {
           "reference": {
@@ -13948,6 +14314,18 @@
               }
             ],
             "title": "Store Return Reference"
+          },
+          "preparation_edits": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preparation Edits"
           }
         },
         "additionalProperties": false,
@@ -13959,44 +14337,20 @@
         ],
         "title": "ReturnRequest"
       },
-      "ReviewRequest": {
+      "SelectReturn": {
         "properties": {
-          "state": {
+          "offer_id": {
             "type": "string",
-            "enum": [
-              "ACKNOWLEDGED",
-              "IN_REVIEW",
-              "ESCALATED",
-              "RESOLVED"
-            ],
-            "title": "State"
-          },
-          "assigned_to": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assigned To"
-          },
-          "note": {
-            "type": "string",
-            "maxLength": 1000,
-            "minLength": 1,
-            "title": "Note"
+            "format": "uuid",
+            "title": "Offer Id"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "state",
-          "note"
+          "offer_id"
         ],
-        "title": "ReviewRequest"
+        "title": "SelectReturn"
       },
       "SelectedOffer": {
         "properties": {
@@ -14621,6 +14975,84 @@
           "full_name"
         ],
         "title": "WorkspaceMember"
+      },
+      "backend__return_review__ReviewRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "shipment_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Shipment Id"
+          },
+          "charge_bearer": {
+            "type": "string",
+            "pattern": "^(RETAILER_PAY|CUSTOMER_PAY)$",
+            "title": "Charge Bearer"
+          },
+          "paperless_requested": {
+            "type": "boolean",
+            "title": "Paperless Requested",
+            "default": true
+          },
+          "edits": {
+            "$ref": "#/components/schemas/ReturnEdits"
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/ReturnDelivery"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "shipment_id",
+          "charge_bearer",
+          "edits"
+        ],
+        "title": "ReviewRequest"
+      },
+      "backend__tracking_workspace__ReviewRequest": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACKNOWLEDGED",
+              "IN_REVIEW",
+              "ESCALATED",
+              "RESOLVED"
+            ],
+            "title": "State"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "state",
+          "note"
+        ],
+        "title": "ReviewRequest"
       }
     },
     "securitySchemes": {

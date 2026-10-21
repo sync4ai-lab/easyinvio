@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1134" viewBox="0 0 1500 1134" role="img">
-<title>Headless reverse logistics</title><desc>One return controller retains original shipment, tenant and store identity.</desc>
+<title>Reviewed reverse logistics</title><desc>Manual review and automated commands share native booking and payment fences.</desc>
 <defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#64748b"/></marker></defs>
 <rect width="1500" height="1134" fill="#f8fafc"/>
-<text x="48" y="65" style="font:700 34px Arial,sans-serif;fill:#0f172a">EasyInvio | Headless reverse logistics</text>
-<text x="48" y="105" style="font:19px Arial,sans-serif;fill:#475569">One return controller retains original shipment, tenant and store identity.</text>
-<path d="M488 270L526 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-<path d="M966 270L1004 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<text x="48" y="65" style="font:700 34px Arial,sans-serif;fill:#0f172a">EasyInvio | Reviewed reverse logistics</text>
+<text x="48" y="105" style="font:19px Arial,sans-serif;fill:#475569">Manual review and automated commands share native booking and payment fences.</text>
+<path d="M488 270L1004 270" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
 <path d="M1224 380L268 438" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-<path d="M488 548L526 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M268 438L746 380" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M746 380L746 438" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
 <path d="M966 548L1004 548" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
 <path d="M1224 658L268 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
 <path d="M1224 658L746 716" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
@@ -15,9 +15,9 @@
 <path d="M966 826L1004 826" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
 <g data-node="input"><rect x="48" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="48" y="160" width="6" height="220" rx="3" fill="#059669"/>
-<text x="70" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Return command ingress</text>
-<text x="70" y="238" style="font:18px Arial,sans-serif;fill:#334155">Authenticated API/UI/chat</text>
-<text x="70" y="262" style="font:18px Arial,sans-serif;fill:#334155">Or enabled timestamp/HMAC gateway</text>
+<text x="70" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Return ingress</text>
+<text x="70" y="238" style="font:18px Arial,sans-serif;fill:#334155">Authenticated UI/API/chat</text>
+<text x="70" y="262" style="font:18px Arial,sans-serif;fill:#334155">Delivered original; tenant/store scoped</text>
 </g>
 <g data-node="receipt"><rect x="526" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="526" y="160" width="6" height="220" rx="3" fill="#4f46e5"/>
@@ -27,15 +27,17 @@
 </g>
 <g data-node="parent"><rect x="1004" y="160" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="1004" y="160" width="6" height="220" rx="3" fill="#059669"/>
-<text x="1026" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Original and warehouse</text>
+<text x="1026" y="198" style="font:700 22px Arial,sans-serif;fill:#0f172a">Restore and review</text>
 <text x="1026" y="238" style="font:18px Arial,sans-serif;fill:#334155">Original customer becomes origin</text>
-<text x="1026" y="262" style="font:18px Arial,sans-serif;fill:#334155">Active RETURN address/version is checked</text>
+<text x="1026" y="262" style="font:18px Arial,sans-serif;fill:#334155">RETURN warehouse/version; edit</text>
+<text x="1026" y="286" style="font:18px Arial,sans-serif;fill:#334155">packing/customs</text>
 </g>
 <g data-node="rate"><rect x="48" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="48" y="438" width="6" height="220" rx="3" fill="#059669"/>
 <text x="70" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Fresh return comparison</text>
-<text x="70" y="516" style="font:18px Arial,sans-serif;fill:#334155">Current approved connections</text>
-<text x="70" y="540" style="font:18px Arial,sans-serif;fill:#334155">Lowest exact price; budget wins ties</text>
+<text x="70" y="516" style="font:18px Arial,sans-serif;fill:#334155">Manual: select an unexpired offer</text>
+<text x="70" y="540" style="font:18px Arial,sans-serif;fill:#334155">Auto: authorized price cap and complete</text>
+<text x="70" y="564" style="font:18px Arial,sans-serif;fill:#334155">rates</text>
 </g>
 <g data-node="payer"><rect x="526" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="526" y="438" width="6" height="220" rx="3" fill="#4f46e5"/>
@@ -63,9 +65,9 @@
 </g>
 <g data-node="status"><rect x="1004" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="1004" y="716" width="6" height="220" rx="3" fill="#059669"/>
-<text x="1026" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Observe and synchronize</text>
-<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">Status / GET recovery; no repurchase</text>
-<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">Separate store return tracking</text>
+<text x="1026" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Customer instructions / observe</text>
+<text x="1026" y="794" style="font:18px Arial,sans-serif;fill:#334155">Private email/WhatsApp receipts; opted in</text>
+<text x="1026" y="818" style="font:18px Arial,sans-serif;fill:#334155">Payment link first; label after payment</text>
 </g>
 <text x="48" y="1080" style="font:17px Arial,sans-serif;fill:#475569">Logical summary only. Tenant guards, exact money, provider readiness and unknown-outcome reconciliation remain authoritative.</text>
 </svg>

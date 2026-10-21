@@ -1,18 +1,18 @@
 %% Same logical nodes/edges as the SVG; detailed contracts are in the manual.
 flowchart TB
-    input["Return command ingress<br/>Authenticated API/UI/chat<br/>Or enabled timestamp/HMAC gateway"]
+    input["Return ingress<br/>Authenticated UI/API/chat<br/>Delivered original; tenant/store scoped"]
     receipt["Durable original-parent fence<br/>Tenant; actor; source; input digest<br/>One full-parcel return; replay observes"]
-    parent["Original and warehouse<br/>Original customer becomes origin<br/>Active RETURN address/version is checked"]
-    rate["Fresh return comparison<br/>Current approved connections<br/>Lowest exact price; budget wins ties"]
+    parent["Restore and review<br/>Original customer becomes origin<br/>RETURN warehouse/version; edit packing/customs"]
+    rate["Fresh return comparison<br/>Manual: select an unexpired offer<br/>Auto: authorized price cap and complete rates"]
     payer["Charge bearer<br/>Retailer: native workspace billing<br/>Customer: owner/admin Stripe link"]
     book["Native booking lifecycle<br/>No label before verified customer pay<br/>Existing locks and financial settlement"]
     qr["Confirmed drop-off document<br/>Sendcloud labelless / USPS form<br/>Real provider asset; scoped share link"]
     print["Printable fallback<br/>No universal QR or location promise<br/>Selected carrier eligible locations"]
-    status["Observe and synchronize<br/>Status / GET recovery; no repurchase<br/>Separate store return tracking"]
-    input --> receipt
-    receipt --> parent
+    status["Customer instructions / observe<br/>Private email/WhatsApp receipts; opted in<br/>Payment link first; label after payment"]
+    input --> parent
     parent --> rate
-    rate --> payer
+    rate --> receipt
+    receipt --> payer
     payer --> book
     book --> qr
     book --> print
