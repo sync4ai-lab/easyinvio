@@ -400,6 +400,15 @@
       "file": "main.py",
       "line": 174,
       "class": "Settings",
+      "field": "logistics_media_bucket",
+      "environment_name": "LOGISTICS_MEDIA_BUCKET",
+      "annotation": "str",
+      "default_expression": "'easyinvio-logistics'"
+    },
+    {
+      "file": "main.py",
+      "line": 175,
+      "class": "Settings",
       "field": "booking_page_url",
       "environment_name": "BOOKING_PAGE_URL",
       "annotation": "str",
@@ -407,7 +416,7 @@
     },
     {
       "file": "main.py",
-      "line": 175,
+      "line": 176,
       "class": "Settings",
       "field": "quote_link_secret",
       "environment_name": "QUOTE_LINK_SECRET",
@@ -416,7 +425,7 @@
     },
     {
       "file": "main.py",
-      "line": 176,
+      "line": 177,
       "class": "Settings",
       "field": "whatsapp_deadline_seconds",
       "environment_name": "WHATSAPP_DEADLINE_SECONDS",
@@ -425,7 +434,7 @@
     },
     {
       "file": "main.py",
-      "line": 177,
+      "line": 178,
       "class": "Settings",
       "field": "whatsapp_provider_seconds",
       "environment_name": "WHATSAPP_PROVIDER_SECONDS",
@@ -892,6 +901,7 @@
     "TWILIO_WEBHOOK_URL",
     "WHATSAPP_QUEUE_WORKERS",
     "IDEAL_POSTCODES_API_KEY",
+    "LOGISTICS_MEDIA_BUCKET",
     "BOOKING_PAGE_URL",
     "QUOTE_LINK_SECRET",
     "JWT_ALGORITHM",

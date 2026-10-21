@@ -7,7 +7,7 @@ flowchart TB
     domain["Native domain services<br/>Rating; booking; finance; returns<br/>Customs; claims; dispatch; tracking"]
     external["External integrations<br/>Carriers; Stripe; PAF; Auth; Twilio<br/>Stores; insurer; CRM; tariff; OpenAI"]
     help["Published help corpus<br/>Versioned guide chunks and citations<br/>Lexical / local 256D vector retrieval"]
-    db["Supabase PostgreSQL<br/>Tenant predicates; RLS; row locks<br/>Snapshots; ledger; receipts; audit"]
+    db["Supabase data services<br/>Postgres locks; ledger; manifests<br/>Private QR Storage; receipts; audit"]
     jobs["Operational workers<br/>Ordered WhatsApp; SQL outboxes<br/>Polling; realtime; reconciliation"]
     clients --> auth
     auth --> api

@@ -6,50 +6,51 @@ The initial core schema is not fully checked in. Obtain an authorized baseline b
 
 | File | Tables introduced | Tables altered | Functions introduced or replaced |
 | --- | --- | --- | --- |
-| [migrations/006_logistics_metadata.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/006_logistics_metadata.sql#L1) |  | shipments | guard_logistics_metadata |
-| [migrations/007_admin_configuration.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/007_admin_configuration.sql#L1) | admin_configuration_events | admin_configuration_events, margin_rules, tenants | guard_platform_configuration |
-| [migrations/008_sandbox_hooks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/008_sandbox_hooks.sql#L1) |  | tenants, wallet_ledger, wallet_topups | guard_sandbox_flags |
-| [migrations/009_ecommerce_sync.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/009_ecommerce_sync.sql#L1) | ecommerce_stores, ecommerce_tracking_outbox | ecommerce_stores, ecommerce_tracking_outbox, shipments | guard_ecommerce_import_fields |
-| [migrations/010_hubspot_crm.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/010_hubspot_crm.sql#L1) | hubspot_sync_jobs, hubspot_tenant_links | hubspot_sync_jobs, hubspot_tenant_links | queue_hubspot_sync |
-| [migrations/011_tracking_and_support.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/011_tracking_and_support.sql#L1) | tracking_events, support_tickets, support_message_outbox | shipments, support_message_outbox, support_tickets, tracking_events | guard_delivery_proof |
-| [migrations/012_dashboard_portal.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/012_dashboard_portal.sql#L1) |  | support_tickets |  |
-| [migrations/013_automation_freight.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/013_automation_freight.sql#L1) | automation_failures | automation_failures, ecommerce_stores, shipments, support_tickets |  |
-| [migrations/014_support_ticket_lifecycle.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/014_support_ticket_lifecycle.sql#L1) |  | support_tickets |  |
-| [migrations/015_admin_management.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/015_admin_management.sql#L1) | admin_management_events | admin_management_events |  |
-| [migrations/016_core_pillars.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/016_core_pillars.sql#L1) |  | ecommerce_tracking_outbox, margin_rules, shipments |  |
-| [migrations/017_support_delivery_and_monitoring.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/017_support_delivery_and_monitoring.sql#L1) |  | support_message_outbox, whatsapp_bindings | guard_notification_consent |
-| [migrations/018_hubspot_activation_and_metrics.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/018_hubspot_activation_and_metrics.sql#L1) | hubspot_activation_jobs | hubspot_activation_jobs, hubspot_tenant_links | guard_hubspot_references, queue_hubspot_wallet_sync |
-| [migrations/019_stripe_snapshot_reconciliation.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/019_stripe_snapshot_reconciliation.sql#L1) | stripe_webhook_events, stripe_charge_refunds | stripe_charge_refunds, stripe_webhook_events, wallet_ledger, wallet_topups | guard_stripe_transaction_trace |
-| [migrations/020_platform_carriers.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/020_platform_carriers.sql#L1) | platform_carrier_connections, platform_carrier_events | carrier_accounts, platform_carrier_connections, platform_carrier_events | guard_platform_carrier_link, lock_platform_carrier_catalog, platform_carrier_changed, tenant_platform_carriers |
-| [migrations/021_identity_sessions.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/021_identity_sessions.sql#L1) | app_auth_sessions, app_user_profiles, app_login_limits | app_auth_sessions, app_login_limits, app_user_profiles |  |
-| [migrations/022_carrier_consolidation.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/022_carrier_consolidation.sql#L1) |  |  |  |
-| [migrations/023_partner_lifecycle.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/023_partner_lifecycle.sql#L1) | partner_unbound_quotes, partner_shipping_offers, partner_cancellations | partner_cancellations, partner_shipping_offers, partner_unbound_quotes, platform_carrier_connections, wallet_ledger |  |
-| [migrations/024_native_partner_orders_and_webhooks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/024_native_partner_orders_and_webhooks.sql#L1) | partner_provider_options, partner_order_jobs | partner_order_jobs, partner_provider_options | queue_native_partner_order |
-| [migrations/025_pending_label_poll_index.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/025_pending_label_poll_index.sql#L1) |  |  |  |
-| [migrations/026_support_review_activity.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/026_support_review_activity.sql#L1) | support_ticket_activity | support_ticket_activity, support_tickets |  |
-| [migrations/027_workspace_invitations_and_disputes.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/027_workspace_invitations_and_disputes.sql#L1) | workspace_invitations, shipment_dispute_drafts | shipment_dispute_drafts, workspace_invitations |  |
-| [migrations/028_reporting_transit_index.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/028_reporting_transit_index.sql#L1) |  |  |  |
-| [migrations/029_booking_references.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/029_booking_references.sql#L1) | booking_references | booking_references |  |
-| [migrations/030_card_checkout.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/030_card_checkout.sql#L1) | payment_carts | payment_carts |  |
-| [migrations/031_store_connections.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/031_store_connections.sql#L1) | workspace_store_connections | workspace_store_connections |  |
-| [migrations/032_dispatch_events_and_invoice_audits.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/032_dispatch_events_and_invoice_audits.sql#L1) | workspace_dispatch_events, billing_disputes, amazon_order_notifications | amazon_order_notifications, billing_disputes, shipments, workspace_dispatch_events | emit_workspace_dispatch_event |
-| [migrations/033_xcover_claim_cases.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L1) | insurance_purchases, insurance_claim_cases, insurance_settlements, insurance_claim_evidence, xclaim_webhook_receipts, insurance_webhook_receipts | insurance_claim_cases, insurance_claim_evidence, insurance_purchases, insurance_settlements, insurance_webhook_receipts, support_message_outbox, support_tickets, wallet_ledger, xclaim_webhook_receipts |  |
-| [migrations/034_support_alert_controls.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/034_support_alert_controls.sql#L1) |  | whatsapp_bindings |  |
-| [migrations/035_packages_goods_returns_and_credential_locks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/035_packages_goods_returns_and_credential_locks.sql#L1) | shipment_goods_items | carrier_accounts, ecommerce_tracking_outbox, shipment_goods_items, shipments | check_shipment_goods_mass, classify_store_tracking_job, freeze_submitted_package_snapshot, guard_carrier_credential_identity, lock_goods_parent, valid_multi_parcel_dimensions |
-| [migrations/036_tenant_catalogs.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/036_tenant_catalogs.sql#L1) | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products |  |
-| [migrations/037_admin_client_assistance.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/037_admin_client_assistance.sql#L1) | admin_client_assistance_sessions, admin_client_assistance_events | admin_client_assistance_events, admin_client_assistance_sessions | protect_assistance_event |
-| [migrations/038_conversational_actions.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/038_conversational_actions.sql#L1) | conversational_messages | conversational_messages |  |
-| [migrations/039_whatsapp_onboarding.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/039_whatsapp_onboarding.sql#L1) | whatsapp_registration_queue, whatsapp_registration_receipts | tenants, whatsapp_registration_queue, whatsapp_registration_receipts |  |
-| [migrations/040_workspace_personas.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/040_workspace_personas.sql#L1) | individual_pricing_settings, individual_pricing_events, web_registration_sessions | individual_pricing_events, individual_pricing_settings, tenants, web_registration_sessions, whatsapp_registration_queue |  |
-| [migrations/041_budget_seller_strategy.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/041_budget_seller_strategy.sql#L1) |  | admin_management_events, tenants | guard_workspace_strategy |
-| [migrations/042_headless_returns.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/042_headless_returns.sql#L1) | reverse_logistics_requests | reverse_logistics_requests |  |
-| [migrations/043_whatsapp_async_ingress.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/043_whatsapp_async_ingress.sql#L1) | whatsapp_inbound_queue, whatsapp_reply_outbox | whatsapp_inbound_queue, whatsapp_reply_outbox |  |
+| [migrations/006_logistics_metadata.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/006_logistics_metadata.sql#L1) |  | shipments | guard_logistics_metadata |
+| [migrations/007_admin_configuration.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/007_admin_configuration.sql#L1) | admin_configuration_events | admin_configuration_events, margin_rules, tenants | guard_platform_configuration |
+| [migrations/008_sandbox_hooks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/008_sandbox_hooks.sql#L1) |  | tenants, wallet_ledger, wallet_topups | guard_sandbox_flags |
+| [migrations/009_ecommerce_sync.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/009_ecommerce_sync.sql#L1) | ecommerce_stores, ecommerce_tracking_outbox | ecommerce_stores, ecommerce_tracking_outbox, shipments | guard_ecommerce_import_fields |
+| [migrations/010_hubspot_crm.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/010_hubspot_crm.sql#L1) | hubspot_sync_jobs, hubspot_tenant_links | hubspot_sync_jobs, hubspot_tenant_links | queue_hubspot_sync |
+| [migrations/011_tracking_and_support.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/011_tracking_and_support.sql#L1) | tracking_events, support_tickets, support_message_outbox | shipments, support_message_outbox, support_tickets, tracking_events | guard_delivery_proof |
+| [migrations/012_dashboard_portal.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/012_dashboard_portal.sql#L1) |  | support_tickets |  |
+| [migrations/013_automation_freight.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/013_automation_freight.sql#L1) | automation_failures | automation_failures, ecommerce_stores, shipments, support_tickets |  |
+| [migrations/014_support_ticket_lifecycle.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/014_support_ticket_lifecycle.sql#L1) |  | support_tickets |  |
+| [migrations/015_admin_management.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/015_admin_management.sql#L1) | admin_management_events | admin_management_events |  |
+| [migrations/016_core_pillars.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/016_core_pillars.sql#L1) |  | ecommerce_tracking_outbox, margin_rules, shipments |  |
+| [migrations/017_support_delivery_and_monitoring.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/017_support_delivery_and_monitoring.sql#L1) |  | support_message_outbox, whatsapp_bindings | guard_notification_consent |
+| [migrations/018_hubspot_activation_and_metrics.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/018_hubspot_activation_and_metrics.sql#L1) | hubspot_activation_jobs | hubspot_activation_jobs, hubspot_tenant_links | guard_hubspot_references, queue_hubspot_wallet_sync |
+| [migrations/019_stripe_snapshot_reconciliation.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/019_stripe_snapshot_reconciliation.sql#L1) | stripe_webhook_events, stripe_charge_refunds | stripe_charge_refunds, stripe_webhook_events, wallet_ledger, wallet_topups | guard_stripe_transaction_trace |
+| [migrations/020_platform_carriers.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/020_platform_carriers.sql#L1) | platform_carrier_connections, platform_carrier_events | carrier_accounts, platform_carrier_connections, platform_carrier_events | guard_platform_carrier_link, lock_platform_carrier_catalog, platform_carrier_changed, tenant_platform_carriers |
+| [migrations/021_identity_sessions.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/021_identity_sessions.sql#L1) | app_auth_sessions, app_user_profiles, app_login_limits | app_auth_sessions, app_login_limits, app_user_profiles |  |
+| [migrations/022_carrier_consolidation.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/022_carrier_consolidation.sql#L1) |  |  |  |
+| [migrations/023_partner_lifecycle.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/023_partner_lifecycle.sql#L1) | partner_unbound_quotes, partner_shipping_offers, partner_cancellations | partner_cancellations, partner_shipping_offers, partner_unbound_quotes, platform_carrier_connections, wallet_ledger |  |
+| [migrations/024_native_partner_orders_and_webhooks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/024_native_partner_orders_and_webhooks.sql#L1) | partner_provider_options, partner_order_jobs | partner_order_jobs, partner_provider_options | queue_native_partner_order |
+| [migrations/025_pending_label_poll_index.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/025_pending_label_poll_index.sql#L1) |  |  |  |
+| [migrations/026_support_review_activity.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/026_support_review_activity.sql#L1) | support_ticket_activity | support_ticket_activity, support_tickets |  |
+| [migrations/027_workspace_invitations_and_disputes.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/027_workspace_invitations_and_disputes.sql#L1) | workspace_invitations, shipment_dispute_drafts | shipment_dispute_drafts, workspace_invitations |  |
+| [migrations/028_reporting_transit_index.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/028_reporting_transit_index.sql#L1) |  |  |  |
+| [migrations/029_booking_references.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/029_booking_references.sql#L1) | booking_references | booking_references |  |
+| [migrations/030_card_checkout.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/030_card_checkout.sql#L1) | payment_carts | payment_carts |  |
+| [migrations/031_store_connections.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/031_store_connections.sql#L1) | workspace_store_connections | workspace_store_connections |  |
+| [migrations/032_dispatch_events_and_invoice_audits.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/032_dispatch_events_and_invoice_audits.sql#L1) | workspace_dispatch_events, billing_disputes, amazon_order_notifications | amazon_order_notifications, billing_disputes, shipments, workspace_dispatch_events | emit_workspace_dispatch_event |
+| [migrations/033_xcover_claim_cases.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L1) | insurance_purchases, insurance_claim_cases, insurance_settlements, insurance_claim_evidence, xclaim_webhook_receipts, insurance_webhook_receipts | insurance_claim_cases, insurance_claim_evidence, insurance_purchases, insurance_settlements, insurance_webhook_receipts, support_message_outbox, support_tickets, wallet_ledger, xclaim_webhook_receipts |  |
+| [migrations/034_support_alert_controls.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/034_support_alert_controls.sql#L1) |  | whatsapp_bindings |  |
+| [migrations/035_packages_goods_returns_and_credential_locks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/035_packages_goods_returns_and_credential_locks.sql#L1) | shipment_goods_items | carrier_accounts, ecommerce_tracking_outbox, shipment_goods_items, shipments | check_shipment_goods_mass, classify_store_tracking_job, freeze_submitted_package_snapshot, guard_carrier_credential_identity, lock_goods_parent, valid_multi_parcel_dimensions |
+| [migrations/036_tenant_catalogs.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/036_tenant_catalogs.sql#L1) | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products |  |
+| [migrations/037_admin_client_assistance.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/037_admin_client_assistance.sql#L1) | admin_client_assistance_sessions, admin_client_assistance_events | admin_client_assistance_events, admin_client_assistance_sessions | protect_assistance_event |
+| [migrations/038_conversational_actions.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/038_conversational_actions.sql#L1) | conversational_messages | conversational_messages |  |
+| [migrations/039_whatsapp_onboarding.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/039_whatsapp_onboarding.sql#L1) | whatsapp_registration_queue, whatsapp_registration_receipts | tenants, whatsapp_registration_queue, whatsapp_registration_receipts |  |
+| [migrations/040_workspace_personas.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/040_workspace_personas.sql#L1) | individual_pricing_settings, individual_pricing_events, web_registration_sessions | individual_pricing_events, individual_pricing_settings, tenants, web_registration_sessions, whatsapp_registration_queue |  |
+| [migrations/041_budget_seller_strategy.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/041_budget_seller_strategy.sql#L1) |  | admin_management_events, tenants | guard_workspace_strategy |
+| [migrations/042_headless_returns.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/042_headless_returns.sql#L1) | reverse_logistics_requests | reverse_logistics_requests |  |
+| [migrations/043_whatsapp_async_ingress.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/043_whatsapp_async_ingress.sql#L1) | whatsapp_inbound_queue, whatsapp_reply_outbox | whatsapp_inbound_queue, whatsapp_reply_outbox |  |
+| [migrations/044_carrier_manifests_and_media.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/044_carrier_manifests_and_media.sql#L1) | carrier_manifests, carrier_manifest_events, logistics_media_assets | carrier_manifest_events, carrier_manifests, logistics_media_assets, shipments, whatsapp_reply_outbox | guard_manifest_assignment, protect_manifest_event |
 
 ## Exact CREATE TABLE definitions
 
 ### admin_client_assistance_events
 
-Source: [migrations/037_admin_client_assistance.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/037_admin_client_assistance.sql#L17).
+Source: [migrations/037_admin_client_assistance.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/037_admin_client_assistance.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_client_assistance_events (
@@ -69,7 +70,7 @@ CREATE TABLE IF NOT EXISTS public.admin_client_assistance_events (
 
 ### admin_client_assistance_sessions
 
-Source: [migrations/037_admin_client_assistance.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/037_admin_client_assistance.sql#L4).
+Source: [migrations/037_admin_client_assistance.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/037_admin_client_assistance.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_client_assistance_sessions (
@@ -88,7 +89,7 @@ CREATE TABLE IF NOT EXISTS public.admin_client_assistance_sessions (
 
 ### admin_configuration_events
 
-Source: [migrations/007_admin_configuration.sql:10](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/007_admin_configuration.sql#L10).
+Source: [migrations/007_admin_configuration.sql:10](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/007_admin_configuration.sql#L10).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_configuration_events (
@@ -106,7 +107,7 @@ CREATE TABLE IF NOT EXISTS public.admin_configuration_events (
 
 ### admin_management_events
 
-Source: [migrations/015_admin_management.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/015_admin_management.sql#L3).
+Source: [migrations/015_admin_management.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/015_admin_management.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_management_events (
@@ -122,7 +123,7 @@ CREATE TABLE IF NOT EXISTS public.admin_management_events (
 
 ### amazon_order_notifications
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:88](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/032_dispatch_events_and_invoice_audits.sql#L88).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:88](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/032_dispatch_events_and_invoice_audits.sql#L88).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.amazon_order_notifications (
@@ -140,7 +141,7 @@ CREATE TABLE IF NOT EXISTS public.amazon_order_notifications (
 
 ### app_auth_sessions
 
-Source: [migrations/021_identity_sessions.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/021_identity_sessions.sql#L3).
+Source: [migrations/021_identity_sessions.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/021_identity_sessions.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_auth_sessions(
@@ -152,7 +153,7 @@ CREATE TABLE IF NOT EXISTS public.app_auth_sessions(
 
 ### app_login_limits
 
-Source: [migrations/021_identity_sessions.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/021_identity_sessions.sql#L14).
+Source: [migrations/021_identity_sessions.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/021_identity_sessions.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_login_limits(
@@ -162,7 +163,7 @@ CREATE TABLE IF NOT EXISTS public.app_login_limits(
 
 ### app_user_profiles
 
-Source: [migrations/021_identity_sessions.sql:9](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/021_identity_sessions.sql#L9).
+Source: [migrations/021_identity_sessions.sql:9](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/021_identity_sessions.sql#L9).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_user_profiles(
@@ -174,7 +175,7 @@ CREATE TABLE IF NOT EXISTS public.app_user_profiles(
 
 ### automation_failures
 
-Source: [migrations/013_automation_freight.sql:15](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/013_automation_freight.sql#L15).
+Source: [migrations/013_automation_freight.sql:15](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/013_automation_freight.sql#L15).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.automation_failures (
@@ -187,7 +188,7 @@ CREATE TABLE IF NOT EXISTS public.automation_failures (
 
 ### billing_disputes
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:69](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/032_dispatch_events_and_invoice_audits.sql#L69).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:69](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/032_dispatch_events_and_invoice_audits.sql#L69).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.billing_disputes (
@@ -213,7 +214,7 @@ CREATE TABLE IF NOT EXISTS public.billing_disputes (
 
 ### booking_references
 
-Source: [migrations/029_booking_references.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/029_booking_references.sql#L5).
+Source: [migrations/029_booking_references.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/029_booking_references.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.booking_references(
@@ -223,9 +224,49 @@ CREATE TABLE IF NOT EXISTS public.booking_references(
 );
 ```
 
+### carrier_manifest_events
+
+Source: [migrations/044_carrier_manifests_and_media.sql:67](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/044_carrier_manifests_and_media.sql#L67).
+
+```sql
+CREATE TABLE public.carrier_manifest_events (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, tenant_id uuid NOT NULL,
+ manifest_id uuid NOT NULL, actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),
+ event_type text NOT NULL CHECK(event_type IN ('SUBMITTED','FAILED','COMPLETED')),
+ detail jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),
+ FOREIGN KEY(tenant_id,manifest_id) REFERENCES public.carrier_manifests(tenant_id,id),
+ UNIQUE(tenant_id,manifest_id,event_type)
+);
+```
+
+### carrier_manifests
+
+Source: [migrations/044_carrier_manifests_and_media.sql:28](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/044_carrier_manifests_and_media.sql#L28).
+
+```sql
+CREATE TABLE public.carrier_manifests (
+ id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),
+ carrier_account_id uuid NOT NULL REFERENCES public.carrier_accounts(id), carrier_code varchar(50) NOT NULL,
+ status varchar(30) NOT NULL CHECK(status IN ('DRAFT','SUBMITTED','FAILED','COMPLETED')),
+ master_tracking_id varchar(100), manifest_document_url text,
+ total_shipments integer NOT NULL CHECK(total_shipments BETWEEN 1 AND 1000),
+ total_weight_kg numeric(10,3) NOT NULL CHECK(total_weight_kg>0),
+ created_by uuid NOT NULL REFERENCES auth.users(id),
+ request_id uuid NOT NULL, input_sha256 text NOT NULL CHECK(input_sha256 ~ '^[a-f0-9]{64}$'),
+ provider_reference text, provider_document_url text, document_pdf bytea,
+ document_kind text NOT NULL CHECK(document_kind IN ('CARRIER_MANIFEST','INTERNAL_HANDOVER')),
+ snapshot jsonb NOT NULL CHECK(jsonb_typeof(snapshot)='array'),
+ environment text NOT NULL CHECK(environment IN ('TEST','LIVE')), error_code text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(tenant_id,id), UNIQUE(tenant_id,carrier_account_id,id), UNIQUE(tenant_id,request_id),
+ FOREIGN KEY(tenant_id,carrier_account_id) REFERENCES public.carrier_accounts(tenant_id,id),
+ CHECK(status<>'COMPLETED' OR document_pdf IS NOT NULL)
+);
+```
+
 ### conversational_messages
 
-Source: [migrations/038_conversational_actions.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/038_conversational_actions.sql#L4).
+Source: [migrations/038_conversational_actions.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/038_conversational_actions.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.conversational_messages (
@@ -244,7 +285,7 @@ CREATE TABLE IF NOT EXISTS public.conversational_messages (
 
 ### ecommerce_stores
 
-Source: [migrations/009_ecommerce_sync.sql:15](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/009_ecommerce_sync.sql#L15).
+Source: [migrations/009_ecommerce_sync.sql:15](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/009_ecommerce_sync.sql#L15).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.ecommerce_stores (
@@ -260,7 +301,7 @@ CREATE TABLE IF NOT EXISTS public.ecommerce_stores (
 
 ### ecommerce_tracking_outbox
 
-Source: [migrations/009_ecommerce_sync.sql:48](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/009_ecommerce_sync.sql#L48).
+Source: [migrations/009_ecommerce_sync.sql:48](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/009_ecommerce_sync.sql#L48).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.ecommerce_tracking_outbox (
@@ -283,7 +324,7 @@ CREATE TABLE IF NOT EXISTS public.ecommerce_tracking_outbox (
 
 ### hubspot_activation_jobs
 
-Source: [migrations/018_hubspot_activation_and_metrics.sql:9](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/018_hubspot_activation_and_metrics.sql#L9).
+Source: [migrations/018_hubspot_activation_and_metrics.sql:9](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/018_hubspot_activation_and_metrics.sql#L9).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_activation_jobs (
@@ -302,7 +343,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_activation_jobs (
 
 ### hubspot_sync_jobs
 
-Source: [migrations/010_hubspot_crm.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/010_hubspot_crm.sql#L3).
+Source: [migrations/010_hubspot_crm.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/010_hubspot_crm.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_sync_jobs (
@@ -318,7 +359,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_sync_jobs (
 
 ### hubspot_tenant_links
 
-Source: [migrations/010_hubspot_crm.sql:12](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/010_hubspot_crm.sql#L12).
+Source: [migrations/010_hubspot_crm.sql:12](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/010_hubspot_crm.sql#L12).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_tenant_links (
@@ -331,7 +372,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_tenant_links (
 
 ### individual_pricing_events
 
-Source: [migrations/040_workspace_personas.sql:21](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/040_workspace_personas.sql#L21).
+Source: [migrations/040_workspace_personas.sql:21](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/040_workspace_personas.sql#L21).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.individual_pricing_events (
@@ -345,7 +386,7 @@ CREATE TABLE IF NOT EXISTS public.individual_pricing_events (
 
 ### individual_pricing_settings
 
-Source: [migrations/040_workspace_personas.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/040_workspace_personas.sql#L14).
+Source: [migrations/040_workspace_personas.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/040_workspace_personas.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.individual_pricing_settings (
@@ -358,7 +399,7 @@ CREATE TABLE IF NOT EXISTS public.individual_pricing_settings (
 
 ### insurance_claim_cases
 
-Source: [migrations/033_xcover_claim_cases.sql:44](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L44).
+Source: [migrations/033_xcover_claim_cases.sql:44](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L44).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_claim_cases (
@@ -379,7 +420,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_claim_cases (
 
 ### insurance_claim_evidence
 
-Source: [migrations/033_xcover_claim_cases.sql:91](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L91).
+Source: [migrations/033_xcover_claim_cases.sql:91](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L91).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_claim_evidence (
@@ -395,7 +436,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_claim_evidence (
 
 ### insurance_purchases
 
-Source: [migrations/033_xcover_claim_cases.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L5).
+Source: [migrations/033_xcover_claim_cases.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_purchases (
@@ -418,7 +459,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_purchases (
 
 ### insurance_settlements
 
-Source: [migrations/033_xcover_claim_cases.sql:62](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L62).
+Source: [migrations/033_xcover_claim_cases.sql:62](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L62).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_settlements (
@@ -438,7 +479,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_settlements (
 
 ### insurance_webhook_receipts
 
-Source: [migrations/033_xcover_claim_cases.sql:108](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L108).
+Source: [migrations/033_xcover_claim_cases.sql:108](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L108).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_webhook_receipts (
@@ -452,9 +493,24 @@ CREATE TABLE IF NOT EXISTS public.insurance_webhook_receipts (
 );
 ```
 
+### logistics_media_assets
+
+Source: [migrations/044_carrier_manifests_and_media.sql:81](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/044_carrier_manifests_and_media.sql#L81).
+
+```sql
+CREATE TABLE public.logistics_media_assets (
+ id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),shipment_id uuid NOT NULL,
+ object_key text NOT NULL,content_sha256 text NOT NULL CHECK(content_sha256 ~ '^[a-f0-9]{64}$'),
+ mime_type text NOT NULL CHECK(mime_type IN ('image/png','image/jpeg')),
+ created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(tenant_id,shipment_id,content_sha256),
+ CHECK(object_key LIKE tenant_id::text||'/'||shipment_id::text||'/%'),
+ FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)
+);
+```
+
 ### partner_cancellations
 
-Source: [migrations/023_partner_lifecycle.sql:35](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/023_partner_lifecycle.sql#L35).
+Source: [migrations/023_partner_lifecycle.sql:35](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/023_partner_lifecycle.sql#L35).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_cancellations(
@@ -470,7 +526,7 @@ CREATE TABLE IF NOT EXISTS public.partner_cancellations(
 
 ### partner_order_jobs
 
-Source: [migrations/024_native_partner_orders_and_webhooks.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/024_native_partner_orders_and_webhooks.sql#L17).
+Source: [migrations/024_native_partner_orders_and_webhooks.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/024_native_partner_orders_and_webhooks.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_order_jobs(
@@ -493,7 +549,7 @@ CREATE TABLE IF NOT EXISTS public.partner_order_jobs(
 
 ### partner_provider_options
 
-Source: [migrations/024_native_partner_orders_and_webhooks.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/024_native_partner_orders_and_webhooks.sql#L4).
+Source: [migrations/024_native_partner_orders_and_webhooks.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/024_native_partner_orders_and_webhooks.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_provider_options(
@@ -513,7 +569,7 @@ CREATE TABLE IF NOT EXISTS public.partner_provider_options(
 
 ### partner_shipping_offers
 
-Source: [migrations/023_partner_lifecycle.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/023_partner_lifecycle.sql#L17).
+Source: [migrations/023_partner_lifecycle.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/023_partner_lifecycle.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_shipping_offers(
@@ -530,7 +586,7 @@ CREATE TABLE IF NOT EXISTS public.partner_shipping_offers(
 
 ### partner_unbound_quotes
 
-Source: [migrations/023_partner_lifecycle.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/023_partner_lifecycle.sql#L5).
+Source: [migrations/023_partner_lifecycle.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/023_partner_lifecycle.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_unbound_quotes(
@@ -545,7 +601,7 @@ CREATE TABLE IF NOT EXISTS public.partner_unbound_quotes(
 
 ### payment_carts
 
-Source: [migrations/030_card_checkout.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/030_card_checkout.sql#L4).
+Source: [migrations/030_card_checkout.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/030_card_checkout.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.payment_carts(
@@ -560,7 +616,7 @@ CREATE TABLE IF NOT EXISTS public.payment_carts(
 
 ### platform_carrier_connections
 
-Source: [migrations/020_platform_carriers.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/020_platform_carriers.sql#L4).
+Source: [migrations/020_platform_carriers.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/020_platform_carriers.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.platform_carrier_connections(
@@ -576,7 +632,7 @@ CREATE TABLE IF NOT EXISTS public.platform_carrier_connections(
 
 ### platform_carrier_events
 
-Source: [migrations/020_platform_carriers.sql:18](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/020_platform_carriers.sql#L18).
+Source: [migrations/020_platform_carriers.sql:18](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/020_platform_carriers.sql#L18).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.platform_carrier_events(
@@ -589,7 +645,7 @@ CREATE TABLE IF NOT EXISTS public.platform_carrier_events(
 
 ### reverse_logistics_requests
 
-Source: [migrations/042_headless_returns.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/042_headless_returns.sql#L4).
+Source: [migrations/042_headless_returns.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/042_headless_returns.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.reverse_logistics_requests (
@@ -613,7 +669,7 @@ CREATE TABLE IF NOT EXISTS public.reverse_logistics_requests (
 
 ### shipment_dispute_drafts
 
-Source: [migrations/027_workspace_invitations_and_disputes.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/027_workspace_invitations_and_disputes.sql#L14).
+Source: [migrations/027_workspace_invitations_and_disputes.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/027_workspace_invitations_and_disputes.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.shipment_dispute_drafts(
@@ -626,7 +682,7 @@ CREATE TABLE IF NOT EXISTS public.shipment_dispute_drafts(
 
 ### shipment_goods_items
 
-Source: [migrations/035_packages_goods_returns_and_credential_locks.sql:80](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/035_packages_goods_returns_and_credential_locks.sql#L80).
+Source: [migrations/035_packages_goods_returns_and_credential_locks.sql:80](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/035_packages_goods_returns_and_credential_locks.sql#L80).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.shipment_goods_items (
@@ -647,7 +703,7 @@ CREATE TABLE IF NOT EXISTS public.shipment_goods_items (
 
 ### stripe_charge_refunds
 
-Source: [migrations/019_stripe_snapshot_reconciliation.sql:55](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/019_stripe_snapshot_reconciliation.sql#L55).
+Source: [migrations/019_stripe_snapshot_reconciliation.sql:55](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/019_stripe_snapshot_reconciliation.sql#L55).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.stripe_charge_refunds (
@@ -663,7 +719,7 @@ CREATE TABLE IF NOT EXISTS public.stripe_charge_refunds (
 
 ### stripe_webhook_events
 
-Source: [migrations/019_stripe_snapshot_reconciliation.sql:34](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/019_stripe_snapshot_reconciliation.sql#L34).
+Source: [migrations/019_stripe_snapshot_reconciliation.sql:34](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/019_stripe_snapshot_reconciliation.sql#L34).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
@@ -685,7 +741,7 @@ CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
 
 ### support_message_outbox
 
-Source: [migrations/011_tracking_and_support.sql:57](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/011_tracking_and_support.sql#L57).
+Source: [migrations/011_tracking_and_support.sql:57](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/011_tracking_and_support.sql#L57).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_message_outbox (
@@ -700,7 +756,7 @@ CREATE TABLE IF NOT EXISTS public.support_message_outbox (
 
 ### support_ticket_activity
 
-Source: [migrations/026_support_review_activity.sql:6](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/026_support_review_activity.sql#L6).
+Source: [migrations/026_support_review_activity.sql:6](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/026_support_review_activity.sql#L6).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_ticket_activity (
@@ -718,7 +774,7 @@ CREATE TABLE IF NOT EXISTS public.support_ticket_activity (
 
 ### support_tickets
 
-Source: [migrations/011_tracking_and_support.sql:48](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/011_tracking_and_support.sql#L48).
+Source: [migrations/011_tracking_and_support.sql:48](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/011_tracking_and_support.sql#L48).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_tickets (
@@ -734,7 +790,7 @@ CREATE TABLE IF NOT EXISTS public.support_tickets (
 
 ### tenant_catalog_addresses
 
-Source: [migrations/036_tenant_catalogs.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/036_tenant_catalogs.sql#L4).
+Source: [migrations/036_tenant_catalogs.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/036_tenant_catalogs.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_addresses (
@@ -751,7 +807,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_addresses (
 
 ### tenant_catalog_contacts
 
-Source: [migrations/036_tenant_catalogs.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/036_tenant_catalogs.sql#L17).
+Source: [migrations/036_tenant_catalogs.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/036_tenant_catalogs.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_contacts (
@@ -766,7 +822,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_contacts (
 
 ### tenant_catalog_products
 
-Source: [migrations/036_tenant_catalogs.sql:26](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/036_tenant_catalogs.sql#L26).
+Source: [migrations/036_tenant_catalogs.sql:26](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/036_tenant_catalogs.sql#L26).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_products (
@@ -785,7 +841,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_products (
 
 ### tracking_events
 
-Source: [migrations/011_tracking_and_support.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/011_tracking_and_support.sql#L31).
+Source: [migrations/011_tracking_and_support.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/011_tracking_and_support.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tracking_events (
@@ -809,7 +865,7 @@ CREATE TABLE IF NOT EXISTS public.tracking_events (
 
 ### web_registration_sessions
 
-Source: [migrations/040_workspace_personas.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/040_workspace_personas.sql#L31).
+Source: [migrations/040_workspace_personas.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/040_workspace_personas.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.web_registration_sessions (
@@ -825,7 +881,7 @@ CREATE TABLE IF NOT EXISTS public.web_registration_sessions (
 
 ### whatsapp_inbound_queue
 
-Source: [migrations/043_whatsapp_async_ingress.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/043_whatsapp_async_ingress.sql#L4).
+Source: [migrations/043_whatsapp_async_ingress.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/043_whatsapp_async_ingress.sql#L4).
 
 ```sql
 CREATE TABLE public.whatsapp_inbound_queue (
@@ -843,7 +899,7 @@ CREATE TABLE public.whatsapp_inbound_queue (
 
 ### whatsapp_registration_queue
 
-Source: [migrations/039_whatsapp_onboarding.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/039_whatsapp_onboarding.sql#L4).
+Source: [migrations/039_whatsapp_onboarding.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/039_whatsapp_onboarding.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.whatsapp_registration_queue (
@@ -871,7 +927,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_registration_queue (
 
 ### whatsapp_registration_receipts
 
-Source: [migrations/039_whatsapp_onboarding.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/039_whatsapp_onboarding.sql#L31).
+Source: [migrations/039_whatsapp_onboarding.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/039_whatsapp_onboarding.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.whatsapp_registration_receipts (
@@ -886,7 +942,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_registration_receipts (
 
 ### whatsapp_reply_outbox
 
-Source: [migrations/043_whatsapp_async_ingress.sql:18](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/043_whatsapp_async_ingress.sql#L18).
+Source: [migrations/043_whatsapp_async_ingress.sql:18](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/043_whatsapp_async_ingress.sql#L18).
 
 ```sql
 CREATE TABLE public.whatsapp_reply_outbox (
@@ -903,7 +959,7 @@ CREATE TABLE public.whatsapp_reply_outbox (
 
 ### workspace_dispatch_events
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:44](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/032_dispatch_events_and_invoice_audits.sql#L44).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:44](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/032_dispatch_events_and_invoice_audits.sql#L44).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_dispatch_events (
@@ -917,7 +973,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_dispatch_events (
 
 ### workspace_invitations
 
-Source: [migrations/027_workspace_invitations_and_disputes.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/027_workspace_invitations_and_disputes.sql#L4).
+Source: [migrations/027_workspace_invitations_and_disputes.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/027_workspace_invitations_and_disputes.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_invitations(
@@ -932,7 +988,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_invitations(
 
 ### workspace_store_connections
 
-Source: [migrations/031_store_connections.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/031_store_connections.sql#L4).
+Source: [migrations/031_store_connections.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/031_store_connections.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_store_connections (
@@ -949,7 +1005,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_store_connections (
 
 ### xclaim_webhook_receipts
 
-Source: [migrations/033_xcover_claim_cases.sql:101](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L101).
+Source: [migrations/033_xcover_claim_cases.sql:101](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L101).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.xclaim_webhook_receipts (

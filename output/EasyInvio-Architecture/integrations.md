@@ -95,3 +95,11 @@ COMPANIES_HOUSE_API_KEY authenticates that optional research, not shipping or si
 ## Contract references
 
 The source modules retain the implemented API contracts. External contract changes require fresh verification before updating adapters: [EasyPost forms](https://docs.easypost.com/docs/shipments/forms), [USPS Label Broker](https://support.easypost.com/hc/en-us/articles/4410441700493-Generate-USPS-Label-Broker-QR-Codes), [Sendcloud returns](https://sendcloud.dev/docs/returns), [Companies House API](https://developer.company-information.service.gov.uk/), [Supabase Auth](https://supabase.com/docs/guides/auth). These links are references, not a statement that every external service/version was live-tested during documentation generation.
+
+## Manifest provider contracts and QR Storage
+
+EasyPost manifest creation uses the documented top-level shipments array at POST /v2/scan_forms. Same origin/carrier account, permitted label date and carrier support remain provider requirements. A created form must match the exact tracking set and supply an approved PDF. A stored sf_ reference supports subsequent GET recovery; timeout never authorizes another POST.
+
+A generic Sendcloud /api/v2/manifests contract is not established by the current public catalog. Sendcloud and unsupported regional/direct connections therefore produce INTERNAL_HANDOVER paperwork with carrier_closed=false. Official carrier-required closure must still be completed through the verified panel/contract-specific workflow; the application does not invent that API or call internal paperwork carrier acceptance.
+
+Supabase Storage supplies private image persistence/read signing with the existing server service key, under LOGISTICS_MEDIA_BUCKET (default easyinvio-logistics). SVG/PDF may be rasterized to PNG using PyMuPDF; PNG/JPEG is decoded/re-encoded with Pillow. Native media sends include the canonical outbound-status callback. Definite format rejection and signed failed/undelivered media status create a unique text-only viewing-link fallback; a timeout alone does not. Proactive support notifications remain separate.

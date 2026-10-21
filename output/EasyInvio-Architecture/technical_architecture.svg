@@ -57,9 +57,9 @@
 </g>
 <g data-node="db"><rect x="526" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="526" y="716" width="6" height="220" rx="3" fill="#4f46e5"/>
-<text x="548" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Supabase PostgreSQL</text>
-<text x="548" y="794" style="font:18px Arial,sans-serif;fill:#334155">Tenant predicates; RLS; row locks</text>
-<text x="548" y="818" style="font:18px Arial,sans-serif;fill:#334155">Snapshots; ledger; receipts; audit</text>
+<text x="548" y="754" style="font:700 22px Arial,sans-serif;fill:#0f172a">Supabase data services</text>
+<text x="548" y="794" style="font:18px Arial,sans-serif;fill:#334155">Postgres locks; ledger; manifests</text>
+<text x="548" y="818" style="font:18px Arial,sans-serif;fill:#334155">Private QR Storage; receipts; audit</text>
 </g>
 <g data-node="jobs"><rect x="1004" y="716" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="1004" y="716" width="6" height="220" rx="3" fill="#059669"/>

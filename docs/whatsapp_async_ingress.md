@@ -1,5 +1,7 @@
 # Queued WhatsApp processing and UK premise selection
 
+Migration 044 adds signed image Storage, a dedicated conversational delivery callback and idempotent text fallback for definitively rejected/failed media. See [carrier manifests and media](carrier_manifests_and_media.md) for the current extension; the original 043 transport contract remains the base.
+
 Implemented 21 October 2026. Both `/webhooks/twilio/whatsapp` and `/api/v1/integrations/whatsapp/webhook` validate the configured canonical Twilio URL, account, signature and every form field before accepting a message. Configure the actual externally reachable URL in Twilio and `TWILIO_WEBHOOK_URL` exactly as before.
 
 ## Activation

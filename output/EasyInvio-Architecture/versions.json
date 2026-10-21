@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-10-20T23:51:44.591320+00:00",
+  "captured_at": "2026-10-21T00:30:12.024146+00:00",
   "python": "3.14.0",
   "local_environment": {
     "fastapi": "0.143.0",
@@ -19,6 +19,7 @@
     "pypdf": "6.20.0",
     "openpyxl": "3.1.5",
     "Pillow": "12.3.0",
+    "PyMuPDF": "1.28.2",
     "Markdown": "3.11",
     "python-multipart": "0.0.32",
     "defusedxml": "0.7.1",
@@ -50,6 +51,7 @@
       "defusedxml>=0.7.1,<1",
       "",
       "Pillow>=12,<13",
+      "PyMuPDF>=1.26,<2",
       "Markdown>=3.7,<4",
       "openai-agents>=0.23.1,<0.24",
       "openai>=3.29,<4"

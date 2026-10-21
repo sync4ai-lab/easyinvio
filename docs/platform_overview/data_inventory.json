@@ -510,6 +510,26 @@
         "whatsapp_reply_outbox"
       ],
       "created_functions": []
+    },
+    {
+      "file": "migrations/044_carrier_manifests_and_media.sql",
+      "sha256": "a7b9a25a41f723a8fb28c50a9e21507a808adbfa37e74eb2319f3d0ad0c58340",
+      "created_tables": [
+        "carrier_manifests",
+        "carrier_manifest_events",
+        "logistics_media_assets"
+      ],
+      "alter_table_targets": [
+        "carrier_manifest_events",
+        "carrier_manifests",
+        "logistics_media_assets",
+        "shipments",
+        "whatsapp_reply_outbox"
+      ],
+      "created_functions": [
+        "guard_manifest_assignment",
+        "protect_manifest_event"
+      ]
     }
   ],
   "hash_format": "SHA-256 with CRLF normalized to LF",
@@ -831,6 +851,24 @@
       "file": "migrations/043_whatsapp_async_ingress.sql",
       "line": 18,
       "create_definition": "CREATE TABLE public.whatsapp_reply_outbox (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n inbound_id bigint NOT NULL REFERENCES public.whatsapp_inbound_queue(id),\n part_index integer NOT NULL CHECK(part_index>=0),\n payload_ciphertext bytea NOT NULL, key_id text NOT NULL,\n state text NOT NULL DEFAULT 'STAGED' CHECK(state IN ('STAGED','SENDING','ACCEPTED','FAILED','REVIEW_REQUIRED')),\n provider_message_sid text UNIQUE CHECK(provider_message_sid ~ '^SM[0-9a-fA-F]{32}$'),\n updated_at timestamptz NOT NULL DEFAULT now(), error_code text,\n UNIQUE(inbound_id,part_index)\n);"
+    },
+    {
+      "name": "carrier_manifests",
+      "file": "migrations/044_carrier_manifests_and_media.sql",
+      "line": 28,
+      "create_definition": "CREATE TABLE public.carrier_manifests (\n id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n carrier_account_id uuid NOT NULL REFERENCES public.carrier_accounts(id), carrier_code varchar(50) NOT NULL,\n status varchar(30) NOT NULL CHECK(status IN ('DRAFT','SUBMITTED','FAILED','COMPLETED')),\n master_tracking_id varchar(100), manifest_document_url text,\n total_shipments integer NOT NULL CHECK(total_shipments BETWEEN 1 AND 1000),\n total_weight_kg numeric(10,3) NOT NULL CHECK(total_weight_kg>0),\n created_by uuid NOT NULL REFERENCES auth.users(id),\n request_id uuid NOT NULL, input_sha256 text NOT NULL CHECK(input_sha256 ~ '^[a-f0-9]{64}$'),\n provider_reference text, provider_document_url text, document_pdf bytea,\n document_kind text NOT NULL CHECK(document_kind IN ('CARRIER_MANIFEST','INTERNAL_HANDOVER')),\n snapshot jsonb NOT NULL CHECK(jsonb_typeof(snapshot)='array'),\n environment text NOT NULL CHECK(environment IN ('TEST','LIVE')), error_code text,\n created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),\n UNIQUE(tenant_id,id), UNIQUE(tenant_id,carrier_account_id,id), UNIQUE(tenant_id,request_id),\n FOREIGN KEY(tenant_id,carrier_account_id) REFERENCES public.carrier_accounts(tenant_id,id),\n CHECK(status<>'COMPLETED' OR document_pdf IS NOT NULL)\n);"
+    },
+    {
+      "name": "carrier_manifest_events",
+      "file": "migrations/044_carrier_manifests_and_media.sql",
+      "line": 67,
+      "create_definition": "CREATE TABLE public.carrier_manifest_events (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, tenant_id uuid NOT NULL,\n manifest_id uuid NOT NULL, actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),\n event_type text NOT NULL CHECK(event_type IN ('SUBMITTED','FAILED','COMPLETED')),\n detail jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),\n FOREIGN KEY(tenant_id,manifest_id) REFERENCES public.carrier_manifests(tenant_id,id),\n UNIQUE(tenant_id,manifest_id,event_type)\n);"
+    },
+    {
+      "name": "logistics_media_assets",
+      "file": "migrations/044_carrier_manifests_and_media.sql",
+      "line": 81,
+      "create_definition": "CREATE TABLE public.logistics_media_assets (\n id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),shipment_id uuid NOT NULL,\n object_key text NOT NULL,content_sha256 text NOT NULL CHECK(content_sha256 ~ '^[a-f0-9]{64}$'),\n mime_type text NOT NULL CHECK(mime_type IN ('image/png','image/jpeg')),\n created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(tenant_id,shipment_id,content_sha256),\n CHECK(object_key LIKE tenant_id::text||'/'||shipment_id::text||'/%'),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
     }
   ],
   "scope": "Exact repository CREATE TABLE blocks; not live introspection or a final flattened schema after all ALTERs.",

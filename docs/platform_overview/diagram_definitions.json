@@ -40,8 +40,8 @@
       ],
       [
         "db",
-        "Supabase PostgreSQL",
-        "Tenant predicates; RLS; row locks|Snapshots; ledger; receipts; audit"
+        "Supabase data services",
+        "Postgres locks; ledger; manifests|Private QR Storage; receipts; audit"
       ],
       [
         "jobs",

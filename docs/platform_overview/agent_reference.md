@@ -69,3 +69,9 @@ To extend an agent: define a strict output schema; ground supplied facts; admit 
 Signed WhatsApp ingress is decoupled by `WhatsAppQueue` and migration 043. The deterministic worker, not a model, resolves the active binding and invokes the same gateway with the stable MessageSid-derived request ID. Raw events and staged replies are encrypted; a canonical signed-field SHA-256 protects inbox reuse while the existing conversational digest remains unchanged. The original inbound timestamp is carried into the service-window record.
 
 Dynamic UK address collection calls `PAFClient` and stores validated `PAFPremise` candidates, paging offset and selected UDPRNs in the private draft. Numeric selection is restricted to the displayed page and matching postcode. The model cannot invent/select a different premise or replace postal data. Contact name is collected separately. Pagination/selection never extend the original fifteen-minute deadline.
+
+## Explicit EOD commands
+
+The conversational enum additionally admits MANIFEST_STATUS and CLOSE_MANIFEST. Explicit deterministic grammar recognizes Manifest status and Close manifest <carrier>. A dispatch role, one actual carrier/account/warehouse match, active workspace/environment and the native ManifestService guards are mandatory. The message receipt ID becomes the stable close request ID. A model proposal alone cannot close a batch, create a scan form, invent a pickup or grant access to its PDF.
+
+Carrier QR media is derived solely from confirmed native booking/return results. Client-supplied media URLs cannot authorize arbitrary fetch/forward operations. Image publication and delivery fallback cannot change a financial settlement or repeat the logistics action.

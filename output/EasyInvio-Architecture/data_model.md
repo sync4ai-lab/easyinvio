@@ -75,8 +75,9 @@ State labels in this overview are not a replacement for exact CHECK constraints 
 | 041 | Explicit cost-sensitive seller strategy and server-owned persona/classification guard |
 | 042 | Private full-parcel reverse-logistics command receipts and parent/replay fencing |
 | 043 | Encrypted signed WhatsApp inbox and ordered REST reply outbox; uncertain-action/send fences |
+| 044 | Carrier manifests/audit events; tenant-account shipment membership; MANIFESTED state; private QR assets and idempotent media fallback |
 
-Earlier checked-in migrations 006–029 add metadata, admin/configuration, sandbox controls, stores/CRM, tracking/support, reports, identity, carriers, native lifecycle and booking references. The generated migration catalog lists all filenames/source hashes; migration numbering must continue after 043 rather than reuse the historical prompt’s proposed 027/028 numbers.
+Earlier checked-in migrations 006–029 add metadata, admin/configuration, sandbox controls, stores/CRM, tracking/support, reports, identity, carriers, native lifecycle and booking references. The generated migration catalog lists all filenames/source hashes; migration numbering must continue after 044 rather than reuse the historical prompt’s proposed 027/028 numbers.
 
 ## Access, audit and retention
 

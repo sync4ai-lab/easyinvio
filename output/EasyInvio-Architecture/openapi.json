@@ -8051,6 +8051,286 @@
           }
         }
       }
+    },
+    "/api/v1/dispatch/manifests/preview": {
+      "post": {
+        "tags": [
+          "Carrier manifests"
+        ],
+        "summary": "Preview",
+        "operationId": "preview_api_v1_dispatch_manifests_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewManifest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ManifestCandidateSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Preview Api V1 Dispatch Manifests Preview Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/dispatch/manifests/close": {
+      "post": {
+        "tags": [
+          "Carrier manifests"
+        ],
+        "summary": "Close",
+        "operationId": "close_api_v1_dispatch_manifests_close_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseManifest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManifestResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/dispatch/manifests/{manifest_id}": {
+      "get": {
+        "tags": [
+          "Carrier manifests"
+        ],
+        "summary": "Status",
+        "operationId": "status_api_v1_dispatch_manifests__manifest_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "manifest_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Manifest Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManifestResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dispatch/manifests/{manifest_id}/document": {
+      "get": {
+        "tags": [
+          "Carrier manifests"
+        ],
+        "summary": "Document",
+        "operationId": "document_api_v1_dispatch_manifests__manifest_id__document_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "manifest_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Manifest Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dispatch/manifests/{manifest_id}/download": {
+      "get": {
+        "tags": [
+          "Carrier manifests"
+        ],
+        "summary": "Download",
+        "operationId": "download_api_v1_dispatch_manifests__manifest_id__download_get",
+        "parameters": [
+          {
+            "name": "manifest_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Manifest Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/whatsapp/outbound-status/{part_id}": {
+      "post": {
+        "tags": [
+          "WhatsApp media delivery"
+        ],
+        "summary": "Status",
+        "operationId": "status_api_v1_integrations_whatsapp_outbound_status__part_id__post",
+        "parameters": [
+          {
+            "name": "part_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Part Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9097,6 +9377,52 @@
         ],
         "title": "ClientRate"
       },
+      "CloseManifest": {
+        "properties": {
+          "warehouse_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warehouse Id"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "carrier_account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Carrier Account Id"
+          },
+          "carrier_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carrier Code"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "carrier_account_id"
+        ],
+        "title": "CloseManifest"
+      },
       "CompanyProfile": {
         "properties": {
           "phone_e164": {
@@ -9497,6 +9823,14 @@
             "type": "string",
             "format": "uuid",
             "title": "Request Id"
+          },
+          "media_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1,
+            "title": "Media Urls"
           }
         },
         "additionalProperties": false,
@@ -10258,6 +10592,136 @@
           "password"
         ],
         "title": "Login"
+      },
+      "ManifestCandidateSummary": {
+        "properties": {
+          "carrier_account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Carrier Account Id"
+          },
+          "carrier_code": {
+            "type": "string",
+            "title": "Carrier Code"
+          },
+          "total_shipments": {
+            "type": "integer",
+            "title": "Total Shipments"
+          },
+          "total_weight_kg": {
+            "type": "string",
+            "title": "Total Weight Kg"
+          },
+          "origin_postcode": {
+            "type": "string",
+            "title": "Origin Postcode"
+          },
+          "document_kind": {
+            "type": "string",
+            "enum": [
+              "CARRIER_MANIFEST",
+              "INTERNAL_HANDOVER"
+            ],
+            "title": "Document Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "carrier_account_id",
+          "carrier_code",
+          "total_shipments",
+          "total_weight_kg",
+          "origin_postcode",
+          "document_kind"
+        ],
+        "title": "ManifestCandidateSummary"
+      },
+      "ManifestResult": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SUBMITTED",
+              "FAILED",
+              "COMPLETED"
+            ],
+            "title": "Status"
+          },
+          "carrier_account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Carrier Account Id"
+          },
+          "carrier_code": {
+            "type": "string",
+            "title": "Carrier Code"
+          },
+          "total_shipments": {
+            "type": "integer",
+            "title": "Total Shipments"
+          },
+          "total_weight_kg": {
+            "type": "string",
+            "title": "Total Weight Kg"
+          },
+          "master_tracking_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Master Tracking Id"
+          },
+          "manifest_document_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Document Url"
+          },
+          "document_kind": {
+            "type": "string",
+            "enum": [
+              "CARRIER_MANIFEST",
+              "INTERNAL_HANDOVER"
+            ],
+            "title": "Document Kind"
+          },
+          "carrier_closed": {
+            "type": "boolean",
+            "title": "Carrier Closed",
+            "default": false
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "carrier_account_id",
+          "carrier_code",
+          "total_shipments",
+          "total_weight_kg",
+          "document_kind",
+          "message"
+        ],
+        "title": "ManifestResult"
       },
       "MarginCreate": {
         "properties": {
@@ -11667,6 +12131,25 @@
           "funds_received_verified"
         ],
         "title": "PlatformSettlement"
+      },
+      "PreviewManifest": {
+        "properties": {
+          "warehouse_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warehouse Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PreviewManifest"
       },
       "ProductInput": {
         "properties": {

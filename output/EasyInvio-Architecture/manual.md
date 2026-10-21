@@ -1,10 +1,10 @@
 # EasyInvio complete application manual
 
-Source revision: `35bd816f0e12dd067b18cd54382bbb320a0e80dd`. Read README.md for scope and generation rules.
+Source revision: `e4d73e7f2ab88945b4977bf18a718815d4846f98`. Read README.md for scope and generation rules.
 
 # EasyInvio application manual
 
-This is the maintained architecture and onboarding reference for EasyInvio.com. It describes the implementation in this repository, including business and individual workspaces, conversational onboarding, carrier selection, payments, protection, claims, headless returns, queued WhatsApp transport and UK PAF selection through migration 043. Open [overview.html](overview.html) for a searchable offline edition with diagrams and API tables. Read [llm_handoff.md](llm_handoff.md) before changing code with an LLM.
+This is the maintained architecture and onboarding reference for EasyInvio.com. It describes the implementation in this repository, including business and individual workspaces, conversational onboarding, carrier selection, payments, protection, claims, headless returns, queued WhatsApp transport and UK PAF selection, signed carrier QR media and EOD manifests through migration 044. Open [overview.html](overview.html) for a searchable offline edition with diagrams and API tables. Read [llm_handoff.md](llm_handoff.md) before changing code with an LLM.
 
 The source is `docs/platform_overview`. The generated distribution is `output/EasyInvio-Architecture`; `output/EasyInvio-Architecture.zip` contains the same manual. Changes belong in the source chapters and generator, followed by regeneration. Do not edit only the distribution.
 
@@ -175,6 +175,14 @@ Dynamic UK quotes use licensed PAF lookup after countries/postcodes are supplied
 
 The webhook now acknowledges durable acceptance with empty TwiML. Quotes, signup codes and return results arrive as separate WhatsApp REST messages. Confirmed paperless returns can arrive as a native carrier image/PDF attachment; otherwise the existing printable/link instructions apply. Draft expiry remains fifteen minutes from creation. An uncertain action/send can block that phone thread pending operator reconciliation. REST acceptance is not a delivery guarantee.
 
+## Carrier manifests and image delivery
+
+OWNER/ADMIN/DISPATCHER users can preview exact booked, unmanifested totals by account, carrier and pickup premise; close one bounded batch; inspect status; and download its PDF. Chat commands are `Manifest status` and `Close manifest Royal Mail`. Ambiguous accounts/warehouses require an explicit API selection rather than an invented choice. Each batch admits up to 1,000 shipments; preview includes all eligible rows and remaining batches stay available. Stable request IDs replay the original batch.
+
+EasyPost close-out uses actual purchased shipment IDs and verifies returned tracking membership/document data. Unsupported Sendcloud/regional/direct close-out contracts produce an explicitly INTERNAL_HANDOVER driver sheet with tracking/postcodes, exact weights, totals, signature fields and an internal Code128 reference. This does not establish carrier closure or schedule/confirm collection. COMMITTED document preparation moves still-BOOKED members to MANIFESTED; real carrier transit/delivery events remain separate.
+
+Confirmed QR assets can be normalized from provider URL/SVG/Base64 into PNG, stored privately under the tenant/shipment path and shared through a 24-hour read URL. Publication failure preserves the paid label and viewing link. Definitive Twilio media rejection or a signed failed delivery callback creates one text-link fallback; ambiguous sends never blindly replay.
+
 
 # Technical architecture
 
@@ -294,6 +302,12 @@ Environment values, production host details, deployed PostgreSQL/Supabase versio
 
 Each phone/receiving-number thread is serialized using ordered eligible heads and `FOR UPDATE SKIP LOCKED`. Different threads and instances can progress independently. READY responses resume only unsent parts; PROCESSING/SENDING/REVIEW_REQUIRED are durable fences, not expiring leases that authorize replay. Encrypted raw events/replies require key rotation and retention controls. The targeted sub-500 ms ack must be load-tested against actual PostgreSQL/pool/network conditions.
 
+## Manifest and carrier-media services (migration 044)
+
+`ManifestService` is registered as app.state.manifests. It uses the existing pool, settings and repository; carrier submissions and ReportLab rendering run after short claim transactions commit. Preview aggregates all eligible shipment counts/packed weights; close uses bounded 1,000-shipment batches, tenant/account advisory locks, the cancellation-lock namespace and row locks. Claims and immutable snapshots precede upstream calls. Stored provider references permit GET-only recovery. PDFs are stored as private database bytes, with authenticated and narrowly signed downloads.
+
+`QRMediaService` and logistics_media normalize actual carrier documents with Pillow/PyMuPDF, reject active/external SVG content, enforce limits and persist immutable private Supabase Storage objects. A database asset record binds tenant, shipment, hash and object key. No general URL proxy or public writable bucket is introduced. WhatsApp outbox parts support one signed image and a separate fallback viewing URL. Signed status callbacks verify account, SID and phone pair before scheduling an idempotent fallback or resolving uncertain REST acceptance. These are deterministic services, not new model agents.
+
 
 # Agent reference
 
@@ -366,6 +380,12 @@ To extend an agent: define a strict output schema; ground supplied facts; admit 
 Signed WhatsApp ingress is decoupled by `WhatsAppQueue` and migration 043. The deterministic worker, not a model, resolves the active binding and invokes the same gateway with the stable MessageSid-derived request ID. Raw events and staged replies are encrypted; a canonical signed-field SHA-256 protects inbox reuse while the existing conversational digest remains unchanged. The original inbound timestamp is carried into the service-window record.
 
 Dynamic UK address collection calls `PAFClient` and stores validated `PAFPremise` candidates, paging offset and selected UDPRNs in the private draft. Numeric selection is restricted to the displayed page and matching postcode. The model cannot invent/select a different premise or replace postal data. Contact name is collected separately. Pagination/selection never extend the original fifteen-minute deadline.
+
+## Explicit EOD commands
+
+The conversational enum additionally admits MANIFEST_STATUS and CLOSE_MANIFEST. Explicit deterministic grammar recognizes Manifest status and Close manifest <carrier>. A dispatch role, one actual carrier/account/warehouse match, active workspace/environment and the native ManifestService guards are mandatory. The message receipt ID becomes the stable close request ID. A model proposal alone cannot close a batch, create a scan form, invent a pickup or grant access to its PDF.
+
+Carrier QR media is derived solely from confirmed native booking/return results. Client-supplied media URLs cannot authorize arbitrary fetch/forward operations. Image publication and delivery fallback cannot change a financial settlement or repeat the logistics action.
 
 
 # Security and financial invariants
@@ -446,6 +466,14 @@ Never commit `.env`, key files, JWTs, webhook secrets, customer exports, raw dat
 Migration 043 stores exact signed inbound form bytes and outgoing parts under the existing Fernet key ring; both can contain OTPs and personal details. Ordinary browser roles have no table access. Keep required historical keys for outstanding rows and establish retention for completed payloads and review evidence. The canonical inbox SHA-256 includes every signed field/value/count while tolerating equivalent field ordering. Same SID/different content is rejected.
 
 Queue claims and SENDING markers commit before external calls. A timeout never authorizes an action or outbound-message replay. PROCESSING/SENDING/REVIEW_REQUIRED can block subsequent messages on that thread until reconciled. READY resumes unsent parts only. Free-form messages older than 23h59m are rejected, and backlog processing does not extend the original inbound messaging window. A return media URL must be this application's HTTPS scoped proxy with a valid token for that same shipment; carrier document allowlists and token expiry still apply.
+
+## Manifest membership and signed assets
+
+Migration 044 constrains manifest membership to the same tenant and carrier account and makes assignment/MANIFESTED transitions server-owned. Audit events are append-only. Manifest creation checks current membership or active audited assistance, workspace/environment, exact origin and booked state. The cancellation lock is shared before claims commit, and a claimed shipment cannot be voided through the ordinary cancellation path. No wallet or financial-ledger write is added.
+
+SUBMITTED preserves membership during uncertain provider creation. A PDF can complete only with exact native tracking membership/approved document or an explicitly internal handover sheet. Native ScanForm references are not fabricated carrier tracking IDs. Completing a document does not regress IN_TRANSIT/DELIVERED or imply physical pickup.
+
+QR images live in a private bucket with immutable tenant/shipment/content-hash keys and 24-hour read capabilities. The default bucket has a restrictive browser-role policy as well as private visibility. Different custom buckets require equivalent provisioning. Storage keys remain server-side. Signed manifest downloads grant only one completed PDF; they do not authenticate a workspace. Signed Twilio failed statuses can resolve transport uncertainty, but cannot rerun a booking or move money.
 
 
 # Integrations and capability boundaries
@@ -546,6 +574,14 @@ COMPANIES_HOUSE_API_KEY authenticates that optional research, not shipping or si
 
 The source modules retain the implemented API contracts. External contract changes require fresh verification before updating adapters: [EasyPost forms](https://docs.easypost.com/docs/shipments/forms), [USPS Label Broker](https://support.easypost.com/hc/en-us/articles/4410441700493-Generate-USPS-Label-Broker-QR-Codes), [Sendcloud returns](https://sendcloud.dev/docs/returns), [Companies House API](https://developer.company-information.service.gov.uk/), [Supabase Auth](https://supabase.com/docs/guides/auth). These links are references, not a statement that every external service/version was live-tested during documentation generation.
 
+## Manifest provider contracts and QR Storage
+
+EasyPost manifest creation uses the documented top-level shipments array at POST /v2/scan_forms. Same origin/carrier account, permitted label date and carrier support remain provider requirements. A created form must match the exact tracking set and supply an approved PDF. A stored sf_ reference supports subsequent GET recovery; timeout never authorizes another POST.
+
+A generic Sendcloud /api/v2/manifests contract is not established by the current public catalog. Sendcloud and unsupported regional/direct connections therefore produce INTERNAL_HANDOVER paperwork with carrier_closed=false. Official carrier-required closure must still be completed through the verified panel/contract-specific workflow; the application does not invent that API or call internal paperwork carrier acceptance.
+
+Supabase Storage supplies private image persistence/read signing with the existing server service key, under LOGISTICS_MEDIA_BUCKET (default easyinvio-logistics). SVG/PDF may be rasterized to PNG using PyMuPDF; PNG/JPEG is decoded/re-encoded with Pillow. Native media sends include the canonical outbound-status callback. Definite format rejection and signed failed/undelivered media status create a unique text-only viewing-link fallback; a timeout alone does not. Proactive support notifications remain separate.
+
 
 # Data model and migrations
 
@@ -624,8 +660,9 @@ State labels in this overview are not a replacement for exact CHECK constraints 
 | 041 | Explicit cost-sensitive seller strategy and server-owned persona/classification guard |
 | 042 | Private full-parcel reverse-logistics command receipts and parent/replay fencing |
 | 043 | Encrypted signed WhatsApp inbox and ordered REST reply outbox; uncertain-action/send fences |
+| 044 | Carrier manifests/audit events; tenant-account shipment membership; MANIFESTED state; private QR assets and idempotent media fallback |
 
-Earlier checked-in migrations 006–029 add metadata, admin/configuration, sandbox controls, stores/CRM, tracking/support, reports, identity, carriers, native lifecycle and booking references. The generated migration catalog lists all filenames/source hashes; migration numbering must continue after 043 rather than reuse the historical prompt’s proposed 027/028 numbers.
+Earlier checked-in migrations 006–029 add metadata, admin/configuration, sandbox controls, stores/CRM, tracking/support, reports, identity, carriers, native lifecycle and booking references. The generated migration catalog lists all filenames/source hashes; migration numbering must continue after 044 rather than reuse the historical prompt’s proposed 027/028 numbers.
 
 ## Access, audit and retention
 
@@ -770,6 +807,14 @@ Successful inbound HTTP now returns exactly `<Response/>`. Check whatsapp_inboun
 
 For PAF failures, check licence/key/account availability without logging the secret. Confirm complete postcode/country and select from the presented list. No manual street fallback is manufactured in dynamic GB chat. Preserve the configured fifteen-minute draft deadline. Public HTTPS BOOKING_PAGE_URL and approved document hosts are required for Twilio QR image/PDF fetching; a localhost dashboard cannot serve media to Twilio. Proactive support-notification delivery remains a separate outbox/callback contract.
 
+## EOD and paperless media rollout
+
+Apply the complete 044 script after 043 without an additional outer transaction. Its explicit enum transaction commits before using MANIFESTED. Install updated requirements including PyMuPDF. Confirm private default Storage bucket/policy, valid server-only Supabase service key, approved document hosts, public HTTPS app origin and quote-link signing secret. Configure equivalent policies separately for a custom bucket. Twilio-enabled startup checks the new schema; native media automatically sets /api/v1/integrations/whatsapp/outbound-status/{part_id} on the configured public origin. The Twilio-only local ingress forwards this callback.
+
+Use POST /api/v1/dispatch/manifests/preview, then close with a stable request_id, carrier_account_id and any required carrier_code/warehouse_id. GET /{id} retrieves status/reconciles a known native reference without another POST. Authenticated /{id}/document and signed /{id}/download serve completed PDFs. Live mutations require LIVE database/provider alignment and enabled purchase controls. Internal handover sheets do not replace mandatory carrier paperwork or schedule pickup.
+
+For uncertain submissions, reconcile the manifest and exact member labels against provider records before any maintenance. Do not clear manifest_id or replay a close request as a generic fix. FAILED membership is retained for reviewed remediation. Preview remaining bookings after a 1,000-shipment batch. For media incidents, inspect private bucket visibility, asset/hash/path, viewing link, Twilio SID and signed callback status. Uncertain sends require evidence; a definitive failed image may stage one text fallback. Never retry the original booking or refund it because a document/message failed.
+
 
 # Testing and release evidence
 
@@ -836,6 +881,12 @@ The scoped offline regression run passed **222 tests** across test_whatsapp_queu
 
 No migration, live PAF lookup, carrier purchase, payment or WhatsApp send was executed. These tests do not prove actual PostgreSQL lock contention or the sub-500 ms production latency percentile. Staging acceptance must apply 043, provision licensed PAF, verify actual signature/REST account permissions, measure acknowledgement under load, exercise crash/reconciliation and confirm Twilio can fetch/deliver the signed carrier document.
 
+## EOD manifests and signed media, 21 October 2026
+
+The full tests directory passed **945 tests, one skipped and 14 subtests**, with two existing collection warnings. Compilation and diff checks passed. Synthetic provider/database/Storage/Twilio tests cover role/tenant boundaries, exact totals, replay/competing closes, native membership/document validation, timeout fencing, 1,005 shipments in bounded batches, image sanitization/private signing, and immediate/signed-callback media fallback. A three-page 60-shipment sample PDF was rendered and visually inspected.
+
+No migration, live close-out, Storage upload, payment or message was executed. Staging must verify the actual 044 migration/constraints and lock contention, provider eligibility/label dates, private bucket policies and retention, dependency deployment, signed host reachability and real WhatsApp delivery. A generated internal sheet is never external carrier acceptance evidence.
+
 
 # LLM and new engineer handoff
 
@@ -891,10 +942,16 @@ Use `rg`/`rg --files` on intended source directories and exclude output/archives
 
 For reversible documentation edits, validate content, links/rendering and diff cleanliness. For behavioral changes, run the owning meaningful tests and required checks, then broaden only for a specific unresolved concern. Follow the project’s automatic Git synchronization policy and report the resulting branch/commit/push accurately.
 
+## Manifest/media change invariants
+
+Read manifest_service.py, logistics_media.py, migration 044, whatsapp_queue.py and the carrier_manifests_and_media operating guide before changing EOD or image delivery. Preserve manifest tenant/account membership, cancellation lock coordination, pre-submission fencing, immutable snapshots and GET-only native recovery. MANIFESTED must remain compatible with label access, tracking, protection, reports and booking replay. Internal handover references are not carrier tracking/pickup outcomes.
+
+Do not create a generic Sendcloud manifest POST without its verified public contract. Do not put private QR assets in a public bucket or allow chat input to select arbitrary outbound URLs. Definite failed media and uncertain REST outcomes have different recovery authority; neither authorizes replaying a financial action.
+
 
 # API reference
 
-188 OpenAPI HTTP operations across 166 paths are listed below, followed by WebSocket/non-schema routes and every request/response component. This export imports the app without starting lifespan.
+194 OpenAPI HTTP operations across 172 paths are listed below, followed by WebSocket/non-schema routes and every request/response component. This export imports the app without starting lifespan.
 
 Use [openapi.json](openapi.json) for structural contracts and [api_inventory.json](api_inventory.json) for source/dependency mapping. Custom Python validators can impose stricter rules than generated JSON Schema, including rejecting floats on a Decimal field. Empty response schemas do not prove an empty response; read the handler/service when no response model is declared.
 
@@ -1018,6 +1075,11 @@ Workspace Bearer authentication, platform-owner allowlisting, callback signature
 | POST | [/api/v1/dispatch-workspace/print-bundle](#op-post-api-v1-dispatch-workspace-print-bundle) | Print Bundle |
 | POST | [/api/v1/dispatch-workspace/process](#op-post-api-v1-dispatch-workspace-process) | Process |
 | POST | [/api/v1/dispatch-workspace/sync/{store_id}](#op-post-api-v1-dispatch-workspace-sync-store-id) | Sync |
+| POST | [/api/v1/dispatch/manifests/close](#op-post-api-v1-dispatch-manifests-close) | Close |
+| POST | [/api/v1/dispatch/manifests/preview](#op-post-api-v1-dispatch-manifests-preview) | Preview |
+| GET | [/api/v1/dispatch/manifests/{manifest_id}](#op-get-api-v1-dispatch-manifests-manifest-id) | Status |
+| GET | [/api/v1/dispatch/manifests/{manifest_id}/document](#op-get-api-v1-dispatch-manifests-manifest-id-document) | Document |
+| GET | [/api/v1/dispatch/manifests/{manifest_id}/download](#op-get-api-v1-dispatch-manifests-manifest-id-download) | Download |
 | GET | [/api/v1/dispatch/summary](#op-get-api-v1-dispatch-summary) | Dispatch Summary |
 | POST | [/api/v1/finance/audit-invoice-upload](#op-post-api-v1-finance-audit-invoice-upload) | Upload |
 | GET | [/api/v1/finance/billing-disputes](#op-get-api-v1-finance-billing-disputes) | Disputes |
@@ -1030,6 +1092,7 @@ Workspace Bearer authentication, platform-owner allowlisting, callback signature
 | POST | [/api/v1/integration/webhooks/{store_id}](#op-post-api-v1-integration-webhooks-store-id) | Native Webhook |
 | POST | [/api/v1/integrations/ecommerce/orders-sync](#op-post-api-v1-integrations-ecommerce-orders-sync) | Orders |
 | POST | [/api/v1/integrations/hubspot-webhook](#op-post-api-v1-integrations-hubspot-webhook) | Webhook |
+| POST | [/api/v1/integrations/whatsapp/outbound-status/{part_id}](#op-post-api-v1-integrations-whatsapp-outbound-status-part-id) | Status |
 | POST | [/api/v1/integrations/whatsapp/webhook](#op-post-api-v1-integrations-whatsapp-webhook) | Whatsapp Webhook |
 | POST | [/api/v1/logistics/cargo-weight](#op-post-api-v1-logistics-cargo-weight) | Cargo Weight |
 | POST | [/api/v1/logistics/package-guidance](#op-post-api-v1-logistics-package-guidance) | Public Guidance |
@@ -1107,7 +1170,7 @@ Workspace Bearer authentication, platform-owner allowlisting, callback signature
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/agents/routes.py:60](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L60), `build_router.<locals>.metrics`.
+Implementation: [backend/agents/routes.py:60](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/routes.py#L60), `build_router.<locals>.metrics`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1138,7 +1201,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L107), `build_router.<locals>.platform_report`.
+Implementation: [backend/dashboard_portal.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L107), `build_router.<locals>.platform_report`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1220,7 +1283,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/ai_engine.py:282](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ai_engine.py#L282), `build_router.<locals>.owner_audit`.
+Implementation: [backend/ai_engine.py:282](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ai_engine.py#L282), `build_router.<locals>.owner_audit`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1287,7 +1350,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:127](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L127), `carriers`.
+Implementation: [backend/admin_management.py:127](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L127), `carriers`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1318,7 +1381,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:138](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L138), `add_carrier`.
+Implementation: [backend/admin_management.py:138](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L138), `add_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1368,7 +1431,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L210), `remove_carrier`.
+Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L210), `remove_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1426,7 +1489,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:183](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L183), `change_carrier`.
+Implementation: [backend/admin_management.py:183](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L183), `change_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1493,7 +1556,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L210), `remove_carrier`.
+Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L210), `remove_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1551,7 +1614,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/credential_rotation.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/credential_rotation.py#L32), `replace_credentials`.
+Implementation: [backend/credential_rotation.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/credential_rotation.py#L32), `replace_credentials`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `require_recent_admin_auth`.
@@ -1618,7 +1681,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:111](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/client_assistance.py#L111), `clients`.
+Implementation: [backend/client_assistance.py:111](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/client_assistance.py#L111), `clients`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1677,7 +1740,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:164](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/client_assistance.py#L164), `events`.
+Implementation: [backend/client_assistance.py:164](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/client_assistance.py#L164), `events`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1752,7 +1815,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:122](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/client_assistance.py#L122), `start`.
+Implementation: [backend/client_assistance.py:122](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/client_assistance.py#L122), `start`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1802,7 +1865,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/client_assistance.py#L151), `stop`.
+Implementation: [backend/client_assistance.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/client_assistance.py#L151), `stop`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1860,7 +1923,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:588](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_portal.py#L588), `read_individual_pricing`.
+Implementation: [backend/admin_portal.py:588](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_portal.py#L588), `read_individual_pricing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1891,7 +1954,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:595](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_portal.py#L595), `update_individual_pricing`.
+Implementation: [backend/admin_portal.py:595](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_portal.py#L595), `update_individual_pricing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1941,7 +2004,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/shipment_protection.py:2176](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L2176), `build_router.<locals>.platform_settlement`.
+Implementation: [backend/shipment_protection.py:2177](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L2177), `build_router.<locals>.platform_settlement`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1991,7 +2054,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/hubspot_crm.py:472](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L472), `build_router.<locals>.integration_alerts`.
+Implementation: [backend/hubspot_crm.py:472](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L472), `build_router.<locals>.integration_alerts`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2022,7 +2085,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:43](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L43), `margins`.
+Implementation: [backend/admin_management.py:43](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L43), `margins`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2087,7 +2150,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:569](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_portal.py#L569), `create_margin`.
+Implementation: [backend/admin_portal.py:569](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_portal.py#L569), `create_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2139,7 +2202,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:80](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L80), `retire_margin`.
+Implementation: [backend/admin_management.py:80](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L80), `retire_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2197,7 +2260,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:54](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L54), `update_margin`.
+Implementation: [backend/admin_management.py:54](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L54), `update_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2264,7 +2327,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L107), `list_connections`.
+Implementation: [backend/platform_carriers.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L107), `list_connections`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2295,7 +2358,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:114](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L114), `create`.
+Implementation: [backend/platform_carriers.py:114](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L114), `create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2345,7 +2408,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:134](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L134), `capabilities`.
+Implementation: [backend/platform_carriers.py:134](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L134), `capabilities`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2376,7 +2439,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L124), `retire`.
+Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L124), `retire`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2434,7 +2497,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:119](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L119), `update`.
+Implementation: [backend/platform_carriers.py:119](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L119), `update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2501,7 +2564,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L124), `retire`.
+Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L124), `retire`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2559,7 +2622,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:460](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L460), `build_native_router.<locals>.reconcile_order`.
+Implementation: [backend/automation_three_partners.py:460](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L460), `build_native_router.<locals>.reconcile_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2626,7 +2689,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:526](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L526), `build_native_router.<locals>.read_configuration`.
+Implementation: [backend/automation_three_partners.py:526](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L526), `build_native_router.<locals>.read_configuration`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2684,7 +2747,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:486](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L486), `build_native_router.<locals>.configure`.
+Implementation: [backend/automation_three_partners.py:486](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L486), `build_native_router.<locals>.configure`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2751,7 +2814,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L178), `build_router.<locals>.diagnostics`.
+Implementation: [backend/workspace_settings.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L178), `build_router.<locals>.diagnostics`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2809,7 +2872,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L141), `upgrade_sendcloud`.
+Implementation: [backend/platform_carriers.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L141), `upgrade_sendcloud`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2867,7 +2930,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:206](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L206), `verify_connection`.
+Implementation: [backend/platform_carriers.py:206](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L206), `verify_connection`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `ShippoAdapter(None, secret, environment=row['environment']).authentication`, `httpx.BasicAuth`.
@@ -2925,7 +2988,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/sandbox_hooks.py:301](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sandbox_hooks.py#L301), `build_router.<locals>.setup_whatsapp`.
+Implementation: [backend/sandbox_hooks.py:301](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/sandbox_hooks.py#L301), `build_router.<locals>.setup_whatsapp`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `require_sandbox_environment`.
@@ -2975,7 +3038,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/advanced_logistics.py:377](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L377), `build_router.<locals>.owner_manifest`.
+Implementation: [backend/advanced_logistics.py:377](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L377), `build_router.<locals>.owner_manifest`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3006,7 +3069,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:204](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L204), `build_router.<locals>.admin_get_draft`.
+Implementation: [backend/workspace_settings.py:204](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L204), `build_router.<locals>.admin_get_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3074,7 +3137,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L207), `build_router.<locals>.admin_save_draft`.
+Implementation: [backend/workspace_settings.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L207), `build_router.<locals>.admin_save_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3151,7 +3214,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:198](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L198), `build_router.<locals>.all_tickets`.
+Implementation: [backend/dashboard_portal.py:198](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L198), `build_router.<locals>.all_tickets`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3223,7 +3286,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:209](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L209), `build_router.<locals>.admin_intervene`.
+Implementation: [backend/dashboard_portal.py:209](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L209), `build_router.<locals>.admin_intervene`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3290,7 +3353,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:221](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L221), `build_router.<locals>.admin_resolve`.
+Implementation: [backend/dashboard_portal.py:221](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L221), `build_router.<locals>.admin_resolve`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3348,7 +3411,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/support_alert_controls.py:16](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_alert_controls.py#L16), `build_router.<locals>.bindings`.
+Implementation: [backend/support_alert_controls.py:16](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_alert_controls.py#L16), `build_router.<locals>.bindings`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3379,7 +3442,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/support_alert_controls.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_alert_controls.py#L32), `build_router.<locals>.pause`.
+Implementation: [backend/support_alert_controls.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_alert_controls.py#L32), `build_router.<locals>.pause`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3446,7 +3509,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:33](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L33), `tenants`.
+Implementation: [backend/admin_management.py:33](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L33), `tenants`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3506,7 +3569,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:561](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_portal.py#L561), `create_tenant`.
+Implementation: [backend/admin_portal.py:561](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_portal.py#L561), `create_tenant`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3558,7 +3621,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:237](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L237), `update_seller_classification`.
+Implementation: [backend/admin_management.py:237](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L237), `update_seller_classification`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3625,7 +3688,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:223](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L223), `transactions`.
+Implementation: [backend/admin_management.py:223](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L223), `transactions`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3690,7 +3753,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:46](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L46), `build_router.<locals>.information`.
+Implementation: [backend/agents/routes.py:46](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/routes.py#L46), `build_router.<locals>.information`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `engine.dispatch_permission`.
@@ -3740,7 +3803,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:29](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L29), `build_router.<locals>.customs`.
+Implementation: [backend/agents/routes.py:29](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/routes.py#L29), `build_router.<locals>.customs`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `engine.dispatch_permission`.
@@ -3790,7 +3853,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:20](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L20), `build_router.<locals>.interpret`.
+Implementation: [backend/agents/routes.py:20](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/routes.py#L20), `build_router.<locals>.interpret`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3840,7 +3903,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:24](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L24), `build_router.<locals>.quote`.
+Implementation: [backend/agents/routes.py:24](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/routes.py#L24), `build_router.<locals>.quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3890,7 +3953,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2355](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L2355), `carrier_performance`.
+Implementation: [main.py:2361](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L2361), `carrier_performance`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3947,7 +4010,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_and_support.py:347](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tracking_and_support.py#L347), `build_router.<locals>.reports`.
+Implementation: [backend/tracking_and_support.py:347](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tracking_and_support.py#L347), `build_router.<locals>.reports`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4039,7 +4102,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/delivery_quality.py:45](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/delivery_quality.py#L45), `build_router.<locals>.readiness`.
+Implementation: [backend/delivery_quality.py:45](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/delivery_quality.py#L45), `build_router.<locals>.readiness`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -4107,7 +4170,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ai_engine.py:262](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ai_engine.py#L262), `build_router.<locals>.audit`.
+Implementation: [backend/ai_engine.py:262](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ai_engine.py#L262), `build_router.<locals>.audit`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4159,7 +4222,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/ai_engine.py:290](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ai_engine.py#L290), `build_router.<locals>.audit_preview`.
+Implementation: [backend/ai_engine.py:290](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ai_engine.py#L290), `build_router.<locals>.audit_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4209,7 +4272,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/workspace_settings.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L130), `build_router.<locals>.accept`.
+Implementation: [backend/workspace_settings.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L130), `build_router.<locals>.accept`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4259,7 +4322,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:280](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L280), `forgot_password`.
+Implementation: [backend/identity.py:280](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L280), `forgot_password`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4309,7 +4372,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:245](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L245), `logout`.
+Implementation: [backend/identity.py:245](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L245), `logout`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4340,7 +4403,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:223](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L223), `me`.
+Implementation: [backend/identity.py:223](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L223), `me`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4371,7 +4434,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:233](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L233), `update_me`.
+Implementation: [backend/identity.py:233](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L233), `update_me`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4421,7 +4484,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:344](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L344), `register_account`.
+Implementation: [backend/identity.py:344](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L344), `register_account`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4471,7 +4534,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:348](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L348), `verify_account`.
+Implementation: [backend/identity.py:348](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L348), `verify_account`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4521,7 +4584,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L129), `renew`.
+Implementation: [backend/identity.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L129), `renew`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `hashlib.sha256(request.headers.get('authorization', '').encode()).hexdigest`, `request.headers.get('authorization', '').encode`, `settings.auth_jwt_secret.get_secret_value`.
@@ -4552,7 +4615,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:309](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L309), `reset_password`.
+Implementation: [backend/identity.py:309](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L309), `reset_password`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4602,7 +4665,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:74](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L74), `token`.
+Implementation: [backend/identity.py:74](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L74), `token`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `settings.auth_jwt_secret.get_secret_value`, `settings.auth_jwt_secret.get_secret_value().encode`.
@@ -4652,7 +4715,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:585](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_freight_engine.py#L585), `build_router.<locals>.bulk`.
+Implementation: [backend/automation_freight_engine.py:585](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_freight_engine.py#L585), `build_router.<locals>.bulk`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4685,7 +4748,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:574](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_freight_engine.py#L574), `build_router.<locals>.cargo_weight`.
+Implementation: [backend/automation_freight_engine.py:574](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_freight_engine.py#L574), `build_router.<locals>.cargo_weight`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4735,7 +4798,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:578](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_freight_engine.py#L578), `build_router.<locals>.customs`.
+Implementation: [backend/automation_freight_engine.py:578](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_freight_engine.py#L578), `build_router.<locals>.customs`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4793,7 +4856,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:582](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_freight_engine.py#L582), `build_router.<locals>.reconcile`.
+Implementation: [backend/automation_freight_engine.py:582](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_freight_engine.py#L582), `build_router.<locals>.reconcile`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4851,7 +4914,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/card_checkout.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/card_checkout.py#L137), `build_router.<locals>.create`.
+Implementation: [backend/card_checkout.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/card_checkout.py#L137), `build_router.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4901,7 +4964,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/card_checkout.py:140](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/card_checkout.py#L140), `build_router.<locals>.complete`.
+Implementation: [backend/card_checkout.py:140](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/card_checkout.py#L140), `build_router.<locals>.complete`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4959,7 +5022,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:354](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/payment_gateway.py#L354), `build_router.<locals>.create_checkout`.
+Implementation: [backend/payment_gateway.py:354](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/payment_gateway.py#L354), `build_router.<locals>.create_checkout`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_payment_gateway`.
@@ -5011,7 +5074,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/sandbox_hooks.py:284](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sandbox_hooks.py#L284), `build_router.<locals>.test_topup`.
+Implementation: [backend/sandbox_hooks.py:284](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/sandbox_hooks.py#L284), `build_router.<locals>.test_topup`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5061,7 +5124,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:391](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/payment_gateway.py#L391), `build_router.<locals>.topup_status`.
+Implementation: [backend/payment_gateway.py:391](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/payment_gateway.py#L391), `build_router.<locals>.topup_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5121,7 +5184,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:387](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/payment_gateway.py#L387), `build_router.<locals>.reconcile`.
+Implementation: [backend/payment_gateway.py:387](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/payment_gateway.py#L387), `build_router.<locals>.reconcile`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5179,7 +5242,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:375](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/payment_gateway.py#L375), `build_router.<locals>.activity`.
+Implementation: [backend/payment_gateway.py:375](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/payment_gateway.py#L375), `build_router.<locals>.activity`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5212,7 +5275,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/payment_gateway.py:189](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/payment_gateway.py#L189), `snapshot_webhook`.
+Implementation: [backend/payment_gateway.py:189](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/payment_gateway.py#L189), `snapshot_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5243,7 +5306,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5348,7 +5411,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5398,7 +5461,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5465,7 +5528,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5532,7 +5595,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5637,7 +5700,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5687,7 +5750,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5754,7 +5817,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5821,7 +5884,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5926,7 +5989,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5976,7 +6039,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:225](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L225), `build_router.<locals>.by_sku`.
+Implementation: [backend/tenant_catalogs.py:225](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L225), `build_router.<locals>.by_sku`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6033,7 +6096,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6100,7 +6163,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6167,7 +6230,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/customer_checkout.py#L130), `build_router.<locals>.context`.
+Implementation: [backend/customer_checkout.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/customer_checkout.py#L130), `build_router.<locals>.context`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6225,7 +6288,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:118](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/customer_checkout.py#L118), `build_router.<locals>.hs_search`.
+Implementation: [backend/customer_checkout.py:118](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/customer_checkout.py#L118), `build_router.<locals>.hs_search`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6275,7 +6338,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:142](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/customer_checkout.py#L142), `build_router.<locals>.prepare`.
+Implementation: [backend/customer_checkout.py:142](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/customer_checkout.py#L142), `build_router.<locals>.prepare`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6327,7 +6390,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:218](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/customer_checkout.py#L218), `build_router.<locals>.invoice`.
+Implementation: [backend/customer_checkout.py:218](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/customer_checkout.py#L218), `build_router.<locals>.invoice`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6385,7 +6448,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:201](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/customer_checkout.py#L201), `build_router.<locals>.receipt`.
+Implementation: [backend/customer_checkout.py:201](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/customer_checkout.py#L201), `build_router.<locals>.receipt`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6445,7 +6508,7 @@ Documented responses:
 
 Public UI/help/health/config surface; inspect projection.
 
-Implementation: [main.py:2286](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L2286), `public_config`.
+Implementation: [main.py:2292](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L2292), `public_config`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6476,7 +6539,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/conversational_gateway.py:627](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/conversational_gateway.py#L627), `build_router.<locals>.process_message`.
+Implementation: [backend/agents/conversational_gateway.py:661](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/conversational_gateway.py#L661), `build_router.<locals>.process_message`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -6526,7 +6589,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:381](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L381), `build_router.<locals>.countries`.
+Implementation: [backend/advanced_logistics.py:381](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L381), `build_router.<locals>.countries`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6557,7 +6620,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/hubspot_crm.py:454](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L454), `build_router.<locals>.sync_tenant`.
+Implementation: [backend/hubspot_crm.py:454](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L454), `build_router.<locals>.sync_tenant`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6609,7 +6672,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:186](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L186), `build_router.<locals>.declaration`.
+Implementation: [backend/advanced_logistics.py:186](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L186), `build_router.<locals>.declaration`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6659,7 +6722,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/ai_engine.py:240](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ai_engine.py#L240), `build_router.<locals>.harmonize`.
+Implementation: [backend/ai_engine.py:240](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ai_engine.py#L240), `build_router.<locals>.harmonize`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6709,7 +6772,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:157](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L157), `build_router.<locals>.inbox`.
+Implementation: [backend/dispatch_workspace.py:157](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_workspace.py#L157), `build_router.<locals>.inbox`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6767,7 +6830,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:195](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L195), `build_router.<locals>.prepare`.
+Implementation: [backend/dispatch_workspace.py:195](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_workspace.py#L195), `build_router.<locals>.prepare`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6825,7 +6888,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:202](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L202), `build_router.<locals>.save_preparation`.
+Implementation: [backend/dispatch_workspace.py:202](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_workspace.py#L202), `build_router.<locals>.save_preparation`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6892,7 +6955,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:230](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L230), `build_router.<locals>.print_bundle`.
+Implementation: [backend/dispatch_workspace.py:230](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_workspace.py#L230), `build_router.<locals>.print_bundle`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6942,7 +7005,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:215](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L215), `build_router.<locals>.process`.
+Implementation: [backend/dispatch_workspace.py:215](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_workspace.py#L215), `build_router.<locals>.process`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6992,7 +7055,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:176](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L176), `build_router.<locals>.sync`.
+Implementation: [backend/dispatch_workspace.py:176](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_workspace.py#L176), `build_router.<locals>.sync`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -7061,12 +7124,305 @@ Documented responses:
 }
 ```
 
+<a id="op-post-api-v1-dispatch-manifests-close"></a>
+### POST /api/v1/dispatch/manifests/close
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/manifest_service.py:393](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/manifest_service.py#L393), `build_router.<locals>.close`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Request body:
+
+```json
+{
+  "content": {
+    "application/json": {
+      "schema": {
+        "$ref": "#/components/schemas/CloseManifest"
+      }
+    }
+  },
+  "required": true
+}
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ManifestResult"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-post-api-v1-dispatch-manifests-preview"></a>
+### POST /api/v1/dispatch/manifests/preview
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/manifest_service.py:389](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/manifest_service.py#L389), `build_router.<locals>.preview`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Request body:
+
+```json
+{
+  "content": {
+    "application/json": {
+      "schema": {
+        "$ref": "#/components/schemas/PreviewManifest"
+      }
+    }
+  },
+  "required": true
+}
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "items": {
+            "$ref": "#/components/schemas/ManifestCandidateSummary"
+          },
+          "type": "array",
+          "title": "Response Preview Api V1 Dispatch Manifests Preview Post"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-dispatch-manifests-manifest-id"></a>
+### GET /api/v1/dispatch/manifests/{manifest_id}
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/manifest_service.py:398](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/manifest_service.py#L398), `build_router.<locals>.status`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "manifest_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Manifest Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ManifestResult"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-dispatch-manifests-manifest-id-document"></a>
+### GET /api/v1/dispatch/manifests/{manifest_id}/document
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/manifest_service.py:401](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/manifest_service.py#L401), `build_router.<locals>.document`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "manifest_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Manifest Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-dispatch-manifests-manifest-id-download"></a>
+### GET /api/v1/dispatch/manifests/{manifest_id}/download
+
+Handler/service validation; declared dependencies are not the full security policy.
+
+Implementation: [backend/manifest_service.py:404](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/manifest_service.py#L404), `build_router.<locals>.download`.
+
+Declared dependencies: none.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "manifest_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Manifest Id"
+    }
+  },
+  {
+    "name": "token",
+    "in": "query",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "title": "Token"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
 <a id="op-get-api-v1-dispatch-summary"></a>
 ### GET /api/v1/dispatch/summary
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:61](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L61), `build_router.<locals>.dispatch_summary`.
+Implementation: [backend/dashboard_portal.py:61](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L61), `build_router.<locals>.dispatch_summary`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7099,7 +7455,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/invoice_upload.py:162](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/invoice_upload.py#L162), `build_router.<locals>.upload`.
+Implementation: [backend/invoice_upload.py:162](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/invoice_upload.py#L162), `build_router.<locals>.upload`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7151,7 +7507,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/invoice_upload.py:225](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/invoice_upload.py#L225), `build_router.<locals>.disputes`.
+Implementation: [backend/invoice_upload.py:225](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/invoice_upload.py#L225), `build_router.<locals>.disputes`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7184,7 +7540,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:56](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L56), `build_router.<locals>.search`.
+Implementation: [backend/agents/routes.py:56](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/routes.py#L56), `build_router.<locals>.search`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7234,7 +7590,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:444](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L444), `build_router.<locals>.pull_orders`.
+Implementation: [backend/ecommerce_sync.py:444](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_sync.py#L444), `build_router.<locals>.pull_orders`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7265,7 +7621,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/ecommerce_sync.py:371](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L371), `build_router.<locals>.return_webhook`.
+Implementation: [backend/ecommerce_sync.py:371](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_sync.py#L371), `build_router.<locals>.return_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7323,7 +7679,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:384](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L384), `build_router.<locals>.tracking_events`.
+Implementation: [backend/ecommerce_sync.py:384](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_sync.py#L384), `build_router.<locals>.tracking_events`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7356,7 +7712,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:394](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L394), `build_router.<locals>.reconcile_tracking`.
+Implementation: [backend/ecommerce_sync.py:394](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_sync.py#L394), `build_router.<locals>.reconcile_tracking`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7416,7 +7772,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:424](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L424), `build_router.<locals>.link_return`.
+Implementation: [backend/ecommerce_sync.py:424](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_sync.py#L424), `build_router.<locals>.link_return`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7485,7 +7841,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/ecommerce_sync.py:376](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L376), `build_router.<locals>.native_webhook`.
+Implementation: [backend/ecommerce_sync.py:376](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_sync.py#L376), `build_router.<locals>.native_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7543,7 +7899,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/ecommerce_inbound.py:182](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_inbound.py#L182), `build_router.<locals>.orders`.
+Implementation: [backend/ecommerce_inbound.py:182](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_inbound.py#L182), `build_router.<locals>.orders`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7601,7 +7957,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/hubspot_provisioning.py:49](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_provisioning.py#L49), `webhook`.
+Implementation: [backend/hubspot_provisioning.py:49](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_provisioning.py#L49), `webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `verify_signature`.
@@ -7627,12 +7983,69 @@ Documented responses:
 }
 ```
 
+<a id="op-post-api-v1-integrations-whatsapp-outbound-status-part-id"></a>
+### POST /api/v1/integrations/whatsapp/outbound-status/{part_id}
+
+Handler/service validation; declared dependencies are not the full security policy.
+
+Implementation: [backend/whatsapp_queue.py:301](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_queue.py#L301), `build_media_status_router.<locals>.status`.
+
+Declared dependencies: none.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "part_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "integer",
+      "title": "Part Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
 <a id="op-post-api-v1-integrations-whatsapp-webhook"></a>
 ### POST /api/v1/integrations/whatsapp/webhook
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/whatsapp_bot.py:86](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_bot.py#L86), `whatsapp_webhook`.
+Implementation: [backend/whatsapp_bot.py:86](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_bot.py#L86), `whatsapp_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7663,7 +8076,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L178), `build_router.<locals>.cargo_weight`.
+Implementation: [backend/advanced_logistics.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L178), `build_router.<locals>.cargo_weight`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7713,7 +8126,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/package_guidance.py:159](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_guidance.py#L159), `build_router.<locals>.public_guidance`.
+Implementation: [backend/package_guidance.py:159](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/package_guidance.py#L159), `build_router.<locals>.public_guidance`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7763,7 +8176,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:174](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L174), `build_router.<locals>.weight`.
+Implementation: [backend/advanced_logistics.py:174](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L174), `build_router.<locals>.weight`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7813,7 +8226,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/dashboard_portal.py:84](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L84), `build_router.<locals>.profile`.
+Implementation: [backend/dashboard_portal.py:84](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L84), `build_router.<locals>.profile`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `authenticate`, `authenticate_platform_owner`.
@@ -7844,7 +8257,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:190](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L190), `build_router.<locals>.rates_preview`.
+Implementation: [backend/advanced_logistics.py:190](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L190), `build_router.<locals>.rates_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7896,7 +8309,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:199](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L199), `build_router.<locals>.sample_rates`.
+Implementation: [backend/advanced_logistics.py:199](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L199), `build_router.<locals>.sample_rates`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7948,7 +8361,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ai_engine.py:247](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ai_engine.py#L247), `build_router.<locals>.routing`.
+Implementation: [backend/ai_engine.py:247](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ai_engine.py#L247), `build_router.<locals>.routing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8014,7 +8427,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:211](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L211), `build_router.<locals>.routing_preview`.
+Implementation: [backend/advanced_logistics.py:211](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L211), `build_router.<locals>.routing_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8080,7 +8493,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:205](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L205), `build_router.<locals>.sample_routing`.
+Implementation: [backend/advanced_logistics.py:205](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L205), `build_router.<locals>.sample_routing`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8146,7 +8559,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:221](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L221), `build_router.<locals>.batch`.
+Implementation: [backend/advanced_logistics.py:221](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L221), `build_router.<locals>.batch`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8179,7 +8592,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:252](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L252), `build_router.<locals>.batch_preview`.
+Implementation: [backend/advanced_logistics.py:252](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L252), `build_router.<locals>.batch_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8210,7 +8623,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:289](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L289), `build_router.<locals>.review_preview`.
+Implementation: [backend/advanced_logistics.py:289](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L289), `build_router.<locals>.review_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8260,7 +8673,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:285](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L285), `build_router.<locals>.batch_template`.
+Implementation: [backend/advanced_logistics.py:285](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L285), `build_router.<locals>.batch_template`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8318,7 +8731,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:302](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L302), `build_router.<locals>.uploaded_order`.
+Implementation: [backend/advanced_logistics.py:302](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L302), `build_router.<locals>.uploaded_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8378,7 +8791,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:312](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L312), `build_router.<locals>.review_order`.
+Implementation: [backend/advanced_logistics.py:312](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L312), `build_router.<locals>.review_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8447,7 +8860,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/bulk_checkout.py#L141), `build_router.<locals>.checkout`.
+Implementation: [backend/bulk_checkout.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/bulk_checkout.py#L141), `build_router.<locals>.checkout`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -8497,7 +8910,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:145](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/bulk_checkout.py#L145), `build_router.<locals>.print_bundle`.
+Implementation: [backend/bulk_checkout.py:145](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/bulk_checkout.py#L145), `build_router.<locals>.print_bundle`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -8547,7 +8960,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/bulk_checkout.py#L129), `build_router.<locals>.quote`.
+Implementation: [backend/bulk_checkout.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/bulk_checkout.py#L129), `build_router.<locals>.quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -8599,7 +9012,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:125](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/bulk_checkout.py#L125), `build_router.<locals>.review`.
+Implementation: [backend/bulk_checkout.py:125](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/bulk_checkout.py#L125), `build_router.<locals>.review`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -8649,7 +9062,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:370](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L370), `build_router.<locals>.manifest`.
+Implementation: [backend/advanced_logistics.py:370](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L370), `build_router.<locals>.manifest`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -8682,7 +9095,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L161), `build_router.<locals>.get_draft`.
+Implementation: [backend/workspace_settings.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L161), `build_router.<locals>.get_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8742,7 +9155,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:167](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L167), `build_router.<locals>.save_draft`.
+Implementation: [backend/workspace_settings.py:167](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L167), `build_router.<locals>.save_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8811,7 +9224,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/sandbox_hooks.py:294](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sandbox_hooks.py#L294), `build_router.<locals>.print_preview`.
+Implementation: [backend/sandbox_hooks.py:294](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/sandbox_hooks.py#L294), `build_router.<locals>.print_preview`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `request.app.state.finance.authorize_label_preview`.
@@ -8869,7 +9282,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1986](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L1986), `build_router.<locals>.claim_status`.
+Implementation: [backend/shipment_protection.py:1987](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L1987), `build_router.<locals>.claim_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -8927,7 +9340,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:2038](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L2038), `build_router.<locals>.evidence_download`.
+Implementation: [backend/shipment_protection.py:2039](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L2039), `build_router.<locals>.evidence_download`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -8995,7 +9408,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2020](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L2020), `build_router.<locals>.confirm`.
+Implementation: [backend/automation_three_partners.py:2063](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L2063), `build_router.<locals>.confirm`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9045,7 +9458,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/shipment_protection.py:2068](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L2068), `build_router.<locals>.insurance_updates`.
+Implementation: [backend/shipment_protection.py:2069](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L2069), `build_router.<locals>.insurance_updates`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9076,7 +9489,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1694](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L1694), `build_router.<locals>.insured_list`.
+Implementation: [backend/shipment_protection.py:1695](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L1695), `build_router.<locals>.insured_list`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`, `validate_tenant_query`.
@@ -9107,7 +9520,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:570](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L570), `build_native_router.<locals>.native_order_statuses`.
+Implementation: [backend/automation_three_partners.py:570](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L570), `build_native_router.<locals>.native_order_statuses`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `authorize`.
@@ -9138,7 +9551,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:541](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L541), `build_native_router.<locals>.synchronize`.
+Implementation: [backend/automation_three_partners.py:541](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L541), `build_native_router.<locals>.synchronize`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `authorize`.
@@ -9188,7 +9601,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/package_guidance.py:163](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_guidance.py#L163), `build_router.<locals>.workspace_check`.
+Implementation: [backend/package_guidance.py:163](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/package_guidance.py#L163), `build_router.<locals>.workspace_check`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9240,7 +9653,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2037](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L2037), `build_router.<locals>.prepare_return`.
+Implementation: [backend/automation_three_partners.py:2080](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L2080), `build_router.<locals>.prepare_return`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -9301,7 +9714,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1613](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L1613), `build_router.<locals>.protection_quote`.
+Implementation: [backend/shipment_protection.py:1614](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L1614), `build_router.<locals>.protection_quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9359,7 +9772,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1680](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L1680), `build_router.<locals>.prepare_protection`.
+Implementation: [backend/shipment_protection.py:1681](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L1681), `build_router.<locals>.prepare_protection`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9413,7 +9826,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/package_guidance.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_guidance.py#L137), `build_router.<locals>.quote_support`.
+Implementation: [backend/package_guidance.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/package_guidance.py#L137), `build_router.<locals>.quote_support`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9465,7 +9878,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2033](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L2033), `build_router.<locals>.void`.
+Implementation: [backend/automation_three_partners.py:2076](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L2076), `build_router.<locals>.void`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9515,7 +9928,7 @@ Documented responses:
 
 Scoped signed return-document capability token.
 
-Implementation: [backend/automation_three_partners.py:2053](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L2053), `build_router.<locals>.return_dropoff`.
+Implementation: [backend/automation_three_partners.py:2096](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L2096), `build_router.<locals>.return_dropoff`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9572,7 +9985,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2046](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L2046), `build_router.<locals>.return_status`.
+Implementation: [backend/automation_three_partners.py:2089](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L2089), `build_router.<locals>.return_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -9630,7 +10043,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1737](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L1737), `build_router.<locals>.submit_claim`.
+Implementation: [backend/shipment_protection.py:1738](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L1738), `build_router.<locals>.submit_claim`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -9661,7 +10074,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/automation_three_partners.py:471](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L471), `build_native_router.<locals>.tracking_webhooks`.
+Implementation: [backend/automation_three_partners.py:471](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L471), `build_native_router.<locals>.tracking_webhooks`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9692,7 +10105,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2062](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L2062), `build_router.<locals>.document`.
+Implementation: [backend/automation_three_partners.py:2105](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L2105), `build_router.<locals>.document`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9759,7 +10172,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:194](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L194), `build_router.<locals>.client_tickets`.
+Implementation: [backend/dashboard_portal.py:194](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L194), `build_router.<locals>.client_tickets`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9790,7 +10203,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:202](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L202), `build_router.<locals>.intervene`.
+Implementation: [backend/dashboard_portal.py:202](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L202), `build_router.<locals>.intervene`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9859,7 +10272,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:213](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L213), `build_router.<locals>.resolve`.
+Implementation: [backend/dashboard_portal.py:213](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L213), `build_router.<locals>.resolve`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9919,7 +10332,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/support_delivery.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_delivery.py#L151), `build_router.<locals>.consent`.
+Implementation: [backend/support_delivery.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_delivery.py#L151), `build_router.<locals>.consent`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9971,7 +10384,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/support_delivery.py:148](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_delivery.py#L148), `build_router.<locals>.status`.
+Implementation: [backend/support_delivery.py:148](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_delivery.py#L148), `build_router.<locals>.status`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10029,7 +10442,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/tracking_and_support.py:313](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tracking_and_support.py#L313), `build_router.<locals>.webhook`.
+Implementation: [backend/tracking_and_support.py:313](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tracking_and_support.py#L313), `build_router.<locals>.webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10060,7 +10473,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:386](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L386), `build_router.<locals>.wallet`.
+Implementation: [backend/advanced_logistics.py:386](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L386), `build_router.<locals>.wallet`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10093,7 +10506,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:95](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L95), `build_router.<locals>.invite`.
+Implementation: [backend/workspace_settings.py:95](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L95), `build_router.<locals>.invite`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10143,7 +10556,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:123](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L123), `build_router.<locals>.cancel`.
+Implementation: [backend/workspace_settings.py:123](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L123), `build_router.<locals>.cancel`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10201,7 +10614,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:112](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L112), `build_router.<locals>.resend`.
+Implementation: [backend/workspace_settings.py:112](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L112), `build_router.<locals>.resend`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10259,7 +10672,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:71](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L71), `build_router.<locals>.settings`.
+Implementation: [backend/workspace_settings.py:71](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L71), `build_router.<locals>.settings`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10290,7 +10703,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:79](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L79), `build_router.<locals>.company`.
+Implementation: [backend/workspace_settings.py:79](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L79), `build_router.<locals>.company`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10340,7 +10753,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:37](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L37), `build_router.<locals>.stores`.
+Implementation: [backend/dashboard_portal.py:37](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L37), `build_router.<locals>.stores`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10373,7 +10786,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:46](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L46), `build_router.<locals>.create_store`.
+Implementation: [backend/dashboard_portal.py:46](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L46), `build_router.<locals>.create_store`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10425,7 +10838,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:53](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L53), `build_router.<locals>.store_state`.
+Implementation: [backend/dashboard_portal.py:53](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L53), `build_router.<locals>.store_state`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10494,7 +10907,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:79](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_connections.py#L79), `build_router.<locals>.read`.
+Implementation: [backend/store_connections.py:79](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/store_connections.py#L79), `build_router.<locals>.read`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10552,7 +10965,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:87](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_connections.py#L87), `build_router.<locals>.save`.
+Implementation: [backend/store_connections.py:87](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/store_connections.py#L87), `build_router.<locals>.save`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10619,7 +11032,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:152](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_connections.py#L152), `build_router.<locals>.notifications`.
+Implementation: [backend/store_connections.py:152](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/store_connections.py#L152), `build_router.<locals>.notifications`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10677,7 +11090,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_connections.py#L161), `build_router.<locals>.retry`.
+Implementation: [backend/store_connections.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/store_connections.py#L161), `build_router.<locals>.retry`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10745,7 +11158,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:68](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L68), `build_router.<locals>.add_member`.
+Implementation: [backend/dashboard_portal.py:68](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L68), `build_router.<locals>.add_member`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10797,7 +11210,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:85](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L85), `build_router.<locals>.member`.
+Implementation: [backend/workspace_settings.py:85](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L85), `build_router.<locals>.member`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10864,7 +11277,7 @@ Documented responses:
 
 Public UI/help/health/config surface; inspect projection.
 
-Implementation: [main.py:2275](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L2275), `health`.
+Implementation: [main.py:2281](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L2281), `health`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10901,7 +11314,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2295](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L2295), `get_rates`.
+Implementation: [main.py:2301](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L2301), `get_rates`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10955,7 +11368,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2373](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L2373), `create_wallet_topup`.
+Implementation: [main.py:2379](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L2379), `create_wallet_topup`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11009,7 +11422,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2446](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L2446), `resolve_quote_choice`.
+Implementation: [main.py:2452](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L2452), `resolve_quote_choice`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11072,7 +11485,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [main.py:2394](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L2394), `stripe_webhook`.
+Implementation: [main.py:2400](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L2400), `stripe_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11109,7 +11522,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [main.py:2440](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L2440), `inbound_whatsapp`.
+Implementation: [main.py:2446](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L2446), `inbound_whatsapp`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11139,7 +11552,7 @@ Documented responses:
 
 `/api/v1/dispatch-workspace/live` requires an approved Origin, rejects URL query tokens, and expects the first JSON message within ten seconds to contain access_token. Assistance adds assistance_session_id when applicable. It applies normal authentication and revalidates membership while sending events. Messages include refresh_required, shipment_changed and heartbeat. A bounded queue overflow or listener reconnect requires HTTP refresh. The broker enforces a maximum of 100 sockets; these are notifications, not booking or wallet commands.
 
-- `/api/v1/dispatch-workspace/live` — [backend/dispatch_realtime.py:56](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_realtime.py#L56).
+- `/api/v1/dispatch-workspace/live` — [backend/dispatch_realtime.py:56](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_realtime.py#L56).
 
 ## Routes excluded from OpenAPI
 
@@ -12294,6 +12707,57 @@ All schema branches, constraints, required fields and defaults are retained. Fol
 }
 ```
 
+### CloseManifest
+
+```json
+{
+  "properties": {
+    "warehouse_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Warehouse Id"
+    },
+    "request_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Request Id"
+    },
+    "carrier_account_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Carrier Account Id"
+    },
+    "carrier_code": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 50,
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Carrier Code"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "request_id",
+    "carrier_account_id"
+  ],
+  "title": "CloseManifest"
+}
+```
+
 ### CompanyProfile
 
 ```json
@@ -12722,6 +13186,14 @@ All schema branches, constraints, required fields and defaults are retained. Fol
       "type": "string",
       "format": "uuid",
       "title": "Request Id"
+    },
+    "media_urls": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "maxItems": 1,
+      "title": "Media Urls"
     }
   },
   "additionalProperties": false,
@@ -13573,6 +14045,146 @@ All schema branches, constraints, required fields and defaults are retained. Fol
     "password"
   ],
   "title": "Login"
+}
+```
+
+### ManifestCandidateSummary
+
+```json
+{
+  "properties": {
+    "carrier_account_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Carrier Account Id"
+    },
+    "carrier_code": {
+      "type": "string",
+      "title": "Carrier Code"
+    },
+    "total_shipments": {
+      "type": "integer",
+      "title": "Total Shipments"
+    },
+    "total_weight_kg": {
+      "type": "string",
+      "title": "Total Weight Kg"
+    },
+    "origin_postcode": {
+      "type": "string",
+      "title": "Origin Postcode"
+    },
+    "document_kind": {
+      "type": "string",
+      "enum": [
+        "CARRIER_MANIFEST",
+        "INTERNAL_HANDOVER"
+      ],
+      "title": "Document Kind"
+    }
+  },
+  "type": "object",
+  "required": [
+    "carrier_account_id",
+    "carrier_code",
+    "total_shipments",
+    "total_weight_kg",
+    "origin_postcode",
+    "document_kind"
+  ],
+  "title": "ManifestCandidateSummary"
+}
+```
+
+### ManifestResult
+
+```json
+{
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "SUBMITTED",
+        "FAILED",
+        "COMPLETED"
+      ],
+      "title": "Status"
+    },
+    "carrier_account_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Carrier Account Id"
+    },
+    "carrier_code": {
+      "type": "string",
+      "title": "Carrier Code"
+    },
+    "total_shipments": {
+      "type": "integer",
+      "title": "Total Shipments"
+    },
+    "total_weight_kg": {
+      "type": "string",
+      "title": "Total Weight Kg"
+    },
+    "master_tracking_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Master Tracking Id"
+    },
+    "manifest_document_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Manifest Document Url"
+    },
+    "document_kind": {
+      "type": "string",
+      "enum": [
+        "CARRIER_MANIFEST",
+        "INTERNAL_HANDOVER"
+      ],
+      "title": "Document Kind"
+    },
+    "carrier_closed": {
+      "type": "boolean",
+      "title": "Carrier Closed",
+      "default": false
+    },
+    "message": {
+      "type": "string",
+      "title": "Message"
+    }
+  },
+  "type": "object",
+  "required": [
+    "id",
+    "status",
+    "carrier_account_id",
+    "carrier_code",
+    "total_shipments",
+    "total_weight_kg",
+    "document_kind",
+    "message"
+  ],
+  "title": "ManifestResult"
 }
 ```
 
@@ -15065,6 +15677,30 @@ All schema branches, constraints, required fields and defaults are retained. Fol
 }
 ```
 
+### PreviewManifest
+
+```json
+{
+  "properties": {
+    "warehouse_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Warehouse Id"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "title": "PreviewManifest"
+}
+```
+
 ### ProductInput
 
 ```json
@@ -16554,107 +17190,108 @@ Source declarations below are not private environment values or active settings.
 
 | Environment name | Owner/field | Type | Source default or constraints | Source |
 | --- | --- | --- | --- | --- |
-| `SENDCLOUD_METHODS` | `Settings.sendcloud_methods` | `dict[UUID, list[SendcloudMethod]]` | `Field(default_factory=dict)` | [main.py:123](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L123) |
-| `SUPABASE_URL` | `Settings.supabase_url` | `str` | `required` | [main.py:128](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L128) |
-| `SUPABASE_PUBLISHABLE_KEY` | `Settings.supabase_publishable_key` | `SecretStr` | `required` | [main.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L129) |
-| `SUPABASE_SERVICE_ROLE_KEY` | `Settings.supabase_service_role_key` | `SecretStr` | `required` | [main.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L130) |
-| `DATABASE_URL` | `Settings.database_url` | `SecretStr` | `required` | [main.py:131](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L131) |
-| `DATABASE_CA_FILE` | `Settings.database_ca_file` | `str &#124; None` | `None` | [main.py:132](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L132) |
-| `DATABASE_TLS_STRICT` | `Settings.database_tls_strict` | `bool` | `True` | [main.py:133](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L133) |
-| `AUTOMATION_PURCHASE_ENABLED` | `Settings.automation_purchase_enabled` | `bool` | `False` | [main.py:134](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L134) |
-| `PARTNER_DOCUMENT_ALLOWED_HOSTS` | `Settings.partner_document_allowed_hosts` | `list[str]` | `['easypost-files.s3.amazonaws.com', 'easypost-files.s3.us-west-2.amazonaws.com', 'deliver.goshippo.com', 'shippo-delivery.s3.amazonaws.com', 'panel.sendcloud.sc']` | [main.py:135](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L135) |
-| `FREIGHT_KG_PER_M3` | `Settings.freight_kg_per_m3` | `Decimal` | `Field(default=Decimal('333'), gt=0, le=10000)` | [main.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L137) |
-| `FREIGHT_KG_PER_LOADING_METRE` | `Settings.freight_kg_per_loading_metre` | `Decimal` | `Field(default=Decimal('1750'), gt=0, le=30000)` | [main.py:138](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L138) |
-| `FREIGHT_DECK_WIDTH_M` | `Settings.freight_deck_width_m` | `Decimal` | `Field(default=Decimal('2.4'), gt=0, le=5)` | [main.py:139](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L139) |
-| `JWT_ALGORITHM` | `Settings.jwt_algorithm` | `Literal['ES256', 'RS256']` | `'ES256'` | [main.py:140](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L140) |
-| `JWT_AUDIENCE` | `Settings.jwt_audience` | `str` | `'authenticated'` | [main.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L141) |
-| `CREDENTIAL_KEYS` | `Settings.credential_keys` | `dict[str, SecretStr]` | `Field(default_factory=dict)` | [main.py:142](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L142) |
-| `REGIONAL_ALLOWED_ORIGINS` | `Settings.regional_allowed_origins` | `list[str]` | `Field(min_length=1)` | [main.py:143](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L143) |
-| `PROVIDER_ENVIRONMENT` | `Settings.provider_environment` | `Literal['TEST', 'LIVE']` | `'TEST'` | [main.py:144](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L144) |
-| `PROVIDER_DEADLINE_SECONDS` | `Settings.provider_deadline_seconds` | `int` | `Field(default=35, ge=5, le=120)` | [main.py:145](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L145) |
-| `MAX_PARALLEL_PROVIDER_REQUESTS` | `Settings.max_parallel_provider_requests` | `int` | `Field(default=20, ge=1, le=100)` | [main.py:146](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L146) |
-| `MAX_ACCOUNTS_PER_TENANT` | `Settings.max_accounts_per_tenant` | `int` | `Field(default=8, ge=2, le=30)` | [main.py:147](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L147) |
-| `QUOTE_TTL_SECONDS` | `Settings.quote_ttl_seconds` | `int` | `Field(default=300, ge=30, le=900)` | [main.py:148](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L148) |
-| `DB_POOL_MAX_SIZE` | `Settings.db_pool_max_size` | `int` | `Field(default=10, ge=2, le=50)` | [main.py:149](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L149) |
-| `PLATFORM_ADMIN_USER_IDS` | `Settings.platform_admin_user_ids` | `list[UUID]` | `Field(default_factory=list)` | [main.py:150](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L150) |
-| `DATABASE_ENVIRONMENT` | `Settings.database_environment` | `Literal['SANDBOX', 'LIVE']` | `'LIVE'` | [main.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L151) |
-| `SANDBOX_HOOKS_ENABLED` | `Settings.sandbox_hooks_enabled` | `bool` | `False` | [main.py:152](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L152) |
-| `AUTH_JWT_SECRET` | `Settings.auth_jwt_secret` | `SecretStr` | `SecretStr('')` | [main.py:154](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L154) |
-| `AUTH_RECOVERY_REDIRECT_URL` | `Settings.auth_recovery_redirect_url` | `str` | `'http://127.0.0.1:8000/'` | [main.py:155](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L155) |
-| `STRIPE_ENABLED` | `Settings.stripe_enabled` | `bool` | `False` | [main.py:156](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L156) |
-| `STRIPE_SECRET_KEY` | `Settings.stripe_secret_key` | `SecretStr` | `SecretStr('')` | [main.py:157](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L157) |
-| `STRIPE_WEBHOOK_SECRET` | `Settings.stripe_webhook_secret` | `SecretStr` | `SecretStr('')` | [main.py:158](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L158) |
-| `STRIPE_LIVEMODE` | `Settings.stripe_livemode` | `bool` | `False` | [main.py:159](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L159) |
-| `CHECKOUT_SUCCESS_URL` | `Settings.checkout_success_url` | `str` | `''` | [main.py:160](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L160) |
-| `CHECKOUT_CANCEL_URL` | `Settings.checkout_cancel_url` | `str` | `''` | [main.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L161) |
-| `WHATSAPP_BRAND_NAME` | `Settings.whatsapp_brand_name` | `str` | `Field(default='EasyInvio.com', min_length=1, max_length=80)` | [main.py:163](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L163) |
-| `TWILIO_ENABLED` | `Settings.twilio_enabled` | `bool` | `False` | [main.py:164](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L164) |
-| `WHATSAPP_ONBOARDING_ENABLED` | `Settings.whatsapp_onboarding_enabled` | `bool` | `False` | [main.py:165](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L165) |
-| `WHATSAPP_ONBOARDING_DAILY_LIMIT` | `Settings.whatsapp_onboarding_daily_limit` | `int` | `Field(default=100, ge=1, le=10000)` | [main.py:166](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L166) |
-| `TWILIO_ACCOUNT_SID` | `Settings.twilio_account_sid` | `str` | `''` | [main.py:167](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L167) |
-| `TWILIO_AUTH_TOKEN` | `Settings.twilio_auth_token` | `SecretStr` | `SecretStr('')` | [main.py:168](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L168) |
-| `TWILIO_WHATSAPP_NUMBER` | `Settings.twilio_whatsapp_number` | `str` | `''` | [main.py:169](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L169) |
-| `TWILIO_WHATSAPP_SANDBOX_ENABLED` | `Settings.twilio_whatsapp_sandbox_enabled` | `bool` | `False` | [main.py:170](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L170) |
-| `TWILIO_WEBHOOK_URL` | `Settings.twilio_webhook_url` | `str` | `''` | [main.py:171](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L171) |
-| `WHATSAPP_QUEUE_WORKERS` | `Settings.whatsapp_queue_workers` | `int` | `Field(default=2, ge=1, le=8)` | [main.py:172](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L172) |
-| `IDEAL_POSTCODES_API_KEY` | `Settings.ideal_postcodes_api_key` | `SecretStr` | `SecretStr('')` | [main.py:173](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L173) |
-| `BOOKING_PAGE_URL` | `Settings.booking_page_url` | `str` | `''` | [main.py:174](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L174) |
-| `QUOTE_LINK_SECRET` | `Settings.quote_link_secret` | `SecretStr` | `SecretStr('')` | [main.py:175](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L175) |
-| `WHATSAPP_DEADLINE_SECONDS` | `Settings.whatsapp_deadline_seconds` | `int` | `Field(default=12, ge=5, le=12)` | [main.py:176](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L176) |
-| `WHATSAPP_PROVIDER_SECONDS` | `Settings.whatsapp_provider_seconds` | `int` | `Field(default=7, ge=1, le=8)` | [main.py:177](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L177) |
-| `LOGISTICS_AGENTS_ENABLED` | `AgentSettings.logistics_agents_enabled` | `bool` | `False` | [backend/agents/config.py:7](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L7) |
-| `OPENAI_API_KEY` | `AgentSettings.openai_api_key` | `SecretStr` | `SecretStr('')` | [backend/agents/config.py:8](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L8) |
-| `LOGISTICS_AGENT_MODEL` | `AgentSettings.logistics_agent_model` | `str` | `'gpt-4o-mini'` | [backend/agents/config.py:9](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L9) |
-| `LOGISTICS_EMBEDDING_MODEL` | `AgentSettings.logistics_embedding_model` | `str` | `'text-embedding-3-small'` | [backend/agents/config.py:10](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L10) |
-| `LOGISTICS_AGENT_TIMEOUT_SECONDS` | `AgentSettings.logistics_agent_timeout_seconds` | `float` | `Field(default=6, ge=1, le=20)` | [backend/agents/config.py:11](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L11) |
-| `LOGISTICS_AGENT_CONCURRENCY` | `AgentSettings.logistics_agent_concurrency` | `int` | `Field(default=4, ge=1, le=16)` | [backend/agents/config.py:12](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L12) |
-| `LOGISTICS_AGENT_OUTPUT_TOKENS` | `AgentSettings.logistics_agent_output_tokens` | `int` | `Field(default=600, ge=128, le=1200)` | [backend/agents/config.py:13](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L13) |
-| `LOGISTICS_AGENT_TOKENS_PER_MINUTE` | `AgentSettings.logistics_agent_tokens_per_minute` | `int` | `Field(default=100000, ge=10000, le=1000000)` | [backend/agents/config.py:14](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L14) |
-| `LOGISTICS_AGENT_REQUESTS_PER_MINUTE` | `AgentSettings.logistics_agent_requests_per_minute` | `int` | `Field(default=20, ge=1, le=100)` | [backend/agents/config.py:15](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L15) |
-| `LOGISTICS_AGENT_CACHE_ENTRIES` | `AgentSettings.logistics_agent_cache_entries` | `int` | `Field(default=256, ge=16, le=2000)` | [backend/agents/config.py:16](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L16) |
-| `CARRIER_PDF_HOSTS` | `PrintSettings.carrier_pdf_hosts` | `list[str]` | `Field(default_factory=list)` | [backend/dispatch_pdf.py:28](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_pdf.py#L28) |
-| `ECOMMERCE_CONNECTORS` | `StoreConnectorSettings.ecommerce_connectors` | `dict[UUID, StoreConnector]` | `Field(default_factory=dict)` | [backend/ecommerce_connectors.py:85](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_connectors.py#L85) |
-| `HUBSPOT_ENABLED` | `HubSpotSettings.hubspot_enabled` | `bool` | `False` | [backend/hubspot_crm.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L32) |
-| `HUBSPOT_ACCESS_TOKEN` | `HubSpotSettings.hubspot_access_token` | `SecretStr &#124; None` | `None` | [backend/hubspot_crm.py:33](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L33) |
-| `HUBSPOT_EXPECTED_PORTAL_ID` | `HubSpotSettings.hubspot_expected_portal_id` | `int &#124; None` | `Field(default=None, ge=1)` | [backend/hubspot_crm.py:34](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L34) |
-| `HUBSPOT_ENVIRONMENT` | `HubSpotSettings.hubspot_environment` | `str` | `Field(default='SANDBOX', pattern='^(SANDBOX&#124;PRODUCTION)$')` | [backend/hubspot_crm.py:35](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L35) |
-| `HUBSPOT_PROVISIONING_ENABLED` | `HubSpotSettings.hubspot_provisioning_enabled` | `bool` | `False` | [backend/hubspot_crm.py:36](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L36) |
-| `HUBSPOT_WEBHOOK_CLIENT_SECRET` | `HubSpotSettings.hubspot_webhook_client_secret` | `SecretStr &#124; None` | `None` | [backend/hubspot_crm.py:37](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L37) |
-| `HUBSPOT_WEBHOOK_URL` | `HubSpotSettings.hubspot_webhook_url` | `str` | `''` | [backend/hubspot_crm.py:38](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L38) |
-| `HUBSPOT_WEBHOOK_APP_ID` | `HubSpotSettings.hubspot_webhook_app_id` | `int &#124; None` | `Field(default=None, ge=1)` | [backend/hubspot_crm.py:39](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L39) |
-| `HUBSPOT_CLOSED_WON_STAGE_IDS` | `HubSpotSettings.hubspot_closed_won_stage_ids` | `list[str]` | `Field(default_factory=lambda: ['closedwon'])` | [backend/hubspot_crm.py:40](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L40) |
-| `HUBSPOT_UPSELL_ENABLED` | `HubSpotSettings.hubspot_upsell_enabled` | `bool` | `False` | [backend/hubspot_crm.py:41](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L41) |
-| `HUBSPOT_UPSELL_PIPELINE_ID` | `HubSpotSettings.hubspot_upsell_pipeline_id` | `str` | `''` | [backend/hubspot_crm.py:42](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L42) |
-| `HUBSPOT_UPSELL_STAGE_ID` | `HubSpotSettings.hubspot_upsell_stage_id` | `str` | `''` | [backend/hubspot_crm.py:43](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L43) |
-| `XCOVER_ENABLED` | `XCoverSettings.enabled` | `bool` | `False` | [backend/shipment_protection.py:91](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L91) |
-| `XCOVER_ENVIRONMENT` | `XCoverSettings.environment` | `Literal['TEST', 'LIVE']` | `'TEST'` | [backend/shipment_protection.py:92](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L92) |
-| `XCOVER_PARTNER_ID` | `XCoverSettings.partner_id` | `str` | `''` | [backend/shipment_protection.py:93](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L93) |
-| `XCOVER_API_KEY` | `XCoverSettings.api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:94](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L94) |
-| `XCOVER_SIGNING_SECRET` | `XCoverSettings.signing_secret` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:95](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L95) |
-| `XCOVER_PARCEL_CONTRACT_VERIFIED` | `XCoverSettings.parcel_contract_verified` | `bool` | `False` | [backend/shipment_protection.py:96](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L96) |
-| `XCOVER_RETAIL_PRICING_VERIFIED` | `XCoverSettings.retail_pricing_verified` | `bool` | `False` | [backend/shipment_protection.py:97](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L97) |
-| `XCOVER_CLAIMS_ENABLED` | `XCoverSettings.claims_enabled` | `bool` | `False` | [backend/shipment_protection.py:98](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L98) |
-| `XCOVER_CLAIMS_PARTNER_CODE` | `XCoverSettings.claims_partner_code` | `str` | `''` | [backend/shipment_protection.py:99](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L99) |
-| `XCOVER_CLAIMS_API_KEY` | `XCoverSettings.claims_api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:100](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L100) |
-| `XCOVER_CLAIMS_API_PASSWORD` | `XCoverSettings.claims_api_password` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:101](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L101) |
-| `XCOVER_CLAIMS_WEBHOOK_SECRET` | `XCoverSettings.claims_webhook_secret` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:102](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L102) |
-| `XCOVER_CLAIMS_WEBHOOK_URL` | `XCoverSettings.claims_webhook_url` | `str` | `''` | [backend/shipment_protection.py:103](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L103) |
-| `XCOVER_CLAIMS_LIVE_API_ORIGIN` | `XCoverSettings.claims_live_api_origin` | `str` | `''` | [backend/shipment_protection.py:104](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L104) |
-| `XCOVER_CLAIMS_FNOL_BINDINGS` | `XCoverSettings.claims_fnol_bindings` | `dict[str, dict[str, str]]` | `Field(default_factory=dict)` | [backend/shipment_protection.py:105](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L105) |
-| `XCOVER_CLAIMS_SETTLEMENT_MAPPING` | `XCoverSettings.claims_settlement_mapping` | `dict[str, str]` | `Field(default_factory=dict)` | [backend/shipment_protection.py:106](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L106) |
-| `XCOVER_CLAIMS_MASTER_PAYEE_ID` | `XCoverSettings.claims_master_payee_id` | `str` | `''` | [backend/shipment_protection.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L107) |
-| `SUPPORT_WHATSAPP_ENABLED` | `DeliverySettings.support_whatsapp_enabled` | `bool` | `False` | [backend/support_delivery.py:26](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_delivery.py#L26) |
-| `SUPPORT_WHATSAPP_CONTENT_SID` | `DeliverySettings.support_whatsapp_content_sid` | `str` | `''` | [backend/support_delivery.py:27](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_delivery.py#L27) |
-| `SUPPORT_WHATSAPP_STATUS_URL` | `DeliverySettings.support_whatsapp_status_url` | `str` | `''` | [backend/support_delivery.py:29](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_delivery.py#L29) |
-| `TRACKING_WEBHOOK_KEYS` | `TrackingSettings.tracking_webhook_keys` | `dict[str, TrackingKey]` | `Field(default_factory=dict)` | [backend/tracking_and_support.py:52](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tracking_and_support.py#L52) |
-| `TWILIO_ACCOUNT_SID` | `WhatsAppConfiguration.twilio_account_sid` | `str` | `''` | [backend/whatsapp_bot.py:22](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_bot.py#L22) |
-| `TWILIO_AUTH_TOKEN` | `WhatsAppConfiguration.twilio_auth_token` | `SecretStr` | `SecretStr('')` | [backend/whatsapp_bot.py:23](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_bot.py#L23) |
-| `TWILIO_WHATSAPP_NUMBER` | `WhatsAppConfiguration.twilio_whatsapp_number` | `str` | `''` | [backend/whatsapp_bot.py:24](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_bot.py#L24) |
-| `WHATSAPP_BRAND_NAME` | `WhatsAppConfiguration.whatsapp_brand_name` | `str` | `'EasyInvio.com'` | [backend/whatsapp_bot.py:25](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_bot.py#L25) |
+| `SENDCLOUD_METHODS` | `Settings.sendcloud_methods` | `dict[UUID, list[SendcloudMethod]]` | `Field(default_factory=dict)` | [main.py:123](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L123) |
+| `SUPABASE_URL` | `Settings.supabase_url` | `str` | `required` | [main.py:128](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L128) |
+| `SUPABASE_PUBLISHABLE_KEY` | `Settings.supabase_publishable_key` | `SecretStr` | `required` | [main.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L129) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `Settings.supabase_service_role_key` | `SecretStr` | `required` | [main.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L130) |
+| `DATABASE_URL` | `Settings.database_url` | `SecretStr` | `required` | [main.py:131](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L131) |
+| `DATABASE_CA_FILE` | `Settings.database_ca_file` | `str &#124; None` | `None` | [main.py:132](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L132) |
+| `DATABASE_TLS_STRICT` | `Settings.database_tls_strict` | `bool` | `True` | [main.py:133](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L133) |
+| `AUTOMATION_PURCHASE_ENABLED` | `Settings.automation_purchase_enabled` | `bool` | `False` | [main.py:134](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L134) |
+| `PARTNER_DOCUMENT_ALLOWED_HOSTS` | `Settings.partner_document_allowed_hosts` | `list[str]` | `['easypost-files.s3.amazonaws.com', 'easypost-files.s3.us-west-2.amazonaws.com', 'deliver.goshippo.com', 'shippo-delivery.s3.amazonaws.com', 'panel.sendcloud.sc']` | [main.py:135](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L135) |
+| `FREIGHT_KG_PER_M3` | `Settings.freight_kg_per_m3` | `Decimal` | `Field(default=Decimal('333'), gt=0, le=10000)` | [main.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L137) |
+| `FREIGHT_KG_PER_LOADING_METRE` | `Settings.freight_kg_per_loading_metre` | `Decimal` | `Field(default=Decimal('1750'), gt=0, le=30000)` | [main.py:138](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L138) |
+| `FREIGHT_DECK_WIDTH_M` | `Settings.freight_deck_width_m` | `Decimal` | `Field(default=Decimal('2.4'), gt=0, le=5)` | [main.py:139](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L139) |
+| `JWT_ALGORITHM` | `Settings.jwt_algorithm` | `Literal['ES256', 'RS256']` | `'ES256'` | [main.py:140](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L140) |
+| `JWT_AUDIENCE` | `Settings.jwt_audience` | `str` | `'authenticated'` | [main.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L141) |
+| `CREDENTIAL_KEYS` | `Settings.credential_keys` | `dict[str, SecretStr]` | `Field(default_factory=dict)` | [main.py:142](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L142) |
+| `REGIONAL_ALLOWED_ORIGINS` | `Settings.regional_allowed_origins` | `list[str]` | `Field(min_length=1)` | [main.py:143](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L143) |
+| `PROVIDER_ENVIRONMENT` | `Settings.provider_environment` | `Literal['TEST', 'LIVE']` | `'TEST'` | [main.py:144](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L144) |
+| `PROVIDER_DEADLINE_SECONDS` | `Settings.provider_deadline_seconds` | `int` | `Field(default=35, ge=5, le=120)` | [main.py:145](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L145) |
+| `MAX_PARALLEL_PROVIDER_REQUESTS` | `Settings.max_parallel_provider_requests` | `int` | `Field(default=20, ge=1, le=100)` | [main.py:146](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L146) |
+| `MAX_ACCOUNTS_PER_TENANT` | `Settings.max_accounts_per_tenant` | `int` | `Field(default=8, ge=2, le=30)` | [main.py:147](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L147) |
+| `QUOTE_TTL_SECONDS` | `Settings.quote_ttl_seconds` | `int` | `Field(default=300, ge=30, le=900)` | [main.py:148](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L148) |
+| `DB_POOL_MAX_SIZE` | `Settings.db_pool_max_size` | `int` | `Field(default=10, ge=2, le=50)` | [main.py:149](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L149) |
+| `PLATFORM_ADMIN_USER_IDS` | `Settings.platform_admin_user_ids` | `list[UUID]` | `Field(default_factory=list)` | [main.py:150](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L150) |
+| `DATABASE_ENVIRONMENT` | `Settings.database_environment` | `Literal['SANDBOX', 'LIVE']` | `'LIVE'` | [main.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L151) |
+| `SANDBOX_HOOKS_ENABLED` | `Settings.sandbox_hooks_enabled` | `bool` | `False` | [main.py:152](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L152) |
+| `AUTH_JWT_SECRET` | `Settings.auth_jwt_secret` | `SecretStr` | `SecretStr('')` | [main.py:154](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L154) |
+| `AUTH_RECOVERY_REDIRECT_URL` | `Settings.auth_recovery_redirect_url` | `str` | `'http://127.0.0.1:8000/'` | [main.py:155](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L155) |
+| `STRIPE_ENABLED` | `Settings.stripe_enabled` | `bool` | `False` | [main.py:156](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L156) |
+| `STRIPE_SECRET_KEY` | `Settings.stripe_secret_key` | `SecretStr` | `SecretStr('')` | [main.py:157](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L157) |
+| `STRIPE_WEBHOOK_SECRET` | `Settings.stripe_webhook_secret` | `SecretStr` | `SecretStr('')` | [main.py:158](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L158) |
+| `STRIPE_LIVEMODE` | `Settings.stripe_livemode` | `bool` | `False` | [main.py:159](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L159) |
+| `CHECKOUT_SUCCESS_URL` | `Settings.checkout_success_url` | `str` | `''` | [main.py:160](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L160) |
+| `CHECKOUT_CANCEL_URL` | `Settings.checkout_cancel_url` | `str` | `''` | [main.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L161) |
+| `WHATSAPP_BRAND_NAME` | `Settings.whatsapp_brand_name` | `str` | `Field(default='EasyInvio.com', min_length=1, max_length=80)` | [main.py:163](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L163) |
+| `TWILIO_ENABLED` | `Settings.twilio_enabled` | `bool` | `False` | [main.py:164](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L164) |
+| `WHATSAPP_ONBOARDING_ENABLED` | `Settings.whatsapp_onboarding_enabled` | `bool` | `False` | [main.py:165](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L165) |
+| `WHATSAPP_ONBOARDING_DAILY_LIMIT` | `Settings.whatsapp_onboarding_daily_limit` | `int` | `Field(default=100, ge=1, le=10000)` | [main.py:166](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L166) |
+| `TWILIO_ACCOUNT_SID` | `Settings.twilio_account_sid` | `str` | `''` | [main.py:167](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L167) |
+| `TWILIO_AUTH_TOKEN` | `Settings.twilio_auth_token` | `SecretStr` | `SecretStr('')` | [main.py:168](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L168) |
+| `TWILIO_WHATSAPP_NUMBER` | `Settings.twilio_whatsapp_number` | `str` | `''` | [main.py:169](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L169) |
+| `TWILIO_WHATSAPP_SANDBOX_ENABLED` | `Settings.twilio_whatsapp_sandbox_enabled` | `bool` | `False` | [main.py:170](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L170) |
+| `TWILIO_WEBHOOK_URL` | `Settings.twilio_webhook_url` | `str` | `''` | [main.py:171](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L171) |
+| `WHATSAPP_QUEUE_WORKERS` | `Settings.whatsapp_queue_workers` | `int` | `Field(default=2, ge=1, le=8)` | [main.py:172](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L172) |
+| `IDEAL_POSTCODES_API_KEY` | `Settings.ideal_postcodes_api_key` | `SecretStr` | `SecretStr('')` | [main.py:173](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L173) |
+| `LOGISTICS_MEDIA_BUCKET` | `Settings.logistics_media_bucket` | `str` | `'easyinvio-logistics'` | [main.py:174](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L174) |
+| `BOOKING_PAGE_URL` | `Settings.booking_page_url` | `str` | `''` | [main.py:175](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L175) |
+| `QUOTE_LINK_SECRET` | `Settings.quote_link_secret` | `SecretStr` | `SecretStr('')` | [main.py:176](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L176) |
+| `WHATSAPP_DEADLINE_SECONDS` | `Settings.whatsapp_deadline_seconds` | `int` | `Field(default=12, ge=5, le=12)` | [main.py:177](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L177) |
+| `WHATSAPP_PROVIDER_SECONDS` | `Settings.whatsapp_provider_seconds` | `int` | `Field(default=7, ge=1, le=8)` | [main.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L178) |
+| `LOGISTICS_AGENTS_ENABLED` | `AgentSettings.logistics_agents_enabled` | `bool` | `False` | [backend/agents/config.py:7](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L7) |
+| `OPENAI_API_KEY` | `AgentSettings.openai_api_key` | `SecretStr` | `SecretStr('')` | [backend/agents/config.py:8](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L8) |
+| `LOGISTICS_AGENT_MODEL` | `AgentSettings.logistics_agent_model` | `str` | `'gpt-4o-mini'` | [backend/agents/config.py:9](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L9) |
+| `LOGISTICS_EMBEDDING_MODEL` | `AgentSettings.logistics_embedding_model` | `str` | `'text-embedding-3-small'` | [backend/agents/config.py:10](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L10) |
+| `LOGISTICS_AGENT_TIMEOUT_SECONDS` | `AgentSettings.logistics_agent_timeout_seconds` | `float` | `Field(default=6, ge=1, le=20)` | [backend/agents/config.py:11](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L11) |
+| `LOGISTICS_AGENT_CONCURRENCY` | `AgentSettings.logistics_agent_concurrency` | `int` | `Field(default=4, ge=1, le=16)` | [backend/agents/config.py:12](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L12) |
+| `LOGISTICS_AGENT_OUTPUT_TOKENS` | `AgentSettings.logistics_agent_output_tokens` | `int` | `Field(default=600, ge=128, le=1200)` | [backend/agents/config.py:13](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L13) |
+| `LOGISTICS_AGENT_TOKENS_PER_MINUTE` | `AgentSettings.logistics_agent_tokens_per_minute` | `int` | `Field(default=100000, ge=10000, le=1000000)` | [backend/agents/config.py:14](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L14) |
+| `LOGISTICS_AGENT_REQUESTS_PER_MINUTE` | `AgentSettings.logistics_agent_requests_per_minute` | `int` | `Field(default=20, ge=1, le=100)` | [backend/agents/config.py:15](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L15) |
+| `LOGISTICS_AGENT_CACHE_ENTRIES` | `AgentSettings.logistics_agent_cache_entries` | `int` | `Field(default=256, ge=16, le=2000)` | [backend/agents/config.py:16](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L16) |
+| `CARRIER_PDF_HOSTS` | `PrintSettings.carrier_pdf_hosts` | `list[str]` | `Field(default_factory=list)` | [backend/dispatch_pdf.py:28](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_pdf.py#L28) |
+| `ECOMMERCE_CONNECTORS` | `StoreConnectorSettings.ecommerce_connectors` | `dict[UUID, StoreConnector]` | `Field(default_factory=dict)` | [backend/ecommerce_connectors.py:85](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_connectors.py#L85) |
+| `HUBSPOT_ENABLED` | `HubSpotSettings.hubspot_enabled` | `bool` | `False` | [backend/hubspot_crm.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L32) |
+| `HUBSPOT_ACCESS_TOKEN` | `HubSpotSettings.hubspot_access_token` | `SecretStr &#124; None` | `None` | [backend/hubspot_crm.py:33](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L33) |
+| `HUBSPOT_EXPECTED_PORTAL_ID` | `HubSpotSettings.hubspot_expected_portal_id` | `int &#124; None` | `Field(default=None, ge=1)` | [backend/hubspot_crm.py:34](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L34) |
+| `HUBSPOT_ENVIRONMENT` | `HubSpotSettings.hubspot_environment` | `str` | `Field(default='SANDBOX', pattern='^(SANDBOX&#124;PRODUCTION)$')` | [backend/hubspot_crm.py:35](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L35) |
+| `HUBSPOT_PROVISIONING_ENABLED` | `HubSpotSettings.hubspot_provisioning_enabled` | `bool` | `False` | [backend/hubspot_crm.py:36](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L36) |
+| `HUBSPOT_WEBHOOK_CLIENT_SECRET` | `HubSpotSettings.hubspot_webhook_client_secret` | `SecretStr &#124; None` | `None` | [backend/hubspot_crm.py:37](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L37) |
+| `HUBSPOT_WEBHOOK_URL` | `HubSpotSettings.hubspot_webhook_url` | `str` | `''` | [backend/hubspot_crm.py:38](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L38) |
+| `HUBSPOT_WEBHOOK_APP_ID` | `HubSpotSettings.hubspot_webhook_app_id` | `int &#124; None` | `Field(default=None, ge=1)` | [backend/hubspot_crm.py:39](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L39) |
+| `HUBSPOT_CLOSED_WON_STAGE_IDS` | `HubSpotSettings.hubspot_closed_won_stage_ids` | `list[str]` | `Field(default_factory=lambda: ['closedwon'])` | [backend/hubspot_crm.py:40](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L40) |
+| `HUBSPOT_UPSELL_ENABLED` | `HubSpotSettings.hubspot_upsell_enabled` | `bool` | `False` | [backend/hubspot_crm.py:41](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L41) |
+| `HUBSPOT_UPSELL_PIPELINE_ID` | `HubSpotSettings.hubspot_upsell_pipeline_id` | `str` | `''` | [backend/hubspot_crm.py:42](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L42) |
+| `HUBSPOT_UPSELL_STAGE_ID` | `HubSpotSettings.hubspot_upsell_stage_id` | `str` | `''` | [backend/hubspot_crm.py:43](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L43) |
+| `XCOVER_ENABLED` | `XCoverSettings.enabled` | `bool` | `False` | [backend/shipment_protection.py:91](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L91) |
+| `XCOVER_ENVIRONMENT` | `XCoverSettings.environment` | `Literal['TEST', 'LIVE']` | `'TEST'` | [backend/shipment_protection.py:92](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L92) |
+| `XCOVER_PARTNER_ID` | `XCoverSettings.partner_id` | `str` | `''` | [backend/shipment_protection.py:93](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L93) |
+| `XCOVER_API_KEY` | `XCoverSettings.api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:94](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L94) |
+| `XCOVER_SIGNING_SECRET` | `XCoverSettings.signing_secret` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:95](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L95) |
+| `XCOVER_PARCEL_CONTRACT_VERIFIED` | `XCoverSettings.parcel_contract_verified` | `bool` | `False` | [backend/shipment_protection.py:96](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L96) |
+| `XCOVER_RETAIL_PRICING_VERIFIED` | `XCoverSettings.retail_pricing_verified` | `bool` | `False` | [backend/shipment_protection.py:97](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L97) |
+| `XCOVER_CLAIMS_ENABLED` | `XCoverSettings.claims_enabled` | `bool` | `False` | [backend/shipment_protection.py:98](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L98) |
+| `XCOVER_CLAIMS_PARTNER_CODE` | `XCoverSettings.claims_partner_code` | `str` | `''` | [backend/shipment_protection.py:99](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L99) |
+| `XCOVER_CLAIMS_API_KEY` | `XCoverSettings.claims_api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:100](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L100) |
+| `XCOVER_CLAIMS_API_PASSWORD` | `XCoverSettings.claims_api_password` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:101](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L101) |
+| `XCOVER_CLAIMS_WEBHOOK_SECRET` | `XCoverSettings.claims_webhook_secret` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:102](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L102) |
+| `XCOVER_CLAIMS_WEBHOOK_URL` | `XCoverSettings.claims_webhook_url` | `str` | `''` | [backend/shipment_protection.py:103](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L103) |
+| `XCOVER_CLAIMS_LIVE_API_ORIGIN` | `XCoverSettings.claims_live_api_origin` | `str` | `''` | [backend/shipment_protection.py:104](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L104) |
+| `XCOVER_CLAIMS_FNOL_BINDINGS` | `XCoverSettings.claims_fnol_bindings` | `dict[str, dict[str, str]]` | `Field(default_factory=dict)` | [backend/shipment_protection.py:105](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L105) |
+| `XCOVER_CLAIMS_SETTLEMENT_MAPPING` | `XCoverSettings.claims_settlement_mapping` | `dict[str, str]` | `Field(default_factory=dict)` | [backend/shipment_protection.py:106](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L106) |
+| `XCOVER_CLAIMS_MASTER_PAYEE_ID` | `XCoverSettings.claims_master_payee_id` | `str` | `''` | [backend/shipment_protection.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L107) |
+| `SUPPORT_WHATSAPP_ENABLED` | `DeliverySettings.support_whatsapp_enabled` | `bool` | `False` | [backend/support_delivery.py:26](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_delivery.py#L26) |
+| `SUPPORT_WHATSAPP_CONTENT_SID` | `DeliverySettings.support_whatsapp_content_sid` | `str` | `''` | [backend/support_delivery.py:27](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_delivery.py#L27) |
+| `SUPPORT_WHATSAPP_STATUS_URL` | `DeliverySettings.support_whatsapp_status_url` | `str` | `''` | [backend/support_delivery.py:29](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_delivery.py#L29) |
+| `TRACKING_WEBHOOK_KEYS` | `TrackingSettings.tracking_webhook_keys` | `dict[str, TrackingKey]` | `Field(default_factory=dict)` | [backend/tracking_and_support.py:52](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tracking_and_support.py#L52) |
+| `TWILIO_ACCOUNT_SID` | `WhatsAppConfiguration.twilio_account_sid` | `str` | `''` | [backend/whatsapp_bot.py:22](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_bot.py#L22) |
+| `TWILIO_AUTH_TOKEN` | `WhatsAppConfiguration.twilio_auth_token` | `SecretStr` | `SecretStr('')` | [backend/whatsapp_bot.py:23](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_bot.py#L23) |
+| `TWILIO_WHATSAPP_NUMBER` | `WhatsAppConfiguration.twilio_whatsapp_number` | `str` | `''` | [backend/whatsapp_bot.py:24](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_bot.py#L24) |
+| `WHATSAPP_BRAND_NAME` | `WhatsAppConfiguration.whatsapp_brand_name` | `str` | `'EasyInvio.com'` | [backend/whatsapp_bot.py:25](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_bot.py#L25) |
 
 ## Environment example variable names
 
-`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `CREDENTIAL_KEYS`, `REGIONAL_ALLOWED_ORIGINS`, `PARTNER_DOCUMENT_ALLOWED_HOSTS`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CHECKOUT_SUCCESS_URL`, `CHECKOUT_CANCEL_URL`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER`, `TWILIO_WEBHOOK_URL`, `WHATSAPP_QUEUE_WORKERS`, `IDEAL_POSTCODES_API_KEY`, `BOOKING_PAGE_URL`, `QUOTE_LINK_SECRET`, `JWT_ALGORITHM`, `JWT_AUDIENCE`, `STRIPE_LIVEMODE`, `PROVIDER_ENVIRONMENT`, `DATABASE_ENVIRONMENT`, `SANDBOX_HOOKS_ENABLED`, `TWILIO_WHATSAPP_SANDBOX_ENABLED`, `PORT`, `FRONTEND_ALLOWED_ORIGINS`, `PLATFORM_ADMIN_USER_IDS`, `HUBSPOT_ENABLED`, `HUBSPOT_ACCESS_TOKEN`, `HUBSPOT_EXPECTED_PORTAL_ID`, `HUBSPOT_ENVIRONMENT`, `HUBSPOT_UPSELL_ENABLED`, `HUBSPOT_UPSELL_PIPELINE_ID`, `HUBSPOT_UPSELL_STAGE_ID`, `STRIPE_ENABLED`, `TWILIO_ENABLED`, `DATABASE_TLS_STRICT`, `TRACKING_WEBHOOK_KEYS`, `AUTOMATION_PURCHASE_ENABLED`, `FREIGHT_KG_PER_M3`, `FREIGHT_KG_PER_LOADING_METRE`, `FREIGHT_DECK_WIDTH_M`, `ECOMMERCE_CONNECTORS`, `SENDCLOUD_METHODS`, `CARRIER_PDF_HOSTS`, `SUPPORT_WHATSAPP_ENABLED`, `SUPPORT_WHATSAPP_CONTENT_SID`, `SUPPORT_WHATSAPP_STATUS_URL`, `HUBSPOT_PROVISIONING_ENABLED`, `HUBSPOT_WEBHOOK_CLIENT_SECRET`, `HUBSPOT_WEBHOOK_APP_ID`, `HUBSPOT_WEBHOOK_URL`, `HUBSPOT_CLOSED_WON_STAGE_IDS`, `NGROK_AUTHTOKEN`, `WHATSAPP_BRAND_NAME`, `AUTH_JWT_SECRET`, `AUTH_RECOVERY_REDIRECT_URL`, `XCOVER_ENABLED`, `XCOVER_ENVIRONMENT`, `XCOVER_PARTNER_ID`, `XCOVER_API_KEY`, `XCOVER_SIGNING_SECRET`, `XCOVER_PARCEL_CONTRACT_VERIFIED`, `XCOVER_RETAIL_PRICING_VERIFIED`, `XCOVER_CLAIMS_ENABLED`, `XCOVER_CLAIMS_PARTNER_CODE`, `XCOVER_CLAIMS_API_KEY`, `XCOVER_CLAIMS_API_PASSWORD`, `XCOVER_CLAIMS_WEBHOOK_SECRET`, `XCOVER_CLAIMS_WEBHOOK_URL`, `XCOVER_CLAIMS_LIVE_API_ORIGIN`, `XCOVER_CLAIMS_FNOL_BINDINGS`, `XCOVER_CLAIMS_SETTLEMENT_MAPPING`, `XCOVER_CLAIMS_MASTER_PAYEE_ID`, `LOGISTICS_AGENTS_ENABLED`, `OPENAI_API_KEY`, `LOGISTICS_AGENT_MODEL`, `LOGISTICS_EMBEDDING_MODEL`, `LOGISTICS_AGENT_TIMEOUT_SECONDS`, `LOGISTICS_AGENT_CONCURRENCY`, `LOGISTICS_AGENT_OUTPUT_TOKENS`, `LOGISTICS_AGENT_TOKENS_PER_MINUTE`, `LOGISTICS_AGENT_REQUESTS_PER_MINUTE`, `LOGISTICS_AGENT_CACHE_ENTRIES`, `WHATSAPP_ONBOARDING_ENABLED`, `WHATSAPP_ONBOARDING_DAILY_LIMIT`, `COMPANIES_HOUSE_API_KEY`
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `CREDENTIAL_KEYS`, `REGIONAL_ALLOWED_ORIGINS`, `PARTNER_DOCUMENT_ALLOWED_HOSTS`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CHECKOUT_SUCCESS_URL`, `CHECKOUT_CANCEL_URL`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER`, `TWILIO_WEBHOOK_URL`, `WHATSAPP_QUEUE_WORKERS`, `IDEAL_POSTCODES_API_KEY`, `LOGISTICS_MEDIA_BUCKET`, `BOOKING_PAGE_URL`, `QUOTE_LINK_SECRET`, `JWT_ALGORITHM`, `JWT_AUDIENCE`, `STRIPE_LIVEMODE`, `PROVIDER_ENVIRONMENT`, `DATABASE_ENVIRONMENT`, `SANDBOX_HOOKS_ENABLED`, `TWILIO_WHATSAPP_SANDBOX_ENABLED`, `PORT`, `FRONTEND_ALLOWED_ORIGINS`, `PLATFORM_ADMIN_USER_IDS`, `HUBSPOT_ENABLED`, `HUBSPOT_ACCESS_TOKEN`, `HUBSPOT_EXPECTED_PORTAL_ID`, `HUBSPOT_ENVIRONMENT`, `HUBSPOT_UPSELL_ENABLED`, `HUBSPOT_UPSELL_PIPELINE_ID`, `HUBSPOT_UPSELL_STAGE_ID`, `STRIPE_ENABLED`, `TWILIO_ENABLED`, `DATABASE_TLS_STRICT`, `TRACKING_WEBHOOK_KEYS`, `AUTOMATION_PURCHASE_ENABLED`, `FREIGHT_KG_PER_M3`, `FREIGHT_KG_PER_LOADING_METRE`, `FREIGHT_DECK_WIDTH_M`, `ECOMMERCE_CONNECTORS`, `SENDCLOUD_METHODS`, `CARRIER_PDF_HOSTS`, `SUPPORT_WHATSAPP_ENABLED`, `SUPPORT_WHATSAPP_CONTENT_SID`, `SUPPORT_WHATSAPP_STATUS_URL`, `HUBSPOT_PROVISIONING_ENABLED`, `HUBSPOT_WEBHOOK_CLIENT_SECRET`, `HUBSPOT_WEBHOOK_APP_ID`, `HUBSPOT_WEBHOOK_URL`, `HUBSPOT_CLOSED_WON_STAGE_IDS`, `NGROK_AUTHTOKEN`, `WHATSAPP_BRAND_NAME`, `AUTH_JWT_SECRET`, `AUTH_RECOVERY_REDIRECT_URL`, `XCOVER_ENABLED`, `XCOVER_ENVIRONMENT`, `XCOVER_PARTNER_ID`, `XCOVER_API_KEY`, `XCOVER_SIGNING_SECRET`, `XCOVER_PARCEL_CONTRACT_VERIFIED`, `XCOVER_RETAIL_PRICING_VERIFIED`, `XCOVER_CLAIMS_ENABLED`, `XCOVER_CLAIMS_PARTNER_CODE`, `XCOVER_CLAIMS_API_KEY`, `XCOVER_CLAIMS_API_PASSWORD`, `XCOVER_CLAIMS_WEBHOOK_SECRET`, `XCOVER_CLAIMS_WEBHOOK_URL`, `XCOVER_CLAIMS_LIVE_API_ORIGIN`, `XCOVER_CLAIMS_FNOL_BINDINGS`, `XCOVER_CLAIMS_SETTLEMENT_MAPPING`, `XCOVER_CLAIMS_MASTER_PAYEE_ID`, `LOGISTICS_AGENTS_ENABLED`, `OPENAI_API_KEY`, `LOGISTICS_AGENT_MODEL`, `LOGISTICS_EMBEDDING_MODEL`, `LOGISTICS_AGENT_TIMEOUT_SECONDS`, `LOGISTICS_AGENT_CONCURRENCY`, `LOGISTICS_AGENT_OUTPUT_TOKENS`, `LOGISTICS_AGENT_TOKENS_PER_MINUTE`, `LOGISTICS_AGENT_REQUESTS_PER_MINUTE`, `LOGISTICS_AGENT_CACHE_ENTRIES`, `WHATSAPP_ONBOARDING_ENABLED`, `WHATSAPP_ONBOARDING_DAILY_LIMIT`, `COMPANIES_HOUSE_API_KEY`
 
 
 # Migration and data dictionary
@@ -16665,50 +17302,51 @@ The initial core schema is not fully checked in. Obtain an authorized baseline b
 
 | File | Tables introduced | Tables altered | Functions introduced or replaced |
 | --- | --- | --- | --- |
-| [migrations/006_logistics_metadata.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/006_logistics_metadata.sql#L1) |  | shipments | guard_logistics_metadata |
-| [migrations/007_admin_configuration.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/007_admin_configuration.sql#L1) | admin_configuration_events | admin_configuration_events, margin_rules, tenants | guard_platform_configuration |
-| [migrations/008_sandbox_hooks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/008_sandbox_hooks.sql#L1) |  | tenants, wallet_ledger, wallet_topups | guard_sandbox_flags |
-| [migrations/009_ecommerce_sync.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/009_ecommerce_sync.sql#L1) | ecommerce_stores, ecommerce_tracking_outbox | ecommerce_stores, ecommerce_tracking_outbox, shipments | guard_ecommerce_import_fields |
-| [migrations/010_hubspot_crm.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/010_hubspot_crm.sql#L1) | hubspot_sync_jobs, hubspot_tenant_links | hubspot_sync_jobs, hubspot_tenant_links | queue_hubspot_sync |
-| [migrations/011_tracking_and_support.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/011_tracking_and_support.sql#L1) | tracking_events, support_tickets, support_message_outbox | shipments, support_message_outbox, support_tickets, tracking_events | guard_delivery_proof |
-| [migrations/012_dashboard_portal.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/012_dashboard_portal.sql#L1) |  | support_tickets |  |
-| [migrations/013_automation_freight.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/013_automation_freight.sql#L1) | automation_failures | automation_failures, ecommerce_stores, shipments, support_tickets |  |
-| [migrations/014_support_ticket_lifecycle.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/014_support_ticket_lifecycle.sql#L1) |  | support_tickets |  |
-| [migrations/015_admin_management.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/015_admin_management.sql#L1) | admin_management_events | admin_management_events |  |
-| [migrations/016_core_pillars.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/016_core_pillars.sql#L1) |  | ecommerce_tracking_outbox, margin_rules, shipments |  |
-| [migrations/017_support_delivery_and_monitoring.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/017_support_delivery_and_monitoring.sql#L1) |  | support_message_outbox, whatsapp_bindings | guard_notification_consent |
-| [migrations/018_hubspot_activation_and_metrics.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/018_hubspot_activation_and_metrics.sql#L1) | hubspot_activation_jobs | hubspot_activation_jobs, hubspot_tenant_links | guard_hubspot_references, queue_hubspot_wallet_sync |
-| [migrations/019_stripe_snapshot_reconciliation.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/019_stripe_snapshot_reconciliation.sql#L1) | stripe_webhook_events, stripe_charge_refunds | stripe_charge_refunds, stripe_webhook_events, wallet_ledger, wallet_topups | guard_stripe_transaction_trace |
-| [migrations/020_platform_carriers.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/020_platform_carriers.sql#L1) | platform_carrier_connections, platform_carrier_events | carrier_accounts, platform_carrier_connections, platform_carrier_events | guard_platform_carrier_link, lock_platform_carrier_catalog, platform_carrier_changed, tenant_platform_carriers |
-| [migrations/021_identity_sessions.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/021_identity_sessions.sql#L1) | app_auth_sessions, app_user_profiles, app_login_limits | app_auth_sessions, app_login_limits, app_user_profiles |  |
-| [migrations/022_carrier_consolidation.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/022_carrier_consolidation.sql#L1) |  |  |  |
-| [migrations/023_partner_lifecycle.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/023_partner_lifecycle.sql#L1) | partner_unbound_quotes, partner_shipping_offers, partner_cancellations | partner_cancellations, partner_shipping_offers, partner_unbound_quotes, platform_carrier_connections, wallet_ledger |  |
-| [migrations/024_native_partner_orders_and_webhooks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/024_native_partner_orders_and_webhooks.sql#L1) | partner_provider_options, partner_order_jobs | partner_order_jobs, partner_provider_options | queue_native_partner_order |
-| [migrations/025_pending_label_poll_index.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/025_pending_label_poll_index.sql#L1) |  |  |  |
-| [migrations/026_support_review_activity.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/026_support_review_activity.sql#L1) | support_ticket_activity | support_ticket_activity, support_tickets |  |
-| [migrations/027_workspace_invitations_and_disputes.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/027_workspace_invitations_and_disputes.sql#L1) | workspace_invitations, shipment_dispute_drafts | shipment_dispute_drafts, workspace_invitations |  |
-| [migrations/028_reporting_transit_index.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/028_reporting_transit_index.sql#L1) |  |  |  |
-| [migrations/029_booking_references.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/029_booking_references.sql#L1) | booking_references | booking_references |  |
-| [migrations/030_card_checkout.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/030_card_checkout.sql#L1) | payment_carts | payment_carts |  |
-| [migrations/031_store_connections.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/031_store_connections.sql#L1) | workspace_store_connections | workspace_store_connections |  |
-| [migrations/032_dispatch_events_and_invoice_audits.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/032_dispatch_events_and_invoice_audits.sql#L1) | workspace_dispatch_events, billing_disputes, amazon_order_notifications | amazon_order_notifications, billing_disputes, shipments, workspace_dispatch_events | emit_workspace_dispatch_event |
-| [migrations/033_xcover_claim_cases.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L1) | insurance_purchases, insurance_claim_cases, insurance_settlements, insurance_claim_evidence, xclaim_webhook_receipts, insurance_webhook_receipts | insurance_claim_cases, insurance_claim_evidence, insurance_purchases, insurance_settlements, insurance_webhook_receipts, support_message_outbox, support_tickets, wallet_ledger, xclaim_webhook_receipts |  |
-| [migrations/034_support_alert_controls.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/034_support_alert_controls.sql#L1) |  | whatsapp_bindings |  |
-| [migrations/035_packages_goods_returns_and_credential_locks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/035_packages_goods_returns_and_credential_locks.sql#L1) | shipment_goods_items | carrier_accounts, ecommerce_tracking_outbox, shipment_goods_items, shipments | check_shipment_goods_mass, classify_store_tracking_job, freeze_submitted_package_snapshot, guard_carrier_credential_identity, lock_goods_parent, valid_multi_parcel_dimensions |
-| [migrations/036_tenant_catalogs.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/036_tenant_catalogs.sql#L1) | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products |  |
-| [migrations/037_admin_client_assistance.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/037_admin_client_assistance.sql#L1) | admin_client_assistance_sessions, admin_client_assistance_events | admin_client_assistance_events, admin_client_assistance_sessions | protect_assistance_event |
-| [migrations/038_conversational_actions.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/038_conversational_actions.sql#L1) | conversational_messages | conversational_messages |  |
-| [migrations/039_whatsapp_onboarding.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/039_whatsapp_onboarding.sql#L1) | whatsapp_registration_queue, whatsapp_registration_receipts | tenants, whatsapp_registration_queue, whatsapp_registration_receipts |  |
-| [migrations/040_workspace_personas.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/040_workspace_personas.sql#L1) | individual_pricing_settings, individual_pricing_events, web_registration_sessions | individual_pricing_events, individual_pricing_settings, tenants, web_registration_sessions, whatsapp_registration_queue |  |
-| [migrations/041_budget_seller_strategy.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/041_budget_seller_strategy.sql#L1) |  | admin_management_events, tenants | guard_workspace_strategy |
-| [migrations/042_headless_returns.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/042_headless_returns.sql#L1) | reverse_logistics_requests | reverse_logistics_requests |  |
-| [migrations/043_whatsapp_async_ingress.sql](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/043_whatsapp_async_ingress.sql#L1) | whatsapp_inbound_queue, whatsapp_reply_outbox | whatsapp_inbound_queue, whatsapp_reply_outbox |  |
+| [migrations/006_logistics_metadata.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/006_logistics_metadata.sql#L1) |  | shipments | guard_logistics_metadata |
+| [migrations/007_admin_configuration.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/007_admin_configuration.sql#L1) | admin_configuration_events | admin_configuration_events, margin_rules, tenants | guard_platform_configuration |
+| [migrations/008_sandbox_hooks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/008_sandbox_hooks.sql#L1) |  | tenants, wallet_ledger, wallet_topups | guard_sandbox_flags |
+| [migrations/009_ecommerce_sync.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/009_ecommerce_sync.sql#L1) | ecommerce_stores, ecommerce_tracking_outbox | ecommerce_stores, ecommerce_tracking_outbox, shipments | guard_ecommerce_import_fields |
+| [migrations/010_hubspot_crm.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/010_hubspot_crm.sql#L1) | hubspot_sync_jobs, hubspot_tenant_links | hubspot_sync_jobs, hubspot_tenant_links | queue_hubspot_sync |
+| [migrations/011_tracking_and_support.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/011_tracking_and_support.sql#L1) | tracking_events, support_tickets, support_message_outbox | shipments, support_message_outbox, support_tickets, tracking_events | guard_delivery_proof |
+| [migrations/012_dashboard_portal.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/012_dashboard_portal.sql#L1) |  | support_tickets |  |
+| [migrations/013_automation_freight.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/013_automation_freight.sql#L1) | automation_failures | automation_failures, ecommerce_stores, shipments, support_tickets |  |
+| [migrations/014_support_ticket_lifecycle.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/014_support_ticket_lifecycle.sql#L1) |  | support_tickets |  |
+| [migrations/015_admin_management.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/015_admin_management.sql#L1) | admin_management_events | admin_management_events |  |
+| [migrations/016_core_pillars.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/016_core_pillars.sql#L1) |  | ecommerce_tracking_outbox, margin_rules, shipments |  |
+| [migrations/017_support_delivery_and_monitoring.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/017_support_delivery_and_monitoring.sql#L1) |  | support_message_outbox, whatsapp_bindings | guard_notification_consent |
+| [migrations/018_hubspot_activation_and_metrics.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/018_hubspot_activation_and_metrics.sql#L1) | hubspot_activation_jobs | hubspot_activation_jobs, hubspot_tenant_links | guard_hubspot_references, queue_hubspot_wallet_sync |
+| [migrations/019_stripe_snapshot_reconciliation.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/019_stripe_snapshot_reconciliation.sql#L1) | stripe_webhook_events, stripe_charge_refunds | stripe_charge_refunds, stripe_webhook_events, wallet_ledger, wallet_topups | guard_stripe_transaction_trace |
+| [migrations/020_platform_carriers.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/020_platform_carriers.sql#L1) | platform_carrier_connections, platform_carrier_events | carrier_accounts, platform_carrier_connections, platform_carrier_events | guard_platform_carrier_link, lock_platform_carrier_catalog, platform_carrier_changed, tenant_platform_carriers |
+| [migrations/021_identity_sessions.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/021_identity_sessions.sql#L1) | app_auth_sessions, app_user_profiles, app_login_limits | app_auth_sessions, app_login_limits, app_user_profiles |  |
+| [migrations/022_carrier_consolidation.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/022_carrier_consolidation.sql#L1) |  |  |  |
+| [migrations/023_partner_lifecycle.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/023_partner_lifecycle.sql#L1) | partner_unbound_quotes, partner_shipping_offers, partner_cancellations | partner_cancellations, partner_shipping_offers, partner_unbound_quotes, platform_carrier_connections, wallet_ledger |  |
+| [migrations/024_native_partner_orders_and_webhooks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/024_native_partner_orders_and_webhooks.sql#L1) | partner_provider_options, partner_order_jobs | partner_order_jobs, partner_provider_options | queue_native_partner_order |
+| [migrations/025_pending_label_poll_index.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/025_pending_label_poll_index.sql#L1) |  |  |  |
+| [migrations/026_support_review_activity.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/026_support_review_activity.sql#L1) | support_ticket_activity | support_ticket_activity, support_tickets |  |
+| [migrations/027_workspace_invitations_and_disputes.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/027_workspace_invitations_and_disputes.sql#L1) | workspace_invitations, shipment_dispute_drafts | shipment_dispute_drafts, workspace_invitations |  |
+| [migrations/028_reporting_transit_index.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/028_reporting_transit_index.sql#L1) |  |  |  |
+| [migrations/029_booking_references.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/029_booking_references.sql#L1) | booking_references | booking_references |  |
+| [migrations/030_card_checkout.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/030_card_checkout.sql#L1) | payment_carts | payment_carts |  |
+| [migrations/031_store_connections.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/031_store_connections.sql#L1) | workspace_store_connections | workspace_store_connections |  |
+| [migrations/032_dispatch_events_and_invoice_audits.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/032_dispatch_events_and_invoice_audits.sql#L1) | workspace_dispatch_events, billing_disputes, amazon_order_notifications | amazon_order_notifications, billing_disputes, shipments, workspace_dispatch_events | emit_workspace_dispatch_event |
+| [migrations/033_xcover_claim_cases.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L1) | insurance_purchases, insurance_claim_cases, insurance_settlements, insurance_claim_evidence, xclaim_webhook_receipts, insurance_webhook_receipts | insurance_claim_cases, insurance_claim_evidence, insurance_purchases, insurance_settlements, insurance_webhook_receipts, support_message_outbox, support_tickets, wallet_ledger, xclaim_webhook_receipts |  |
+| [migrations/034_support_alert_controls.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/034_support_alert_controls.sql#L1) |  | whatsapp_bindings |  |
+| [migrations/035_packages_goods_returns_and_credential_locks.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/035_packages_goods_returns_and_credential_locks.sql#L1) | shipment_goods_items | carrier_accounts, ecommerce_tracking_outbox, shipment_goods_items, shipments | check_shipment_goods_mass, classify_store_tracking_job, freeze_submitted_package_snapshot, guard_carrier_credential_identity, lock_goods_parent, valid_multi_parcel_dimensions |
+| [migrations/036_tenant_catalogs.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/036_tenant_catalogs.sql#L1) | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products |  |
+| [migrations/037_admin_client_assistance.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/037_admin_client_assistance.sql#L1) | admin_client_assistance_sessions, admin_client_assistance_events | admin_client_assistance_events, admin_client_assistance_sessions | protect_assistance_event |
+| [migrations/038_conversational_actions.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/038_conversational_actions.sql#L1) | conversational_messages | conversational_messages |  |
+| [migrations/039_whatsapp_onboarding.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/039_whatsapp_onboarding.sql#L1) | whatsapp_registration_queue, whatsapp_registration_receipts | tenants, whatsapp_registration_queue, whatsapp_registration_receipts |  |
+| [migrations/040_workspace_personas.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/040_workspace_personas.sql#L1) | individual_pricing_settings, individual_pricing_events, web_registration_sessions | individual_pricing_events, individual_pricing_settings, tenants, web_registration_sessions, whatsapp_registration_queue |  |
+| [migrations/041_budget_seller_strategy.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/041_budget_seller_strategy.sql#L1) |  | admin_management_events, tenants | guard_workspace_strategy |
+| [migrations/042_headless_returns.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/042_headless_returns.sql#L1) | reverse_logistics_requests | reverse_logistics_requests |  |
+| [migrations/043_whatsapp_async_ingress.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/043_whatsapp_async_ingress.sql#L1) | whatsapp_inbound_queue, whatsapp_reply_outbox | whatsapp_inbound_queue, whatsapp_reply_outbox |  |
+| [migrations/044_carrier_manifests_and_media.sql](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/044_carrier_manifests_and_media.sql#L1) | carrier_manifests, carrier_manifest_events, logistics_media_assets | carrier_manifest_events, carrier_manifests, logistics_media_assets, shipments, whatsapp_reply_outbox | guard_manifest_assignment, protect_manifest_event |
 
 ## Exact CREATE TABLE definitions
 
 ### admin_client_assistance_events
 
-Source: [migrations/037_admin_client_assistance.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/037_admin_client_assistance.sql#L17).
+Source: [migrations/037_admin_client_assistance.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/037_admin_client_assistance.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_client_assistance_events (
@@ -16728,7 +17366,7 @@ CREATE TABLE IF NOT EXISTS public.admin_client_assistance_events (
 
 ### admin_client_assistance_sessions
 
-Source: [migrations/037_admin_client_assistance.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/037_admin_client_assistance.sql#L4).
+Source: [migrations/037_admin_client_assistance.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/037_admin_client_assistance.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_client_assistance_sessions (
@@ -16747,7 +17385,7 @@ CREATE TABLE IF NOT EXISTS public.admin_client_assistance_sessions (
 
 ### admin_configuration_events
 
-Source: [migrations/007_admin_configuration.sql:10](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/007_admin_configuration.sql#L10).
+Source: [migrations/007_admin_configuration.sql:10](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/007_admin_configuration.sql#L10).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_configuration_events (
@@ -16765,7 +17403,7 @@ CREATE TABLE IF NOT EXISTS public.admin_configuration_events (
 
 ### admin_management_events
 
-Source: [migrations/015_admin_management.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/015_admin_management.sql#L3).
+Source: [migrations/015_admin_management.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/015_admin_management.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_management_events (
@@ -16781,7 +17419,7 @@ CREATE TABLE IF NOT EXISTS public.admin_management_events (
 
 ### amazon_order_notifications
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:88](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/032_dispatch_events_and_invoice_audits.sql#L88).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:88](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/032_dispatch_events_and_invoice_audits.sql#L88).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.amazon_order_notifications (
@@ -16799,7 +17437,7 @@ CREATE TABLE IF NOT EXISTS public.amazon_order_notifications (
 
 ### app_auth_sessions
 
-Source: [migrations/021_identity_sessions.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/021_identity_sessions.sql#L3).
+Source: [migrations/021_identity_sessions.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/021_identity_sessions.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_auth_sessions(
@@ -16811,7 +17449,7 @@ CREATE TABLE IF NOT EXISTS public.app_auth_sessions(
 
 ### app_login_limits
 
-Source: [migrations/021_identity_sessions.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/021_identity_sessions.sql#L14).
+Source: [migrations/021_identity_sessions.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/021_identity_sessions.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_login_limits(
@@ -16821,7 +17459,7 @@ CREATE TABLE IF NOT EXISTS public.app_login_limits(
 
 ### app_user_profiles
 
-Source: [migrations/021_identity_sessions.sql:9](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/021_identity_sessions.sql#L9).
+Source: [migrations/021_identity_sessions.sql:9](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/021_identity_sessions.sql#L9).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_user_profiles(
@@ -16833,7 +17471,7 @@ CREATE TABLE IF NOT EXISTS public.app_user_profiles(
 
 ### automation_failures
 
-Source: [migrations/013_automation_freight.sql:15](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/013_automation_freight.sql#L15).
+Source: [migrations/013_automation_freight.sql:15](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/013_automation_freight.sql#L15).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.automation_failures (
@@ -16846,7 +17484,7 @@ CREATE TABLE IF NOT EXISTS public.automation_failures (
 
 ### billing_disputes
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:69](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/032_dispatch_events_and_invoice_audits.sql#L69).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:69](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/032_dispatch_events_and_invoice_audits.sql#L69).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.billing_disputes (
@@ -16872,7 +17510,7 @@ CREATE TABLE IF NOT EXISTS public.billing_disputes (
 
 ### booking_references
 
-Source: [migrations/029_booking_references.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/029_booking_references.sql#L5).
+Source: [migrations/029_booking_references.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/029_booking_references.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.booking_references(
@@ -16882,9 +17520,49 @@ CREATE TABLE IF NOT EXISTS public.booking_references(
 );
 ```
 
+### carrier_manifest_events
+
+Source: [migrations/044_carrier_manifests_and_media.sql:67](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/044_carrier_manifests_and_media.sql#L67).
+
+```sql
+CREATE TABLE public.carrier_manifest_events (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, tenant_id uuid NOT NULL,
+ manifest_id uuid NOT NULL, actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),
+ event_type text NOT NULL CHECK(event_type IN ('SUBMITTED','FAILED','COMPLETED')),
+ detail jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),
+ FOREIGN KEY(tenant_id,manifest_id) REFERENCES public.carrier_manifests(tenant_id,id),
+ UNIQUE(tenant_id,manifest_id,event_type)
+);
+```
+
+### carrier_manifests
+
+Source: [migrations/044_carrier_manifests_and_media.sql:28](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/044_carrier_manifests_and_media.sql#L28).
+
+```sql
+CREATE TABLE public.carrier_manifests (
+ id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),
+ carrier_account_id uuid NOT NULL REFERENCES public.carrier_accounts(id), carrier_code varchar(50) NOT NULL,
+ status varchar(30) NOT NULL CHECK(status IN ('DRAFT','SUBMITTED','FAILED','COMPLETED')),
+ master_tracking_id varchar(100), manifest_document_url text,
+ total_shipments integer NOT NULL CHECK(total_shipments BETWEEN 1 AND 1000),
+ total_weight_kg numeric(10,3) NOT NULL CHECK(total_weight_kg>0),
+ created_by uuid NOT NULL REFERENCES auth.users(id),
+ request_id uuid NOT NULL, input_sha256 text NOT NULL CHECK(input_sha256 ~ '^[a-f0-9]{64}$'),
+ provider_reference text, provider_document_url text, document_pdf bytea,
+ document_kind text NOT NULL CHECK(document_kind IN ('CARRIER_MANIFEST','INTERNAL_HANDOVER')),
+ snapshot jsonb NOT NULL CHECK(jsonb_typeof(snapshot)='array'),
+ environment text NOT NULL CHECK(environment IN ('TEST','LIVE')), error_code text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(tenant_id,id), UNIQUE(tenant_id,carrier_account_id,id), UNIQUE(tenant_id,request_id),
+ FOREIGN KEY(tenant_id,carrier_account_id) REFERENCES public.carrier_accounts(tenant_id,id),
+ CHECK(status<>'COMPLETED' OR document_pdf IS NOT NULL)
+);
+```
+
 ### conversational_messages
 
-Source: [migrations/038_conversational_actions.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/038_conversational_actions.sql#L4).
+Source: [migrations/038_conversational_actions.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/038_conversational_actions.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.conversational_messages (
@@ -16903,7 +17581,7 @@ CREATE TABLE IF NOT EXISTS public.conversational_messages (
 
 ### ecommerce_stores
 
-Source: [migrations/009_ecommerce_sync.sql:15](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/009_ecommerce_sync.sql#L15).
+Source: [migrations/009_ecommerce_sync.sql:15](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/009_ecommerce_sync.sql#L15).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.ecommerce_stores (
@@ -16919,7 +17597,7 @@ CREATE TABLE IF NOT EXISTS public.ecommerce_stores (
 
 ### ecommerce_tracking_outbox
 
-Source: [migrations/009_ecommerce_sync.sql:48](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/009_ecommerce_sync.sql#L48).
+Source: [migrations/009_ecommerce_sync.sql:48](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/009_ecommerce_sync.sql#L48).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.ecommerce_tracking_outbox (
@@ -16942,7 +17620,7 @@ CREATE TABLE IF NOT EXISTS public.ecommerce_tracking_outbox (
 
 ### hubspot_activation_jobs
 
-Source: [migrations/018_hubspot_activation_and_metrics.sql:9](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/018_hubspot_activation_and_metrics.sql#L9).
+Source: [migrations/018_hubspot_activation_and_metrics.sql:9](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/018_hubspot_activation_and_metrics.sql#L9).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_activation_jobs (
@@ -16961,7 +17639,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_activation_jobs (
 
 ### hubspot_sync_jobs
 
-Source: [migrations/010_hubspot_crm.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/010_hubspot_crm.sql#L3).
+Source: [migrations/010_hubspot_crm.sql:3](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/010_hubspot_crm.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_sync_jobs (
@@ -16977,7 +17655,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_sync_jobs (
 
 ### hubspot_tenant_links
 
-Source: [migrations/010_hubspot_crm.sql:12](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/010_hubspot_crm.sql#L12).
+Source: [migrations/010_hubspot_crm.sql:12](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/010_hubspot_crm.sql#L12).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_tenant_links (
@@ -16990,7 +17668,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_tenant_links (
 
 ### individual_pricing_events
 
-Source: [migrations/040_workspace_personas.sql:21](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/040_workspace_personas.sql#L21).
+Source: [migrations/040_workspace_personas.sql:21](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/040_workspace_personas.sql#L21).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.individual_pricing_events (
@@ -17004,7 +17682,7 @@ CREATE TABLE IF NOT EXISTS public.individual_pricing_events (
 
 ### individual_pricing_settings
 
-Source: [migrations/040_workspace_personas.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/040_workspace_personas.sql#L14).
+Source: [migrations/040_workspace_personas.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/040_workspace_personas.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.individual_pricing_settings (
@@ -17017,7 +17695,7 @@ CREATE TABLE IF NOT EXISTS public.individual_pricing_settings (
 
 ### insurance_claim_cases
 
-Source: [migrations/033_xcover_claim_cases.sql:44](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L44).
+Source: [migrations/033_xcover_claim_cases.sql:44](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L44).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_claim_cases (
@@ -17038,7 +17716,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_claim_cases (
 
 ### insurance_claim_evidence
 
-Source: [migrations/033_xcover_claim_cases.sql:91](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L91).
+Source: [migrations/033_xcover_claim_cases.sql:91](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L91).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_claim_evidence (
@@ -17054,7 +17732,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_claim_evidence (
 
 ### insurance_purchases
 
-Source: [migrations/033_xcover_claim_cases.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L5).
+Source: [migrations/033_xcover_claim_cases.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_purchases (
@@ -17077,7 +17755,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_purchases (
 
 ### insurance_settlements
 
-Source: [migrations/033_xcover_claim_cases.sql:62](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L62).
+Source: [migrations/033_xcover_claim_cases.sql:62](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L62).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_settlements (
@@ -17097,7 +17775,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_settlements (
 
 ### insurance_webhook_receipts
 
-Source: [migrations/033_xcover_claim_cases.sql:108](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L108).
+Source: [migrations/033_xcover_claim_cases.sql:108](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L108).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_webhook_receipts (
@@ -17111,9 +17789,24 @@ CREATE TABLE IF NOT EXISTS public.insurance_webhook_receipts (
 );
 ```
 
+### logistics_media_assets
+
+Source: [migrations/044_carrier_manifests_and_media.sql:81](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/044_carrier_manifests_and_media.sql#L81).
+
+```sql
+CREATE TABLE public.logistics_media_assets (
+ id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),shipment_id uuid NOT NULL,
+ object_key text NOT NULL,content_sha256 text NOT NULL CHECK(content_sha256 ~ '^[a-f0-9]{64}$'),
+ mime_type text NOT NULL CHECK(mime_type IN ('image/png','image/jpeg')),
+ created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(tenant_id,shipment_id,content_sha256),
+ CHECK(object_key LIKE tenant_id::text||'/'||shipment_id::text||'/%'),
+ FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)
+);
+```
+
 ### partner_cancellations
 
-Source: [migrations/023_partner_lifecycle.sql:35](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/023_partner_lifecycle.sql#L35).
+Source: [migrations/023_partner_lifecycle.sql:35](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/023_partner_lifecycle.sql#L35).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_cancellations(
@@ -17129,7 +17822,7 @@ CREATE TABLE IF NOT EXISTS public.partner_cancellations(
 
 ### partner_order_jobs
 
-Source: [migrations/024_native_partner_orders_and_webhooks.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/024_native_partner_orders_and_webhooks.sql#L17).
+Source: [migrations/024_native_partner_orders_and_webhooks.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/024_native_partner_orders_and_webhooks.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_order_jobs(
@@ -17152,7 +17845,7 @@ CREATE TABLE IF NOT EXISTS public.partner_order_jobs(
 
 ### partner_provider_options
 
-Source: [migrations/024_native_partner_orders_and_webhooks.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/024_native_partner_orders_and_webhooks.sql#L4).
+Source: [migrations/024_native_partner_orders_and_webhooks.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/024_native_partner_orders_and_webhooks.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_provider_options(
@@ -17172,7 +17865,7 @@ CREATE TABLE IF NOT EXISTS public.partner_provider_options(
 
 ### partner_shipping_offers
 
-Source: [migrations/023_partner_lifecycle.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/023_partner_lifecycle.sql#L17).
+Source: [migrations/023_partner_lifecycle.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/023_partner_lifecycle.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_shipping_offers(
@@ -17189,7 +17882,7 @@ CREATE TABLE IF NOT EXISTS public.partner_shipping_offers(
 
 ### partner_unbound_quotes
 
-Source: [migrations/023_partner_lifecycle.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/023_partner_lifecycle.sql#L5).
+Source: [migrations/023_partner_lifecycle.sql:5](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/023_partner_lifecycle.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_unbound_quotes(
@@ -17204,7 +17897,7 @@ CREATE TABLE IF NOT EXISTS public.partner_unbound_quotes(
 
 ### payment_carts
 
-Source: [migrations/030_card_checkout.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/030_card_checkout.sql#L4).
+Source: [migrations/030_card_checkout.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/030_card_checkout.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.payment_carts(
@@ -17219,7 +17912,7 @@ CREATE TABLE IF NOT EXISTS public.payment_carts(
 
 ### platform_carrier_connections
 
-Source: [migrations/020_platform_carriers.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/020_platform_carriers.sql#L4).
+Source: [migrations/020_platform_carriers.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/020_platform_carriers.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.platform_carrier_connections(
@@ -17235,7 +17928,7 @@ CREATE TABLE IF NOT EXISTS public.platform_carrier_connections(
 
 ### platform_carrier_events
 
-Source: [migrations/020_platform_carriers.sql:18](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/020_platform_carriers.sql#L18).
+Source: [migrations/020_platform_carriers.sql:18](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/020_platform_carriers.sql#L18).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.platform_carrier_events(
@@ -17248,7 +17941,7 @@ CREATE TABLE IF NOT EXISTS public.platform_carrier_events(
 
 ### reverse_logistics_requests
 
-Source: [migrations/042_headless_returns.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/042_headless_returns.sql#L4).
+Source: [migrations/042_headless_returns.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/042_headless_returns.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.reverse_logistics_requests (
@@ -17272,7 +17965,7 @@ CREATE TABLE IF NOT EXISTS public.reverse_logistics_requests (
 
 ### shipment_dispute_drafts
 
-Source: [migrations/027_workspace_invitations_and_disputes.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/027_workspace_invitations_and_disputes.sql#L14).
+Source: [migrations/027_workspace_invitations_and_disputes.sql:14](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/027_workspace_invitations_and_disputes.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.shipment_dispute_drafts(
@@ -17285,7 +17978,7 @@ CREATE TABLE IF NOT EXISTS public.shipment_dispute_drafts(
 
 ### shipment_goods_items
 
-Source: [migrations/035_packages_goods_returns_and_credential_locks.sql:80](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/035_packages_goods_returns_and_credential_locks.sql#L80).
+Source: [migrations/035_packages_goods_returns_and_credential_locks.sql:80](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/035_packages_goods_returns_and_credential_locks.sql#L80).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.shipment_goods_items (
@@ -17306,7 +17999,7 @@ CREATE TABLE IF NOT EXISTS public.shipment_goods_items (
 
 ### stripe_charge_refunds
 
-Source: [migrations/019_stripe_snapshot_reconciliation.sql:55](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/019_stripe_snapshot_reconciliation.sql#L55).
+Source: [migrations/019_stripe_snapshot_reconciliation.sql:55](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/019_stripe_snapshot_reconciliation.sql#L55).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.stripe_charge_refunds (
@@ -17322,7 +18015,7 @@ CREATE TABLE IF NOT EXISTS public.stripe_charge_refunds (
 
 ### stripe_webhook_events
 
-Source: [migrations/019_stripe_snapshot_reconciliation.sql:34](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/019_stripe_snapshot_reconciliation.sql#L34).
+Source: [migrations/019_stripe_snapshot_reconciliation.sql:34](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/019_stripe_snapshot_reconciliation.sql#L34).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
@@ -17344,7 +18037,7 @@ CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
 
 ### support_message_outbox
 
-Source: [migrations/011_tracking_and_support.sql:57](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/011_tracking_and_support.sql#L57).
+Source: [migrations/011_tracking_and_support.sql:57](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/011_tracking_and_support.sql#L57).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_message_outbox (
@@ -17359,7 +18052,7 @@ CREATE TABLE IF NOT EXISTS public.support_message_outbox (
 
 ### support_ticket_activity
 
-Source: [migrations/026_support_review_activity.sql:6](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/026_support_review_activity.sql#L6).
+Source: [migrations/026_support_review_activity.sql:6](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/026_support_review_activity.sql#L6).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_ticket_activity (
@@ -17377,7 +18070,7 @@ CREATE TABLE IF NOT EXISTS public.support_ticket_activity (
 
 ### support_tickets
 
-Source: [migrations/011_tracking_and_support.sql:48](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/011_tracking_and_support.sql#L48).
+Source: [migrations/011_tracking_and_support.sql:48](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/011_tracking_and_support.sql#L48).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_tickets (
@@ -17393,7 +18086,7 @@ CREATE TABLE IF NOT EXISTS public.support_tickets (
 
 ### tenant_catalog_addresses
 
-Source: [migrations/036_tenant_catalogs.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/036_tenant_catalogs.sql#L4).
+Source: [migrations/036_tenant_catalogs.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/036_tenant_catalogs.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_addresses (
@@ -17410,7 +18103,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_addresses (
 
 ### tenant_catalog_contacts
 
-Source: [migrations/036_tenant_catalogs.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/036_tenant_catalogs.sql#L17).
+Source: [migrations/036_tenant_catalogs.sql:17](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/036_tenant_catalogs.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_contacts (
@@ -17425,7 +18118,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_contacts (
 
 ### tenant_catalog_products
 
-Source: [migrations/036_tenant_catalogs.sql:26](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/036_tenant_catalogs.sql#L26).
+Source: [migrations/036_tenant_catalogs.sql:26](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/036_tenant_catalogs.sql#L26).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_products (
@@ -17444,7 +18137,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_products (
 
 ### tracking_events
 
-Source: [migrations/011_tracking_and_support.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/011_tracking_and_support.sql#L31).
+Source: [migrations/011_tracking_and_support.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/011_tracking_and_support.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tracking_events (
@@ -17468,7 +18161,7 @@ CREATE TABLE IF NOT EXISTS public.tracking_events (
 
 ### web_registration_sessions
 
-Source: [migrations/040_workspace_personas.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/040_workspace_personas.sql#L31).
+Source: [migrations/040_workspace_personas.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/040_workspace_personas.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.web_registration_sessions (
@@ -17484,7 +18177,7 @@ CREATE TABLE IF NOT EXISTS public.web_registration_sessions (
 
 ### whatsapp_inbound_queue
 
-Source: [migrations/043_whatsapp_async_ingress.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/043_whatsapp_async_ingress.sql#L4).
+Source: [migrations/043_whatsapp_async_ingress.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/043_whatsapp_async_ingress.sql#L4).
 
 ```sql
 CREATE TABLE public.whatsapp_inbound_queue (
@@ -17502,7 +18195,7 @@ CREATE TABLE public.whatsapp_inbound_queue (
 
 ### whatsapp_registration_queue
 
-Source: [migrations/039_whatsapp_onboarding.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/039_whatsapp_onboarding.sql#L4).
+Source: [migrations/039_whatsapp_onboarding.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/039_whatsapp_onboarding.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.whatsapp_registration_queue (
@@ -17530,7 +18223,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_registration_queue (
 
 ### whatsapp_registration_receipts
 
-Source: [migrations/039_whatsapp_onboarding.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/039_whatsapp_onboarding.sql#L31).
+Source: [migrations/039_whatsapp_onboarding.sql:31](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/039_whatsapp_onboarding.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.whatsapp_registration_receipts (
@@ -17545,7 +18238,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_registration_receipts (
 
 ### whatsapp_reply_outbox
 
-Source: [migrations/043_whatsapp_async_ingress.sql:18](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/043_whatsapp_async_ingress.sql#L18).
+Source: [migrations/043_whatsapp_async_ingress.sql:18](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/043_whatsapp_async_ingress.sql#L18).
 
 ```sql
 CREATE TABLE public.whatsapp_reply_outbox (
@@ -17562,7 +18255,7 @@ CREATE TABLE public.whatsapp_reply_outbox (
 
 ### workspace_dispatch_events
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:44](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/032_dispatch_events_and_invoice_audits.sql#L44).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:44](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/032_dispatch_events_and_invoice_audits.sql#L44).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_dispatch_events (
@@ -17576,7 +18269,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_dispatch_events (
 
 ### workspace_invitations
 
-Source: [migrations/027_workspace_invitations_and_disputes.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/027_workspace_invitations_and_disputes.sql#L4).
+Source: [migrations/027_workspace_invitations_and_disputes.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/027_workspace_invitations_and_disputes.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_invitations(
@@ -17591,7 +18284,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_invitations(
 
 ### workspace_store_connections
 
-Source: [migrations/031_store_connections.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/031_store_connections.sql#L4).
+Source: [migrations/031_store_connections.sql:4](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/031_store_connections.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_store_connections (
@@ -17608,7 +18301,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_store_connections (
 
 ### xclaim_webhook_receipts
 
-Source: [migrations/033_xcover_claim_cases.sql:101](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/migrations/033_xcover_claim_cases.sql#L101).
+Source: [migrations/033_xcover_claim_cases.sql:101](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/migrations/033_xcover_claim_cases.sql#L101).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.xclaim_webhook_receipts (
@@ -17627,7 +18320,7 @@ Repository module/class/function locations are listed below. Source links refere
 
 ## main.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/main.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/main.py#L1)
 
 EasyInvio.com: combined rating, financial controls and WhatsApp service.
 
@@ -17659,49 +18352,49 @@ the subsequent label-purchase component. RegionalStrategy defines its actual
 wire contract; use an adapter matching the selected regional provider's API.
 
 - `Settings` (line 122): `whatsapp_e164`, `sandbox_modes`, `supabase_origin`, `regional_origins`, `checkout_return_url`, `fixed_https_url`, `encryption_keys`, `link_secret`.
-- `StrictModel` (line 273): .
-- `Dimensions` (line 287): `validate_input`.
-- `Address` (line 298): `trim`, `country`.
-- `RatingRequest` (line 331): `from_conversation`, `letter_dimensions`, `weights`, `matching_arrays`.
-- `ProviderFees` (line 396): `decimal_values`.
-- `WholesaleRate` (line 408): `cost_input`, `reconcile_fees`, `codes`.
-- `ClientRate` (line 443): .
-- `ProviderIssue` (line 474): .
-- `RatingResponse` (line 482): .
-- `MarginRule` (line 493): `flat_type`, `codes`, `bounds`.
-- `TopupRequest` (line 549): `amount_input`.
-- `TopupResponse` (line 559): .
-- `TenantContext` (line 566): .
-- `CarrierAccount` (line 575): .
-- `PriceResult` (line 587): .
-- `BookingPermit` (line 595): .
-- `ParsedQuote` (line 605): .
-- `RuleRepository` (line 668): `load`.
-- `MemoryRuleRepository` (line 673): `__init__`, `load`.
-- `SupabaseRepository` (line 686): `__init__`, `select`, `load`, `accounts`.
-- `MarginEvaluator` (line 802): `matches`, `specificity`, `evaluate`.
-- `ProviderFailure` (line 874): `__init__`.
-- `RateStrategy` (line 880): `__init__`, `post`, `rates`.
-- `EasyPostStrategy` (line 918): `address`, `rates`.
-- `RegionalStrategy` (line 1020): `rates`.
-- `SendcloudStrategy` (line 1059): `__init__`, `rates`.
-- `RatingService` (line 1077): `__init__`, `run_provider`, `quote`.
-- `FinanceEngine` (line 1263): `__init__`, `lock_tenant`, `lock_wallet`, `append_ledger`, `reserve`, `locked_reservation`, `verified_test_booking`, `mark_submitted`, `finish_booking`, `check_payment_environment`, `authorize_label_preview`, `create_checkout`, `credit_session`.
-- `WhatsAppService` (line 1741): `__init__`, `resolve_sender`, `sign_choice`, `process`.
+- `StrictModel` (line 274): .
+- `Dimensions` (line 288): `validate_input`.
+- `Address` (line 299): `trim`, `country`.
+- `RatingRequest` (line 332): `from_conversation`, `letter_dimensions`, `weights`, `matching_arrays`.
+- `ProviderFees` (line 397): `decimal_values`.
+- `WholesaleRate` (line 409): `cost_input`, `reconcile_fees`, `codes`.
+- `ClientRate` (line 444): .
+- `ProviderIssue` (line 475): .
+- `RatingResponse` (line 483): .
+- `MarginRule` (line 494): `flat_type`, `codes`, `bounds`.
+- `TopupRequest` (line 550): `amount_input`.
+- `TopupResponse` (line 560): .
+- `TenantContext` (line 567): .
+- `CarrierAccount` (line 576): .
+- `PriceResult` (line 588): .
+- `BookingPermit` (line 596): .
+- `ParsedQuote` (line 606): .
+- `RuleRepository` (line 669): `load`.
+- `MemoryRuleRepository` (line 674): `__init__`, `load`.
+- `SupabaseRepository` (line 687): `__init__`, `select`, `load`, `accounts`.
+- `MarginEvaluator` (line 803): `matches`, `specificity`, `evaluate`.
+- `ProviderFailure` (line 875): `__init__`.
+- `RateStrategy` (line 881): `__init__`, `post`, `rates`.
+- `EasyPostStrategy` (line 919): `address`, `rates`.
+- `RegionalStrategy` (line 1021): `rates`.
+- `SendcloudStrategy` (line 1060): `__init__`, `rates`.
+- `RatingService` (line 1078): `__init__`, `run_provider`, `quote`.
+- `FinanceEngine` (line 1264): `__init__`, `lock_tenant`, `lock_wallet`, `append_ledger`, `reserve`, `locked_reservation`, `verified_test_booking`, `mark_submitted`, `finish_booking`, `check_payment_environment`, `authorize_label_preview`, `create_checkout`, `credit_session`.
+- `WhatsAppService` (line 1742): `__init__`, `resolve_sender`, `sign_choice`, `process`.
 
-Top-level functions: `decimal_input` (line 277), `parse_json` (line 612), `streamed_json` (line 622), `money` (line 631), `to_minor_units` (line 637), `from_minor_units` (line 648), `encrypt_carrier_credentials` (line 656), `borrow_finance_connection` (line 1255), `country_to_alpha2` (line 1695), `parse_quote` (line 1703), `twiml` (line 1717), `xml_response` (line 1723), `decode_json` (line 1727), `rls_context` (line 1731), `deterministic_lifespan` (line 1884), `lifespan` (line 2093), `branded_carrier_transport` (line 2126), `preview_guard` (line 2150), `validate_tenant_query` (line 2164), `authenticate` (line 2182), `wallet_risk_interceptor` (line 2258), `health` (line 2276), `frontend` (line 2282), `public_config` (line 2287), `get_rates` (line 2296), `carrier_performance` (line 2356), `create_wallet_topup` (line 2374), `limited_body` (line 2385), `stripe_webhook` (line 2395), `inbound_whatsapp` (line 2441), `resolve_quote_choice` (line 2447), `verify_local_logic` (line 2522).
+Top-level functions: `decimal_input` (line 278), `parse_json` (line 613), `streamed_json` (line 623), `money` (line 632), `to_minor_units` (line 638), `from_minor_units` (line 649), `encrypt_carrier_credentials` (line 657), `borrow_finance_connection` (line 1256), `country_to_alpha2` (line 1696), `parse_quote` (line 1704), `twiml` (line 1718), `xml_response` (line 1724), `decode_json` (line 1728), `rls_context` (line 1732), `deterministic_lifespan` (line 1885), `lifespan` (line 2099), `branded_carrier_transport` (line 2132), `preview_guard` (line 2156), `validate_tenant_query` (line 2170), `authenticate` (line 2188), `wallet_risk_interceptor` (line 2264), `health` (line 2282), `frontend` (line 2288), `public_config` (line 2293), `get_rates` (line 2302), `carrier_performance` (line 2362), `create_wallet_topup` (line 2380), `limited_body` (line 2391), `stripe_webhook` (line 2401), `inbound_whatsapp` (line 2447), `resolve_quote_choice` (line 2453), `verify_local_logic` (line 2528).
 
-Public SQL object references: `margin_rules`, `partner_unbound_quotes`, `payment_carts`, `shipments`, `tenants`, `users`, `wallet_ledger`, `wallet_reservations`, `wallet_topups`, `wallets`, `whatsapp_bindings`, `whatsapp_quote_choices`, `whatsapp_receipts`, `whatsapp_routes`.
+Public SQL object references: `carrier_manifests`, `margin_rules`, `partner_unbound_quotes`, `payment_carts`, `shipments`, `tenants`, `users`, `wallet_ledger`, `wallet_reservations`, `wallet_topups`, `wallets`, `whatsapp_bindings`, `whatsapp_quote_choices`, `whatsapp_receipts`, `whatsapp_reply_outbox`, `whatsapp_routes`.
 
 ## backend/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/__init__.py#L1)
 
 EasyInvio logistics extensions.
 
 ## backend/admin_management.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_management.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_management.py#L1)
 
 Owner-only, audited management of existing tenant-scoped configuration.
 
@@ -17715,7 +18408,7 @@ Public SQL object references: `admin_management_events`, `carrier_accounts`, `ma
 
 ## backend/admin_portal.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/admin_portal.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/admin_portal.py#L1)
 
 Platform-owner administration and database-backed tenant pricing.
 
@@ -17740,7 +18433,7 @@ Public SQL object references: `admin_configuration_events`, `carrier_accounts`, 
 
 ## backend/advanced_logistics.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/advanced_logistics.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/advanced_logistics.py#L1)
 
 Decimal dimensional pricing, declaration metadata and bounded CSV order imports.
 
@@ -17755,18 +18448,18 @@ Public SQL object references: `shipments`, `wallets`.
 
 ## backend/agents/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/__init__.py#L1)
 
 Bounded AI assistance around EasyInvio's existing authorised services.
 
 ## backend/agents/config.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/config.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/config.py#L1)
 
 - `AgentSettings` (line 5): `available`.
 ## backend/agents/conversation_context.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/conversation_context.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/conversation_context.py#L1)
 
 Bounded typed conversation drafts and deterministic location extraction.
 
@@ -17776,7 +18469,7 @@ Top-level functions: `explicit_country` (line 14), `location` (line 45), `explic
 
 ## backend/agents/conversational_gateway.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/conversational_gateway.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/conversational_gateway.py#L1)
 
 One authenticated action dispatcher for signed WhatsApp and session-bound web chat.
 
@@ -17784,16 +18477,16 @@ Models extract proposals only. Money, carrier purchases and claim intake remain
 owned by deterministic services. Durable receipts fence uncertain action retries.
 
 - `ConversationMessage` (line 34): .
-- `ConversationStore` (line 68): `__init__`, `receipt`, `finish`, `latest_quote`, `latest_turn`.
-- `ConversationalActionGateway` (line 147): `__init__`, `reply`, `interpret`, `process`, `public`, `pending_reply`, `draft_prompt`, `execute`, `quote`, `collect_uk_premise`, `trigger_return`, `shipment`, `claim`, `claim_panel_url`.
+- `ConversationStore` (line 69): `__init__`, `receipt`, `finish`, `latest_quote`, `latest_turn`.
+- `ConversationalActionGateway` (line 148): `__init__`, `reply`, `interpret`, `process`, `public`, `pending_reply`, `draft_prompt`, `execute`, `quote`, `collect_uk_premise`, `trigger_return`, `manifest`, `shipment`, `claim`, `claim_panel_url`.
 
-Top-level functions: `decoded` (line 41), `message_xml` (line 45), `signed_whatsapp_message` (line 614), `build_router` (line 624).
+Top-level functions: `decoded` (line 42), `message_xml` (line 46), `signed_whatsapp_message` (line 648), `build_router` (line 658).
 
-Public SQL object references: `admin_client_assistance_sessions`, `conversational_messages`, `insurance_claim_cases`, `partner_unbound_quotes`, `shipments`, `support_tickets`, `tenants`, `tracking_events`, `users`, `wallets`, `whatsapp_bindings`, `whatsapp_quote_choices`, `whatsapp_routes`.
+Public SQL object references: `admin_client_assistance_sessions`, `carrier_manifests`, `conversational_messages`, `insurance_claim_cases`, `partner_unbound_quotes`, `shipments`, `support_tickets`, `tenants`, `tracking_events`, `users`, `wallets`, `whatsapp_bindings`, `whatsapp_quote_choices`, `whatsapp_routes`.
 
 ## backend/agents/margin_optimizer.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/margin_optimizer.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/margin_optimizer.py#L1)
 
 Optional strategic advice over immutable, already-priced top-ten offers.
 
@@ -17806,7 +18499,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `tenants
 
 ## backend/agents/models.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/models.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/models.py#L1)
 
 - `StrictOutput` (line 9): .
 - `QuoteIntent` (line 13): .
@@ -17821,7 +18514,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `tenants
 - `HelpQuestion` (line 104): .
 ## backend/agents/rag_support.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/rag_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/rag_support.py#L1)
 
 Versioned local documentation retrieval; customer queries are never written to disk.
 
@@ -17833,7 +18526,7 @@ Top-level functions: `words` (line 62), `redacted_question` (line 67).
 
 ## backend/agents/routes.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/routes.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/routes.py#L1)
 
 Authenticated AI preparation and documentation; no general-purpose action tools.
 
@@ -17844,7 +18537,7 @@ Top-level functions: `build_router` (line 17).
 
 ## backend/agents/runtime.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/runtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/runtime.py#L1)
 
 No durable customer prompts, no model retries, bounded SDK runs and measured usage.
 
@@ -17853,7 +18546,7 @@ No durable customer prompts, no model retries, bounded SDK runs and measured usa
 - `AgentRuntime` (line 47): `__init__`, `available`, `key`, `reserve`, `record`, `run`, `embed`, `close`.
 ## backend/agents/supervisor.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/supervisor.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/supervisor.py#L1)
 
 Bounded orchestration around existing, authoritative logistics services.
 
@@ -17863,23 +18556,23 @@ Top-level functions: `supervisor` (line 111).
 
 ## backend/agents/workers.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/agents/workers.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/agents/workers.py#L1)
 
 Specialists have narrow capabilities; no worker can buy labels or alter a wallet.
 
 - `IngestionWorkerAgent` (line 16): `__init__`, `conversation`, `validate_intent`, `message`, `ground_quote`, `csv_headers`.
-- `CustomsHarmonizerAgent` (line 186): `__init__`, `rank_tariff`, `suggest`, `information`.
-- `InvoiceSurchargeAuditorAgent` (line 252): `__init__`, `compare`.
-- `ProactiveClaimsSupportAgent` (line 264): `__init__`, `receive_tracking`, `stage`.
+- `CustomsHarmonizerAgent` (line 187): `__init__`, `rank_tariff`, `suggest`, `information`.
+- `InvoiceSurchargeAuditorAgent` (line 253): `__init__`, `compare`.
+- `ProactiveClaimsSupportAgent` (line 265): `__init__`, `receive_tracking`, `stage`.
 ## backend/aggregator_lifecycle.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/aggregator_lifecycle.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/aggregator_lifecycle.py#L1)
 
 Backward-compatible imports for the explicit three-provider engine.
 
 ## backend/aggregator_registry.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/aggregator_registry.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/aggregator_registry.py#L1)
 
 Explicit aggregator capabilities: shared interface, provider-specific wire contracts.
 
@@ -17889,7 +18582,7 @@ Top-level functions: `identify_aggregator` (line 23), `public_capabilities` (lin
 
 ## backend/ai_engine.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ai_engine.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ai_engine.py#L1)
 
 Explainable mock ML and tenant-scoped invoice auditing.
 
@@ -17908,7 +18601,7 @@ Public SQL object references: `shipments`, `tenants`.
 
 ## backend/apply_automation_migration.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_automation_migration.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/apply_automation_migration.py#L1)
 
 Apply the additive freight/support compatibility migration in sandbox.
 
@@ -17917,7 +18610,7 @@ Top-level functions: `run` (line 9).
 
 ## backend/apply_partner_lifecycle.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_partner_lifecycle.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/apply_partner_lifecycle.py#L1)
 
 Explicit sandbox-only migration runner; contains no credentials or seed data.
 
@@ -17926,7 +18619,7 @@ Top-level functions: `run` (line 12).
 
 ## backend/apply_tracking_migration.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/apply_tracking_migration.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/apply_tracking_migration.py#L1)
 
 Apply only the additive tracking/support migration to configured Supabase.
 
@@ -17935,7 +18628,7 @@ Top-level functions: `run` (line 9).
 
 ## backend/automation_freight_engine.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_freight_engine.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_freight_engine.py#L1)
 
 Cargo-aware bulk rating, confirmed EasyPost purchase and customs bundles.
 
@@ -17957,7 +18650,7 @@ Public SQL object references: `automation_failures`, `ecommerce_stores`, `partne
 
 ## backend/automation_three_partners.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/automation_three_partners.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/automation_three_partners.py#L1)
 
 Native partner lifecycle contracts behind EasyInvio's private account boundary.
 
@@ -17969,25 +18662,25 @@ return service; a forward price is never reused as a return authorization.
 - `NativeOrderSelection` (line 74): .
 - `NativeOrderReconciliation` (line 80): .
 - `NativePartnerService` (line 214): `__init__`, `decrypt_secret`, `ensure_order`, `sync_one`, `worker`, `fulfillment_cycle`, `receive_tracking`.
-- `BaseAggregatorAdapter` (line 706): `__init__`, `authentication`, `request`.
-- `EasyPostAdapter` (line 755): `authentication`, `quote`, `sync_order`, `confirm_order_fulfillment`, `retrieve_order`, `normalize`, `normalize_order`, `purchase_label`, `inject_customs`, `retrieve_label`, `void_label`, `void_confirmed`, `generate_return_label`.
-- `ShippoAdapter` (line 931): `authentication`, `quote`, `sync_order`, `confirm_order_fulfillment`, `retrieve_order`, `normalize`, `purchase_label`, `retrieve_package_labels`, `retrieve_label`, `inject_customs`, `void_label`, `void_confirmed`, `generate_return_label`.
-- `ShippoRateStrategy` (line 1073): `__init__`, `rates`.
-- `SendcloudAdapter` (line 1138): `authentication`, `quote`, `purchase_allowed`, `inject_customs`, `payload`, `normalize`, `normalize_single`, `sync_order`, `confirm_order_fulfillment`, `retrieve_order`, `purchase_label`, `normalize_return`, `retrieve_label`, `void_label`, `void_confirmed`, `generate_return_label`.
-- `NativeRateStrategy` (line 1381): `__init__`, `rates`.
-- `FactoryPurchaseBridge` (line 1398): `__init__`, `snapshot`, `buy`, `reconcile`.
-- `BookingRequest` (line 1504): .
-- `VoidRequest` (line 1513): .
-- `ReturnRequest` (line 1522): .
-- `PartnerLifecycleService` (line 1536): `__init__`, `environment`, `ticket`, `public_result`, `bind_direct_quote`, `confirm`, `_confirm`, `void`, `poll_and_finalize_sendcloud_label`, `worker`.
+- `BaseAggregatorAdapter` (line 722): `__init__`, `authentication`, `request`.
+- `EasyPostAdapter` (line 771): `authentication`, `quote`, `sync_order`, `confirm_order_fulfillment`, `retrieve_order`, `normalize`, `normalize_order`, `purchase_label`, `inject_customs`, `retrieve_label`, `void_label`, `void_confirmed`, `generate_return_label`.
+- `ShippoAdapter` (line 947): `authentication`, `quote`, `sync_order`, `confirm_order_fulfillment`, `retrieve_order`, `normalize`, `purchase_label`, `retrieve_package_labels`, `retrieve_label`, `inject_customs`, `void_label`, `void_confirmed`, `generate_return_label`.
+- `ShippoRateStrategy` (line 1089): `__init__`, `rates`.
+- `SendcloudAdapter` (line 1154): `authentication`, `quote`, `purchase_allowed`, `inject_customs`, `payload`, `normalize`, `normalize_single`, `sync_order`, `confirm_order_fulfillment`, `retrieve_order`, `purchase_label`, `normalize_return`, `retrieve_label`, `void_label`, `void_confirmed`, `generate_return_label`.
+- `NativeRateStrategy` (line 1397): `__init__`, `rates`.
+- `FactoryPurchaseBridge` (line 1414): `__init__`, `snapshot`, `buy`, `reconcile`.
+- `BookingRequest` (line 1520): .
+- `VoidRequest` (line 1529): .
+- `ReturnRequest` (line 1538): .
+- `PartnerLifecycleService` (line 1552): `__init__`, `environment`, `ticket`, `public_result`, `bind_direct_quote`, `confirm`, `_prepare_confirm`, `_confirm`, `void`, `poll_and_finalize_sendcloud_label`, `worker`.
 
-Top-level functions: `decode_json` (line 87), `native_timestamp` (line 91), `native_pod` (line 104), `parse_easypost_tracking` (line 112), `parse_sendcloud_tracking` (line 131), `parse_shippo_tracking` (line 149), `verify_native_signature` (line 170), `wake_exception_delivery` (line 446), `build_native_router` (line 456), `decimal_json` (line 584), `order_total` (line 597), `native_order_key` (line 601), `easypost_parcel` (line 605), `validate_native_cargo` (line 616), `easypost_tax_identifiers` (line 638), `easypost_address` (line 648), `shippo_address` (line 654), `identifier` (line 658), `secure_link` (line 667), `declaration` (line 676), `return_snapshot` (line 695), `sendcloud_address` (line 1127), `create_adapter` (line 1374), `verify_quote_connection` (line 1390), `authorize` (line 1529), `carrier_document` (line 1930), `prepare_return_quote` (line 1977), `build_router` (line 2017).
+Top-level functions: `decode_json` (line 87), `native_timestamp` (line 91), `native_pod` (line 104), `parse_easypost_tracking` (line 112), `parse_sendcloud_tracking` (line 131), `parse_shippo_tracking` (line 149), `verify_native_signature` (line 170), `wake_exception_delivery` (line 446), `build_native_router` (line 456), `decimal_json` (line 584), `order_total` (line 597), `native_order_key` (line 601), `easypost_parcel` (line 605), `validate_native_cargo` (line 616), `easypost_tax_identifiers` (line 638), `easypost_address` (line 648), `shippo_address` (line 654), `identifier` (line 658), `secure_link` (line 667), `carrier_qr_fields` (line 676), `declaration` (line 692), `return_snapshot` (line 711), `sendcloud_address` (line 1143), `create_adapter` (line 1390), `verify_quote_connection` (line 1406), `authorize` (line 1545), `carrier_document` (line 1957), `prepare_return_quote` (line 2020), `build_router` (line 2060).
 
 Public SQL object references: `carrier_accounts`, `partner_cancellations`, `partner_order_jobs`, `partner_provider_options`, `partner_shipping_offers`, `partner_unbound_quotes`, `platform_carrier_connections`, `platform_carrier_events`, `shipments`, `tenants`, `users`, `wallet_reservations`, `wallets`.
 
 ## backend/booking_receipt.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/booking_receipt.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/booking_receipt.py#L1)
 
 Printable booking receipt from confirmed, tenant-owned shipment records.
 
@@ -17996,7 +18689,7 @@ Top-level functions: `receipt_pdf` (line 11).
 
 ## backend/build_rigorous_seed.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/build_rigorous_seed.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/build_rigorous_seed.py#L1)
 
 Generate complete SQL fixture scripts without embedding usable credentials.
 
@@ -18007,7 +18700,7 @@ Public SQL object references: `carrier_accounts`, `ecommerce_stores`, `fixture_s
 
 ## backend/bulk_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/bulk_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/bulk_checkout.py#L1)
 
 Review persisted rates and explicitly buy selected offers for CSV or store orders.
 
@@ -18021,7 +18714,7 @@ Public SQL object references: `partner_shipping_offers`, `shipments`, `tenants`,
 
 ## backend/card_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/card_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/card_checkout.py#L1)
 
 Card-funded label baskets over the atomic wallet booking ledger.
 
@@ -18033,7 +18726,7 @@ Public SQL object references: `partner_shipping_offers`, `payment_carts`, `shipm
 
 ## backend/carrier_access.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/carrier_access.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/carrier_access.py#L1)
 
 Historical carrier access is limited to a verified shipment lifecycle.
 
@@ -18044,7 +18737,7 @@ Public SQL object references: `shipments`, `tenant_catalog_addresses`.
 
 ## backend/carrier_consolidation.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/carrier_consolidation.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/carrier_consolidation.py#L1)
 
 Private carrier consolidation, tenant-local history and branded public payloads.
 
@@ -18055,7 +18748,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tracking_events`
 
 ## backend/check_hubspot.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/check_hubspot.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/check_hubspot.py#L1)
 
 Read-only deployment preflight. Never enables a worker or creates records.
 
@@ -18067,13 +18760,13 @@ Top-level functions: `check` (line 13).
 
 ## backend/check_setup.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/check_setup.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/check_setup.py#L1)
 
 Report invalid environment variable names without exposing their values.
 
 ## backend/client_assistance.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/client_assistance.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/client_assistance.py#L1)
 
 Verified platform operators acting in a tenant, with durable request audit events.
 
@@ -18087,7 +18780,7 @@ Public SQL object references: `admin_client_assistance_events`, `admin_client_as
 
 ## backend/conversational_claims.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/conversational_claims.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/conversational_claims.py#L1)
 
 One-time completion of an authenticated, unsubmitted chat claim draft.
 
@@ -18098,7 +18791,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 
 ## backend/credential_rotation.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/credential_rotation.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/credential_rotation.py#L1)
 
 Fresh-admin replacement of sealed, tenant-bound credentials; never unlock.
 
@@ -18110,7 +18803,7 @@ Public SQL object references: `carrier_accounts`.
 
 ## backend/customer_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/customer_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/customer_checkout.py#L1)
 
 Tenant-authorized checkout of private offers and confirmed invoice PDFs.
 
@@ -18124,7 +18817,7 @@ Public SQL object references: `booking_references`, `easyinvio_booking_reference
 
 ## backend/dashboard_portal.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dashboard_portal.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dashboard_portal.py#L1)
 
 Server-verified portal roles, owner analytics and support dashboard actions.
 
@@ -18139,7 +18832,7 @@ Public SQL object references: `app_user_profiles`, `automation_failures`, `ecomm
 
 ## backend/database_tls.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/database_tls.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/database_tls.py#L1)
 
 Verified PostgreSQL TLS with explicit legacy-CA compatibility.
 
@@ -18148,7 +18841,7 @@ Top-level functions: `database_tls_context` (line 5).
 
 ## backend/delivery_quality.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/delivery_quality.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/delivery_quality.py#L1)
 
 Tenant-bound tracking readiness; status transport and quality are separate.
 
@@ -18159,7 +18852,7 @@ Public SQL object references: `carrier_accounts`, `partner_provider_options`, `s
 
 ## backend/dispatch_pdf.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_pdf.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_pdf.py#L1)
 
 Bounded, tenant-authorized print bundles of confirmed carrier PDFs.
 
@@ -18172,7 +18865,7 @@ Top-level functions: `invoice_pdf` (line 48), `fetch_pdf` (line 99), `merge_pdfs
 
 ## backend/dispatch_realtime.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_realtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_realtime.py#L1)
 
 Commit-time Postgres notifications fan out to authenticated tenant sockets.
 
@@ -18182,7 +18875,7 @@ Top-level functions: `build_router` (line 53).
 
 ## backend/dispatch_workspace.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/dispatch_workspace.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/dispatch_workspace.py#L1)
 
 Operational marketplace inbox. No credentials or financial ledger are exposed.
 
@@ -18197,7 +18890,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/ecommerce_connectors.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_connectors.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_connectors.py#L1)
 
 Native signed intake and opt-in Shopify fulfillment delivery.
 
@@ -18212,7 +18905,7 @@ Top-level functions: `single_header` (line 88), `receive_store_webhook` (line 95
 
 ## backend/ecommerce_inbound.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_inbound.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_inbound.py#L1)
 
 Authenticated Shopify intake and Amazon AWS API-destination order notifications.
 
@@ -18224,7 +18917,7 @@ Public SQL object references: `amazon_order_notifications`, `ecommerce_stores`.
 
 ## backend/ecommerce_sync.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/ecommerce_sync.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/ecommerce_sync.py#L1)
 
 Tenant-scoped imports and durable fulfillment delivery.
 
@@ -18246,7 +18939,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/help_center.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/help_center.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/help_center.py#L1)
 
 Public, authored customer guidance with no account access or external actions.
 
@@ -18256,7 +18949,7 @@ Top-level functions: `guide_source` (line 228), `rendered_guide` (line 238), `re
 
 ## backend/hubspot_crm.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_crm.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_crm.py#L1)
 
 Optional HubSpot CRM synchronization with durable PostgreSQL jobs.
 
@@ -18275,7 +18968,7 @@ Public SQL object references: `hubspot_sync_jobs`, `hubspot_tenant_links`, `ship
 
 ## backend/hubspot_provisioning.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/hubspot_provisioning.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/hubspot_provisioning.py#L1)
 
 Signed HubSpot deal events and durable, idempotent workspace provisioning.
 
@@ -18290,7 +18983,7 @@ Public SQL object references: `hubspot_activation_jobs`, `hubspot_tenant_links`,
 
 ## backend/identity.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/identity.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/identity.py#L1)
 
 Password-verified, revocable HS256 app sessions around Supabase Auth identity.
 
@@ -18306,7 +18999,7 @@ Public SQL object references: `admin_client_assistance_sessions`, `app_auth_sess
 
 ## backend/inspect_seed_schema.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/inspect_seed_schema.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/inspect_seed_schema.py#L1)
 
 Export only schema metadata needed for relational sandbox fixtures.
 
@@ -18315,7 +19008,7 @@ Top-level functions: `run` (line 10).
 
 ## backend/invoice_upload.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/invoice_upload.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/invoice_upload.py#L1)
 
 Bounded statement parsing and reproducible comparisons against server snapshots.
 
@@ -18327,16 +19020,46 @@ Public SQL object references: `billing_disputes`, `shipments`.
 
 ## backend/label_availability.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/label_availability.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/label_availability.py#L1)
 
 Known purchase gates checked before payment; live carrier acceptance is separate.
 
 
 Top-level functions: `label_availability` (line 5), `require_label_purchase` (line 16).
 
+## backend/logistics_media.py
+
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/logistics_media.py#L1)
+
+Normalize real carrier assets and publish read-only, tenant-scoped signed images.
+
+- `PublishedMedia` (line 25): .
+- `QRMediaService` (line 89): `__init__`, `publish`.
+
+Top-level functions: `normalize_image` (line 33), `inline_asset` (line 75), `publish_return_media` (line 129).
+
+Public SQL object references: `logistics_media_assets`.
+
+## backend/manifest_service.py
+
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/manifest_service.py#L1)
+
+Fenced carrier close-out and explicit internal driver handover documents.
+
+- `ManifestShipment` (line 34): `exact_weight`.
+- `ManifestCandidateSummary` (line 51): .
+- `ManifestResult` (line 60): .
+- `PreviewManifest` (line 74): .
+- `CloseManifest` (line 79): .
+- `ManifestService` (line 137): `__init__`, `actor`, `warehouse`, `eligibility`, `origin_sql`, `selection_args`, `candidates`, `get_manifestable_summary`, `result`, `download_url`, `close_manifest`, `_close_manifest`, `finish_native`, `complete`, `status`, `document`.
+
+Top-level functions: `postal_origin` (line 85), `manifest_shipment` (line 91), `driver_sheet` (line 107), `build_router` (line 382).
+
+Public SQL object references: `admin_client_assistance_sessions`, `carrier_accounts`, `carrier_manifest_events`, `carrier_manifests`, `partner_cancellations`, `shipments`, `tenant_catalog_addresses`, `tenants`, `users`.
+
 ## backend/multi_label.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/multi_label.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/multi_label.py#L1)
 
 A group is confirmed only when every native package label is confirmed.
 
@@ -18345,7 +19068,7 @@ Top-level functions: `bundle_labels` (line 5).
 
 ## backend/order_csv.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/order_csv.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/order_csv.py#L1)
 
 Versioned CSV orders, tenant-scoped persistence and customs review.
 
@@ -18361,7 +19084,7 @@ Public SQL object references: `ecommerce_stores`, `shipments`, `tenants`, `users
 
 ## backend/package_guidance.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_guidance.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/package_guidance.py#L1)
 
 Route-scoped package guidance; reference limits never certify carrier eligibility.
 
@@ -18373,7 +19096,7 @@ Top-level functions: `evaluate_package` (line 66), `build_router` (line 134).
 
 ## backend/package_sets.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/package_sets.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/package_sets.py#L1)
 
 Exact physical package snapshots; carrier APIs receive individual boxes.
 
@@ -18385,7 +19108,7 @@ Public SQL object references: `shipment_goods_items`, `shipments`.
 
 ## backend/paf_lookup.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/paf_lookup.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/paf_lookup.py#L1)
 
 Asynchronous licensed PAF lookup boundary. Postcode syntax is not delivery proof.
 
@@ -18398,7 +19121,7 @@ Top-level functions: `uk_postcode` (line 18).
 
 ## backend/payment_gateway.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/payment_gateway.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/payment_gateway.py#L1)
 
 Environment-validated Checkout gateway over the shared, atomic wallet ledger service.
 
@@ -18412,7 +19135,7 @@ Public SQL object references: `shipments`, `stripe_charge_refunds`, `stripe_webh
 
 ## backend/platform_carriers.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/platform_carriers.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/platform_carriers.py#L1)
 
 Owner-managed shared provider connections; tenant shipments retain isolated FKs.
 
@@ -18424,7 +19147,7 @@ Public SQL object references: `carrier_accounts`, `platform_carrier_connections`
 
 ## backend/rate_diagnostics.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/rate_diagnostics.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/rate_diagnostics.py#L1)
 
 Safe rate diagnostics; never expose upstream response bodies or credentials.
 
@@ -18437,7 +19160,7 @@ Public SQL object references: `automation_failures`, `support_tickets`.
 
 ## backend/repair_local_config.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/repair_local_config.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/repair_local_config.py#L1)
 
 Repair identifiable dotenv formatting without printing credential values.
 
@@ -18446,18 +19169,18 @@ Top-level functions: `run` (line 12).
 
 ## backend/return_documents.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/return_documents.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/return_documents.py#L1)
 
 Optional carrier drop-off documents; never a second label purchase.
 
 
-Top-level functions: `request_easypost_qr` (line 13), `public_return_links` (line 46), `verify_dropoff_token` (line 67), `recover_easypost_qr` (line 82).
+Top-level functions: `request_easypost_qr` (line 13), `public_return_links` (line 47), `verify_dropoff_token` (line 68), `recover_easypost_qr` (line 83).
 
 Public SQL object references: `shipments`.
 
 ## backend/return_ingress.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/return_ingress.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/return_ingress.py#L1)
 
 Signed normalized return commands from merchant and marketplace gateways.
 
@@ -18471,7 +19194,7 @@ Public SQL object references: `ecommerce_stores`, `tenants`, `users`.
 
 ## backend/reverse_logistics.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/reverse_logistics.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/reverse_logistics.py#L1)
 
 Authenticated, durable full-parcel returns over the existing booking ledger.
 
@@ -18481,13 +19204,13 @@ fences interrupted requests; a repeated request can observe, never repurchase.
 - `ReturnCommand` (line 22): `exact_price_limit`, `reference`.
 - `ReverseLogisticsService` (line 66): `__init__`, `status`, `process`, `save`.
 
-Top-level functions: `cheapest_return` (line 48), `process_batch` (line 191).
+Top-level functions: `cheapest_return` (line 48), `process_batch` (line 195).
 
 Public SQL object references: `reverse_logistics_requests`, `shipments`, `tenant_catalog_addresses`.
 
 ## backend/sandbox_hooks.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sandbox_hooks.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/sandbox_hooks.py#L1)
 
 Real Stripe test-mode hooks and strict signed Twilio Sandbox requests.
 
@@ -18502,7 +19225,7 @@ Public SQL object references: `tenants`, `users`, `wallet_topups`, `wallets`, `w
 
 ## backend/seed_rigorous_data.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/seed_rigorous_data.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/seed_rigorous_data.py#L1)
 
 Apply or rollback-verify the complete relational seed in one transaction.
 
@@ -18513,7 +19236,7 @@ Public SQL object references: `carrier_accounts`, `fixture_seed_runs`, `shipment
 
 ## backend/sendcloud_adapter.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/sendcloud_adapter.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/sendcloud_adapter.py#L1)
 
 Read-only Sendcloud v2 rates for explicitly configured contract methods.
 
@@ -18528,7 +19251,7 @@ Public SQL object references: `strip`.
 
 ## backend/shipment_protection.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/shipment_protection.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/shipment_protection.py#L1)
 
 XCover premium arithmetic and explicit integration readiness.
 
@@ -18548,13 +19271,13 @@ partner claims credentials or insurer form bindings are not configured.
 - `XCoverClient` (line 340): `__init__`, `_request`, `resource_id`, `create_quote`, `get_quote`, `get_booking`, `book`, `confirmed_booking`.
 - `ProtectionService` (line 620): `__init__`, `ready`, `prepare`, `public_quote`, `ledger`, `reserve`, `release`, `book`, `confirm`, `reconcile_pending`, `worker`, `credit_settlement`.
 
-Top-level functions: `calculate_xcover_premium` (line 52), `load_xcover_settings` (line 174), `decimal_json` (line 294), `xcover_headers` (line 316), `verify_xcover_webhook` (line 488), `claims_portal_url` (line 529), `price_snapshot` (line 549), `supplier_address` (line 603), `book_xcover_policy` (line 1507), `require_claim_role` (line 1522), `decoded` (line 1527), `insurance_schema_ready` (line 1531), `validate_evidence` (line 1539), `insured_shipment` (line 1577), `build_router` (line 1600).
+Top-level functions: `calculate_xcover_premium` (line 52), `load_xcover_settings` (line 174), `decimal_json` (line 294), `xcover_headers` (line 316), `verify_xcover_webhook` (line 488), `claims_portal_url` (line 529), `price_snapshot` (line 549), `supplier_address` (line 603), `book_xcover_policy` (line 1508), `require_claim_role` (line 1523), `decoded` (line 1528), `insurance_schema_ready` (line 1532), `validate_evidence` (line 1540), `insured_shipment` (line 1578), `build_router` (line 1601).
 
 Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence`, `insurance_purchases`, `insurance_settlements`, `insurance_webhook_receipts`, `partner_shipping_offers`, `shipments`, `support_message_outbox`, `support_ticket_activity`, `support_tickets`, `tenants`, `users`, `wallet_ledger`, `wallets`, `whatsapp_bindings`, `workspace_dispatch_events`.
 
 ## backend/store_connections.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_connections.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/store_connections.py#L1)
 
 Write-only merchant setup; encrypted envelopes are bound to tenant and store.
 
@@ -18566,7 +19289,7 @@ Public SQL object references: `amazon_order_notifications`, `ecommerce_stores`, 
 
 ## backend/store_returns.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/store_returns.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/store_returns.py#L1)
 
 Native return tracking without forward fulfillment, refunds or restocking.
 
@@ -18578,7 +19301,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/support_alert_controls.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_alert_controls.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_alert_controls.py#L1)
 
 Platform delivery controls separate from the recipient's verified consent.
 
@@ -18590,7 +19313,7 @@ Public SQL object references: `tenants`, `whatsapp_bindings`.
 
 ## backend/support_delivery.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_delivery.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_delivery.py#L1)
 
 Opt-in WhatsApp notification delivery with a durable uncertain-send fence.
 
@@ -18607,7 +19330,7 @@ Public SQL object references: `shipments`, `support_message_outbox`, `support_ti
 
 ## backend/support_workflow.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/support_workflow.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/support_workflow.py#L1)
 
 Explicit internal review ownership and tenant-scoped append-only activity.
 
@@ -18618,7 +19341,7 @@ Public SQL object references: `app_user_profiles`, `support_ticket_activity`, `s
 
 ## backend/tenant_catalogs.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tenant_catalogs.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tenant_catalogs.py#L1)
 
 Private, versioned tenant registries. No bookings, wallet changes or AI calls.
 
@@ -18633,7 +19356,7 @@ Public SQL object references: `tenant_catalog_addresses`, `tenant_catalog_produc
 
 ## backend/test_supabase_transaction.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/test_supabase_transaction.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/test_supabase_transaction.py#L1)
 
 Explicit, persisted sandbox connectivity test. Creates no payments or labels.
 
@@ -18644,13 +19367,13 @@ Public SQL object references: `margin_rules`, `tenants`, `wallets`.
 
 ## backend/tools/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tools/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tools/__init__.py#L1)
 
 Explicitly invoked operational utilities; never run as application startup jobs.
 
 ## backend/tools/sme_lead_scraper.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tools/sme_lead_scraper.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tools/sme_lead_scraper.py#L1)
 
 Company-level UK logistics prospect discovery and unsent outreach drafts.
 
@@ -18664,7 +19387,7 @@ Top-level functions: `district` (line 39), `company_number` (line 46), `public_u
 
 ## backend/tracking_and_support.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/tracking_and_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/tracking_and_support.py#L1)
 
 Signed, tenant/account-scoped tracking and durable support staging.
 
@@ -18682,7 +19405,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `support_message_
 
 ## backend/verify_automation_sandbox.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_automation_sandbox.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/verify_automation_sandbox.py#L1)
 
 Persist one clearly identified invalid-order support test; no carrier calls.
 
@@ -18693,7 +19416,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `wallets
 
 ## backend/verify_automation_writepath.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_automation_writepath.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/verify_automation_writepath.py#L1)
 
 Real PostgreSQL write-path probe with controlled rates and final rollback.
 
@@ -18709,7 +19432,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tenants`, `users
 
 ## backend/verify_supabase.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_supabase.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/verify_supabase.py#L1)
 
 Read-only connection/schema probe. Never log credentials or raw server errors.
 
@@ -18720,7 +19443,7 @@ Public SQL object references: `status_code`.
 
 ## backend/verify_tracking_support.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/verify_tracking_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/verify_tracking_support.py#L1)
 
 Real sandbox schema, tenant-scoped report and durable ticket-worker verification.
 
@@ -18731,7 +19454,7 @@ Public SQL object references: `shipments`.
 
 ## backend/web_registration.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/web_registration.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/web_registration.py#L1)
 
 Email-verified public account creation; passwords and OTPs are never stored locally.
 
@@ -18744,7 +19467,7 @@ Public SQL object references: `app_user_profiles`, `tenants`, `users`, `wallets`
 
 ## backend/webhook_security.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/webhook_security.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/webhook_security.py#L1)
 
 Query-secret redaction and optional trusted-proxy-aware webhook IP policy.
 
@@ -18754,7 +19477,7 @@ Top-level functions: `redact_query_secrets` (line 11), `install_webhook_log_reda
 
 ## backend/whatsapp_bot.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_bot.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_bot.py#L1)
 
 Signed WhatsApp ingress into the shared authenticated conversational gateway.
 
@@ -18767,16 +19490,16 @@ Top-level functions: `initialize_whatsapp` (line 28), `xml_message` (line 41), `
 
 ## backend/whatsapp_ingress.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_ingress.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_ingress.py#L1)
 
 Local ingress for tunneling only signed Twilio callbacks, never the app UI/API.
 
 
-Top-level functions: `lifespan` (line 11), `identify_gateway` (line 23), `forward` (line 29), `incoming_message` (line 58), `delivery_status` (line 63).
+Top-level functions: `lifespan` (line 11), `identify_gateway` (line 23), `forward` (line 29), `incoming_message` (line 58), `delivery_status` (line 63), `media_status` (line 68).
 
 ## backend/whatsapp_onboarding.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_onboarding.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_onboarding.py#L1)
 
 Signed-phone registration with separate email proof and native Auth identities.
 
@@ -18792,20 +19515,20 @@ Public SQL object references: `app_user_profiles`, `tenants`, `users`, `wallets`
 
 ## backend/whatsapp_queue.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/whatsapp_queue.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/whatsapp_queue.py#L1)
 
 Durable WhatsApp ingress and REST delivery; no carrier work in the HTTP ack.
 
-- `OutboundPart` (line 29): .
-- `WhatsAppQueue` (line 96): `__init__`, `encrypt`, `enqueue`, `claim`, `mark`, `stage`, `dispatch`, `send_failure`, `drain`, `worker`.
+- `OutboundPart` (line 29): `media`.
+- `WhatsAppQueue` (line 117): `__init__`, `encrypt`, `enqueue`, `claim`, `mark`, `stage`, `dispatch`, `status_url`, `schedule_fallback`, `send_failure`, `drain`, `worker`.
 
-Top-level functions: `inbound_digest` (line 35), `reply_parts` (line 41), `return_media` (line 50), `process_inbound` (line 72), `accept_whatsapp` (line 232).
+Top-level functions: `inbound_digest` (line 47), `reply_parts` (line 53), `return_media` (line 62), `process_inbound` (line 84), `accept_whatsapp` (line 283), `build_media_status_router` (line 299).
 
 Public SQL object references: `whatsapp_inbound_queue`, `whatsapp_reply_outbox`.
 
 ## backend/workspace_personas.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_personas.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_personas.py#L1)
 
 Shared account profiles and exact consumer pricing; no parallel wallets.
 
@@ -18817,7 +19540,7 @@ Public SQL object references: `individual_pricing_settings`.
 
 ## backend/workspace_settings.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/workspace_settings.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/workspace_settings.py#L1)
 
 Tenant-owned settings, verified email invitations and durable dispute drafts.
 
@@ -18833,7 +19556,7 @@ Public SQL object references: `app_auth_sessions`, `app_login_limits`, `carrier_
 
 ## backend/xcover_claims.py
 
-[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/35bd816f0e12dd067b18cd54382bbb320a0e80dd/backend/xcover_claims.py#L1)
+[Open source](https://github.com/sync4ai-lab/veloce.ai/blob/e4d73e7f2ab88945b4977bf18a718815d4846f98/backend/xcover_claims.py#L1)
 
 Native XClaim JWT, FNOL, evidence, async claims and signed status events.
 
@@ -18939,6 +19662,8 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 - `tests/test_integration_remediation.py`
 - `tests/test_label_failure_operations.py`
 - `tests/test_logistics.py`
+- `tests/test_logistics_media.py`
+- `tests/test_manifest_service.py`
 - `tests/test_margin_optimizer.py`
 - `tests/test_modern_logistics.py`
 - `tests/test_multi_piece_flow.py`
