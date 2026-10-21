@@ -19,6 +19,15 @@ Set server-only `TRACKING_WEBHOOK_KEYS` in `.env` to a JSON object such as:
 
 Use an independent random secret for each integration; do not use Supabase or provider API keys as signing secrets. The default configuration is empty, so unsigned/unconfigured callbacks are rejected. Restart the backend after configuration changes.
 
+If startup reports `Invalid TRACKING_WEBHOOK_KEYS JSON`, check this optional
+legacy setting. When using native encrypted provider connections instead of a
+custom normalized webhook adapter, set `TRACKING_WEBHOOK_KEYS={}` in `.env` and
+restart the backend. This explicitly disables only the legacy receiver; it does
+not configure or disable native carrier webhooks. A plain API key or signing
+secret is not a valid value for this setting: an enabled legacy receiver needs
+the complete tenant/account-bound JSON map above. Do not invent tenant IDs or
+weaken signature validation to remove the warning.
+
 `POST /api/v1/tracking/webhook` accepts the following normalized JSON:
 
 ```json
