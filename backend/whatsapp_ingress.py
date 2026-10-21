@@ -62,3 +62,9 @@ async def incoming_message(request: Request):
 @app.post('/api/v1/support/whatsapp/status/{message_id}')
 async def delivery_status(message_id: UUID, request: Request):
     return await forward(request, '/api/v1/support/whatsapp/status/' + str(message_id))
+
+
+@app.post('/api/v1/integrations/whatsapp/outbound-status/{part_id}')
+async def media_status(part_id: int,request: Request):
+    if part_id<1:raise HTTPException(404,'Unknown receipt')
+    return await forward(request,'/api/v1/integrations/whatsapp/outbound-status/'+str(part_id))

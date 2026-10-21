@@ -36,6 +36,7 @@ class ConversationMessage(StrictOutput):
     message_body: str = Field(min_length=1, max_length=2000)
     channel: Literal['WHATSAPP', 'WEB_CHAT']
     request_id: UUID = Field(default_factory=uuid4)
+    media_urls: list[str] = Field(default_factory=list,max_length=1)
 
 
 def decoded(value):
@@ -158,6 +159,11 @@ class ConversationalActionGateway:
         return {'status': status, 'conversational_reply': text, 'action_taken': action, **details}
 
     async def interpret(self, context, text):
+        closing = re.fullmatch(r'\s*close\s+manifest\s+([A-Za-z0-9 _-]{1,50})\s*',text,re.I)
+        if closing:
+            return ConversationalIntent(intent='CLOSE_MANIFEST',target_reference_id=closing[1].strip())
+        if re.fullmatch(r'\s*manifest\s+status\s*',text,re.I):
+            return ConversationalIntent(intent='MANIFEST_STATUS')
         from main import parse_quote
         try:
             parsed = parse_quote(text)
@@ -201,6 +207,8 @@ class ConversationalActionGateway:
         return ConversationalIntent(intent='HELP')
 
     async def process(self, context, body: ConversationMessage, *, verified_whatsapp=False, received_at: datetime | None = None):
+        if body.media_urls:
+            raise HTTPException(422,'Chat input media URLs cannot authorize outbound carrier documents')
         if context.role not in ROLES or self.pool is None:
             raise HTTPException(403, 'An active registered workspace session is required')
         if body.channel == 'WHATSAPP' and not verified_whatsapp:
@@ -208,7 +216,7 @@ class ConversationalActionGateway:
         # sender_id is never a tenant/user selector for web chat; its identity is
         # always the authenticated browser session, including assistance audit.
         message_id = uuid5(NAMESPACE_URL, f'conversation:{context.tenant_id}:{context.user_id}:{body.channel}:{body.request_id}')
-        digest = hashlib.sha256(body.model_dump_json(exclude={'request_id'}).encode()).hexdigest()
+        digest = hashlib.sha256(body.model_dump_json(exclude={'request_id','media_urls'}).encode()).hexdigest()
         async with self.store.receipt(context, body, message_id, digest) as (_, cached):
             if cached is not None:
                 return self.public(cached)
@@ -233,7 +241,7 @@ class ConversationalActionGateway:
                 await self.store.finish(context, message_id, result)
                 return self.public(result)
             try:
-                new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|return|topup|help|commands)\b|\btop\s+up\b', body.message_body, re.I)
+                new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|return|topup|help|commands|manifest)\b|\btop\s+up\b', body.message_body, re.I)
                 if self.draft and not new_command:
                     if self.draft.action == 'QUOTE':
                         collect_reply(self.draft, body.message_body, require_paf=body.channel == 'WHATSAPP')
@@ -294,6 +302,8 @@ class ConversationalActionGateway:
         return prompts[draft.waiting_for]
 
     async def execute(self, context, body, intent, message_id):
+        if intent.intent in {'CLOSE_MANIFEST','MANIFEST_STATUS'}:
+            return await self.manifest(context,body,intent,message_id)
         if intent.intent == 'TRIGGER_RETURN':
             return await self.trigger_return(context, body, intent, message_id)
         if intent.intent == 'QUOTE':
@@ -333,7 +343,7 @@ class ConversationalActionGateway:
             if result.get('status') != 'BOOKED':
                 return self.reply(intent.intent, 'Your booking is still being checked. View Shipments before trying again.', status='REVIEW_REQUIRED')
             label = result.get('label') or {}
-            return self.reply(intent.intent, f"Shipment booked. Tracking: {label.get('tracking_number', 'awaiting confirmation')}. Open Shipments to download the label and available customs documents.", shipment_id=result['shipment_id'])
+            return self.reply(intent.intent, f"Shipment booked. Tracking: {label.get('tracking_number', 'awaiting confirmation')}. Open Shipments to download the label and available customs documents.", shipment_id=result['shipment_id'],booking=result,media_urls=result.get('media_urls',[]))
         if intent.intent == 'TRACK_PACKAGE':
             reference = intent.target_reference_id or getattr(self, 'previous', {}).get('_last_reference')
             if not reference:
@@ -544,7 +554,31 @@ class ConversationalActionGateway:
             text = (f'Return initiated for {intent.target_reference_id}. '+
                 ('A paperless document is available in your signed-in workspace.' if result.get('paperless_available') else
                  'This service requires a printed label. Open Shipments to download it and check the selected carrier’s drop-off locations.'))
-        return self.reply('TRIGGER_RETURN',text,return_request=result)
+        return self.reply('TRIGGER_RETURN',text,return_request=result,media_urls=result.get('media_urls',[]))
+
+    async def manifest(self,context,body,intent,message_id):
+        if context.role not in DISPATCH_ROLES:raise HTTPException(403,'Dispatch permission required')
+        service=self.state.manifests
+        if intent.intent=='MANIFEST_STATUS':
+            summaries=await service.get_manifestable_summary(context.tenant_id)
+            async with self.pool.acquire() as connection:
+                recent=await connection.fetch('''SELECT id FROM public.carrier_manifests WHERE tenant_id=$1
+                  ORDER BY created_at DESC,id DESC LIMIT 5''',context.tenant_id)
+            lines=[f'{s.carrier_code}: {s.total_shipments} unmanifested shipments, {s.total_weight_kg:.3f} kg, pickup {s.origin_postcode}' for s in summaries]
+            for row in recent:
+                result=await service.status(context.tenant_id,row['id'],context.user_id)
+                lines.append(f'{result.carrier_code} manifest {result.id}: {result.status}'+('\n'+result.manifest_document_url if result.manifest_document_url else ''))
+            return self.reply('MANIFEST_STATUS','\n'.join(lines) or 'No booked shipments or manifests are available.')
+        explicit=re.fullmatch(r'\s*close\s+manifest\s+([A-Za-z0-9 _-]{1,50})\s*',body.message_body,re.I)
+        if not explicit:raise HTTPException(422,'To close a batch, send Close manifest followed by the carrier name.')
+        from backend.carrier_consolidation import carrier_identity
+        matches=[s for s in await service.get_manifestable_summary(context.tenant_id) if carrier_identity(s.carrier_code)==carrier_identity(explicit[1].strip())]
+        if len(matches)!=1:
+            return self.reply('CLOSE_MANIFEST','No unique carrier/warehouse batch matches. Open the dispatch manifest preview to choose an account and pickup warehouse.',status='NEEDS_INPUT')
+        result=await service.close_manifest(context.tenant_id,matches[0].carrier_account_id,context.user_id,
+            request_id=message_id,carrier_code=matches[0].carrier_code)
+        return self.reply('CLOSE_MANIFEST',f'{result.carrier_code}: {result.status}. {result.total_shipments} shipments, {result.total_weight_kg:.3f} kg.\n{result.message}'
+            + ('\n'+result.manifest_document_url if result.manifest_document_url else ''),manifest=result.model_dump(mode='json'))
 
     async def shipment(self, context, reference):
         if not reference:

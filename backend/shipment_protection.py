@@ -998,6 +998,7 @@ class ProtectionService:
             }
         if shipment["status"] not in {
             "BOOKED",
+            "MANIFESTED",
             "DISPATCHED",
             "IN_TRANSIT",
             "DELIVERED",

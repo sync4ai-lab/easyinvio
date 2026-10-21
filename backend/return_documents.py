@@ -37,7 +37,8 @@ async def request_easypost_qr(pool, adapter, account, rate, snapshot, label):
             raise ValueError('QR shipment identity mismatch')
         qr = next((form.get('form_url') for form in data.get('forms', []) if form.get('form_type')=='label_qr_code'), None)
         if qr:
-            label = dict(label, return_dropoff_qr_code_url=secure_link(qr))
+            from backend.automation_three_partners import carrier_qr_fields
+            label = dict(label, **carrier_qr_fields(qr))
     except Exception:
         logging.getLogger(__name__).warning('Optional return QR unavailable; confirmed label retained')
     return label

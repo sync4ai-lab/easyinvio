@@ -343,7 +343,7 @@ class NativePartnerService:
                 JOIN public.shipments s ON s.tenant_id=j.tenant_id AND s.id=j.shipment_id AND s.carrier_account_id=j.carrier_account_id
                 JOIN public.carrier_accounts a ON a.tenant_id=j.tenant_id AND a.id=j.carrier_account_id
                 WHERE j.state='SYNCED' AND j.fulfillment_state<>'CONFIRMED' AND j.fulfillment_attempts<30
-                AND s.status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
+                AND s.status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
                 AND (j.fulfillment_attempts=0 OR j.updated_at<now()-interval '30 seconds') LIMIT 20''')
         for row in rows:
             key='native-fulfillment:'+str(row['tenant_id'])+':'+str(row['shipment_id'])
@@ -673,6 +673,22 @@ def secure_link(value):
     return value
 
 
+def carrier_qr_fields(value):
+    """Optional carrier media never invalidates an otherwise confirmed label."""
+    if isinstance(value,bytes):
+        if len(value)>5_000_000:return {}
+        import base64
+        return {'return_dropoff_qr_code_base64':base64.b64encode(value).decode('ascii')}
+    if not isinstance(value,str) or len(value)>7_000_000:return {}
+    if value.lstrip().startswith(('<svg','<?xml')):return {'return_dropoff_qr_code_svg':value}
+    if value.startswith(('data:image/png;base64,','data:image/jpeg;base64,','data:image/svg+xml;base64,')):
+        return {'return_dropoff_qr_code_base64':value}
+    if value.startswith(('iVBORw0KGgo','/9j/','PHN2Zy','PD94bWwg')):
+        return {'return_dropoff_qr_code_base64':value}
+    try:return {'return_dropoff_qr_code_url':secure_link(value)}
+    except PurchaseUncertain:return {}
+
+
 def declaration(data):
     document = data.get('customs_document') or data.get('customs') or {}
     if not document.get('required'):
@@ -842,7 +858,7 @@ class EasyPostAdapter(BaseAggregatorAdapter):
         return {'upstream_id': body['id'], 'tracking_number': tracking,
                 'tracking_url': (body.get('tracker') or {}).get('public_url'),
                 'label_url': secure_link(label.get('label_pdf_url') or label.get('label_url')),
-                **({'return_dropoff_qr_code_url':secure_link(qr)} if qr and snapshot.get('is_return') else {}),
+                **(carrier_qr_fields(qr) if qr else {}),
                 'carrier_forms': [{'document_type': f.get('form_type', 'CUSTOMS_FORM'),
                                    'url': secure_link(f['form_url'])} for f in body.get('forms', []) if f.get('form_type') != 'label_qr_code']}
 
@@ -1560,6 +1576,7 @@ class PartnerLifecycleService:
             logging.getLogger(__name__).warning('Lifecycle support persistence deferred; shipment=%s', shipment_id)
 
     def public_result(self, shipment_id, label, customs=None, replayed=False):
+        has_qr=any(label.get(key) for key in ('return_dropoff_qr_code_url','return_dropoff_qr_code_svg','return_dropoff_qr_code_base64'))
         root = '/api/v1/shipping/' + str(shipment_id) + '/documents/'
         return {'shipment_id': str(shipment_id), 'status': 'BOOKED', 'label_status': 'LABEL_CREATED', 'replayed': replayed,
                 'label': {'tracking_number': label['tracking_number'], 'tracking_url': '/?view=manifest&shipment_id=' + str(shipment_id), 'label_url': root + 'label',
@@ -1567,10 +1584,10 @@ class PartnerLifecycleService:
                           'carrier_forms': [{'document_type': f['document_type'], 'url': root + str(i)}
                                             for i, f in enumerate(label.get('carrier_forms', []))]},
                 'customs': customs,
-                'paperless_available':bool(label.get('return_dropoff_qr_code_url')),
-                'return_dropoff_qr_code_url':root+'return-qr' if label.get('return_dropoff_qr_code_url') else None,
+                'paperless_available':has_qr,
+                'return_dropoff_qr_code_url':root+'return-qr' if has_qr else None,
                 'dropoff_instructions':('Use a participating drop-off location for the selected carrier. Check its parcel and location restrictions.'
-                    if label.get('return_dropoff_qr_code_url') else 'Print the shipping label and use an eligible location for the selected carrier.')}
+                    if has_qr else 'Print the shipping label and use an eligible location for the selected carrier.')}
 
     async def bind_direct_quote(self, context, offer_id):
         from main import RatingRequest, RatingResponse
@@ -1602,6 +1619,14 @@ class PartnerLifecycleService:
             raise HTTPException(422,result.get('error','Packing or customs review required'))
 
     async def confirm(self, context, body):
+        result=await self._prepare_confirm(context,body)
+        if result.get('paperless_available'):
+            from backend.return_documents import public_return_links
+            from backend.logistics_media import publish_return_media
+            return await publish_return_media(self,context,public_return_links(self.automation.settings,context,result))
+        return result
+
+    async def _prepare_confirm(self, context, body):
         authorize(context, body.tenant_id)
         if body.insurance_requested:
             protection = getattr(self, 'protection', None)
@@ -1644,7 +1669,7 @@ class PartnerLifecycleService:
                 stored_rate = json.loads(offer['rate_snapshot']) if isinstance(offer['rate_snapshot'], str) else offer['rate_snapshot']
                 rate = ClientRate.model_validate(stored_rate)
                 metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
-                if row['status'] == 'BOOKED':
+                if row['status'] in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}:
                     selected = json.loads(row['pricing_snapshot']) if isinstance(row['pricing_snapshot'], str) else row['pricing_snapshot']
                     if selected.get('selected_rate', {}).get('offer_id') != str(body.offer_id):
                         raise HTTPException(409, 'Another offer was already booked for this order')
@@ -1775,6 +1800,8 @@ class PartnerLifecycleService:
                     return {'status': 'CANCELLED', 'replayed': True}
                 if shipment['status'] != 'BOOKED':
                     raise HTTPException(409, 'Only an undispatched booked shipment can be cancelled')
+                if shipment.get('manifest_id') is not None:
+                    raise HTTPException(409,'A manifest has claimed this shipment; reconcile carrier close-out before cancellation')
                 accounts = await self.automation.repository.accounts(context)
                 if not any(a.id == shipment['carrier_account_id'] for a in accounts):
                     accounts = await self.automation.repository.accounts(context, historical_account_id=shipment['carrier_account_id'])
@@ -1932,11 +1959,20 @@ async def carrier_document(shipment_id: UUID, document: str, service, context):
     authorize(context, context.tenant_id)
     async with service.pool.acquire() as connection:
         row = await connection.fetchrow('''SELECT carrier_account_id,logistics_metadata FROM public.shipments
-            WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''', context.tenant_id, shipment_id)
+            WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''', context.tenant_id, shipment_id)
     if row is None:
         raise HTTPException(404, 'Document not found')
     metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
     label = metadata.get('automation_label') or {}
+    if document == 'return-qr':
+        from backend.logistics_media import inline_asset, normalize_image
+        inline = inline_asset(label)
+        if inline is not None:
+            try:
+                raw, mime = await asyncio.to_thread(normalize_image, inline)
+            except ValueError:
+                raise HTTPException(502, 'Carrier QR image is invalid') from None
+            return Response(raw, media_type=mime, headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
     try:
         link = (metadata.get('return_dropoff_qr_code_url') or label['return_dropoff_qr_code_url']) if document == 'return-qr' else label['label_url'] if document == 'label' else label['carrier_forms'][int(document)]['url']
         if document not in {'label','return-qr'} and (not document.isdigit() or int(document) < 0):
@@ -1962,6 +1998,13 @@ async def carrier_document(shipment_id: UUID, document: str, service, context):
                 raw.extend(chunk)
                 if len(raw) > 15_000_000:
                     raise HTTPException(502, 'Shipping document exceeds download limit')
+        if document == 'return-qr':
+            from backend.logistics_media import normalize_image
+            try:
+                normalized, mime = await asyncio.to_thread(normalize_image, bytes(raw))
+            except ValueError:
+                raise HTTPException(502, 'Carrier QR image is invalid') from None
+            return Response(normalized, media_type=mime, headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
         media = ('image/png' if raw.startswith(b'\x89PNG\r\n\x1a\n') else
                  'image/jpeg' if raw.startswith(b'\xff\xd8\xff') else
                  'application/pdf' if raw.startswith(b'%PDF-') else None)
@@ -1978,7 +2021,7 @@ async def prepare_return_quote(service, context, body, *, warehouse=None, paperl
     authorize(context, body.tenant_id)
     async with service.pool.acquire() as connection:
         row = await connection.fetchrow('''SELECT logistics_metadata,tracking_number,booked_at,carrier_code FROM public.shipments
-            WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''',
+            WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''',
             context.tenant_id, body.shipment_id)
     if row is None:
         raise HTTPException(404, 'Original shipment not found in this workspace')

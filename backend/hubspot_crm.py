@@ -327,7 +327,7 @@ class HubSpotService:
             coalesce(sum(s.final_client_price),0)::numeric AS total_spend,
             count(*) FILTER (WHERE s.currency<>t.default_currency)::int AS mixed_currency
             FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
-            WHERE s.tenant_id=$1 AND s.status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')""", tenant_id)
+            WHERE s.tenant_id=$1 AND s.status::text IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')""", tenant_id)
         if row["mixed_currency"]:
             raise CRMError("crm_mixed_currency_requires_conversion", retryable=False)
         return row

@@ -62,7 +62,7 @@ def build_router(authenticate):
     async def dispatch_summary(request: Request, context: Any=Depends(authenticate)):
         if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
         async with request.app.state.finance.pool.acquire() as connection:
-            row=await connection.fetchrow("SELECT coalesce(sum(parcel_count),0) AS package_count FROM public.shipments WHERE tenant_id=$1 AND status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')",context.tenant_id)
+            row=await connection.fetchrow("SELECT coalesce(sum(parcel_count),0) AS package_count FROM public.shipments WHERE tenant_id=$1 AND status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')",context.tenant_id)
         return {'package_count':row['package_count']}
 
     @router.post('/workspace/users',status_code=201)
@@ -120,12 +120,12 @@ def build_router(authenticate):
                     sum(profit_markup)::numeric AS margin,sum(parcel_count)::bigint AS package_count
                     FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
                     WHERE ((NOT t.is_sandbox AND NOT $3::boolean) OR (t.is_sandbox AND $3::boolean)) AND booked_at >= $1 AND booked_at < $2
-                    AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY t.workspace_type,currency""", start, end,sandbox)
+                    AND status::text IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY t.workspace_type,currency""", start, end,sandbox)
                 tenants = await connection.fetchval("SELECT count(*) FROM public.tenants WHERE workspace_status='ACTIVE' AND is_sandbox=$1",sandbox)
                 carriers = await connection.fetch("""SELECT coalesce(carrier_code,'Unassigned') AS carrier,sum(parcel_count)::bigint AS volume
                     FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
                     WHERE t.is_sandbox=$3 AND booked_at >= $1 AND booked_at < $2
-                    AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
+                    AND status::text IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
                     GROUP BY carrier_code ORDER BY volume DESC""", start, end,sandbox)
                 billing = await connection.fetch('''SELECT billing_plan,billing_status,count(*)::bigint AS company_count
                     FROM public.tenants WHERE is_sandbox=$1 GROUP BY billing_plan,billing_status ORDER BY billing_plan,billing_status''',sandbox)

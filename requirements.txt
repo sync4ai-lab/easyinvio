@@ -18,6 +18,7 @@ python-multipart>=0.0.20,<1
 defusedxml>=0.7.1,<1
 
 Pillow>=12,<13
+PyMuPDF>=1.26,<2
 Markdown>=3.7,<4
 openai-agents>=0.23.1,<0.24
 openai>=3.29,<4

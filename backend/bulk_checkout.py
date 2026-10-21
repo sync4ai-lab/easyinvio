@@ -72,7 +72,7 @@ async def validate_checkout(service,context,selection,*,check_wallet=True):
         if Decimal(rate['client_price_ex_tax'])!=selected.expected_price or rate['currency']!=selected.currency:
             raise HTTPException(409,'A selected price changed. Review rates again; no labels were purchased.')
         snapshot=decoded(row['pricing_snapshot']).get('selected_rate',{})
-        already_submitted=row['status'] in {'BOOKED','BOOKING','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}
+        already_submitted=row['status'] in {'BOOKED','MANIFESTED','BOOKING','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}
         if not already_submitted:
             from backend.label_availability import require_label_purchase
             from types import SimpleNamespace
@@ -105,7 +105,7 @@ async def checkout_orders(service,context,selection):
     async def buy(selected,row):
         async with limiter:
             try:
-                if row.get('booked_at') and row['status'] in {'BOOKED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}:
+                if row.get('booked_at') and row['status'] in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}:
                     async with service.pool.acquire() as c:
                         captured=await c.fetchval("SELECT status='CAPTURED' FROM public.wallet_reservations WHERE tenant_id=$1 AND shipment_id=$2",context.tenant_id,selected.shipment_id)
                     metadata=decoded(row['logistics_metadata']);label=metadata.get('automation_label')

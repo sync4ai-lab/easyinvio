@@ -158,7 +158,7 @@ async def bundle_shipments(rows, *, client=None, hosts=None, fetch_document=None
         documents = []
         total = 0
         for row in rows:
-            if (row['status'] not in {'BOOKED', 'DISPATCHED', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'}
+            if (row['status'] not in {'BOOKED', 'MANIFESTED', 'DISPATCHED', 'IN_TRANSIT', 'DELIVERED', 'EXCEPTION'}
                 or not row['booked_at'] or not row['tracking_number'] or not row['label_storage_path']):
                 raise HTTPException(409, 'Every selected shipment requires a confirmed carrier label')
             documents.append(await fetch_document(row,'label') if fetch_document else await fetch_pdf(http, row['label_storage_path'], hosts))

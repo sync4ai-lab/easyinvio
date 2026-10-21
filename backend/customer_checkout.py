@@ -208,7 +208,7 @@ def build_router(authenticate):
                 LEFT JOIN public.wallet_reservations r ON r.tenant_id=s.tenant_id AND r.shipment_id=s.id
                 WHERE s.tenant_id=$1 AND s.id=$2""",user.tenant_id,shipment_id)
         if not row:raise HTTPException(404,'Shipment not found in this workspace')
-        if not row['booked_at'] or not row['tracking_number'] or row['status'] not in {'BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'}:
+        if not row['booked_at'] or not row['tracking_number'] or row['status'] not in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'}:
             raise HTTPException(409,'Receipt is available after confirmed booking')
         if row['billing_plan']=='PREPAID_WALLET' and row['reservation_status']!='CAPTURED':raise HTTPException(409,'Booking payment requires reconciliation')
         from backend.booking_receipt import receipt_pdf
@@ -225,7 +225,7 @@ def build_router(authenticate):
                 WHERE s.tenant_id=$1 AND s.id=$2''',user.tenant_id,shipment_id)
         if row is None:
             raise HTTPException(404,'Shipment not found in this workspace')
-        if (row['status'] not in {'BOOKED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'} or not row['booked_at']
+        if (row['status'] not in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'} or not row['booked_at']
             or not row['tracking_number'] or row['reservation_status']!='CAPTURED'):
             raise HTTPException(409,'The invoice download becomes available after the label and booking payment are confirmed')
         declaration=decode_json(row['logistics_metadata']).get('automation_customs')

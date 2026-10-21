@@ -171,6 +171,7 @@ class Settings(BaseSettings):
     twilio_webhook_url: str = ""
     whatsapp_queue_workers: int = Field(default=2, ge=1, le=8)
     ideal_postcodes_api_key: SecretStr = SecretStr("")
+    logistics_media_bucket: str = 'easyinvio-logistics'
     booking_page_url: str = ""
     quote_link_secret: SecretStr = SecretStr("")
     whatsapp_deadline_seconds: int = Field(default=12, ge=5, le=12)
@@ -1531,7 +1532,7 @@ class FinanceEngine:
                        WHERE tenant_id=$1 AND id=$2 FOR SHARE""", context.tenant_id, shipment_id)
                 if shipment is None:
                     raise HTTPException(404, "Shipment not found")
-                if shipment["status"] not in {"BOOKED", "DELIVERED"}:
+                if shipment["status"] not in {"BOOKED", "MANIFESTED", "DISPATCHED", "IN_TRANSIT", "EXCEPTION", "DELIVERED"}:
                     raise HTTPException(409, "Shipment is not ready for label preview")
                 if tenant["billing_plan"] == "PREPAID_WALLET":
                     wallet = await self.lock_wallet(connection, context.tenant_id)
@@ -1929,6 +1930,9 @@ async def deterministic_lifespan(application: FastAPI):
                     for table in ('whatsapp_inbound_queue', 'whatsapp_reply_outbox'):
                         if await connection.fetchval('SELECT to_regclass($1)', 'public.' + table) is None:
                             raise RuntimeError('Apply migration 043_whatsapp_async_ingress.sql before enabling Twilio')
+                    if await connection.fetchval("SELECT to_regclass('public.carrier_manifests')") is None:
+                        raise RuntimeError('Apply migration 044_carrier_manifests_and_media.sql before enabling Twilio media delivery')
+                    await connection.execute('SELECT fallback_for,delivery_status FROM public.whatsapp_reply_outbox LIMIT 0')
                 await connection.execute("SELECT is_sandbox,workspace_type,seller_classification FROM public.tenants LIMIT 0")
                 await connection.execute("SELECT is_sandbox,sandbox_test_token,stripe_payment_intent_id FROM public.wallet_topups LIMIT 0")
                 await connection.execute("SELECT stripe_payment_intent_id FROM public.wallet_ledger LIMIT 0")
@@ -1946,6 +1950,8 @@ async def deterministic_lifespan(application: FastAPI):
                 application.state.settings = settings
                 application.state.repository = repository
                 application.state.rating = rating
+                from backend.manifest_service import ManifestService
+                application.state.manifests = ManifestService(pool,settings,http_client,repository=repository)
                 from backend.paf_lookup import IdealPostcodesClient
                 application.state.paf = IdealPostcodesClient(http_client, settings.ideal_postcodes_api_key)
                 application.state.finance = FinanceEngine(pool, settings, stripe_client)
@@ -2608,3 +2614,8 @@ from backend.ecommerce_inbound import build_router as ecommerce_inbound_router
 app.include_router(ecommerce_inbound_router())
 from backend.dispatch_realtime import build_router as realtime_router
 app.include_router(realtime_router(authenticate, lambda: _frontend_origins))
+
+from backend.manifest_service import build_router as manifest_router
+app.include_router(manifest_router(authenticate))
+from backend.whatsapp_queue import build_media_status_router
+app.include_router(build_media_status_router())

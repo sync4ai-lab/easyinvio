@@ -81,7 +81,7 @@ class ReverseLogisticsService:
             if row['return_shipment_id']:
                 shipment = await connection.fetchrow('''SELECT id,status,logistics_metadata,carrier_account_id,pricing_snapshot FROM public.shipments
                     WHERE tenant_id=$1 AND id=$2''', context.tenant_id, row['return_shipment_id'])
-            if shipment and shipment['status'] in {'BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'}:
+            if shipment and shipment['status'] in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'}:
                 metadata = decoded(shipment['logistics_metadata']) or {}
                 from backend.return_documents import recover_easypost_qr
                 label = await recover_easypost_qr(connection,self.lifecycle,context,shipment,metadata)
@@ -93,8 +93,10 @@ class ReverseLogisticsService:
                         context.tenant_id, request_id, json.dumps(result))
             result.setdefault('status', row['state'])
             result.update(request_id=str(request_id), charge_bearer=row['charge_bearer'], replayed=True)
-            from backend.return_documents import public_return_links
-            return public_payload(public_return_links(self.lifecycle.automation.settings, context, result))
+        from backend.return_documents import public_return_links
+        linked = public_payload(public_return_links(self.lifecycle.automation.settings, context, result))
+        from backend.logistics_media import publish_return_media
+        return await publish_return_media(self.lifecycle, context, linked)
 
     async def process(self, context, command: ReturnCommand, *, source='API', store_id=None):
         from backend.automation_three_partners import authorize, ReturnRequest, prepare_return_quote, BookingRequest
@@ -168,7 +170,9 @@ class ReverseLogisticsService:
             state = result['status'] if result['status'] in {'BOOKED','PAYMENT_REQUIRED'} else 'REVIEW_REQUIRED'
             await self.save(context, command, state, result, shipment_id)
             from backend.return_documents import public_return_links
-            return public_payload(public_return_links(self.lifecycle.automation.settings, context, result))
+            linked = public_payload(public_return_links(self.lifecycle.automation.settings, context, result))
+            from backend.logistics_media import publish_return_media
+            return await publish_return_media(self.lifecycle, context, linked)
         except Exception as error:
             message = 'Return outcome needs reconciliation. Do not submit another return or payment.'
             if isinstance(error, HTTPException) and error.status_code < 500:

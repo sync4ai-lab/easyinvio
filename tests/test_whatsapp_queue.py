@@ -26,10 +26,15 @@ class Connection:
     async def execute(self, sql, *args):
         self.calls.append((sql, args))
         if 'INSERT INTO public.whatsapp_reply_outbox' in sql:
-            self.parts.append(dict(id=len(self.parts)+1,inbound_id=args[0],part_index=args[1],payload_ciphertext=args[2],key_id=args[3],state='STAGED'))
+            if len(args)==5 and any(p.get('fallback_for')==args[4] for p in self.parts):return 'INSERT 0 0'
+            self.parts.append(dict(id=len(self.parts)+1,inbound_id=args[0],part_index=args[1],payload_ciphertext=args[2],key_id=args[3],state='STAGED',fallback_for=args[4] if len(args)==5 else None,provider_message_sid=None,delivery_status=None))
         if 'UPDATE public.whatsapp_reply_outbox' in sql:
             part = next(p for p in self.parts if p['id']==args[0])
-            if "state='ACCEPTED'" in sql: part.update(state='ACCEPTED',provider_message_sid=args[1])
+            if "state='ACCEPTED'" in sql:
+                part['state']='ACCEPTED'
+                if len(args)>1:part['provider_message_sid']=args[1]
+            elif "state='FAILED'" in sql:part.update(state='FAILED',delivery_status='rejected')
+            elif 'delivery_status=CASE' in sql:part.update(provider_message_sid=args[1],delivery_status=args[2])
             else: part['state']=args[1]
         return 'UPDATE 1'
     async def fetchrow(self, sql, *args):
@@ -37,9 +42,15 @@ class Connection:
         if 'INSERT INTO public.whatsapp_inbound_queue' in sql:
             self.inbound.setdefault(args[0], dict(input_sha256=args[3],payload_ciphertext=args[4],key_id=args[5]))
             return self.inbound[args[0]]
+        if 'FROM public.whatsapp_inbound_queue WHERE id=$1 FOR UPDATE' in sql:return {'id':args[0]}
+        if 'JOIN public.whatsapp_inbound_queue q' in sql:
+            part=next((p for p in self.parts if p['id']==args[0]),None)
+            return part|{'sender_e164':'+447700900123','receiver_e164':'+14155238886'} if part else None
         raise AssertionError(sql)
     async def fetch(self, sql, *args): return [p for p in self.parts if p['inbound_id']==args[0]]
     async def fetchval(self, sql, *args):
+        if "state='STAGED'" in sql and 'EXISTS' in sql:return any(p['inbound_id']==args[0] and p['state']=='STAGED' for p in self.parts)
+        if 'fallback_for=$2' in sql:return next((p['id'] for p in self.parts if p['inbound_id']==args[0] and p.get('fallback_for')==args[1]),None)
         if args[0] in self.claimed: return None
         self.claimed.add(args[0]);return args[0]
 
@@ -129,7 +140,7 @@ async def test_worker_stages_result_before_send_with_real_media_argument(queue):
     assert instance.client.messages.create.call_args.kwargs['media_url']==['https://safe.example/qr.png']
     assert 'media_url' not in instance.client.messages.create.call_args_list[0].kwargs
     assert all(len(p['payload_ciphertext'])>0 for p in storage.parts)
-    instance.mark.assert_awaited_once_with(1,'ACCEPTED')
+    assert any('UPDATE public.whatsapp_inbound_queue SET state=$2' in sql and args==(1,'ACCEPTED') for sql,args in storage.calls)
 
 
 @pytest.mark.asyncio
@@ -206,3 +217,56 @@ def test_media_requires_our_scoped_https_document_token_for_the_same_shipment():
     assert return_media(result,config)==data['return_dropoff_qr_code_url']
     assert return_media(result|{'return_request':data|{'shipment_id':uuid4()}},config) is None
     assert return_media(result|{'return_request':data|{'return_dropoff_qr_code_url':'https://evil.example/qr.png'}},config) is None
+
+
+@pytest.mark.asyncio
+async def test_rejected_media_falls_back_once_to_text_without_replaying_action(queue):
+    from twilio.base.exceptions import TwilioRestException
+    instance,storage,_=queue
+    await instance.stage(1,[OutboundPart(body='Carrier QR',media_urls=['https://safe.example/image.png'],fallback_view_url='https://app.example/view')])
+    row=dict(id=1,receiver_e164='+14155238886',sender_e164='+447700900123')
+    instance.client.messages.create.side_effect=TwilioRestException(400,'/Messages')
+    await instance.dispatch(row)
+    assert storage.parts[0]['state']=='FAILED' and len(storage.parts)==2
+    instance.client.messages.create.side_effect=None
+    instance.client.messages.create.return_value=SimpleNamespace(sid='SM'+'e'*32)
+    await instance.dispatch(row)
+    assert len(storage.parts)==2 and storage.parts[1]['state']=='ACCEPTED'
+    sent=instance.client.messages.create.call_args.kwargs
+    assert 'media_url' not in sent and 'https://app.example/view' in sent['body']
+
+
+@pytest.mark.asyncio
+async def test_signed_media_delivery_failure_stages_one_fallback_and_rejects_forgery(queue):
+    from backend.whatsapp_queue import build_media_status_router
+    instance,storage,app=queue
+    app.include_router(build_media_status_router())
+    await instance.stage(1,[OutboundPart(body='Carrier QR',media_urls=['https://safe.example/image.png'],fallback_view_url='https://app.example/view')])
+    storage.parts[0].update(state='ACCEPTED',provider_message_sid='SM'+'d'*32)
+    form={'AccountSid':instance.settings.twilio_account_sid,'MessageSid':'SM'+'d'*32,'MessageStatus':'failed',
+        'From':'whatsapp:+14155238886','To':'whatsapp:+447700900123'}
+    signature=app.state.twilio_validator.compute_signature(instance.status_url(1),FormData(form))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='https://hooks.example') as client:
+        url='/api/v1/integrations/whatsapp/outbound-status/1'
+        headers={'Content-Type':'application/x-www-form-urlencoded','X-Twilio-Signature':'bad'}
+        assert (await client.post(url,content=urlencode(form),headers=headers)).status_code==403
+        assert len(storage.parts)==1
+        headers['X-Twilio-Signature']=signature
+        for _ in range(2):assert (await client.post(url,content=urlencode(form),headers=headers)).status_code==200
+    assert len(storage.parts)==2 and storage.parts[1]['fallback_for']==1
+
+
+@pytest.mark.asyncio
+async def test_signed_failed_callback_can_resolve_an_uncertain_media_send_without_replaying_it(queue):
+    from backend.whatsapp_queue import build_media_status_router
+    instance,storage,app=queue;app.include_router(build_media_status_router())
+    await instance.stage(1,[OutboundPart(body='Carrier QR',media_urls=['https://safe.example/image.png'],fallback_view_url='https://app.example/view')])
+    storage.parts[0].update(state='REVIEW_REQUIRED',provider_message_sid=None)
+    form={'AccountSid':instance.settings.twilio_account_sid,'MessageSid':'SM'+'d'*32,'MessageStatus':'failed','From':'whatsapp:+14155238886','To':'whatsapp:+447700900123'}
+    signature=app.state.twilio_validator.compute_signature(instance.status_url(1),FormData(form))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='https://hooks.example') as client:
+        result=await client.post('/api/v1/integrations/whatsapp/outbound-status/1',content=urlencode(form),
+            headers={'Content-Type':'application/x-www-form-urlencoded','X-Twilio-Signature':signature})
+    assert result.status_code==200 and storage.parts[0]['state']=='ACCEPTED'
+    assert len(storage.parts)==2 and storage.parts[1]['fallback_for']==1
+    instance.client.messages.create.assert_not_called()

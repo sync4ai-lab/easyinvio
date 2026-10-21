@@ -319,7 +319,7 @@ class AutomationService:
             row=await connection.fetchrow('SELECT status,tracking_number,label_storage_path,pricing_snapshot,logistics_metadata FROM public.shipments WHERE tenant_id=$1 AND id=$2',context.tenant_id,shipment_id)
             reservation=await connection.fetchrow('SELECT id,status,amount,currency,billing_plan FROM public.wallet_reservations WHERE tenant_id=$1 AND shipment_id=$2',context.tenant_id,shipment_id)
         if row is None or reservation is None: raise HTTPException(404,'Booking not found')
-        if row['status']=='BOOKED':
+        if row['status'] in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}:
             return {'status':'BOOKED','label':{'tracking_number':row['tracking_number'],'label_url':row['label_storage_path']}}
         permit=BookingPermit(context.tenant_id,shipment_id,reservation['id'],reservation['amount'],reservation['currency'],reservation['billing_plan'])
         if reservation['status']=='RESERVED':
@@ -379,7 +379,7 @@ class AutomationService:
                             normalized=hashlib.sha256(Order.model_validate(stored_order).model_dump_json().encode()).hexdigest() if stored_order else None
                             if normalized!=fingerprint:
                                 raise HTTPException(409,'IDEMPOTENCY_CONFLICT')
-                        if existing['status']=='BOOKED':
+                        if existing['status'] in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}:
                             label=metadata.get('automation_label') or {'tracking_number':existing['tracking_number'],'label_url':existing['label_storage_path']}
                             return {'order_reference':reference,'shipment_id':str(shipment_id),'status':'BOOKED','replayed':True,'label':label,'customs':metadata.get('automation_customs'),
                                     'print_bundle':{'shipping_label':label['label_url'],'carrier_documents':label.get('carrier_forms',[]),'customs_metadata':metadata.get('automation_customs'),'printer_broadcast':False}}

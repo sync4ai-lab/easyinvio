@@ -160,7 +160,7 @@ class TrackingSupportService:
                 if len(rows) != 1:
                     raise HTTPException(409, "Tracking number requires shipment reconciliation")
                 shipment = rows[0]
-                allowed = {"BOOKED", "DISPATCHED", "IN_TRANSIT", "EXCEPTION", "DELIVERED"}
+                allowed = {"BOOKED", "MANIFESTED", "DISPATCHED", "IN_TRANSIT", "EXCEPTION", "DELIVERED"}
                 if shipment["status"] not in allowed:
                     raise HTTPException(409, "Shipment has no confirmed carrier dispatch")
                 metadata=json.loads(shipment.get('logistics_metadata','{}')) if isinstance(shipment.get('logistics_metadata'),str) else shipment.get('logistics_metadata') or {}
@@ -264,12 +264,12 @@ class TrackingSupportService:
                 totals = await connection.fetch("""SELECT currency,coalesce(sum(parcel_count),0)::bigint AS package_count,
                     coalesce(sum(final_client_price),0)::numeric AS spend,coalesce(sum(profit_markup),0)::numeric AS margin
                     FROM public.shipments WHERE tenant_id=$1 AND booked_at >= $2 AND booked_at < $3
-                    AND status::text IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY currency ORDER BY currency""", context.tenant_id, begin, finish)
+                    AND status::text IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED') GROUP BY currency ORDER BY currency""", context.tenant_id, begin, finish)
                 lanes = await connection.fetch("""SELECT s.origin_country,s.destination_country,s.currency,
                     count(*)::bigint AS shipment_count,sum(s.parcel_count)::bigint AS package_count,
                     round(avg(s.final_client_price),2) AS average_price
                     FROM public.shipments s WHERE s.tenant_id=$1 AND s.booked_at >= $2 AND s.booked_at < $3
-                    AND s.status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
+                    AND s.status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
                     GROUP BY s.origin_country,s.destination_country,s.currency
                     ORDER BY shipment_count DESC,s.origin_country,s.destination_country,s.currency""",context.tenant_id,begin,finish)
                 outcomes = await connection.fetch("""WITH cohort AS (
@@ -277,12 +277,12 @@ class TrackingSupportService:
                         WHERE e.tenant_id=s.tenant_id AND e.shipment_id=s.id AND e.status='IN_TRANSIT'
                         AND e.response->>'applied'='true') AS first_observed_transit
                     FROM public.shipments s WHERE s.tenant_id=$1 AND s.booked_at >= $2 AND s.booked_at < $3
-                    AND s.status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'))
+                    AND s.status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'))
                     SELECT count(*)::bigint AS booked_shipments,
                     count(*) FILTER(WHERE status='DELIVERED')::bigint AS delivered_shipments,
                     count(*) FILTER(WHERE status='IN_TRANSIT')::bigint AS in_transit_shipments,
                     count(*) FILTER(WHERE status='EXCEPTION')::bigint AS exception_shipments,
-                    count(*) FILTER(WHERE status IN ('BOOKED','DISPATCHED'))::bigint AS awaiting_transit_shipments,
+                    count(*) FILTER(WHERE status IN ('BOOKED','MANIFESTED','DISPATCHED'))::bigint AS awaiting_transit_shipments,
                     count(*) FILTER(WHERE status='DELIVERED' AND first_observed_transit IS NOT NULL
                         AND delivered_at>=first_observed_transit AND first_observed_transit>=booked_at AND delivered_at<=now())::bigint AS measured_deliveries,
                     round(avg(extract(epoch FROM (delivered_at-first_observed_transit))/86400.0)

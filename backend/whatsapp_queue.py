@@ -8,14 +8,14 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Literal
-from urllib.parse import parse_qsl, urlsplit
+from urllib.parse import parse_qsl, urlsplit, urljoin
 from uuid import NAMESPACE_URL, uuid5
 
 import asyncpg
 from cryptography.fernet import Fernet
 from defusedxml.ElementTree import fromstring
-from fastapi import FastAPI, HTTPException, Request, Response
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from starlette.datastructures import FormData
 from twilio.base.exceptions import TwilioRestException
 from twilio.http.http_client import TwilioHttpClient
@@ -30,6 +30,18 @@ class OutboundPart(BaseModel):
     model_config = ConfigDict(extra='forbid')
     body: str = Field(min_length=1, max_length=1590)
     media_url: str | None = None
+    media_urls: list[str] = Field(default_factory=list,max_length=1)
+    fallback_view_url: str | None = None
+
+    @model_validator(mode='after')
+    def media(self):
+        if self.media_url and not self.media_urls:self.media_urls=[self.media_url]
+        if self.media_url and self.media_urls!=[self.media_url]:raise ValueError('Conflicting media URLs')
+        for url in self.media_urls+([self.fallback_view_url] if self.fallback_view_url else []):
+            parsed=urlsplit(url)
+            if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
+                raise ValueError('Expected a secure media/view URL')
+        return self
 
 
 def inbound_digest(raw: bytes) -> str:
@@ -38,12 +50,12 @@ def inbound_digest(raw: bytes) -> str:
     return hashlib.sha256(json.dumps(fields, separators=(',', ':'), ensure_ascii=True).encode()).hexdigest()
 
 
-def reply_parts(xml: str, media_url: str | None = None) -> list[OutboundPart]:
+def reply_parts(xml: str, media_url: str | None = None, *, fallback_view_url: str | None = None) -> list[OutboundPart]:
     parts = [OutboundPart(body=node.text or '') for node in fromstring(xml).findall('Message')]
     if not parts or len(parts) > 32:
         raise ValueError('Invalid reply part count')
     if media_url:
-        parts.append(OutboundPart(body='Your carrier return drop-off document. Use only the locations supported by this service.', media_url=media_url))
+        parts.append(OutboundPart(body='Your carrier return drop-off document. Use only the locations supported by this service.', media_url=media_url, fallback_view_url=fallback_view_url or media_url))
     return parts
 
 
@@ -90,7 +102,16 @@ async def process_inbound(request: Request, form: FormData, received_at: datetim
     result = await ConversationalActionGateway(request).process(context, ConversationMessage(
         sender_id=sender, message_body=form['Body'], channel='WHATSAPP',
         request_id=uuid5(NAMESPACE_URL, 'twilio:' + form['MessageSid'])), verified_whatsapp=True, received_at=received_at)
-    return reply_parts(message_xml(result['conversational_reply']), return_media(result, state.settings))
+    view=return_media(result,state.settings)
+    media=(result.get('return_request') or {}).get('media_urls') or []
+    if media and view:
+        # Only accept the server-owned private storage namespace for this tenant/shipment.
+        parsed=urlsplit(media[0]);base=urlsplit(state.settings.supabase_url)
+        shipment=(result.get('return_request') or {}).get('shipment_id')
+        expected=f'/storage/v1/object/sign/{state.settings.logistics_media_bucket}/{context.tenant_id}/{shipment}/'
+        if parsed.scheme=='https' and parsed.netloc==base.netloc and parsed.path.startswith(expected) and parsed.query:
+            return reply_parts(message_xml(result['conversational_reply']),media[0],fallback_view_url=view)
+    return reply_parts(message_xml(result['conversational_reply']),view)
 
 
 class WhatsAppQueue:
@@ -153,6 +174,10 @@ class WhatsAppQueue:
         for item in parts:
             if item['state'] == 'ACCEPTED':
                 continue
+            if item['state']=='FAILED':
+                async with self.pool.acquire() as connection:
+                    fallback=await connection.fetchval('SELECT id FROM public.whatsapp_reply_outbox WHERE inbound_id=$1 AND fallback_for=$2',row['id'],item['id'])
+                if fallback:continue
             if item['state'] != 'STAGED':
                 await self.mark(row['id'], 'REVIEW_REQUIRED', 'UNCERTAIN_SEND')
                 return
@@ -165,12 +190,16 @@ class WhatsAppQueue:
             try:
                 kwargs: dict[str, Any] = {'from_': 'whatsapp:' + row['receiver_e164'],
                     'to': 'whatsapp:' + row['sender_e164'], 'body': part.body}
-                if part.media_url:
-                    kwargs['media_url'] = [part.media_url]
+                if part.media_urls:
+                    kwargs['media_url'] = part.media_urls
+                    kwargs['status_callback'] = self.status_url(item['id'])
                 sent = await asyncio.to_thread(self.client.messages.create, **kwargs)
                 if not re.fullmatch(r'SM[0-9a-fA-F]{32}', sent.sid or ''):
                     raise ValueError('Invalid outbound SID')
             except TwilioRestException as error:
+                if part.media_urls and part.fallback_view_url and error.status in {400,415,422}:
+                    await self.schedule_fallback(row,item,part,definite_rejection=True)
+                    continue
                 definite = error.status in {400, 401, 403, 404, 413, 422, 429}
                 await self.send_failure(row['id'], item['id'], definite)
                 return
@@ -179,7 +208,29 @@ class WhatsAppQueue:
                 return
             async with self.pool.acquire() as connection:
                 await connection.execute("UPDATE public.whatsapp_reply_outbox SET state='ACCEPTED',provider_message_sid=$2,updated_at=now() WHERE id=$1 AND state='SENDING'", item['id'], sent.sid)
-        await self.mark(row['id'], 'ACCEPTED')
+        async with self.pool.acquire() as connection:
+            async with connection.transaction():
+                await connection.fetchrow('SELECT id FROM public.whatsapp_inbound_queue WHERE id=$1 FOR UPDATE',row['id'])
+                pending=await connection.fetchval("SELECT EXISTS(SELECT 1 FROM public.whatsapp_reply_outbox WHERE inbound_id=$1 AND state='STAGED')",row['id'])
+                await connection.execute('UPDATE public.whatsapp_inbound_queue SET state=$2,updated_at=now() WHERE id=$1',row['id'],'READY' if pending else 'ACCEPTED')
+
+    def status_url(self,part_id: int) -> str:
+        return urljoin(self.settings.twilio_webhook_url,f'/api/v1/integrations/whatsapp/outbound-status/{part_id}')
+
+    async def schedule_fallback(self,row,item,part: OutboundPart,*,definite_rejection=False,connection=None):
+        if not part.media_urls or not part.fallback_view_url:return
+        payload=OutboundPart(body='The carrier image could not be delivered. Open the secure drop-off document:\n'+part.fallback_view_url)
+        async def save(c):
+            if definite_rejection:
+                await c.execute("UPDATE public.whatsapp_reply_outbox SET state='FAILED',delivery_status='rejected',error_code='MEDIA_REJECTED',updated_at=now() WHERE id=$1 AND inbound_id=$2",item['id'],row['id'])
+            await c.execute('''INSERT INTO public.whatsapp_reply_outbox(inbound_id,part_index,payload_ciphertext,key_id,fallback_for)
+                VALUES($1,$2,$3,$4,$5) ON CONFLICT(fallback_for) DO NOTHING''',row['id'],1000+item['part_index'],
+                self.encrypt(payload.model_dump_json().encode()),self.key_id,item['id'])
+            await c.execute("UPDATE public.whatsapp_inbound_queue SET state='READY',updated_at=now() WHERE id=$1 AND state='ACCEPTED'",row['id'])
+        if connection is not None:await save(connection)
+        else:
+            async with self.pool.acquire() as c:
+                async with c.transaction():await save(c)
 
     async def send_failure(self, inbound_id: int, part_id: int, definite: bool) -> None:
         state = 'FAILED' if definite else 'REVIEW_REQUIRED'
@@ -243,3 +294,47 @@ async def accept_whatsapp(request: Request) -> Response:
     except (TimeoutError, asyncpg.PostgresError):
         raise HTTPException(503, 'WhatsApp ingress is busy; retry the same MessageSid') from None
     return Response('<Response/>', media_type='application/xml')
+
+
+def build_media_status_router() -> APIRouter:
+    router=APIRouter(tags=['WhatsApp media delivery'])
+    @router.post('/api/v1/integrations/whatsapp/outbound-status/{part_id}')
+    async def status(part_id: int,request: Request):
+        queue=request.app.state.whatsapp_queue
+        if queue is None:raise HTTPException(503,'WhatsApp delivery is unavailable')
+        if request.url.query or request.headers.get('content-type','').split(';')[0]!='application/x-www-form-urlencoded':
+            raise HTTPException(400,'Unexpected callback format')
+        raw=bytearray()
+        async for chunk in request.stream():
+            raw.extend(chunk)
+            if len(raw)>16384:raise HTTPException(413,'Callback too large')
+        try:form=FormData(parse_qsl(raw.decode('utf-8'),keep_blank_values=True,errors='strict',max_num_fields=100))
+        except (ValueError,UnicodeError):raise HTTPException(400,'Invalid callback encoding') from None
+        if len(request.headers.getlist('x-twilio-signature'))!=1 or not request.app.state.twilio_validator.validate(queue.status_url(part_id),form,request.headers.get('x-twilio-signature','')):
+            raise HTTPException(403,'Invalid Twilio signature')
+        if any(len(form.getlist(k))!=1 for k in ('AccountSid','MessageSid','MessageStatus','From','To')) or form['AccountSid']!=queue.settings.twilio_account_sid:
+            raise HTTPException(403,'Unexpected callback identity')
+        if form['MessageStatus'] not in {'queued','sending','sent','delivered','read','failed','undelivered'}:
+            raise HTTPException(400,'Unsupported delivery status')
+        async with queue.pool.acquire() as c:
+            async with c.transaction():
+                row=await c.fetchrow('''SELECT o.*,q.sender_e164,q.receiver_e164 FROM public.whatsapp_reply_outbox o
+                  JOIN public.whatsapp_inbound_queue q ON q.id=o.inbound_id WHERE o.id=$1 FOR UPDATE OF o,q''',part_id)
+                if not row or form['From']!='whatsapp:'+row['receiver_e164'] or form['To']!='whatsapp:'+row['sender_e164']:
+                    raise HTTPException(404,'Outbound receipt not found')
+                if row['provider_message_sid'] not in (None,form['MessageSid']) or (row['provider_message_sid'] is None and row['state'] not in {'SENDING','REVIEW_REQUIRED'}):
+                    raise HTTPException(409,'Outbound message identity mismatch')
+                if not re.fullmatch(r'SM[0-9a-fA-F]{32}',form['MessageSid']):raise HTTPException(400,'Invalid outbound SID')
+                if form['MessageStatus'] in {'failed','undelivered'} and row['delivery_status'] not in {'delivered','read'}:
+                    part=OutboundPart.model_validate_json(queue.ciphers[row['key_id']].decrypt(bytes(row['payload_ciphertext'])))
+                    await queue.schedule_fallback({'id':row['inbound_id']},row,part,connection=c)
+                await c.execute('''UPDATE public.whatsapp_reply_outbox SET provider_message_sid=$2,delivery_status=CASE
+                  WHEN delivery_status IN ('delivered','read') THEN delivery_status ELSE $3 END,updated_at=now() WHERE id=$1''',part_id,form['MessageSid'],form['MessageStatus'])
+                # The signed provider receipt can resolve an uncertain REST acceptance.
+                # READY only resumes reply parts; it never re-executes the action.
+                await c.execute("UPDATE public.whatsapp_reply_outbox SET state='ACCEPTED' WHERE id=$1 AND state='REVIEW_REQUIRED'",part_id)
+                await c.execute('''UPDATE public.whatsapp_inbound_queue q SET state='READY',updated_at=now()
+                  WHERE q.id=$1 AND q.state='REVIEW_REQUIRED' AND NOT EXISTS(
+                    SELECT 1 FROM public.whatsapp_reply_outbox o WHERE o.inbound_id=q.id AND o.state IN ('SENDING','REVIEW_REQUIRED'))''',row['inbound_id'])
+        return Response('<Response/>',media_type='application/xml')
+    return router

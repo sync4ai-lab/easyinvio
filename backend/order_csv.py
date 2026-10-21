@@ -274,7 +274,7 @@ class CSVOrderService:
             sid,order,metadata,replayed,status=await self.save(context,row)
             base.update(shipment_id=str(sid),saved=True,replayed=replayed,weight=row['weight'],order=order.model_dump(mode='json'),
                 customs=metadata.get('automation_customs'),review=metadata.get('batch_csv'))
-            if replayed and status in {'BOOKED','IN_TRANSIT','DELIVERED','EXCEPTION','BOOKING'}:
+            if replayed and status in {'BOOKED','MANIFESTED','IN_TRANSIT','DELIVERED','EXCEPTION','BOOKING'}:
                 return base|{'status':'already_processed','shipment_status':status}
             if row['missing_fields'] and status=='PENDING_IMPORT':
                 return base|{'status':'customs_review_required','missing_fields':row['missing_fields']}

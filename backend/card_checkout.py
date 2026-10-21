@@ -97,7 +97,7 @@ async def _complete_cart(service,context,cart_id):
             try:
                 result=await checkout_orders(service,context,selection)
                 statuses=[r['status'] for r in result['results']]
-                status='COMPLETED' if all(s=='BOOKED' for s in statuses) else 'BOOKING' if any(s=='SYNC_PENDING' for s in statuses) else 'REVIEW_REQUIRED'
+                status='COMPLETED' if all(s in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED'} for s in statuses) else 'BOOKING' if any(s=='SYNC_PENDING' for s in statuses) else 'REVIEW_REQUIRED'
                 in_progress=await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.shipments WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND status='BOOKING')",context.tenant_id,[x.shipment_id for x in selection.offers])
                 if in_progress:status='BOOKING'
             except HTTPException as exc:

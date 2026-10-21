@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 async def verified_return_parent(connection, tenant_id, shipment_id, origin, destination, *, warehouse_id=None, warehouse_version=None):
     row=await connection.fetchrow('''SELECT carrier_account_id,logistics_metadata FROM public.shipments
-        WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''',tenant_id,shipment_id)
+        WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''',tenant_id,shipment_id)
     if row is None:
         raise HTTPException(404,'Original return shipment not found in this workspace')
     metadata=json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'],str) else row['logistics_metadata']
