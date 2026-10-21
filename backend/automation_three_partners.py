@@ -736,6 +736,9 @@ class BaseAggregatorAdapter:
         return {}
 
     async def request(self, method, path, body=None):
+        if method.upper() not in {'GET', 'HEAD'}:
+            from backend.integration_policy import require_integration
+            require_integration(self.endpoint)
         # Bound reads before parsing, never follow redirects with credentials.
         try:
             authentication = self.authentication()
@@ -1698,6 +1701,9 @@ class PartnerLifecycleService:
                     raise HTTPException(409, 'Carrier configuration changed; request a fresh quote before booking') from None
                 tenant = await lock.fetchrow('SELECT is_sandbox FROM public.tenants WHERE tenant_id=$1', context.tenant_id)
                 environment = self.environment(tenant)
+                from backend.integration_policy import integration_enabled
+                if row['status'] != 'BOOKING' and not integration_enabled(account.base_url, self.automation.settings):
+                    raise HTTPException(409, 'Shipping integration disabled; request fresh quotes before booking')
                 adapter = create_adapter(self.client, account, environment=environment)
                 if environment == 'TEST' and not isinstance(adapter, (EasyPostAdapter, ShippoAdapter)):
                     raise HTTPException(403, 'This connection has no verified non-billable label test contract')

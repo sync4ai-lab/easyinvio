@@ -264,6 +264,9 @@ class EasyPostPurchase:
     """Use the already-rated immutable shipment; never retry an ambiguous buy."""
     def __init__(self,client): self.client=client
     async def request(self,account,path,method='GET',body=None):
+        if method.upper() not in {'GET', 'HEAD'}:
+            from backend.integration_policy import require_integration
+            require_integration(account.base_url)
         try:
             response=await self.client.request(method,account.base_url+path,auth=httpx.BasicAuth(account.api_key,''),json=body,timeout=30,follow_redirects=False)
         except httpx.HTTPError:
@@ -503,6 +506,9 @@ class AutomationService:
                     if adapter is None: raise HTTPException(503,'CHEAPEST_PROVIDER_HAS_NO_PURCHASE_ADAPTER')
                     account=next((a for a in accounts if a.id==rate.account_id),None)
                     if account is None: raise HTTPException(503,'CARRIER_ACCOUNT_CHANGED')
+                    from backend.integration_policy import integration_enabled
+                    if not integration_enabled(getattr(account,'base_url',''), self.settings):
+                        raise HTTPException(409,'Shipping integration disabled; request fresh quotes before booking')
                     if getattr(self,"native_orders",None) is not None:
                         await self.native_orders.ensure_order(context.tenant_id,shipment_id,rate.account_id)
                     permit=await self.finance.reserve(context,shipment_id)

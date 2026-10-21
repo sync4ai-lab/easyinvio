@@ -4,6 +4,9 @@ from fastapi import HTTPException
 
 def label_availability(settings, rate):
     endpoint = (rate.execution_details.get('account_endpoint') or '').rstrip('/')
+    from backend.integration_policy import integration_enabled
+    if endpoint and not integration_enabled(endpoint, settings):
+        return False, 'This shipping integration is disabled. Request fresh quotes before paying.'
     environment = getattr(settings, 'provider_environment', 'LIVE')
     if environment == 'TEST' and endpoint and endpoint not in {
             'https://api.easypost.com/v2', 'https://api.goshippo.com', 'https://api.goshippo.com/v1'}:

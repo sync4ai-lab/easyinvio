@@ -260,6 +260,9 @@ class ManifestService:
                 if previous:
                     if previous['input_sha256']!=digest or previous['created_by']!=user_id:raise HTTPException(409,'Manifest request key belongs to different input or operator')
                     return self.result(previous)
+                from backend.integration_policy import integration_enabled
+                if not integration_enabled(account.base_url, self.settings):
+                    raise HTTPException(409, 'Shipping integration disabled; no new manifest was submitted')
                 active=await connection.fetchval("SELECT id FROM public.carrier_manifests WHERE tenant_id=$1 AND carrier_account_id=$2 AND status IN ('DRAFT','SUBMITTED')",tenant_id,carrier_account_id)
                 if active:raise HTTPException(409,'A carrier close-out is already submitted and requires reconciliation')
                 warehouse=await self.warehouse(connection,tenant_id,warehouse_id)

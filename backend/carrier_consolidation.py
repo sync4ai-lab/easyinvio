@@ -26,6 +26,11 @@ def service_identity(carrier,service):
 def consolidate_rates(rates):
     """Distinct tiers/currencies remain separate. Tie breaks are stable."""
     winners={}
+    def native(rate):
+        from backend.adapters import direct_registration
+        direct=direct_registration(rate.execution_details.get('account_endpoint',''))
+        expected={'royal_mail':'ROYALMAIL','evri':'EVRI'}
+        return bool(direct and expected[direct.code] == carrier_identity(rate.carrier_code))
     def ranking(rate):
         wholesale=Decimal(rate.fee_breakdown['wholesale_total'])
         profit=rate.client_price_ex_tax-wholesale
@@ -35,7 +40,13 @@ def consolidate_rates(rates):
                 str(rate.account_id),rate.upstream_rate_id)
     for rate in rates:
         key=(carrier_identity(rate.carrier_code),service_identity(rate.carrier_code,rate.service_code),rate.currency)
-        if key not in winners or ranking(rate)<ranking(winners[key]):winners[key]=rate
+        previous=winners.get(key)
+        if previous is None:
+            winners[key]=rate
+            continue
+        if rate.client_price_ex_tax == previous.client_price_ex_tax and native(rate) != native(previous):
+            if native(rate):winners[key]=rate
+        elif ranking(rate)<ranking(previous):winners[key]=rate
     return sorted(winners.values(),key=lambda rate:(rate.client_price_ex_tax,carrier_identity(rate.carrier_code),service_identity(rate.carrier_code,rate.service_code),str(rate.account_id)))
 
 

@@ -119,7 +119,10 @@ QUOTE_PATTERN = re.compile(
 )
 
 
-class Settings(BaseSettings):
+from backend.integration_policy import IntegrationSettings, integration_enabled, integration_code
+
+
+class Settings(IntegrationSettings):
     sendcloud_methods: dict[UUID, list[SendcloudMethod]] = Field(default_factory=dict)
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True
@@ -883,6 +886,8 @@ class RateStrategy(ABC):
         self.client, self.account = client, account
 
     async def post(self, path: str, payload: dict[str, Any]) -> Any:
+        from backend.integration_policy import require_integration
+        require_integration(self.account.base_url)
         kwargs: dict[str, Any] = {
             "json": payload,
             "timeout": httpx.Timeout(self.account.timeout_seconds, connect=5),
@@ -1083,12 +1088,14 @@ class RatingService:
         self.semaphore = asyncio.Semaphore(settings.max_parallel_provider_requests)
 
     async def run_provider(self, strategy: RateStrategy, request: RatingRequest,
-                           deadline: int) -> tuple[list[WholesaleRate], ProviderIssue | None]:
+                           deadline: float) -> tuple[list[WholesaleRate], ProviderIssue | None]:
         account = strategy.account
         from backend.rate_diagnostics import RateCurrencyUnavailable, RateHTTPRejected
         available_currencies = []
         try:
             endpoint=getattr(account,'base_url','')
+            if not integration_enabled(endpoint, self.settings):
+                raise ProviderFailure('PROVIDER_DISABLED')
             known=bool(identify_aggregator(endpoint))
             if len(request.weights_kg)>1 and (not known or endpoint.rstrip('/')=='https://panel.sendcloud.sc/api/v2'):
                 raise ProviderFailure('MULTIPIECE_ADAPTER_NOT_CONFIGURED')
@@ -1165,19 +1172,33 @@ class RatingService:
         if not accounts:
             raise HTTPException(503, "No active carrier accounts configured")
         strategies = []
+        from backend.adapters import direct_registration
         from backend.automation_three_partners import ADAPTERS, NativeRateStrategy
         for account in accounts:
-            if getattr(account,'base_url',None) in ADAPTERS:
+            endpoint = getattr(account, 'base_url', '')
+            if not integration_enabled(endpoint, self.settings):
+                continue
+            direct = direct_registration(endpoint)
+            if direct:
+                strategies.append(direct.strategy_factory(self.client, account, settings=self.settings))
+            elif integration_code(endpoint) in {'royal_mail', 'evri'}:
+                from backend.adapters.royal_mail_adapter import RoyalMailStrategy
+                from backend.adapters.evri_adapter import EvriStrategy
+                direct_type = RoyalMailStrategy if integration_code(endpoint) == 'royal_mail' else EvriStrategy
+                strategies.append(direct_type(self.client, account, settings=self.settings))
+            elif getattr(account,'base_url',None) in ADAPTERS:
                 strategies.append(NativeRateStrategy(self.client, account, WholesaleRate, getattr(self.settings,'provider_environment','TEST')))
             elif (identify_aggregator(getattr(account,'base_url',None)) and identify_aggregator(account.base_url).code.startswith('SENDCLOUD')):
                 strategies.append(SendcloudStrategy(self.client,account,getattr(self.settings,'sendcloud_methods',{}).get(account.id,getattr(self.settings,'sendcloud_methods',{}).get(account.platform_connection_id,[]))))
             else:
                 strategies.append((EasyPostStrategy if account.provider == 'EASYPOST' else RegionalStrategy)(self.client,account))
-        results = await asyncio.gather(*(
-            self.run_provider(s, physical_request if identify_aggregator(getattr(s.account,'base_url',None)) else request,
-                              provider_deadline or self.settings.provider_deadline_seconds)
-            for s in strategies
-        ))
+        if not strategies:
+            raise HTTPException(503, 'No enabled carrier integrations configured')
+        from backend.provider_routing import run_tiered_providers
+        results = await run_tiered_providers(
+            strategies, physical_request, request, self.run_provider,
+            provider_deadline or self.settings.provider_deadline_seconds,
+        )
         quoted_at = datetime.now(timezone.utc)
         issues = [issue for _, issue in results if issue is not None]
         rates = []
