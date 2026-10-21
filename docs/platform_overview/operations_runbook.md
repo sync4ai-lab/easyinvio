@@ -134,6 +134,17 @@ For PAF failures, check licence/key/account availability without logging the sec
 
 ## EOD and paperless media rollout
 
+If 044 reports `public.whatsapp_reply_outbox` missing, check that **both**
+`public.whatsapp_inbound_queue` and `public.whatsapp_reply_outbox` exist in the
+selected Supabase project. Both are installed by the complete
+`043_whatsapp_async_ingress.sql` after 042. If neither exists, apply 043, then
+rerun the complete corrected 044. A single queue or incompatible schema indicates
+partial installation: preserve receipts and compare/repair against 043 rather
+than creating an empty replacement table. Corrected 044 checks baseline tables,
+column types, unique keys, queue FK and RLS before changing the shipment enum.
+The original failure rolls back 044's second transaction; an earlier committed
+MANIFESTED enum value may remain and is safe to retain for retry.
+
 Apply the complete 044 script after 043 without an additional outer transaction. Its explicit enum transaction commits before using MANIFESTED. Install updated requirements including PyMuPDF. Confirm private default Storage bucket/policy, valid server-only Supabase service key, approved document hosts, public HTTPS app origin and quote-link signing secret. Configure equivalent policies separately for a custom bucket. Twilio-enabled startup checks the new schema; native media automatically sets /api/v1/integrations/whatsapp/outbound-status/{part_id} on the configured public origin. The Twilio-only local ingress forwards this callback.
 
 Use POST /api/v1/dispatch/manifests/preview, then close with a stable request_id, carrier_account_id and any required carrier_code/warehouse_id. GET /{id} retrieves status/reconciles a known native reference without another POST. Authenticated /{id}/document and signed /{id}/download serve completed PDFs. Live mutations require LIVE database/provider alignment and enabled purchase controls. Internal handover sheets do not replace mandatory carrier paperwork or schedule pickup.

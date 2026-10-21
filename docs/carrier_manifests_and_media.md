@@ -5,12 +5,68 @@ Implementation reference: 21 October 2026, migration 044 after 043. This change 
 ## Activation
 
 1. Install the updated requirements. PyMuPDF is used to rasterize actual single-page carrier SVG/PDF assets; Pillow validates/re-encodes PNG/JPEG. Existing ReportLab generates the internal handover sheet.
-2. Apply the complete `migrations/044_carrier_manifests_and_media.sql` script without wrapping it in another transaction. Its first explicit transaction commits any shipment enum addition before the next transaction uses MANIFESTED. Existing status CHECK constraints are extended without dropping their prior permitted values.
+2. First apply the complete `migrations/043_whatsapp_async_ingress.sql` after 042 in the **same database/project**. It creates both `whatsapp_inbound_queue` and `whatsapp_reply_outbox` with their encrypted payloads, ordering/idempotency keys, foreign key, RLS and service-only grants. Then apply the complete `migrations/044_carrier_manifests_and_media.sql` script without wrapping it in another transaction. Its early preflight checks both queues, required baseline columns/types, tenant-bound unique keys, the outbox foreign key and queue RLS before changing the shipment enum. The first explicit transaction commits any enum addition before the next transaction uses MANIFESTED. Existing status CHECK constraints are extended without dropping their prior permitted values.
 3. On Supabase the migration creates the **private** `easyinvio-logistics` image bucket when Storage is present. The default bucket is protected by a restrictive anon/authenticated object policy; browser clients do not receive write or direct read access. If using a custom `LOGISTICS_MEDIA_BUCKET`, provision equivalent private policies separately. The runtime refuses an accidentally public bucket.
 4. Retain the normal server-only Supabase service key, approved `PARTNER_DOCUMENT_ALLOWED_HOSTS`, Fernet key ring and Twilio settings. Configure `BOOKING_PAGE_URL` to this application's public HTTPS origin and a strong `QUOTE_LINK_SECRET`. Signed document links cannot work from a remote phone if they point to localhost.
 5. Restart using `python -m uvicorn main:app --host 127.0.0.1 --port 8000` in the existing virtual environment. Twilio-enabled startup requires migration 044 and its outbox columns. The local Twilio-only tunnel forwards the new outbound-status callback path automatically; do not expose a general application proxy.
 
 No additional storage key is exposed to a browser. Object paths are immutable `<tenant UUID>/<shipment UUID>/<SHA-256>.png`; signed read access lasts 24 hours. This is a private bucket with expiring capabilities, not a globally public bucket described as “signed.” Lifecycle/retention deletion for expired media and stored PDFs must be configured by the operator; unresolved shipment/manifest evidence must not be deleted as a retry workaround.
+
+## Recovery: migration 044 reports a missing WhatsApp outbox
+
+`42P01: relation public.whatsapp_reply_outbox does not exist` means the migration
+043 outbox is absent in the selected database. It is not created by 038, 039 or
+042. Check the project/database selection and run this read-only query:
+
+```sql
+SELECT current_database() AS database_name,
+       to_regclass('public.whatsapp_inbound_queue') AS inbound_queue,
+       to_regclass('public.whatsapp_reply_outbox') AS reply_outbox,
+       to_regclass('public.carrier_manifests') AS carrier_manifests;
+```
+
+- If both queue names are NULL, apply the **complete**
+  `migrations/043_whatsapp_async_ingress.sql`, then rerun the **complete corrected**
+  `migrations/044_carrier_manifests_and_media.sql` in that same database.
+- If only one queue exists, or the new preflight reports incompatible columns,
+  keys, foreign keys or RLS, the schema is partially installed or altered. Compare
+  it with 043 and repair it while preserving existing encrypted messages and
+  receipts. Do not blindly rerun 043 over existing tables, drop them or create a
+  minimal substitute table to silence the error.
+- If manifest/media objects already exist, verify whether 044 previously completed
+  before replaying its CREATE statements. This is not an idempotent upgrade over an
+  already completed 044.
+- The original failure occurs inside 044's **second transaction**. When the full
+  script was executed as supplied, that transaction rolls back its manifest/media
+  objects. Its earlier enum-only transaction may have committed MANIFESTED; leave
+  that value in place. The corrected script supports that retry. If a SQL session
+  is still in an aborted transaction, run `ROLLBACK;` before retrying.
+
+The corrected 044 preflight now fails **before** the enum transaction changes
+anything when earlier tables/columns/keys are missing. It also applies a 10-second
+lock timeout to that first transaction. It does not auto-apply 043, erase queue
+data, bypass tenant-bound keys or change a deployed database during code review.
+
+## Disposable PostgreSQL migration regression
+
+`tests/test_manifest_migrations.cjs` executes both SQL scripts in in-memory
+PostgreSQL through PGlite 0.5.10, using synthetic baseline tables, Supabase roles
+and optional Storage tables. It never loads `.env` or connects to Supabase.
+
+With Node.js/npm installed, prepare a disposable test dependency and run:
+
+```powershell
+npm install --prefix tmp/migration044-test @electric-sql/pglite@0.5.10 --ignore-scripts
+$env:PGLITE_TEST_MODULE = Join-Path (Get-Location) 'tmp/migration044-test/node_modules/@electric-sql/pglite/dist/index.cjs'
+node --test tests/test_manifest_migrations.cjs
+```
+
+Tests cover missing/partial prerequisites before any enum change, receipt
+preservation, required unique keys/FK/RLS, text/enum upgrades, safe enum-only retry,
+append-only events, one fallback per outbound part, private grants/Storage policies,
+and tenant/account-bound manifest assignment. This checks executable DDL; deployed
+schema drift, PostgreSQL lock contention and real Supabase Storage remain staging
+checks.
 
 ## Paperless document pipeline
 

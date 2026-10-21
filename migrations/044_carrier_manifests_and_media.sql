@@ -1,6 +1,85 @@
 -- Apply after 043. Run as a complete script, without an enclosing transaction:
 -- a newly extended shipment enum must commit before MANIFESTED is used.
 BEGIN;
+SET LOCAL lock_timeout='10s';
+-- Validate the committed baseline before the enum transaction changes anything.
+-- Migration 043 owns the complete encrypted/idempotent queue, not an empty stub.
+DO $$
+DECLARE required record; missing text[] := ARRAY[]::text[]; target oid;
+BEGIN
+ FOR required IN SELECT name FROM (VALUES
+  ('auth.users'),('public.tenants'),('public.carrier_accounts'),('public.shipments'),
+  ('public.whatsapp_inbound_queue'),('public.whatsapp_reply_outbox')) AS relations(name)
+ LOOP
+  IF to_regclass(required.name) IS NULL THEN missing := array_append(missing,required.name); END IF;
+ END LOOP;
+ IF cardinality(missing)>0 THEN
+  RAISE EXCEPTION 'Migration 044 prerequisites are missing: %',array_to_string(missing,', ')
+   USING ERRCODE='55000', HINT='Apply the earlier migrations in order in this same database. Both WhatsApp queue tables are created by the complete 043_whatsapp_async_ingress.sql script, after 042. Then rerun the complete 044 script. No manifest/media changes have been made.';
+ END IF;
+ FOR required IN SELECT * FROM (VALUES
+  ('auth.users','id','uuid'),('public.tenants','tenant_id','uuid'),
+  ('public.carrier_accounts','id','uuid'),('public.carrier_accounts','tenant_id','uuid'),
+  ('public.shipments','id','uuid'),('public.shipments','tenant_id','uuid'),('public.shipments','carrier_account_id','uuid'),
+  ('public.whatsapp_inbound_queue','id','bigint'),('public.whatsapp_inbound_queue','message_sid','text'),
+  ('public.whatsapp_inbound_queue','sender_e164','text'),('public.whatsapp_inbound_queue','receiver_e164','text'),
+  ('public.whatsapp_inbound_queue','input_sha256','text'),('public.whatsapp_inbound_queue','payload_ciphertext','bytea'),
+  ('public.whatsapp_inbound_queue','key_id','text'),('public.whatsapp_inbound_queue','state','text'),
+  ('public.whatsapp_inbound_queue','created_at','timestamp with time zone'),
+  ('public.whatsapp_inbound_queue','updated_at','timestamp with time zone'),('public.whatsapp_inbound_queue','error_code','text'),
+  ('public.whatsapp_reply_outbox','id','bigint'),('public.whatsapp_reply_outbox','inbound_id','bigint'),
+  ('public.whatsapp_reply_outbox','part_index','integer'),('public.whatsapp_reply_outbox','payload_ciphertext','bytea'),
+  ('public.whatsapp_reply_outbox','key_id','text'),('public.whatsapp_reply_outbox','state','text'),
+  ('public.whatsapp_reply_outbox','provider_message_sid','text'),
+  ('public.whatsapp_reply_outbox','updated_at','timestamp with time zone'),('public.whatsapp_reply_outbox','error_code','text')
+ ) AS columns(relation_name,column_name,type_name)
+ LOOP
+  IF NOT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass(required.relation_name)
+    AND attname=required.column_name AND NOT attisdropped AND atttypid=to_regtype(required.type_name)) THEN
+   missing := array_append(missing,required.relation_name||'.'||required.column_name||' ('||required.type_name||')');
+  END IF;
+ END LOOP;
+ IF NOT EXISTS(SELECT 1 FROM pg_attribute a JOIN pg_type t ON t.oid=a.atttypid
+   WHERE a.attrelid='public.shipments'::regclass AND a.attname='status' AND NOT a.attisdropped
+   AND (t.typtype='e' OR a.atttypid IN ('text'::regtype,'character varying'::regtype))) THEN
+  missing := array_append(missing,'public.shipments.status (text, varchar or enum)');
+ END IF;
+ IF cardinality(missing)>0 THEN
+  RAISE EXCEPTION 'Migration 044 baseline columns are missing or incompatible: %',array_to_string(missing,', ')
+   USING ERRCODE='55000', HINT='The earlier schema is incomplete or differs from this application. Compare it with migration 043 and the shipment/account baseline; preserve existing data and repair the baseline before running 044. Do not create an empty replacement outbox.';
+ END IF;
+ FOR required IN SELECT * FROM (VALUES
+  ('auth.users',ARRAY['id']),('public.tenants',ARRAY['tenant_id']),
+  ('public.carrier_accounts',ARRAY['id']),('public.carrier_accounts',ARRAY['tenant_id','id']),
+  ('public.shipments',ARRAY['tenant_id','id']),('public.whatsapp_inbound_queue',ARRAY['id']),
+  ('public.whatsapp_inbound_queue',ARRAY['message_sid']),('public.whatsapp_reply_outbox',ARRAY['id']),
+  ('public.whatsapp_reply_outbox',ARRAY['inbound_id','part_index']),('public.whatsapp_reply_outbox',ARRAY['provider_message_sid'])
+ ) AS keys(relation_name,column_names)
+ LOOP
+  target := to_regclass(required.relation_name);
+  IF NOT EXISTS(SELECT 1 FROM pg_index i WHERE i.indrelid=target AND i.indisunique AND i.indisvalid
+    AND i.indimmediate AND i.indpred IS NULL AND i.indexprs IS NULL
+    AND ARRAY(SELECT a.attname::text FROM unnest(i.indkey) WITH ORDINALITY k(attnum,position)
+      JOIN pg_attribute a ON a.attrelid=target AND a.attnum=k.attnum
+      WHERE k.position<=i.indnkeyatts ORDER BY a.attname::text)
+      = ARRAY(SELECT name FROM unnest(required.column_names) name ORDER BY name)) THEN
+   RAISE EXCEPTION 'Migration 044 requires a non-partial unique key on %(%)',required.relation_name,array_to_string(required.column_names,', ')
+    USING ERRCODE='55000', HINT='Restore the earlier tenant/account/shipment and migration 043 unique keys before running 044. Do not bypass tenant-bound foreign keys or message idempotency.';
+  END IF;
+ END LOOP;
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public.whatsapp_reply_outbox'::regclass
+   AND confrelid='public.whatsapp_inbound_queue'::regclass AND contype='f' AND convalidated
+   AND conkey=ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid='public.whatsapp_reply_outbox'::regclass AND attname='inbound_id')]::smallint[]
+   AND confkey=ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid='public.whatsapp_inbound_queue'::regclass AND attname='id')]::smallint[]) THEN
+  RAISE EXCEPTION 'Migration 044 requires the migration 043 outbox-to-inbound foreign key'
+   USING ERRCODE='55000', HINT='Repair the incomplete migration 043 schema before running 044; preserve queued messages.';
+ END IF;
+ IF EXISTS(SELECT 1 FROM pg_class WHERE oid IN ('public.whatsapp_inbound_queue'::regclass,'public.whatsapp_reply_outbox'::regclass)
+   AND NOT relrowsecurity) THEN
+  RAISE EXCEPTION 'Migration 044 requires row-level security on both migration 043 queue tables'
+   USING ERRCODE='55000', HINT='Apply the complete security section of migration 043; queue payloads must remain server-only.';
+ END IF;
+END $$;
 DO $$
 DECLARE typ text;
 BEGIN

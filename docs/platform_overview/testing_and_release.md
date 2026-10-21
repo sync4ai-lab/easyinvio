@@ -65,6 +65,17 @@ No migration, live PAF lookup, carrier purchase, payment or WhatsApp send was ex
 
 ## EOD manifests and signed media, 21 October 2026
 
+Subsequent migration dependency verification executes the actual 043 and corrected
+044 SQL against disposable PGlite 0.5.10 PostgreSQL instances. All **10 DDL
+regressions** passed, covering absent/partial queues, incompatible types, missing
+uniqueness/FK/RLS, receipt preservation, text/enum status upgrades, an earlier
+enum-only commit, tenant/account assignment guards, append-only events and private
+grants/Storage policies. **19 scoped application tests** for manifests and the
+WhatsApp queue also passed. These runs use synthetic schemas and never connect to
+Supabase; actual deployed schema drift and native server contention still require
+authorized staging verification. See `tests/test_manifest_migrations.cjs` and the
+recovery steps in the operations runbook.
+
 The full tests directory passed **945 tests, one skipped and 14 subtests**, with two existing collection warnings. Compilation and diff checks passed. Synthetic provider/database/Storage/Twilio tests cover role/tenant boundaries, exact totals, replay/competing closes, native membership/document validation, timeout fencing, 1,005 shipments in bounded batches, image sanitization/private signing, and immediate/signed-callback media fallback. A three-page 60-shipment sample PDF was rendered and visually inspected.
 
 No migration, live close-out, Storage upload, payment or message was executed. Staging must verify the actual 044 migration/constraints and lock contention, provider eligibility/label dates, private bucket policies and retention, dependency deployment, signed host reachability and real WhatsApp delivery. A generated internal sheet is never external carrier acceptance evidence.
