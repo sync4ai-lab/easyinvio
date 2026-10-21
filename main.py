@@ -175,6 +175,7 @@ class Settings(IntegrationSettings):
     whatsapp_queue_workers: int = Field(default=2, ge=1, le=8)
     ideal_postcodes_api_key: SecretStr = SecretStr("")
     logistics_media_bucket: str = 'easyinvio-logistics'
+    tracking_polling_enabled: bool = False
     booking_page_url: str = ""
     quote_link_secret: SecretStr = SecretStr("")
     whatsapp_deadline_seconds: int = Field(default=12, ge=5, le=12)
@@ -1996,6 +1997,14 @@ async def deterministic_lifespan(application: FastAPI):
                     connectors=StoreConnectorSettings().ecommerce_connectors, credential_keys=settings.credential_keys)
                 from backend.tracking_and_support import load_tracking_settings
                 application.state.tracking_support = TrackingSupportService(pool, load_tracking_settings())
+                from backend.tracking_workspace import TrackingWorkspace
+                from backend.tracking_refresh import TrackingRefreshWorker
+                application.state.tracking_workspace = TrackingWorkspace(pool,settings,repository=repository,client=http_client)
+                await application.state.tracking_workspace.initialise()
+                if application.state.tracking_workspace.ready:
+                    application.state.tracking_support.workspace = application.state.tracking_workspace
+                tracking_refresh_task = (asyncio.create_task(TrackingRefreshWorker(application.state.tracking_workspace,
+                    application.state.tracking_support).worker()) if application.state.tracking_workspace.ready and settings.tracking_polling_enabled else None)
                 application.state.support_delivery = SupportDelivery(pool,http_client,settings,DeliverySettings())
                 application.state.sandbox_billing = SandboxBillingService(application.state.finance, settings) if settings.stripe_enabled else None
                 application.state.admin_portal = AdminService(pool)
@@ -2044,6 +2053,9 @@ async def deterministic_lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    if tracking_refresh_task is not None:
+                        tracking_refresh_task.cancel()
+                        await asyncio.gather(tracking_refresh_task,return_exceptions=True)
                     for task in whatsapp_tasks:
                         task.cancel()
                     await asyncio.gather(*whatsapp_tasks, return_exceptions=True)
@@ -2310,6 +2322,21 @@ async def frontend():
     return FileResponse(Path(__file__).with_name("index.html"), media_type="text/html", headers={'Cache-Control':'no-store'})
 
 
+@app.get('/track',include_in_schema=False)
+async def public_tracking_page():
+    return FileResponse(Path(__file__).with_name('tracking.html'),media_type='text/html',headers={
+        'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',
+        'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"})
+
+
+@app.get('/tracking-workspace.js',include_in_schema=False)
+@app.get('/tracking-public.js',include_in_schema=False)
+@app.get('/tracking-ui.css',include_in_schema=False)
+async def tracking_asset(request:Request):
+    tracking_asset=request.url.path.removeprefix('/')
+    return FileResponse(Path(__file__).with_name(tracking_asset),media_type='text/css' if tracking_asset.endswith('.css') else 'text/javascript',headers={'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'})
+
+
 @app.get("/api/v1/config")
 async def public_config(request: Request):
     if request.app.state.local_preview:
@@ -2529,6 +2556,9 @@ app.include_router(sandbox_router(authenticate, RatingRequest))
 app.include_router(ecommerce_router(authenticate))
 app.include_router(hubspot_router(authenticate))
 app.include_router(tracking_router(authenticate))
+from backend.tracking_workspace import build_router as tracking_workspace_router
+from backend.admin_portal import authenticate_platform_owner
+app.include_router(tracking_workspace_router(authenticate,authenticate_platform_owner))
 app.include_router(support_delivery_router(authenticate))
 from backend.support_alert_controls import build_router as support_alert_controls_router
 from backend.admin_portal import authenticate_platform_owner

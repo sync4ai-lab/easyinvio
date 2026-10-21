@@ -1,6 +1,6 @@
 # EasyInvio.com operations prototype
 
-The current [application manual](docs/platform_overview/overview.html) is the consolidated functional/technical architecture and onboarding reference through migration 044. It includes all agent responsibilities, generated API schemas, integrations, security/financial invariants and operational recovery procedures. Its [source index](docs/platform_overview/README.md) explains how to rebuild the `EasyInvio-Architecture` folder and downloadable ZIP. Older feature/UAT reports below retain their original evidence scope.
+The current [application manual](docs/platform_overview/overview.html) is the consolidated functional/technical architecture and onboarding reference through migration 045. It includes all agent responsibilities, generated API schemas, integrations, security/financial invariants and operational recovery procedures. Its [source index](docs/platform_overview/README.md) explains how to rebuild the `EasyInvio-Architecture` folder and downloadable ZIP. Older feature/UAT reports below retain their original evidence scope.
 
 The product is branded **EasyInvio.com**. Existing `veloce_*` database/CRM identifiers, webhook headers, token issuers, browser storage keys and fixture IDs remain compatible with deployed data and integrations. The local project folder and configured Git remote keep their existing names.
 
@@ -107,3 +107,5 @@ Offline tests cover exact money, rounding, provider billable-weight propagation,
 
 See [store import and simulated tracking setup](docs/ecommerce_sync.md) for migration 009, store provisioning, the authenticated order payload and confirmed-label callback behavior.
 
+
+See [Tracking 2.0 implementation and rollout](docs/tracking_2_implementation.md) for the shared workspace, customer links, channel security, read-only reconciliation and verification limits.

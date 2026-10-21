@@ -57,3 +57,7 @@ For reversible documentation edits, validate content, links/rendering and diff c
 Read manifest_service.py, logistics_media.py, migration 044, whatsapp_queue.py and the carrier_manifests_and_media operating guide before changing EOD or image delivery. Preserve manifest tenant/account membership, cancellation lock coordination, pre-submission fencing, immutable snapshots and GET-only native recovery. MANIFESTED must remain compatible with label access, tracking, protection, reports and booking replay. Internal handover references are not carrier tracking/pickup outcomes.
 
 Do not create a generic Sendcloud manifest POST without its verified public contract. Do not put private QR assets in a public bucket or allow chat input to select arbitrary outbound URLs. Definite failed media and uncertain REST outcomes have different recovery authority; neither authorizes replaying a financial action.
+
+## Tracking 2.0 ownership
+
+Read tracking_workspace.py, tracking_refresh.py, migration 045 and docs/tracking_2_implementation.md before changing tracking. Preserve fixed customer-link membership, public allowlists, tenant/admin authorization, immutable scan facts, read-only provider reconciliation, account cooldowns and default-disabled polling. A stale feed is not a confirmed delay, a return receipt is not a purchase refund, and a provider capability declaration is not activation or contract certification.

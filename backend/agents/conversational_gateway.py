@@ -185,10 +185,10 @@ class ConversationalActionGateway:
         topup = re.fullmatch(r'\s*(?:top\s*up|topup)\s+(?:[£€$]\s*)?([0-9]+(?:[.,][0-9]{1,2})?)(?:\s+(GBP|EUR|USD))?\s*', text, re.I)
         if topup:
             return ConversationalIntent(intent='TOPUP_WALLET', monetary_amount=Decimal(topup[1].replace(',', '.')))
-        tracking = re.fullmatch(r'\s*(?:track|tracking)\s+([A-Za-z0-9_-]{1,200})\s*', text, re.I)
+        tracking = re.fullmatch(r'\s*(?:track|tracking)(?:\s+(?:order|shipment|parcel|return))?\s+([A-Za-z0-9_-]{1,200})\s*', text, re.I)
         if tracking:
             return ConversationalIntent(intent='TRACK_PACKAGE', target_reference_id=tracking[1])
-        if re.fullmatch(r'\s*(?:where\s+is\s+my\s+(?:package|parcel|shipment)|track(?:\s+my\s+(?:package|parcel|shipment))?)\s*[?.!]*\s*', text, re.I):
+        if re.fullmatch(r'\s*(?:where\s+is\s+my\s+(?:order|package|parcel|shipment|refund)|when\s+should\s+my\s+parcel\s+arrive|has\s+my\s+return\s+arrived|my\s+delivery\s+is\s+delayed|track(?:\s+my\s+(?:package|parcel|shipment))?)\s*[?.!]*\s*', text, re.I):
             return ConversationalIntent(intent='TRACK_PACKAGE')
         claim = re.fullmatch(r'\s*claim\s+([A-Za-z0-9_-]{1,200})\s+(lost|damaged)\s+(.{10,1800})\s*', text, re.I | re.S)
         if claim:
@@ -350,6 +350,9 @@ class ConversationalActionGateway:
                 draft = ConversationDraft(action='TRACK_PACKAGE', intent=intent, waiting_for='reference',
                     assistance_id=str(context.assistance_session_id) if context.assistance_session_id else None)
                 return self.pending_reply(draft, self.draft_prompt(draft))
+            tracking_workspace = getattr(self.state,'tracking_workspace',None)
+            if tracking_workspace is not None and tracking_workspace.ready:
+                return self.reply(intent.intent,await tracking_workspace.chat(context,reference),_last_reference=reference)
             shipment = await self.shipment(context, reference)
             async with self.pool.acquire() as connection:
                 events = await connection.fetch('''SELECT status,occurred_at FROM public.tracking_events

@@ -86,6 +86,19 @@ async def process_inbound(request: Request, form: FormData, received_at: datetim
     from backend.whatsapp_onboarding import onboarding_manager
     from backend.agents.conversational_gateway import ConversationalActionGateway, ConversationMessage, message_xml
     state = request.app.state
+    # Customer access requires the actual unguessable capability, not a claimed
+    # phone/order relationship. The signed, encrypted inbox fences this read too.
+    capability = re.fullmatch(r'\s*track\s+link\s+([A-Za-z0-9_-]{40,100})\s*',form.get('Body',''),re.I)
+    workspace = getattr(state,'tracking_workspace',None)
+    if capability and workspace is not None and workspace.ready and form.get('NumMedia')=='0':
+        workspace.public_rate_limit(form.get('From','unknown'))
+        try:
+            result=await workspace.resolve(capability[1])
+            text='\n'.join(f"{item['order_reference']}: {item['status'].replace('_',' ').lower()}." for item in result['shipments'])
+            text+='\n'+result['support_message']
+        except HTTPException:
+            text='This tracking link is unavailable or expired. Ask the retailer for a new secure tracking link.'
+        return reply_parts(message_xml(text))
     signup = await onboarding_manager(request)
     if signup is not None:
         cached = await signup.replay(form)

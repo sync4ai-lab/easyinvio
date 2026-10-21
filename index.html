@@ -3758,7 +3758,8 @@ function refreshEnterpriseNavigation() {
         wallet: 'wallet',
         customs: 'globe',
         stores: 'box',
-        workspace: 'box'
+        workspace: 'box',
+        tracking: 'truck'
       })[view];
       return `<button id="tab-${view}" role="tab" data-enterprise-view="${view}" aria-selected="${enterprise.currentView === view}"><span class="nav-symbol"><i data-lucide="${icon}"></i><svg class="icon-fallback" fill="none" stroke="currentColor" stroke-width="1.6"><use href="#i-${fallback}"></use></svg></span><span>${label}</span></button>`;
     }).join('');
@@ -8718,5 +8719,7 @@ document.addEventListener('pointerdown', event => { if (!overviewInfo.contains(e
   setView = function(next) { reset(); return view.apply(this,arguments); };
 })();
 </script>
+<link rel="stylesheet" href="/tracking-ui.css?v=1">
+<script src="/tracking-workspace.js?v=1"></script>
 </body>
 </html>

@@ -109,7 +109,23 @@ def native_pod(body):
     return value
 
 
-def parse_easypost_tracking(body, environment):
+def enrich_easypost_event(event, tracker, latest):
+    detailed={'out_for_delivery':'OUT_FOR_DELIVERY','available_for_pickup':'AVAILABLE_FOR_PICKUP','return_to_sender':'RETURNED_TO_SENDER'}
+    values={'milestone':detailed.get(tracker['status'],event.status),'source_status':tracker['status'],
+            'scan_occurred_at':native_timestamp(latest['datetime']) if latest.get('datetime') else None}
+    location=latest.get('tracking_location') or {}
+    city=location.get('city') if isinstance(location,dict) else None
+    if isinstance(city,str) and re.fullmatch(r"[\w .'-]{1,80}",city):values['location']=city
+    estimate=tracker.get('est_delivery_date')
+    if isinstance(estimate,str):
+        try:
+            candidate=datetime.fromisoformat(estimate.replace('Z','+00:00'))
+            if candidate.tzinfo is not None:values['estimated_delivery_at']=candidate
+        except ValueError:pass
+    return TrackingEvent.model_validate({**event.model_dump(),**values})
+
+
+def parse_easypost_tracking(body, environment, *, preserve_unknown=False):
     if body.get('description') != 'tracker.updated':
         return None
     tracker = body['result']
@@ -118,17 +134,19 @@ def parse_easypost_tracking(body, environment):
     status = {'in_transit':'IN_TRANSIT','out_for_delivery':'IN_TRANSIT','available_for_pickup':'IN_TRANSIT',
               'delivered':'DELIVERED','failure':'EXCEPTION','error':'EXCEPTION','return_to_sender':'EXCEPTION'}.get(tracker['status'])
     if status is None:
-        return None
+        if not preserve_unknown:return None
+        status='UNKNOWN'
     details = tracker.get('tracking_details') or []
     latest = max(details, key=lambda value:native_timestamp(value['datetime'])) if details else {}
     event = TrackingEvent(event_id=body['id'], tracking_number=tracker['tracking_code'], status=status,
         occurred_at=native_timestamp(tracker['updated_at']),
         raw_error=str(latest.get('message') or tracker.get('status_detail') or '')[:4000],
         proof_of_delivery_url=native_pod(tracker) if status=='DELIVERED' else None)
+    event=enrich_easypost_event(event,tracker,latest)
     return event, tracker.get('shipment_id'), 'EASYPOST'
 
 
-def parse_sendcloud_tracking(body, status_map):
+def parse_sendcloud_tracking(body, status_map, *, preserve_unknown=False):
     if body.get('action') != 'parcel_status_changed':
         return None
     parcel = body['parcel']
@@ -137,16 +155,17 @@ def parse_sendcloud_tracking(body, status_map):
         raise ValueError('Invalid parcel status identifier')
     status = status_map.get(str(identifier_value))
     if status is None:
-        return None
+        if not preserve_unknown:return None
+        status='UNKNOWN'
     timestamp = native_timestamp(body.get('carrier_status_change_timestamp') or body['timestamp'])
     facts = {'tracking_number':parcel['tracking_number'],'status':status,'occurred_at':timestamp.isoformat(),
              'raw_error':str(parcel['status'].get('message',''))[:4000],
              'proof_of_delivery_url':native_pod(parcel) if status=='DELIVERED' else None}
     event_id = 'sc:' + hashlib.sha256(decimal_json(facts).encode()).hexdigest()
-    return TrackingEvent(event_id=event_id, **facts), None, 'SENDCLOUD'
+    return TrackingEvent(event_id=event_id,milestone=status,source_status='status:'+str(identifier_value), **facts), None, 'SENDCLOUD'
 
 
-def parse_shippo_tracking(body, environment):
+def parse_shippo_tracking(body, environment, *, preserve_unknown=False):
     if body.get('event')!='track_updated':
         return None
     if body.get('test') is not (environment=='TEST'):
@@ -155,7 +174,8 @@ def parse_shippo_tracking(body, environment):
     milestone = data['tracking_status']
     status = {'TRANSIT':'IN_TRANSIT','DELIVERED':'DELIVERED','FAILURE':'EXCEPTION','RETURNED':'EXCEPTION'}.get(milestone['status'])
     if status is None:
-        return None
+        if not preserve_unknown:return None
+        status='UNKNOWN'
     facts = {'tracking_number':data['tracking_number'],'status':status,
         'occurred_at':native_timestamp(milestone['status_date']).isoformat(),
         'raw_error':str(milestone.get('status_details') or milestone.get('substatus',{}).get('text') or '')[:4000],
@@ -164,7 +184,7 @@ def parse_shippo_tracking(body, environment):
     transaction = data.get('transaction')
     if isinstance(transaction, dict):
         transaction = transaction.get('object_id')
-    return TrackingEvent(event_id=event_id, **facts), transaction, 'SHIPPO'
+    return TrackingEvent(event_id=event_id,milestone='RETURNED_TO_SENDER' if milestone['status']=='RETURNED' else status,source_status=milestone['status'], **facts), transaction, 'SHIPPO'
 
 
 def verify_native_signature(request, raw, provider, auth_method, secret, now=None):
@@ -410,11 +430,11 @@ class NativePartnerService:
             if not isinstance(body,dict):
                 raise ValueError()
             if provider=='EASYPOST':
-                parsed=parse_easypost_tracking(body,source['environment'])
+                parsed=parse_easypost_tracking(body,source['environment'],preserve_unknown=getattr(self.tracking,'workspace',None) is not None)
             elif provider=='SENDCLOUD':
-                parsed=parse_sendcloud_tracking(body,decode_json(source['sendcloud_status_map']))
+                parsed=parse_sendcloud_tracking(body,decode_json(source['sendcloud_status_map']),preserve_unknown=getattr(self.tracking,'workspace',None) is not None)
             elif provider=='SHIPPO':
-                parsed=parse_shippo_tracking(body,source['environment'])
+                parsed=parse_shippo_tracking(body,source['environment'],preserve_unknown=getattr(self.tracking,'workspace',None) is not None)
             else:
                 raise ValueError()
         except (ValueError,KeyError,TypeError,AttributeError,OverflowError):
@@ -439,7 +459,8 @@ class NativePartnerService:
                 raise HTTPException(409,'Native shipment reference does not match')
         key=TrackingKey(tenant_id=row['tenant_id'],carrier_account_id=row['carrier_account_id'],
             secret=SecretStr(secret),pod_allowed_hosts=decode_json(source['pod_allowed_hosts']))
-        canonical=json.dumps(event.model_dump(mode='json'),sort_keys=True,separators=(',',':')).encode()
+        # Retain the pre-045 receipt digest contract for delayed native retries.
+        canonical=json.dumps(event.model_dump(mode='json',include={'event_id','tracking_number','status','occurred_at','raw_error','proof_of_delivery_url'}),sort_keys=True,separators=(',',':')).encode()
         return await self.tracking.ingest('native:'+str(source_id),key,event,hashlib.sha256(canonical).hexdigest())
 
 
@@ -731,6 +752,7 @@ class BaseAggregatorAdapter:
         self.last_order_id = None
         self.last_order_kind = None
         self.last_http_status = None
+        self.last_retry_after_seconds = None
 
     def authentication(self):
         return {}
@@ -748,6 +770,10 @@ class BaseAggregatorAdapter:
                                           timeout=30, follow_redirects=False,
                                           **authentication) as response:
                 self.last_http_status = response.status_code
+                self.last_retry_after_seconds = None
+                if response.status_code == 429:
+                    retry = response.headers.get('retry-after','')
+                    if retry.isdigit():self.last_retry_after_seconds = min(int(retry),86400)
                 raw = bytearray()
                 async for chunk in response.aiter_bytes():
                     raw.extend(chunk)
