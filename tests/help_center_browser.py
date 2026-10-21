@@ -25,7 +25,8 @@ async def run(origin):
     errors = []
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch()
-        page = await browser.new_page(viewport={'width': 1440, 'height': 1100})
+        context=await browser.new_context(viewport={'width':1440,'height':1100})
+        page = await context.new_page()
         page.on('pageerror', lambda error: errors.append(str(error)))
         await page.route('**/api/v1/**', lambda route: route.fulfill(json={'mode': 'preview', 'supabase_url': None, 'publishable_key': None}))
         await page.goto(origin + '/')
@@ -36,8 +37,18 @@ async def run(origin):
         await page.locator('#supportSearch').fill('When is my wallet charged?')
         await page.get_by_role('button', name='Ask the help assistant').click()
         await expect(page.locator('#support-agent-answer')).to_contain_text('Sign in to ask')
-        await page.evaluate("localStorage.setItem('easyinvio.session', JSON.stringify({access_token:'local-browser-test-only'}))")
-        await page.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
+        workspace=await page.context.new_page()
+        await workspace.route('**/api/v1/**',lambda route:route.fulfill(json={'mode':'preview','supabase_url':None,'publishable_key':None}))
+        await workspace.goto(origin+'/')
+        await workspace.evaluate('''()=>{
+          state.session={access_token:'synthetic-memory-only'};
+          portal.profile={tenant_id:'synthetic-workspace',workspace_role:'OWNER'};
+          api=async(path,options)=>{
+            if(path!=='/api/v1/help/search-agent')throw Error('Unexpected bridge action');
+            return (await fetch(path,{method:options.method,headers:{'Content-Type':'application/json'},body:JSON.stringify(options.body)})).json();
+          };
+        }''')
+        await workspace.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
             'answer': '<script>untrusted text</script> Wallet credit is captured after label confirmation.',
             'sources': [{'title': 'Booking guidance', 'url': '/help/features/labels-and-tracking'}],
             'mode': 'AI_CITED_ANSWER'}))
@@ -45,7 +56,7 @@ async def run(origin):
         await expect(page.locator('#support-agent-answer')).to_contain_text('Wallet credit is captured')
         assert await page.locator('#support-agent-answer script').count() == 0
         await expect(page.locator('#support-agent-answer .support-answer-sources a')).to_have_attribute('href', '/help/features/labels-and-tracking')
-        await page.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
+        await workspace.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
             'answer': 'Your wallet is charged only after the shipping service confirms the label purchase.\n\nWhen you confirm a booking, the amount is reserved first. If the purchase is rejected, that reservation is released.',
             'sources': [{'title': 'When is my wallet charged?', 'url': '/help/booking-payments#wallet-charge'}],
             'mode': 'AI_CITED_ANSWER'}))
@@ -57,7 +68,7 @@ async def run(origin):
         await page.set_viewport_size({'width': 390, 'height': 844})
         assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
         await page.locator('#support-agent-answer').screenshot(path=str(output / 'assistant-mobile.png'))
-        await page.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
+        await workspace.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
             'answer': 'Related guides', 'sources': [{'title': 'Wallet charges', 'url': '/help/booking-payments#wallet-charge'}],
             'excerpts': [{'title': 'When is my wallet charged?', 'url': '/help/booking-payments#wallet-charge', 'text': 'Credit is reserved first. The charge completes after label confirmation.'}],
             'fallback_reason': 'AI_NOT_CONFIGURED', 'mode': 'DOCUMENT_EXCERPTS'}))
@@ -66,8 +77,20 @@ async def run(origin):
         await expect(page.locator('#support-agent-answer .support-answer-guides')).to_contain_text('Credit is reserved first')
         assert await page.locator('#support-agent-answer ul').count() == 0
         await page.screenshot(path=str(output / 'assistant-fallback-mobile.png'), full_page=True)
+        # A response from a workspace that changed while answering must not cross scopes.
+        requested=asyncio.Event();release=asyncio.Event()
+        async def delayed(route):
+            requested.set();await release.wait()
+            await route.fulfill(json={'answer':'STALE_SCOPE_ANSWER','mode':'AI_CITED_ANSWER','sources':[]})
+        await workspace.route('**/api/v1/help/search-agent',delayed)
+        await page.get_by_role('button',name='Ask the help assistant').click()
+        await asyncio.wait_for(requested.wait(),5)
+        await workspace.evaluate("portal.profile.tenant_id='changed-synthetic-workspace'")
+        release.set()
+        await expect(page.locator('#support-agent-answer')).to_contain_text('Assistance is unavailable')
+        assert 'STALE_SCOPE_ANSWER' not in await page.locator('#support-agent-answer').inner_text()
         await page.set_viewport_size({'width': 1440, 'height': 1100})
-        await page.evaluate("localStorage.removeItem('easyinvio.session')")
+        assert await page.evaluate("localStorage.getItem('easyinvio.session')") is None
         await page.locator('#supportSearch').fill('')
         await expect(page.locator('#support-agent-answer')).to_be_hidden()
         await page.screenshot(path=str(output / 'desktop.png'), full_page=True)
@@ -133,7 +156,7 @@ async def run(origin):
         assert not errors, errors
         await browser.close()
     report = {'status': 'PASS', 'desktop_width': 1440, 'mobile_width': 390, 'page_errors': errors,
-              'checks': ['Signed-out help access', 'Assistant sign-in guidance', 'Cited assistant response with safe text rendering', 'Desktop and mobile layout', 'Search and guide navigation',
+              'checks': ['Signed-out help access', 'Assistant sign-in guidance', 'Memory-only authenticated help bridge', 'Workspace-switch response fencing', 'Cited assistant response with safe text rendering', 'Desktop and mobile layout', 'Search and guide navigation',
                          'Bookmarked search', 'Clearly labelled feature placeholders', 'No-results and clear controls',
                          'Encoded support email draft without sending', 'Useful missing-guide page', 'Six detailed guides including status reference', 'Markdown downloads', 'Contents anchors', 'Honest collection limitations'],
               'database_calls': 0, 'provider_calls': 0, 'messages_sent': 0}
@@ -150,6 +173,9 @@ if __name__ == '__main__':
     @app.get('/manifest-workflow.js')
     async def manifest_asset():
         return FileResponse('manifest-workflow.js',media_type='text/javascript')
+    @app.get('/help-workspace-bridge.js')
+    async def help_bridge():
+        return FileResponse('help-workspace-bridge.js',media_type='text/javascript')
     listener = socket.socket()
     listener.bind(('127.0.0.1', 0))
     origin = 'http://127.0.0.1:' + str(listener.getsockname()[1])

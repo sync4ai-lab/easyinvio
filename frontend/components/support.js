@@ -11,6 +11,27 @@
   let ready = false;
   let unavailable = false;
 
+  function workspaceHelp(query, signal) {
+    return new Promise((resolve,reject)=>{
+      const unavailable=()=>new Error('Sign in to ask the help assistant. Keep your EasyInvio workspace open in another tab, then ask again. All guides remain public.');
+      if(!window.BroadcastChannel){reject(unavailable());return;}
+      const channel=new BroadcastChannel('easyinvio.help.v1'),requestId=crypto.randomUUID();let selected=null;
+      const done=(error,result)=>{clearTimeout(discovery);signal.removeEventListener('abort',abort);channel.close();error?reject(error):resolve(result);};
+      const abort=()=>done(new DOMException('Aborted','AbortError'));
+      const discovery=setTimeout(()=>{if(!selected)done(unavailable());},1500);
+      signal.addEventListener('abort',abort,{once:true});
+      channel.onmessage=({data})=>{
+        if(!data||data.requestId!==requestId)return;
+        if(data.kind==='AVAILABLE'&&!selected&&typeof data.instance==='string'){
+          selected=data.instance;clearTimeout(discovery);
+          channel.postMessage({kind:'ASK',requestId,instance:selected,query,at:Date.now()});
+        }else if(data.instance===selected&&data.kind==='ANSWER')done(null,data.result);
+        else if(data.instance===selected&&data.kind==='ERROR')done(new Error('Assistance is unavailable. Check your signed-in workspace or browse the guides.'));
+      };
+      channel.postMessage({kind:'DISCOVER',requestId,at:Date.now()});
+    });
+  }
+
   if (form && search) {
     const ask = document.createElement('button');
     ask.type = 'button';
@@ -18,7 +39,7 @@
     ask.textContent = 'Ask the help assistant';
     const note = document.createElement('p');
     note.className = 'assistant-note';
-    note.textContent = 'Ask about using EasyInvio. Keep personal and order details out of your question.';
+    note.textContent = 'Ask about using EasyInvio. Keep a signed-in workspace open in another tab. Keep personal and order details out of your question.';
     const answer = document.createElement('section');
     answer.id = 'support-agent-answer';
     answer.className = 'support-answer';
@@ -76,13 +97,7 @@
         search.focus();
         return;
       }
-      let token;
-      try { token = JSON.parse(localStorage.getItem('easyinvio.session') || 'null')?.access_token; }
-      catch { token = null; }
-      if (!token) {
-        paragraph('Sign in to ask the help assistant. You can browse and search all guides without signing in.');
-        return;
-      }
+      if (question.length > 800) { paragraph('Keep your help question to 800 characters or fewer.'); return; }
       controller?.abort();
       const active = new AbortController();
       controller = active;
@@ -92,17 +107,13 @@
       answer.setAttribute('aria-busy', 'true');
       paragraph('Finding guidance in the EasyInvio Help Centre?', 'support-answer-loading');
       try {
-        const response = await fetch('/api/v1/help/search-agent', {
-          method: 'POST', headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + token},
-          body: JSON.stringify({query: question}), signal: active.signal
-        });
-        if (!response.ok) throw Error(response.status === 401 || response.status === 403 ? 'Sign in again to ask the assistant.' : 'Assistance is unavailable. Browse the search results or contact support.');
-        const data = await response.json();
+        const data = await workspaceHelp(question,active.signal);
         if (typeof data.answer !== 'string' || !Array.isArray(data.sources)) throw Error('Assistance is unavailable. Browse the guides below.');
         if (search.value.trim() !== question) return;
         const generated = data.mode === 'AI_CITED_ANSWER';
-        frame(question, generated ? 'AI answer' : 'Related guides');
-        if (generated || data.mode === 'NO_EVIDENCE') {
+        const authored = data.answer.startsWith('General guidance: ');
+        frame(question, generated ? 'AI answer' : authored ? 'Document guidance' : 'Related guides');
+        if (generated || authored || data.mode === 'NO_EVIDENCE') {
           const content = document.createElement('div');
           content.className = 'support-answer-body';
           for (const block of data.answer.trim().split(/\n\s*\n/).slice(0, 12)) {

@@ -162,3 +162,5 @@ See [the workflow audit and operating guide](https://github.com/sync4ai-lab/velo
 ## Maintaining status answers
 
 Maintain `docs/status_reference.md` as the customer source, registered by `backend/help_center.py`. Section-aware indexing in HelpRetriever preserves heading anchors and complete recovery guidance. The shared corpus has a hard 160-chunk limit; current coverage uses 150 chunks, including 69 status-guide sections. Content changes alter the corpus hash and invalidate versioned answers/embedding caches automatically. Run status/help/agent tests after changing states or wording. Model/vector outages must retain cited document guidance; uncertain carrier or money operations still require reconciliation, never replay to clear a status.
+
+The Help Centre assistant requires an open signed-in workspace in another tab on the same origin; its general-guidance channel does not read legacy localStorage tokens. Restart the app and refresh existing tabs after updates. Cited document guidance is displayed when AI is disabled; no new migration or provider activation is needed.
