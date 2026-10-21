@@ -2,7 +2,7 @@
   "modules": [
     {
       "file": "main.py",
-      "sha256": "a3757980cf5e111d6dd2cc4574fb6de2d9f85937b46bedede3199868208093a9",
+      "sha256": "670cb5f88c7d2ac745129638c78631b3bf14acb7e6d16434710359df2cf0adcf",
       "docstring": "EasyInvio.com: combined rating, financial controls and WhatsApp service.\n\nPython 3.12 or newer. Install dependencies:\n    python -m pip install fastapi 'uvicorn[standard]' httpx pydantic         pydantic-settings 'PyJWT[crypto]' cryptography asyncpg 'stripe>=13,<15'         'twilio>=9,<10' 'pycountry>=24.6,<25'\n\nRun local checks without credentials:\n    python main.py --self-test\n\nStart after configuring environment variables and applying Steps 2, 4 and 5 SQL:\n    python main.py\n\nRequired environment variables (or entries in a local .env file):\n    SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY\n    DATABASE_URL, CREDENTIAL_KEYS, REGIONAL_ALLOWED_ORIGINS\n    STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET\n    CHECKOUT_SUCCESS_URL, CHECKOUT_CANCEL_URL\n    TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER\n    TWILIO_WEBHOOK_URL, BOOKING_PAGE_URL, QUOTE_LINK_SECRET\n\nCREDENTIAL_KEYS is a JSON object mapping key IDs to Fernet keys.\nREGIONAL_ALLOWED_ORIGINS is a JSON array of approved HTTPS API origins.\nOptional: JWT_ALGORITHM=ES256, STRIPE_LIVEMODE=false,\nPROVIDER_ENVIRONMENT=TEST, DATABASE_CA_FILE, PORT=8000.\n\nThis module does not purchase carrier labels or implement a booking frontend.\nwallet_risk_interceptor, mark_submitted and finish_booking are the hooks for\nthe subsequent label-purchase component. RegionalStrategy defines its actual\nwire contract; use an adapter matching the selected regional provider's API.",
       "classes": [
         {
@@ -609,52 +609,52 @@
         },
         {
           "name": "tracking_asset",
-          "line": 2336,
+          "line": 2337,
           "async": true
         },
         {
           "name": "public_config",
-          "line": 2342,
+          "line": 2343,
           "async": true
         },
         {
           "name": "get_rates",
-          "line": 2351,
+          "line": 2352,
           "async": true
         },
         {
           "name": "carrier_performance",
-          "line": 2411,
+          "line": 2412,
           "async": true
         },
         {
           "name": "create_wallet_topup",
-          "line": 2429,
+          "line": 2430,
           "async": true
         },
         {
           "name": "limited_body",
-          "line": 2440,
+          "line": 2441,
           "async": true
         },
         {
           "name": "stripe_webhook",
-          "line": 2450,
+          "line": 2451,
           "async": true
         },
         {
           "name": "inbound_whatsapp",
-          "line": 2496,
+          "line": 2497,
           "async": true
         },
         {
           "name": "resolve_quote_choice",
-          "line": 2502,
+          "line": 2503,
           "async": true
         },
         {
           "name": "verify_local_logic",
-          "line": 2580,
+          "line": 2581,
           "async": false
         }
       ],
@@ -677,7 +677,7 @@
         "whatsapp_reply_outbox",
         "whatsapp_routes"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/main.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/main.py#L1"
     },
     {
       "file": "backend/__init__.py",
@@ -686,7 +686,7 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/__init__.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/__init__.py#L1"
     },
     {
       "file": "backend/adapters/__init__.py",
@@ -707,7 +707,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/adapters/__init__.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/adapters/__init__.py#L1"
     },
     {
       "file": "backend/adapters/direct_contract.py",
@@ -781,7 +781,7 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/adapters/direct_contract.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/adapters/direct_contract.py#L1"
     },
     {
       "file": "backend/adapters/evri_adapter.py",
@@ -812,7 +812,7 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/adapters/evri_adapter.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/adapters/evri_adapter.py#L1"
     },
     {
       "file": "backend/adapters/royal_mail_adapter.py",
@@ -853,7 +853,7 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/adapters/royal_mail_adapter.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/adapters/royal_mail_adapter.py#L1"
     },
     {
       "file": "backend/admin_management.py",
@@ -956,7 +956,7 @@
         "tenants",
         "wallet_ledger"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/admin_management.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/admin_management.py#L1"
     },
     {
       "file": "backend/admin_portal.py",
@@ -1196,7 +1196,7 @@
         "users",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/admin_portal.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/admin_portal.py#L1"
     },
     {
       "file": "backend/advanced_logistics.py",
@@ -1297,7 +1297,7 @@
         "wallet_reservations",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/advanced_logistics.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/advanced_logistics.py#L1"
     },
     {
       "file": "backend/agents/__init__.py",
@@ -1306,7 +1306,7 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/__init__.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/__init__.py#L1"
     },
     {
       "file": "backend/agents/config.py",
@@ -1327,7 +1327,7 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/config.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/config.py#L1"
     },
     {
       "file": "backend/agents/conversation_context.py",
@@ -1374,126 +1374,126 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/conversation_context.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/conversation_context.py#L1"
     },
     {
       "file": "backend/agents/conversational_gateway.py",
-      "sha256": "a08869c9153f0509559deeb02623d46e743ba57a58e6aa87886d4b218442c329",
+      "sha256": "316ab14cedb3c5c52099f76b9cc2ae19d9cc536aae85ce74de1a826c1c6e7efa",
       "docstring": "One authenticated action dispatcher for signed WhatsApp and session-bound web chat.\n\nModels extract proposals only. Money, carrier purchases and claim intake remain\nowned by deterministic services. Durable receipts fence uncertain action retries.",
       "classes": [
         {
           "name": "ConversationMessage",
-          "line": 34,
+          "line": 35,
           "methods": []
         },
         {
           "name": "ConversationStore",
-          "line": 69,
+          "line": 70,
           "methods": [
             {
               "name": "__init__",
-              "line": 70,
+              "line": 71,
               "async": false
             },
             {
               "name": "receipt",
-              "line": 74,
+              "line": 75,
               "async": true
             },
             {
               "name": "finish",
-              "line": 127,
+              "line": 128,
               "async": true
             },
             {
               "name": "latest_quote",
-              "line": 133,
+              "line": 134,
               "async": true
             },
             {
               "name": "latest_turn",
-              "line": 140,
+              "line": 141,
               "async": true
             }
           ]
         },
         {
           "name": "ConversationalActionGateway",
-          "line": 148,
+          "line": 149,
           "methods": [
             {
               "name": "__init__",
-              "line": 149,
+              "line": 150,
               "async": false
             },
             {
               "name": "reply",
-              "line": 158,
+              "line": 159,
               "async": false
             },
             {
               "name": "interpret",
-              "line": 161,
+              "line": 162,
               "async": true
             },
             {
               "name": "process",
-              "line": 209,
+              "line": 212,
               "async": true
             },
             {
               "name": "public",
-              "line": 276,
+              "line": 284,
               "async": false
             },
             {
               "name": "pending_reply",
-              "line": 279,
+              "line": 287,
               "async": false
             },
             {
               "name": "draft_prompt",
-              "line": 283,
+              "line": 291,
               "async": false
             },
             {
               "name": "execute",
-              "line": 304,
+              "line": 312,
               "async": true
             },
             {
               "name": "quote",
-              "line": 412,
+              "line": 420,
               "async": true
             },
             {
               "name": "collect_uk_premise",
-              "line": 514,
+              "line": 522,
               "async": true
             },
             {
               "name": "trigger_return",
-              "line": 535,
+              "line": 543,
               "async": true
             },
             {
               "name": "manifest",
-              "line": 562,
+              "line": 570,
               "async": true
             },
             {
               "name": "shipment",
-              "line": 586,
+              "line": 594,
               "async": true
             },
             {
               "name": "claim",
-              "line": 597,
+              "line": 605,
               "async": true
             },
             {
               "name": "claim_panel_url",
-              "line": 638,
+              "line": 646,
               "async": false
             }
           ]
@@ -1502,22 +1502,22 @@
       "functions": [
         {
           "name": "decoded",
-          "line": 42,
+          "line": 43,
           "async": false
         },
         {
           "name": "message_xml",
-          "line": 46,
+          "line": 47,
           "async": false
         },
         {
           "name": "signed_whatsapp_message",
-          "line": 651,
+          "line": 659,
           "async": true
         },
         {
           "name": "build_router",
-          "line": 661,
+          "line": 669,
           "async": false
         }
       ],
@@ -1537,7 +1537,7 @@
         "whatsapp_quote_choices",
         "whatsapp_routes"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/conversational_gateway.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/conversational_gateway.py#L1"
     },
     {
       "file": "backend/agents/margin_optimizer.py",
@@ -1593,7 +1593,7 @@
         "support_tickets",
         "tenants"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/margin_optimizer.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/margin_optimizer.py#L1"
     },
     {
       "file": "backend/agents/models.py",
@@ -1670,76 +1670,76 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/models.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/models.py#L1"
     },
     {
       "file": "backend/agents/rag_support.py",
-      "sha256": "5785f61e81c162699c7a7531a2bef21717b6b631036405ebb2b13e7b4aea574b",
+      "sha256": "1d7694e36d393df9cea979157cb7d9a70242f95733e9f1ec78def22597e58c11",
       "docstring": "Versioned local documentation retrieval; customer queries are never written to disk.",
       "classes": [
         {
           "name": "GuideSections",
-          "line": 18,
+          "line": 19,
           "methods": [
             {
               "name": "__init__",
-              "line": 19,
+              "line": 20,
               "async": false
             },
             {
               "name": "flush",
-              "line": 27,
+              "line": 28,
               "async": false
             },
             {
               "name": "handle_starttag",
-              "line": 33,
+              "line": 34,
               "async": false
             },
             {
               "name": "handle_endtag",
-              "line": 42,
+              "line": 43,
               "async": false
             },
             {
               "name": "handle_data",
-              "line": 49,
+              "line": 50,
               "async": false
             }
           ]
         },
         {
           "name": "Chunk",
-          "line": 54,
+          "line": 55,
           "methods": []
         },
         {
           "name": "HelpRetriever",
-          "line": 74,
+          "line": 75,
           "methods": [
             {
               "name": "__init__",
-              "line": 75,
+              "line": 76,
               "async": false
             },
             {
               "name": "corpus",
-              "line": 83,
+              "line": 84,
               "async": false
             },
             {
               "name": "lexical_scores",
-              "line": 112,
+              "line": 118,
               "async": false
             },
             {
               "name": "index",
-              "line": 125,
+              "line": 131,
               "async": true
             },
             {
               "name": "answer",
-              "line": 155,
+              "line": 161,
               "async": true
             }
           ]
@@ -1748,17 +1748,17 @@
       "functions": [
         {
           "name": "words",
-          "line": 62,
+          "line": 63,
           "async": false
         },
         {
           "name": "redacted_question",
-          "line": 67,
+          "line": 68,
           "async": false
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/rag_support.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/rag_support.py#L1"
     },
     {
       "file": "backend/agents/routes.py",
@@ -1784,7 +1784,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/routes.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/routes.py#L1"
     },
     {
       "file": "backend/agents/runtime.py",
@@ -1866,11 +1866,36 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/runtime.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/runtime.py#L1"
+    },
+    {
+      "file": "backend/agents/status_guidance.py",
+      "sha256": "64223c82ec0ea3763b1f8ef71792b1092f1a42ae75c6de8a42fd766a727a5c4a",
+      "docstring": "Recognize explanatory status questions without authorizing any action.",
+      "classes": [],
+      "functions": [
+        {
+          "name": "normalized",
+          "line": 8,
+          "async": false
+        },
+        {
+          "name": "status_question",
+          "line": 12,
+          "async": false
+        },
+        {
+          "name": "needs_status_context",
+          "line": 30,
+          "async": false
+        }
+      ],
+      "referenced_public_sql_objects": [],
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/status_guidance.py#L1"
     },
     {
       "file": "backend/agents/supervisor.py",
-      "sha256": "a3d278dcad37e67a68f013af302f8fc002bf5c42ce93156485c1759677985340",
+      "sha256": "a9c1c786735227bc8155a13e7b168a378aa890a37b9dbb8812cab5b2baef24b1",
       "docstring": "Bounded orchestration around existing, authoritative logistics services.",
       "classes": [
         {
@@ -1894,22 +1919,22 @@
             },
             {
               "name": "quote",
-              "line": 44,
+              "line": 52,
               "async": true
             },
             {
               "name": "rates",
-              "line": 59,
+              "line": 67,
               "async": true
             },
             {
               "name": "confirm",
-              "line": 75,
+              "line": 83,
               "async": true
             },
             {
               "name": "whatsapp_quote",
-              "line": 95,
+              "line": 103,
               "async": true
             }
           ]
@@ -1918,16 +1943,16 @@
       "functions": [
         {
           "name": "supervisor",
-          "line": 111,
+          "line": 119,
           "async": false
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/supervisor.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/supervisor.py#L1"
     },
     {
       "file": "backend/agents/workers.py",
-      "sha256": "fcff57deb885bec8ae4ec4a072a582bd4a5c752af88348c5efb895050055b958",
+      "sha256": "540371ec2a35c3840d5bab91143b2165b7c232ade6c4f2d51ebb031d11cd6167",
       "docstring": "Specialists have narrow capabilities; no worker can buy labels or alter a wallet.",
       "classes": [
         {
@@ -1946,85 +1971,85 @@
             },
             {
               "name": "validate_intent",
-              "line": 44,
+              "line": 48,
               "async": false
             },
             {
               "name": "message",
-              "line": 63,
+              "line": 67,
               "async": true
             },
             {
               "name": "ground_quote",
-              "line": 88,
+              "line": 92,
               "async": false
             },
             {
               "name": "csv_headers",
-              "line": 113,
+              "line": 117,
               "async": true
             }
           ]
         },
         {
           "name": "CustomsHarmonizerAgent",
-          "line": 187,
+          "line": 191,
           "methods": [
             {
               "name": "__init__",
-              "line": 188,
+              "line": 192,
               "async": false
             },
             {
               "name": "rank_tariff",
-              "line": 191,
+              "line": 195,
               "async": true
             },
             {
               "name": "suggest",
-              "line": 211,
+              "line": 215,
               "async": true
             },
             {
               "name": "information",
-              "line": 240,
+              "line": 244,
               "async": true
             }
           ]
         },
         {
           "name": "InvoiceSurchargeAuditorAgent",
-          "line": 253,
+          "line": 257,
           "methods": [
             {
               "name": "__init__",
-              "line": 254,
+              "line": 258,
               "async": false
             },
             {
               "name": "compare",
-              "line": 257,
+              "line": 261,
               "async": false
             }
           ]
         },
         {
           "name": "ProactiveClaimsSupportAgent",
-          "line": 265,
+          "line": 269,
           "methods": [
             {
               "name": "__init__",
-              "line": 266,
+              "line": 270,
               "async": false
             },
             {
               "name": "receive_tracking",
-              "line": 269,
+              "line": 273,
               "async": true
             },
             {
               "name": "stage",
-              "line": 274,
+              "line": 278,
               "async": true
             }
           ]
@@ -2032,7 +2057,7 @@
       ],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/agents/workers.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/agents/workers.py#L1"
     },
     {
       "file": "backend/aggregator_lifecycle.py",
@@ -2041,7 +2066,7 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/aggregator_lifecycle.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/aggregator_lifecycle.py#L1"
     },
     {
       "file": "backend/aggregator_registry.py",
@@ -2067,7 +2092,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/aggregator_registry.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/aggregator_registry.py#L1"
     },
     {
       "file": "backend/ai_engine.py",
@@ -2163,7 +2188,7 @@
         "shipments",
         "tenants"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/ai_engine.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/ai_engine.py#L1"
     },
     {
       "file": "backend/apply_automation_migration.py",
@@ -2178,7 +2203,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/apply_automation_migration.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/apply_automation_migration.py#L1"
     },
     {
       "file": "backend/apply_partner_lifecycle.py",
@@ -2193,7 +2218,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/apply_partner_lifecycle.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/apply_partner_lifecycle.py#L1"
     },
     {
       "file": "backend/apply_tracking_migration.py",
@@ -2208,7 +2233,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/apply_tracking_migration.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/apply_tracking_migration.py#L1"
     },
     {
       "file": "backend/automation_freight_engine.py",
@@ -2394,7 +2419,7 @@
         "wallet_reservations",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/automation_freight_engine.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/automation_freight_engine.py#L1"
     },
     {
       "file": "backend/automation_three_partners.py",
@@ -3024,7 +3049,7 @@
         "wallet_reservations",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/automation_three_partners.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/automation_three_partners.py#L1"
     },
     {
       "file": "backend/booking_receipt.py",
@@ -3039,7 +3064,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/booking_receipt.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/booking_receipt.py#L1"
     },
     {
       "file": "backend/build_rigorous_seed.py",
@@ -3070,7 +3095,7 @@
         "wallets",
         "whatsapp_bindings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/build_rigorous_seed.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/build_rigorous_seed.py#L1"
     },
     {
       "file": "backend/bulk_checkout.py",
@@ -3139,7 +3164,7 @@
         "wallet_reservations",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/bulk_checkout.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/bulk_checkout.py#L1"
     },
     {
       "file": "backend/card_checkout.py",
@@ -3191,7 +3216,7 @@
         "users",
         "wallet_topups"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/card_checkout.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/card_checkout.py#L1"
     },
     {
       "file": "backend/carrier_access.py",
@@ -3214,7 +3239,7 @@
         "shipments",
         "tenant_catalog_addresses"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/carrier_access.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/carrier_access.py#L1"
     },
     {
       "file": "backend/carrier_consolidation.py",
@@ -3268,7 +3293,7 @@
         "shipments",
         "tracking_events"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/carrier_consolidation.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/carrier_consolidation.py#L1"
     },
     {
       "file": "backend/check_hubspot.py",
@@ -3283,7 +3308,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/check_hubspot.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/check_hubspot.py#L1"
     },
     {
       "file": "backend/check_setup.py",
@@ -3292,7 +3317,7 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/check_setup.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/check_setup.py#L1"
     },
     {
       "file": "backend/client_assistance.py",
@@ -3385,7 +3410,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/client_assistance.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/client_assistance.py#L1"
     },
     {
       "file": "backend/conversational_claims.py",
@@ -3406,7 +3431,7 @@
         "support_tickets",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/conversational_claims.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/conversational_claims.py#L1"
     },
     {
       "file": "backend/credential_rotation.py",
@@ -3434,7 +3459,7 @@
       "referenced_public_sql_objects": [
         "carrier_accounts"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/credential_rotation.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/credential_rotation.py#L1"
     },
     {
       "file": "backend/customer_checkout.py",
@@ -3492,7 +3517,7 @@
         "tenants",
         "wallet_reservations"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/customer_checkout.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/customer_checkout.py#L1"
     },
     {
       "file": "backend/dashboard_portal.py",
@@ -3540,7 +3565,7 @@
         "wallet_topups",
         "workspace_store_connections"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/dashboard_portal.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/dashboard_portal.py#L1"
     },
     {
       "file": "backend/database_tls.py",
@@ -3555,7 +3580,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/database_tls.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/database_tls.py#L1"
     },
     {
       "file": "backend/delivery_quality.py",
@@ -3580,7 +3605,7 @@
         "shipments",
         "tracking_events"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/delivery_quality.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/delivery_quality.py#L1"
     },
     {
       "file": "backend/dispatch_pdf.py",
@@ -3622,7 +3647,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/dispatch_pdf.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/dispatch_pdf.py#L1"
     },
     {
       "file": "backend/dispatch_realtime.py",
@@ -3664,7 +3689,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/dispatch_realtime.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/dispatch_realtime.py#L1"
     },
     {
       "file": "backend/dispatch_workspace.py",
@@ -3714,7 +3739,7 @@
         "ecommerce_tracking_outbox",
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/dispatch_workspace.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/dispatch_workspace.py#L1"
     },
     {
       "file": "backend/ecommerce_connectors.py",
@@ -3797,7 +3822,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/ecommerce_connectors.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/ecommerce_connectors.py#L1"
     },
     {
       "file": "backend/ecommerce_inbound.py",
@@ -3852,7 +3877,7 @@
         "amazon_order_notifications",
         "ecommerce_stores"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/ecommerce_inbound.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/ecommerce_inbound.py#L1"
     },
     {
       "file": "backend/ecommerce_sync.py",
@@ -3993,68 +4018,68 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/ecommerce_sync.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/ecommerce_sync.py#L1"
     },
     {
       "file": "backend/help_center.py",
-      "sha256": "ca7c820d8682e191ae09693ab7a0484e41eb0f55a9ecb19e00cf0d5c3369b328",
+      "sha256": "ad097ad59e9e8d31b6a7fec335aa777c5330f081199f2a643e674e77fe576b37",
       "docstring": "Public, authored customer guidance with no account access or external actions.",
       "classes": [
         {
           "name": "Guide",
-          "line": 16,
+          "line": 17,
           "methods": []
         }
       ],
       "functions": [
         {
           "name": "guide_source",
-          "line": 228,
+          "line": 235,
           "async": false
         },
         {
           "name": "rendered_guide",
-          "line": 238,
+          "line": 245,
           "async": false
         },
         {
           "name": "render_page",
-          "line": 265,
+          "line": 273,
           "async": false
         },
         {
           "name": "support_hub",
-          "line": 320,
+          "line": 328,
           "async": true
         },
         {
           "name": "support_asset",
-          "line": 325,
-          "async": true
-        },
-        {
-          "name": "support_search_index",
           "line": 333,
           "async": true
         },
         {
+          "name": "support_search_index",
+          "line": 341,
+          "async": true
+        },
+        {
           "name": "support_contact",
-          "line": 340,
+          "line": 353,
           "async": true
         },
         {
           "name": "support_source",
-          "line": 346,
+          "line": 359,
           "async": true
         },
         {
           "name": "support_guide",
-          "line": 355,
+          "line": 368,
           "async": true
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/help_center.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/help_center.py#L1"
     },
     {
       "file": "backend/hubspot_crm.py",
@@ -4255,7 +4280,7 @@
         "tenants",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/hubspot_crm.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/hubspot_crm.py#L1"
     },
     {
       "file": "backend/hubspot_provisioning.py",
@@ -4306,7 +4331,7 @@
         "tenants",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/hubspot_provisioning.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/hubspot_provisioning.py#L1"
     },
     {
       "file": "backend/identity.py",
@@ -4415,7 +4440,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/identity.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/identity.py#L1"
     },
     {
       "file": "backend/inspect_seed_schema.py",
@@ -4430,7 +4455,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/inspect_seed_schema.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/inspect_seed_schema.py#L1"
     },
     {
       "file": "backend/integration_policy.py",
@@ -4461,7 +4486,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/integration_policy.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/integration_policy.py#L1"
     },
     {
       "file": "backend/invoice_upload.py",
@@ -4511,7 +4536,7 @@
         "billing_disputes",
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/invoice_upload.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/invoice_upload.py#L1"
     },
     {
       "file": "backend/label_availability.py",
@@ -4531,7 +4556,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/label_availability.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/label_availability.py#L1"
     },
     {
       "file": "backend/logistics_media.py",
@@ -4580,7 +4605,7 @@
       "referenced_public_sql_objects": [
         "logistics_media_assets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/logistics_media.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/logistics_media.py#L1"
     },
     {
       "file": "backend/manifest_service.py",
@@ -4738,7 +4763,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/manifest_service.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/manifest_service.py#L1"
     },
     {
       "file": "backend/manifest_workflow.py",
@@ -4768,7 +4793,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/manifest_workflow.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/manifest_workflow.py#L1"
     },
     {
       "file": "backend/multi_label.py",
@@ -4783,7 +4808,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/multi_label.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/multi_label.py#L1"
     },
     {
       "file": "backend/order_csv.py",
@@ -4876,7 +4901,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/order_csv.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/order_csv.py#L1"
     },
     {
       "file": "backend/package_guidance.py",
@@ -4934,7 +4959,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/package_guidance.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/package_guidance.py#L1"
     },
     {
       "file": "backend/package_sets.py",
@@ -4974,7 +4999,7 @@
         "shipment_goods_items",
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/package_sets.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/package_sets.py#L1"
     },
     {
       "file": "backend/paf_lookup.py",
@@ -5038,7 +5063,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/paf_lookup.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/paf_lookup.py#L1"
     },
     {
       "file": "backend/payment_gateway.py",
@@ -5175,7 +5200,7 @@
         "wallet_topups",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/payment_gateway.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/payment_gateway.py#L1"
     },
     {
       "file": "backend/platform_carriers.py",
@@ -5237,7 +5262,7 @@
         "shipments",
         "tenants"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/platform_carriers.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/platform_carriers.py#L1"
     },
     {
       "file": "backend/provider_routing.py",
@@ -5257,7 +5282,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/provider_routing.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/provider_routing.py#L1"
     },
     {
       "file": "backend/rate_diagnostics.py",
@@ -5303,7 +5328,7 @@
         "automation_failures",
         "support_tickets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/rate_diagnostics.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/rate_diagnostics.py#L1"
     },
     {
       "file": "backend/repair_local_config.py",
@@ -5318,7 +5343,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/repair_local_config.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/repair_local_config.py#L1"
     },
     {
       "file": "backend/return_documents.py",
@@ -5350,7 +5375,7 @@
       "referenced_public_sql_objects": [
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/return_documents.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/return_documents.py#L1"
     },
     {
       "file": "backend/return_ingress.py",
@@ -5369,7 +5394,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/return_ingress.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/return_ingress.py#L1"
     },
     {
       "file": "backend/reverse_logistics.py",
@@ -5436,7 +5461,7 @@
         "shipments",
         "tenant_catalog_addresses"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/reverse_logistics.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/reverse_logistics.py#L1"
     },
     {
       "file": "backend/sandbox_hooks.py",
@@ -5530,7 +5555,7 @@
         "whatsapp_bindings",
         "whatsapp_routes"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/sandbox_hooks.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/sandbox_hooks.py#L1"
     },
     {
       "file": "backend/seed_rigorous_data.py",
@@ -5552,7 +5577,7 @@
         "users",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/seed_rigorous_data.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/seed_rigorous_data.py#L1"
     },
     {
       "file": "backend/sendcloud_adapter.py",
@@ -5591,7 +5616,7 @@
       "referenced_public_sql_objects": [
         "strip"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/sendcloud_adapter.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/sendcloud_adapter.py#L1"
     },
     {
       "file": "backend/shipment_protection.py",
@@ -5890,7 +5915,7 @@
         "whatsapp_bindings",
         "workspace_dispatch_events"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/shipment_protection.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/shipment_protection.py#L1"
     },
     {
       "file": "backend/store_connections.py",
@@ -5925,7 +5950,7 @@
         "ecommerce_stores",
         "workspace_store_connections"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/store_connections.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/store_connections.py#L1"
     },
     {
       "file": "backend/store_returns.py",
@@ -5961,7 +5986,7 @@
         "ecommerce_tracking_outbox",
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/store_returns.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/store_returns.py#L1"
     },
     {
       "file": "backend/support_alert_controls.py",
@@ -5985,7 +6010,7 @@
         "tenants",
         "whatsapp_bindings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/support_alert_controls.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/support_alert_controls.py#L1"
     },
     {
       "file": "backend/support_delivery.py",
@@ -6050,7 +6075,7 @@
         "users",
         "whatsapp_bindings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/support_delivery.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/support_delivery.py#L1"
     },
     {
       "file": "backend/support_workflow.py",
@@ -6075,7 +6100,7 @@
         "support_tickets",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/support_workflow.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/support_workflow.py#L1"
     },
     {
       "file": "backend/tenant_catalogs.py",
@@ -6171,7 +6196,7 @@
         "tenant_catalog_addresses",
         "tenant_catalog_products"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/tenant_catalogs.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/tenant_catalogs.py#L1"
     },
     {
       "file": "backend/test_supabase_transaction.py",
@@ -6190,7 +6215,7 @@
         "tenants",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/test_supabase_transaction.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/test_supabase_transaction.py#L1"
     },
     {
       "file": "backend/tools/__init__.py",
@@ -6199,7 +6224,7 @@
       "classes": [],
       "functions": [],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/tools/__init__.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/tools/__init__.py#L1"
     },
     {
       "file": "backend/tools/sme_lead_scraper.py",
@@ -6271,7 +6296,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/tools/sme_lead_scraper.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/tools/sme_lead_scraper.py#L1"
     },
     {
       "file": "backend/tracking_and_support.py",
@@ -6400,7 +6425,7 @@
         "wallet_topups",
         "whatsapp_bindings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/tracking_and_support.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/tracking_and_support.py#L1"
     },
     {
       "file": "backend/tracking_refresh.py",
@@ -6480,7 +6505,7 @@
         "tracking_refresh_jobs",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/tracking_refresh.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/tracking_refresh.py#L1"
     },
     {
       "file": "backend/tracking_workspace.py",
@@ -6652,7 +6677,7 @@
         "tracking_share_links",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/tracking_workspace.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/tracking_workspace.py#L1"
     },
     {
       "file": "backend/verify_automation_sandbox.py",
@@ -6671,7 +6696,7 @@
         "support_tickets",
         "wallets"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/verify_automation_sandbox.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/verify_automation_sandbox.py#L1"
     },
     {
       "file": "backend/verify_automation_writepath.py",
@@ -6729,7 +6754,7 @@
         "tenants",
         "users"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/verify_automation_writepath.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/verify_automation_writepath.py#L1"
     },
     {
       "file": "backend/verify_supabase.py",
@@ -6746,7 +6771,7 @@
       "referenced_public_sql_objects": [
         "status_code"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/verify_supabase.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/verify_supabase.py#L1"
     },
     {
       "file": "backend/verify_tracking_support.py",
@@ -6763,7 +6788,7 @@
       "referenced_public_sql_objects": [
         "shipments"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/verify_tracking_support.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/verify_tracking_support.py#L1"
     },
     {
       "file": "backend/web_registration.py",
@@ -6812,7 +6837,7 @@
         "wallets",
         "web_registration_sessions"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/web_registration.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/web_registration.py#L1"
     },
     {
       "file": "backend/webhook_security.py",
@@ -6849,7 +6874,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/webhook_security.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/webhook_security.py#L1"
     },
     {
       "file": "backend/whatsapp_bot.py",
@@ -6885,7 +6910,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/whatsapp_bot.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/whatsapp_bot.py#L1"
     },
     {
       "file": "backend/whatsapp_ingress.py",
@@ -6925,7 +6950,7 @@
         }
       ],
       "referenced_public_sql_objects": [],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/whatsapp_ingress.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/whatsapp_ingress.py#L1"
     },
     {
       "file": "backend/whatsapp_onboarding.py",
@@ -7081,7 +7106,7 @@
         "whatsapp_registration_queue",
         "whatsapp_registration_receipts"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/whatsapp_onboarding.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/whatsapp_onboarding.py#L1"
     },
     {
       "file": "backend/whatsapp_queue.py",
@@ -7202,7 +7227,7 @@
         "whatsapp_inbound_queue",
         "whatsapp_reply_outbox"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/whatsapp_queue.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/whatsapp_queue.py#L1"
     },
     {
       "file": "backend/workspace_personas.py",
@@ -7236,7 +7261,7 @@
       "referenced_public_sql_objects": [
         "individual_pricing_settings"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/workspace_personas.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/workspace_personas.py#L1"
     },
     {
       "file": "backend/workspace_settings.py",
@@ -7310,7 +7335,7 @@
         "users",
         "workspace_invitations"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/workspace_settings.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/workspace_settings.py#L1"
     },
     {
       "file": "backend/xcover_claims.py",
@@ -7443,7 +7468,7 @@
         "tenants",
         "xclaim_webhook_receipts"
       ],
-      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/990a92e0c3d2adeef19f1f33b8b1f6130f914153/backend/xcover_claims.py#L1"
+      "source_url": "https://github.com/sync4ai-lab/veloce.ai/blob/f765127ce4203eb2333c2f834fa6af183a3d674a/backend/xcover_claims.py#L1"
     }
   ],
   "test_and_probe_files": [
@@ -7553,7 +7578,7 @@
     },
     {
       "file": "tests/help_center_browser.py",
-      "sha256": "63883dc8818a81b936e8e8fb6c95b6d187e67e61f47ced8b5c5943bfde541da4"
+      "sha256": "a18630dc7f1d9bf6e11d9acfb04c19dfa4d6a9980bcfcd05ab2be4c6b2444535"
     },
     {
       "file": "tests/hubspot_database_probe.py",
@@ -7785,7 +7810,7 @@
     },
     {
       "file": "tests/test_help_center.py",
-      "sha256": "962ed9e8b92b22766cc2bdcc255a4ed5d9c050fc11240c827bcdd65ad2a8490e"
+      "sha256": "4a8ea5c49c6e549ceae99c17ec94d51a87f184c2ab3ab75ed143bcbd171c58a4"
     },
     {
       "file": "tests/test_hubspot_activation.py",
@@ -7930,6 +7955,10 @@
     {
       "file": "tests/test_sme_lead_scraper.py",
       "sha256": "ab9bf252b928de52dcb2bfca6d3e0d3006119c465577d0c11aae0cbb22ad7fcc"
+    },
+    {
+      "file": "tests/test_status_guidance.py",
+      "sha256": "a87f18af5394d82e982856a6f7849432baef8ac7997546005edb26b600f1ec5d"
     },
     {
       "file": "tests/test_store_connections.py",

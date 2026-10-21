@@ -87,3 +87,7 @@ The new offline suite covers scoped APIs and sanitized shared projections. An ex
 ## Manifest workflow regression
 
 The manifest audit adds 24 offline state/API tests and one explicit disposable PostgreSQL query test. Browser QA checks 18 state/asset cases across six personas, plus direct booking review, counted batch selection, in-place expiry, all-box/goods restoration, PDF/QR/receipt/invoice downloads, proof gating, readable customs and responsive widths. Platform-owner management navigation stays restricted; ordinary tenant dispatch is never inferred from global read access. Synthetic browser documents establish UI plumbing, not carrier acceptance or live postage.
+
+## Status knowledge verification
+
+The published status guide is indexed by individual anchored sections, including recovery instructions. Tests cover exact-code discovery, all citation targets, offline authored answers, mocked cited AI generation, ambiguous-status clarification, preservation of explicit native commands, and pending quote TTL/receipt replay in both WhatsApp and web chat. Local regression completed with 1026 passed, one skipped, two warnings and 14 subtests passed using explicit disposable PostgreSQL. The Help Centre browser suite passed at desktop/mobile widths with no page errors, live provider calls or sent messages. These checks validate documentation/routing, not a live carrier or insurer outcome.

@@ -158,3 +158,9 @@ Read [the full implementation and rollout guide](https://github.com/sync4ai-lab/
 ## Manifest status and action troubleshooting
 
 See [the workflow audit and operating guide](https://github.com/sync4ai-lab/veloce.ai/blob/main/docs/manifest_workflow_audit.md). Imported means order data imported into EasyInvio, not customs import clearance. The quote default is QUOTE_TTL_SECONDS=300; carrier contract validity can differ. Restart and refresh after frontend changes; no additional migration is required for the manifest fix. Never copy a shipment with unresolved reserved/submitted funds or an uncertain carrier transaction to repeat the purchase. Keep carrier-issued PDFs and native paperless QR assets where supported; never replace them with an invented barcode.
+
+## Maintaining status answers
+
+Maintain `docs/status_reference.md` as the customer source, registered by `backend/help_center.py`. Section-aware indexing in HelpRetriever preserves heading anchors and complete recovery guidance. The shared corpus has a hard 160-chunk limit; current coverage uses 150 chunks, including 69 status-guide sections. Content changes alter the corpus hash and invalidate versioned answers/embedding caches automatically. Run status/help/agent tests after changing states or wording. Model/vector outages must retain cited document guidance; uncertain carrier or money operations still require reconciliation, never replay to clear a status.
+
+The Help Centre assistant requires an open signed-in workspace in another tab on the same origin; its general-guidance channel does not read legacy localStorage tokens. Restart the app and refresh existing tabs after updates. Cited document guidance is displayed when AI is disabled; no new migration or provider activation is needed.

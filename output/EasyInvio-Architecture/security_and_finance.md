@@ -88,3 +88,7 @@ QR images live in a private bucket with immutable tenant/shipment/content-hash k
 ## Tracking capability and event boundaries
 
 Customer tracking uses a 256-bit secret in the URL fragment and POST body; only its SHA-256 hash is stored. Membership, expiry and hash are immutable, revocation cannot be reversed, and every resolution rechecks tenant-bound membership. Public output is an explicit allowlist. Customer help is idempotent and bounded; it never initiates payment or carrier mutation. Carrier event facts are append-only while the existing support_pending staging field remains updateable. Unknown/late carrier facts cannot regress shipment delivery. Merchandise refund status stays UNAVAILABLE without a verified order/payment feed; label/wallet refunds are not purchase refunds.
+
+## Help Centre session bridge
+
+The public guide remains unauthenticated. Its assistant uses a same-origin BroadcastChannel handshake to select one open, signed-in workspace tab. Only a bounded public documentation query is accepted; the target endpoint is fixed to authenticated help/search-agent. Tokens, tenant IDs and account records are never broadcast. The workspace validates current session/tenant/epoch again before returning allowlisted answer/citation fields. Nonce/age checks, bounded duplicate memory, one active request and ten requests/minute per tab limit incidental work; server authorization and model budgets remain authoritative. A changed workspace discards the answer. With no open signed-in workspace, the page offers public guides and clear sign-in instructions.

@@ -135,3 +135,7 @@ Business and individual workspaces share the Shipment tracking view: scoped refe
 ## Manifest preparation, expiry and documents
 
 Manifest & Labels separates imported preparation, current quote, expired quote, pending purchase and actual carrier milestones. Current quotes offer direct Review & book or explicit batch selection; expired quotes restore saved addresses, all boxes and goods allocations in Create a shipment for fresh comparison. Delivery proof, carrier PDF/QR, customs review and financial downloads require the corresponding state, real asset and role. Accountants have read-only manifest navigation. A readable customs goods table replaces raw JSON. Expiry is a display projection over the existing QUOTED row, preserving booking/reporting contracts.
+
+## Customer status reference
+
+The Help Centre includes a searchable and downloadable status guide with headings for orders/quotes, booking/labels, tracking, funds, cancellations/refunds, returns, protection/claims, support, sync, identity and message/refresh operations. Every entry explains the recorded meaning and a safe recovery step. The manifest status header links to this guide. It separates parcel delivery, message delivery, warehouse receipt, insurer payment reports and confirmed financial credits. General guidance never asserts a live customer outcome.
