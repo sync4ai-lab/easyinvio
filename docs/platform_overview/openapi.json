@@ -1251,6 +1251,52 @@
         }
       }
     },
+    "/api/v1/shipments/{shipment_id}/requote-context": {
+      "get": {
+        "tags": [
+          "Advanced logistics"
+        ],
+        "summary": "Restore Quote",
+        "operationId": "restore_quote_api_v1_shipments__shipment_id__requote_context_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "shipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Shipment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/shipments/manifest": {
       "get": {
         "tags": [

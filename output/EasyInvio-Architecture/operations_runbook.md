@@ -154,3 +154,7 @@ For uncertain submissions, reconcile the manifest and exact member labels agains
 ## Tracking 2.0 rollout
 
 Read [the full implementation and rollout guide](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15/docs/tracking_2_implementation.md). Apply complete migrations 043, 044 and then 045 to the intended database only after backup/staging review. Set BOOKING_PAGE_URL to the actual HTTPS application origin for customer links, not a webhook-only tunnel. TRACKING_POLLING_ENABLED=false is the safe default. Enabling reconciliation requires an active supported account and verified read entitlements; start with the default six-hour cadence, inspect health/dead jobs and reconcile provider limits before retrying. Native asyncpg contention and actual provider delivery remain staging acceptance work.
+
+## Manifest status and action troubleshooting
+
+See [the workflow audit and operating guide](https://github.com/sync4ai-lab/veloce.ai/blob/main/docs/manifest_workflow_audit.md). Imported means order data imported into EasyInvio, not customs import clearance. The quote default is QUOTE_TTL_SECONDS=300; carrier contract validity can differ. Restart and refresh after frontend changes; no additional migration is required for the manifest fix. Never copy a shipment with unresolved reserved/submitted funds or an uncertain carrier transaction to repeat the purchase. Keep carrier-issued PDFs and native paperless QR assets where supported; never replace them with an invented barcode.
