@@ -4,23 +4,25 @@ This guide explains EasyInvio.com's supported reverse-shipment preparation and s
 
 ## Current availability
 
-The backend can prepare a return quote from an eligible, confirmed outbound shipment. It links the new return to the original shipment, reverses operational addresses and supplies provider-specific return information where supported.
+Create return is available in Manifest & Labels after the original outbound shipment has recorded DELIVERED. A label, manifest or dispatch scan alone does not establish that the customer received the goods. The return keeps its original-shipment relationship and separate tracking identity.
 
-There is no general customer-facing self-service return portal in the current dashboard. Ask support to use the authorised workflow if it is not exposed to your role. A reverse-address quote is not an approved return label, store refund or collection booking.
+Merchants can prepare returns themselves in the Create shipment workspace, under a RETURN SHIPMENT heading. A reverse quote is not a purchased label, merchandise refund or collection booking. Owners, administrators and dispatchers can prepare retailer-paid returns; only owners/administrators can create customer-paid checkout. No separate public return portal is required.
 
 Grouped multi-piece return purchases are guarded. A multi-box original needs review rather than assuming all its boxes can be reversed through one existing return call.
 
 ## Prepare the reverse shipment
 
-1. Locate the original confirmed booking and tracking reference.
+1. Locate the original delivered booking and select Create return.
 2. Confirm merchant authorisation and identify exactly which goods are returning.
-3. Check the return sender and receiving warehouse. The backend starts by swapping the original recipient and sender; old details may need review.
+3. Check the original customer as return sender and your default RETURN address as destination. Change that warehouse in Settings before preparing a new return.
 4. Check the actual return packaging and weight. Do not assume the customer kept the outbound box.
 5. Review goods, customs details and the original invoice reference where required.
-6. Request an eligible return quote through support or the authorised integration.
-7. Review its price and explicitly confirm the separate booking before sending the label to the returning customer.
+6. Compare current return services and their expiry; there is no mandatory maximum-price field. The original outbound price is not a return price.
+7. Select a service and confirm retailer billing or create the customer card payment link. Customer payment must be verified before a return label is created or released.
 
-The original-shipment preparation path copies the outbound snapshot. It is not a complete editor for arbitrary partial returns, changed addresses or repacked goods. Those differences need an accurately supported preparation or manual review. Never edit a booked snapshot or force an incompatible copied return through checkout.
+The form restores saved packing and goods for review and editing, including measurements, weights, values, HS codes and customs registrations. Confirm a fresh signer and classification review where required. Original customer and versioned warehouse addresses remain protected. Do not edit booked snapshots or bypass an unresolved return with a new unrelated booking.
+
+Optional customer email/WhatsApp instructions use original customer contacts and require configured channels and confirmed customer permission. Customer-paid notices contain a payment link first, then confirmed label instructions after payment. Disabled channels are shown as unavailable. READY means queued; ACCEPTED means provider acceptance, not proof of delivery. Failed or uncertain messages show their recorded state and must not be blindly resent. Existing results can be refreshed. Carrier paperless QR is offered only where an actual carrier code exists; otherwise print the carrier PDF. Shared document links expire after 24 hours and recheck payment and shipment state.
 
 ## Why the original shipment stays separate
 
@@ -60,7 +62,7 @@ For UK re-imports, Returned Goods Relief depends on the relevant conditions and 
 
 A commercial-invoice PDF does not replace a required CN22 or CN23. The provider must supply the required postal document through the supported booking/document workflow.
 
-Original-shipment return preparation does not automatically request CN22/CN23. The print bundle checks for required carrier-issued forms rather than inventing them. Ask support to confirm availability before dispatching a postal return needing such a form.
+EasyInvio does not automatically request CN22/CN23: select the required form in the reviewed return screen. The print bundle checks for carrier-issued forms rather than inventing them. If the selected service cannot provide required paperwork, choose a compatible service before dispatch; unresolved carrier limitations still need review.
 
 ## Receive, inspect and decide
 

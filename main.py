@@ -2040,6 +2040,12 @@ async def deterministic_lifespan(application: FastAPI):
                 payment_task = asyncio.create_task(application.state.payment_snapshots.worker()) if settings.stripe_enabled else None
                 from backend.card_checkout import cart_worker
                 card_task=asyncio.create_task(cart_worker(application.state.partner_lifecycle)) if settings.stripe_enabled else None
+                from backend.return_delivery import ReturnDeliverySettings, ReturnDeliveryWorker
+                application.state.partner_lifecycle.return_delivery_settings = ReturnDeliverySettings()
+                async with pool.acquire() as return_connection:
+                    return_delivery_ready = await return_connection.fetchval("SELECT to_regclass('public.return_customer_deliveries') IS NOT NULL")
+                return_delivery_task = (asyncio.create_task(ReturnDeliveryWorker(application.state.partner_lifecycle).worker())
+                    if return_delivery_ready else None)
                 crm_task = None
                 application.state.hubspot = None
                 try:
@@ -2053,6 +2059,9 @@ async def deterministic_lifespan(application: FastAPI):
                 try:
                     yield
                 finally:
+                    if return_delivery_task is not None:
+                        return_delivery_task.cancel()
+                        await asyncio.gather(return_delivery_task, return_exceptions=True)
                     if tracking_refresh_task is not None:
                         tracking_refresh_task.cancel()
                         await asyncio.gather(tracking_refresh_task,return_exceptions=True)
@@ -2334,6 +2343,7 @@ async def public_tracking_page():
 @app.get('/tracking-ui.css',include_in_schema=False)
 @app.get('/manifest-workflow.js',include_in_schema=False)
 @app.get('/help-workspace-bridge.js',include_in_schema=False)
+@app.get('/return-workspace.js',include_in_schema=False)
 async def tracking_asset(request:Request):
     tracking_asset=request.url.path.removeprefix('/')
     return FileResponse(Path(__file__).with_name(tracking_asset),media_type='text/css' if tracking_asset.endswith('.css') else 'text/javascript',headers={'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'})

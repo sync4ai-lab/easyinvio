@@ -50,7 +50,7 @@ class Store:
             if args[0] != self.context.tenant_id or (args[3] and args[3] != self.store_id):
                 return []
             if args[1] == self.parent_id or args[2] in {'ORDER-1','TRACK-1'}:
-                return [{'id':self.parent_id,'ecommerce_store_id':self.store_id}]
+                return [{'id':self.parent_id,'ecommerce_store_id':self.store_id,'status':'DELIVERED'}]
             return []
         raise AssertionError(sql)
 
@@ -239,6 +239,8 @@ async def test_return_quote_swaps_customer_to_catalog_warehouse_and_clears_old_c
         'order_reference':'ORDER-1','packages':[],'customs_signer':'Old signer','hs_codes_reviewed':True}},
         'tracking_number':'FORWARD-1','booked_at':datetime.now(timezone.utc),'carrier_code':'DPD'}
     lifecycle.automation.order_limiter=asyncio.Semaphore(1)
+    pool.shipments[pool.parent_id]['logistics_metadata']['automation_order']['cargo'] = {
+        'cargo_type':'PARCEL','actual_weight_kg':'1.000','length_cm':'20','width_cm':'15','height_cm':'10'}
     lifecycle.automation.process=AsyncMock(return_value={'status':'QUOTED'})
     body=ReturnRequest(tenant_id=context.tenant_id,shipment_id=pool.parent_id,idempotency_key=command.idempotency_key)
     await prepare_return_quote(lifecycle,context,body,warehouse=pool.warehouse,paperless_requested=True)

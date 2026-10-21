@@ -1569,6 +1569,7 @@ class ReturnRequest(VoidRequest):
     customs_signer: str | None = None
     hs_codes_reviewed: bool = False
     store_return_reference: str | None = Field(default=None,max_length=200)
+    preparation_edits: dict | None = None
 
 
 def authorize(context, tenant_id):
@@ -1698,6 +1699,10 @@ class PartnerLifecycleService:
                 stored_rate = json.loads(offer['rate_snapshot']) if isinstance(offer['rate_snapshot'], str) else offer['rate_snapshot']
                 rate = ClientRate.model_validate(stored_rate)
                 metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
+                if metadata.get('return_review_id'):
+                    from backend.return_review import assert_review_purchase
+                    await assert_review_purchase(lock, context.tenant_id, row['id'],
+                        UUID(metadata['return_review_id']), body.offer_id)
                 if row['status'] in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','DELIVERED','EXCEPTION'}:
                     selected = json.loads(row['pricing_snapshot']) if isinstance(row['pricing_snapshot'], str) else row['pricing_snapshot']
                     if selected.get('selected_rate', {}).get('offer_id') != str(body.offer_id):
@@ -2053,10 +2058,10 @@ async def prepare_return_quote(service, context, body, *, warehouse=None, paperl
     authorize(context, body.tenant_id)
     async with service.pool.acquire() as connection:
         row = await connection.fetchrow('''SELECT logistics_metadata,tracking_number,booked_at,carrier_code FROM public.shipments
-            WHERE tenant_id=$1 AND id=$2 AND status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')''',
+            WHERE tenant_id=$1 AND id=$2 AND status='DELIVERED' ''',
             context.tenant_id, body.shipment_id)
     if row is None:
-        raise HTTPException(404, 'Original shipment not found in this workspace')
+        raise HTTPException(409, 'Returns require an original outbound shipment with recorded delivery in this workspace')
     metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
     original = metadata.get('automation_order')
     if not original or original.get('is_return'):
@@ -2081,16 +2086,36 @@ async def prepare_return_quote(service, context, body, *, warehouse=None, paperl
         order.update(destination=json.loads(warehouse['address']) if isinstance(warehouse['address'],str) else warehouse['address'],
             return_warehouse_id=str(warehouse['id']),return_warehouse_version=warehouse['version'],
             return_network_selection=True,paperless_requested=paperless_requested,customs_category='RETURN')
+    if body.preparation_edits is not None:
+        from backend.return_review import ReturnEdits
+        edits = ReturnEdits.model_validate(body.preparation_edits)
+        order.update(edits.model_dump(mode='json'))
+        order['packages'] = [order['cargo']]
+        order['multi_parcel_dimensions'] = []
+    # Validate the complete edited return before any provider request. The original
+    # party reversal and versioned warehouse remain server-owned.
+    from backend.automation_freight_engine import Order
+    try:
+        order = Order.model_validate(order).model_dump(mode='json')
+    except ValueError:
+        raise HTTPException(422, 'Review return packing, item weights, values and customs details before comparing services') from None
     async with service.automation.order_limiter:
         result = await service.automation.process(context, order, 'QUOTE_ONLY')
     if result['status'] != 'QUOTED':
         raise HTTPException(422, result.get('error', 'Return preparation requires review'))
+    if result.get('shipment_id'):
+        async with service.pool.acquire() as connection:
+            await connection.execute('''UPDATE public.shipments SET tracking_lifecycle_type='RETURN_SHIPMENT',
+                return_of_shipment_id=$3 WHERE tenant_id=$1 AND id=$2''',
+                context.tenant_id, UUID(result['shipment_id']), body.shipment_id)
     return result
 
 
 
 def build_router(authenticate):
     router = APIRouter(prefix='/api/v1/shipping', tags=['Private partner lifecycle'])
+    from backend.return_review import build_router as return_review_router
+    router.include_router(return_review_router(authenticate))
 
     @router.post('/confirm-booking')
     async def confirm(body: BookingRequest, request: Request, context=Depends(authenticate)):

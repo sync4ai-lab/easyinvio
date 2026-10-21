@@ -128,6 +128,9 @@ window.ManifestWorkflow = (() => {
         const carrier=row.carrier_code||row.metadata?.carrier;
         cells[1].firstChild.textContent=carrier || (['PENDING_IMPORT','UNFULFILLED','DRAFT'].includes(row.status)?'Not selected': 'Unavailable on this older record');
         const tag=cells[2].querySelector('.tag');tag.textContent=titles[status(row)]||row.status;tag.title=row.workflow?.explanation||'';
+        if (row.tracking_lifecycle_type==='RETURN_SHIPMENT' || row.metadata?.automation_order?.is_return || row.logistics_metadata?.automation_order?.is_return) {
+          const ribbon=document.createElement('span');ribbon.className='tag green';ribbon.textContent='RETURN';cells[0].append(ribbon);
+        }
         if (row.status==='QUOTED') {const expiry=document.createElement('small');expiry.className='subtle';expiry.style.display='block';expiry.textContent='Expires '+date(row.quote_expires_at);cells[2].append(expiry);}
         if (['PENDING_IMPORT','UNFULFILLED','DRAFT'].includes(row.status)) cells[3].textContent='Not priced yet';
         if (['FAILED','QUOTE_EXPIRED','QUOTE_UNAVAILABLE'].includes(status(row)) && row.price != null) {const caption=document.createElement('small');caption.className='subtle';caption.style.display='block';caption.textContent='Last quoted price';cells[3].append(caption);}

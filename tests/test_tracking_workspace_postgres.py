@@ -30,7 +30,7 @@ UUID_FIELDS={'id','tenant_id','shipment_id','carrier_account_id','auth_user_id',
 
 def decode(row):
     for key,value in list(row.items()):
-        if value is not None and key in UUID_FIELDS:row[key]=UUID(value)
+        if isinstance(value, str) and key in UUID_FIELDS:row[key]=UUID(value)
         elif isinstance(value,str) and (key.endswith('_at') or key=='lease_until'):
             row[key]=datetime.fromisoformat(value.replace('Z','+00:00'))
         elif key=='shipment_ids':row[key]=[UUID(item) for item in value]

@@ -76,7 +76,7 @@ def workflow(row: Mapping[str, Any], *, now: datetime | None = None) -> dict:
     if is_return:
         requote = False
     return {'status': display, 'title': title, 'explanation': explanation,
-            'quote_current': current_quote, 'can_select': current_quote and not unresolved,
+            'quote_current': current_quote, 'can_select': current_quote and not unresolved and not is_return,
             'can_requote': requote, 'can_prepare': status in {'PENDING_IMPORT', 'UNFULFILLED', 'DRAFT'} and requote,
             'has_label': confirmed and https_asset(label.get('label_url')),
             'has_qr': confirmed and bool(https_asset(metadata.get('return_dropoff_qr_code_url') or label.get('return_dropoff_qr_code_url'))
@@ -84,7 +84,7 @@ def workflow(row: Mapping[str, Any], *, now: datetime | None = None) -> dict:
             'has_pod': status == 'DELIVERED' and https_asset(row.get('proof_of_delivery_url')),
             'has_invoice': confirmed and row.get('reservation_status') == 'CAPTURED' and bool(decoded(metadata.get('automation_customs')).get('required')),
             'has_receipt': confirmed and (row.get('billing_plan') != 'PREPAID_WALLET' or row.get('reservation_status') == 'CAPTURED'),
-            'can_return': confirmed and not is_return,
+            'can_return': confirmed and status == 'DELIVERED' and not is_return,
             'can_review_import': requote and 'batch_csv' in metadata and bool(row.get('customs_required'))
                 and not decoded(metadata.get('automation_customs')).get('ready_for_provider', False)}
 

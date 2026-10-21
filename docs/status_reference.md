@@ -284,6 +284,44 @@ These everyday terms are not new EasyInvio merchandise-refund states.
 
 ## Returns and warehouse receipt
 
+Create return becomes available after the original outbound shipment has recorded
+DELIVERED. A created label, handover manifest or in-transit scan does not establish
+that the customer has received the goods. Refresh tracking if a delivery scan is
+missing; do not manually change a status merely to unlock a return.
+
+The return opens in the Create shipment workspace with a RETURN SHIPMENT heading.
+Review saved packing and contents, the customer collection address and the default
+RETURN address from Settings. Packing, goods and customs inputs can be reviewed
+and edited without a support request. The original price is not a return quote:
+compare fresh services, select a price, then confirm payment. There is no mandatory
+maximum-price field. A grouped multi-parcel original still requires separately
+measured returns; the application does not silently combine parcels into one label.
+
+### Return preparation — PREPARING / QUOTED
+
+PREPARING means the saved return details are being rated; no label is purchased.
+QUOTED means current return service choices are available until the displayed
+expiry. Choose a service to pay from workspace billing or create a customer card
+payment link. Compare fresh rates when expired. An interrupted preparation is not
+an instruction to repeat a purchase; refresh its existing result first.
+
+### Customer return instructions — READY / SENDING / ACCEPTED / FAILED / REVIEW_REQUIRED
+
+Customer email and WhatsApp instructions are optional and require channel setup
+and confirmed customer permission. Disabled channels are shown as unavailable.
+READY means queued, SENDING means an outbound attempt has started, and ACCEPTED
+means the provider accepted the request, not that the customer read or received it.
+FAILED means a rejected or disabled channel; use the recorded reason. An uncertain
+send becomes REVIEW_REQUIRED and is not blindly resent. Share the existing result
+manually if needed, and ask an administrator to reconcile an ambiguous send.
+
+For customer-paid returns, the first notice contains only a Stripe payment link.
+The label notice is staged only after verified payment and carrier confirmation.
+Retailer-paid returns send confirmed label instructions directly. Customer document
+links expire after 24 hours and are checked again at download; an unpaid or cancelled
+return cannot expose a label through them. QR is offered only when the selected
+carrier supplies a real paperless asset. Otherwise print the carrier PDF label.
+
 ### Return request — PROCESSING / PAYMENT_REQUIRED
 
 PROCESSING means the existing reverse-logistics request is being prepared.

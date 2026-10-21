@@ -108,7 +108,7 @@ class ReverseLogisticsService:
             if not await connection.fetchval("SELECT to_regclass('public.reverse_logistics_requests') IS NOT NULL"):
                 raise HTTPException(503, 'Apply migration 042 before using headless returns')
             async with connection.transaction():
-                parents = await connection.fetch('''SELECT id,ecommerce_store_id FROM public.shipments
+                parents = await connection.fetch('''SELECT id,ecommerce_store_id,status FROM public.shipments
                     WHERE tenant_id=$1 AND (id=$2 OR ($3::text IS NOT NULL AND
                       (customer_reference=$3 OR tracking_number=$3 OR store_order_id=$3)))
                     AND ($4::uuid IS NULL OR ecommerce_store_id=$4) LIMIT 2''',
@@ -127,6 +127,8 @@ class ReverseLogisticsService:
                         raise HTTPException(409, {'message':'A return already exists for this shipment or request key.',
                             'request_id': str(previous['id'])})
                 else:
+                    if parents[0]['status'] != 'DELIVERED':
+                        raise HTTPException(409, 'Create a return after the original parcel has recorded delivery. No return request was created.')
                     await connection.execute('''INSERT INTO public.reverse_logistics_requests
                         (tenant_id,id,original_shipment_id,requested_by,source,charge_bearer,input_sha256)
                         VALUES($1,$2,$3,$4,$5,$6,$7)''', context.tenant_id, command.idempotency_key,
