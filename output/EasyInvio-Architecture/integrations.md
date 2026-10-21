@@ -4,6 +4,17 @@ This catalog separates SDK versions, API contracts and deployment activation. Lo
 
 ## Carriers and aggregators
 
+Royal Mail and Evri direct adapters are disabled extension provisions, not certified
+wire integrations. Issued carrier API specifications and tested lifecycle bridges
+are still required. See `docs/direct_carrier_provisions.md`
+in the repository for the readiness boundary. All new provider work has
+`INTEGRATION_*_ENABLED` controls; existing aggregator defaults remain enabled,
+direct defaults remain disabled. Historical read-only reconciliation stays available.
+Direct-first routing has a 2.2-second primary budget; aggregators retain uncovered
+services, with exact native duplicates filtered from the offers. Equal-price
+consolidation favors registered direct sources. No guessed OAuth/rates endpoint
+or negotiated carrier price is enabled.
+
 | Integration | Implemented path | Activation and limits |
 | --- | --- | --- |
 | EasyPost | Native quote/shipment/order lifecycle, selected-rate buy, retrieve/refund, tracking/forms, measured parcel/multi-piece and reviewed customs mapping; native returns | Canonical `https://api.easypost.com/v2`, account credentials and verified remote test/production mode; return shipment/rate must be freshly quoted |

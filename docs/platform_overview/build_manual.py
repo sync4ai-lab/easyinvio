@@ -218,12 +218,24 @@ def build_api(spec,app,revision):
 
 def build_sources(revision):
     modules=[];settings=[];calls=[]
-    for path in [PROJECT/'main.py',*sorted((PROJECT/'backend').rglob('*.py'))]:
-        text=path.read_text(encoding='utf-8-sig');tree=ast.parse(text);file=rel(path);classes=[];functions=[]
+    sources=[PROJECT/'main.py',*sorted((PROJECT/'backend').rglob('*.py'))]
+    parsed={path:ast.parse(path.read_text(encoding='utf-8-sig')) for path in sources}
+    # Include fields declared on inherited settings classes without instantiating
+    # them or reading private environment values.
+    settings_names={'BaseSettings'}
+    while True:
+        found={node.name for tree in parsed.values() for node in tree.body
+               if isinstance(node,ast.ClassDef) and any(
+                   (base.id if isinstance(base,ast.Name) else base.attr if isinstance(base,ast.Attribute) else '')
+                   in settings_names for base in node.bases)}
+        if found.issubset(settings_names):break
+        settings_names.update(found)
+    for path in sources:
+        text=path.read_text(encoding='utf-8-sig');tree=parsed[path];file=rel(path);classes=[];functions=[]
         for node in tree.body:
             if isinstance(node,ast.ClassDef):
                 classes.append({'name':node.name,'line':node.lineno,'methods':[{'name':m.name,'line':m.lineno,'async':isinstance(m,ast.AsyncFunctionDef)} for m in node.body if isinstance(m,(ast.FunctionDef,ast.AsyncFunctionDef))]})
-                if any('BaseSettings' in ast.unparse(b) for b in node.bases):
+                if node.name in settings_names:
                     prefix=''
                     for item in node.body:
                         if isinstance(item,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='model_config' for t in item.targets) and isinstance(item.value,ast.Call):
