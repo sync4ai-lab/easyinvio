@@ -24,6 +24,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 from backend.agents.models import ConversationalIntent, StrictOutput
 from backend.agents.conversation_context import ConversationDraft, collect_reply, explicit_quote
+from backend.agents.status_guidance import status_question
 
 logger = logging.getLogger('easyinvio.conversation')
 ROLES = {'OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT'}
@@ -159,6 +160,8 @@ class ConversationalActionGateway:
         return {'status': status, 'conversational_reply': text, 'action_taken': action, **details}
 
     async def interpret(self, context, text):
+        if status_question(text):
+            return ConversationalIntent(intent='HELP')
         closing = re.fullmatch(r'\s*close\s+manifest\s+([A-Za-z0-9 _-]{1,50})\s*',text,re.I)
         if closing:
             return ConversationalIntent(intent='CLOSE_MANIFEST',target_reference_id=closing[1].strip())
@@ -241,8 +244,11 @@ class ConversationalActionGateway:
                 await self.store.finish(context, message_id, result)
                 return self.public(result)
             try:
+                status_help = status_question(body.message_body)
                 new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|return|topup|help|commands|manifest)\b|\btop\s+up\b', body.message_body, re.I)
-                if self.draft and not new_command:
+                if status_help:
+                    intent = ConversationalIntent(intent='HELP')
+                elif self.draft and not new_command:
                     if self.draft.action == 'QUOTE':
                         collect_reply(self.draft, body.message_body, require_paf=body.channel == 'WHATSAPP')
                     elif self.draft.waiting_for == 'reference':
@@ -261,6 +267,8 @@ class ConversationalActionGateway:
                 return self.public(result)
             try:
                 result = await self.execute(context, body, intent, message_id)
+                if status_help and self.draft:
+                    result['_pending'] = self.draft.model_dump(mode='json')
             except HTTPException as error:
                 # Persist bounded public refusals; uncertain/crashed actions remain
                 # PROCESSING so a redelivery cannot start a second operation.

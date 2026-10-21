@@ -10,9 +10,10 @@ from html.parser import HTMLParser
 from pathlib import Path
 from markdown.extensions.toc import slugify
 from fastapi import HTTPException
-from backend.help_center import GUIDES, guide_source
+from backend.help_center import GUIDES, guide_source, rendered_guide
 from backend.agents.models import CitedAnswer
 from backend.agents.runtime import Cache
+from backend.agents.status_guidance import status_question, needs_status_context
 
 
 class GuideSections(HTMLParser):
@@ -83,7 +84,12 @@ class HelpRetriever:
     def corpus(self):
         chunks = []
         for slug, guide in GUIDES.items():
-            if guide.source_file:
+            if guide.section_chunks:
+                parser = GuideSections()
+                parser.feed(rendered_guide(guide)[0])
+                parser.flush()
+                sections = parser.sections
+            elif guide.source_file:
                 source = guide_source(guide).read_text(encoding='utf-8')
                 sections = re.split(r'^## ', source, flags=re.MULTILINE)
                 sections = [('Overview', sections[0], '')] + [(part.partition('\n')[0], part.partition('\n')[2],
@@ -184,6 +190,9 @@ class HelpRetriever:
                 fallback_reason = 'SEMANTIC_SEARCH_UNAVAILABLE'
         top = sorted(range(len(chunks)), key=lambda index: (-scores[index], chunks[index].id))[:4]
         selected = [chunks[index] for index in top if scores[index] > .05]
+        if status_question(query) and needs_status_context(query):
+            selected = [chunk for chunk in chunks if chunk.source_file == 'docs/status_reference.md'
+                        and 'Which Pending' in chunk.title][:1]
         if not selected:
             return {'answer': 'No supported guide answers that question yet. Contact EasyInvio support.',
                 'sources': [], 'mode': 'NO_EVIDENCE', 'cached': False, 'usage': {'input_tokens': 0, 'output_tokens': 0}}
@@ -199,6 +208,10 @@ class HelpRetriever:
                     'say so. Never invent pickup scheduling, holiday adjustment or insurance coverage. '
                     'Lead with a direct answer, then give at most four short plain-language sentences or bullets. '
                     'Distinguish a wallet reservation from a completed charge, and a released hold from a bank refund. '
+                    'For status questions identify the workflow, explain the state and give the documented next step. '
+                    'Ask which screen when a generic Pending, Failed or Received is ambiguous. '
+                    'Never equate a return receipt, shipping-label reversal or insurer report with a buyer refund. '
+                    'Never recommend repeating a purchase, payment or claim while its outcome is uncertain. '
                     'Use plain text without headings or HTML; avoid reproducing whole guide sections.',
                     {'question': query, 'documentation_version': version,
                      'chunks': [{'id': chunk.id, 'title': chunk.title, 'text': chunk.text} for chunk in selected]},
@@ -219,11 +232,16 @@ class HelpRetriever:
                 fallback_reason = 'ANSWER_UNAVAILABLE'
             except ValueError:
                 fallback_reason = 'UNSUPPORTED_CITATIONS'
+        if mode != 'AI_CITED_ANSWER' and status_question(query):
+            guidance = next((chunk for chunk in selected if chunk.source_file == 'docs/status_reference.md'), None)
+            if guidance is not None:
+                answer = 'General guidance: ' + ' '.join(guidance.text.split())[:1400]
+                used = [guidance]
         response = {'answer': answer,
             'sources': [{'title': chunk.title, 'url': chunk.url, 'source_file': chunk.source_file} for chunk in used],
             'mode': mode, 'cached': False, 'documentation_version': version,
             'retrieval': retrieval, 'assistant_configured': self.runtime.available, 'fallback_reason': fallback_reason,
-            'excerpts': [] if mode == 'AI_CITED_ANSWER' else [
+            'excerpts': [] if mode == 'AI_CITED_ANSWER' or answer.startswith('General guidance: ') else [
                 {'title': chunk.title, 'url': chunk.url, 'text': ' '.join(chunk.text.split())[:280]} for chunk in used],
             'usage': {'input_tokens': input_tokens, 'output_tokens': output_tokens}}
         if mode == 'AI_CITED_ANSWER' or not self.runtime.available:

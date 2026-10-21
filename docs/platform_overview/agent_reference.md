@@ -79,3 +79,7 @@ Carrier QR media is derived solely from confirmed native booking/return results.
 ## Shared tracking delegate
 
 ConversationalActionGateway TRACK_PACKAGE now delegates to TrackingWorkspace when migration 045 is ready, including exact store-order and parcel references. It reuses the caller?s verified tenant context and deterministic projections. The signed WhatsApp queue also accepts an explicitly supplied customer Track link capability, without guessing identity from a phone number. No LLM writes carrier status, refund state or financial entries. Existing gateway behavior remains the fallback before migration readiness.
+
+## Status guidance shared by assistants
+
+HelpSupportAgent retrieves the published status reference at `/help/status-guide`, with section-level citations and a versioned corpus. ConversationalActionGateway, the general supervisor and the intent worker route explanatory status questions to HELP without authorizing a booking, payment, refund, claim or return. A status question preserves a live ConversationDraft and its original TTL. Generic Pending/Failed/Received prompts ask for the screen instead of assuming a financial outcome. Without AI, authored status guidance still supplies next steps and a source link.

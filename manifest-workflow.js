@@ -105,6 +105,10 @@ window.ManifestWorkflow = (() => {
     } finally { restoring = false; }
   }
   function install() {
+    const statusHelp=document.createElement('a');
+    statusHelp.href='/help/status-guide';statusHelp.target='_blank';statusHelp.rel='noopener noreferrer';
+    statusHelp.textContent=' ⓘ';statusHelp.title='Status meanings and next steps';statusHelp.setAttribute('aria-label','Open status meanings and next steps');
+    document.querySelector('#manifest thead th:nth-child(3)').append(statusHelp);
     const style=document.createElement('style');
     style.textContent='#manifest .toolbar{flex-wrap:wrap}#manifest-search{min-width:180px;flex:1}#shipment-detail section{margin-top:20px}#manifest-restored-packages{width:100%;margin:16px 0}#manifest-restored-packages fieldset{margin:14px 0;padding:12px;border:1px solid #334155;border-radius:10px}@media(max-width:650px){#manifest .toolbar{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}#manifest .toolbar>*{width:100%;max-width:none!important;min-width:0}#manifest .toolbar [hidden]{display:none}}';
     document.head.append(style);

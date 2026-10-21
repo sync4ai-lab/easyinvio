@@ -5,6 +5,7 @@ import os
 import socket
 import threading
 import time
+import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -12,6 +13,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from playwright.async_api import async_playwright, expect
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from backend.help_center import router
 
 os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(Path('.playwright').resolve())
@@ -103,7 +105,17 @@ async def run(origin):
         await page.locator('#support-results-list a').filter(has_text='Why size').click()
         assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
         await page.goto(origin + '/help')
-        await expect(page.locator('.feature-guide-grid > a')).to_have_count(5)
+        await expect(page.locator('.feature-guide-grid > a')).to_have_count(6)
+        await page.locator('#supportSearch').fill('ACTION_REQUIRED')
+        await expect(page.locator('#support-results-list')).to_contain_text('Understand statuses')
+        await page.locator('#support-results-list a').filter(has_text='Understand statuses').click()
+        await expect(page.get_by_role('heading',name='Understand statuses and resolve unexpected results',exact=True)).to_be_visible()
+        await expect(page.get_by_role('heading',name='Claims — ACTION_REQUIRED',exact=True)).to_be_visible()
+        assert 10 < await page.locator('.guide-contents a').count() < 20
+        await page.set_viewport_size({'width':390,'height':844})
+        assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+        await page.screenshot(path=str(output/'status-guide-mobile.png'))
+        await page.goto(origin+'/help')
         await page.locator('.feature-guide-grid a[href="/help/features/labels-and-tracking"]').click()
         await page.get_by_role('link', name='How delivery history is measured', exact=True).click()
         await expect(page.locator('#how-delivery-history-is-measured')).to_be_in_viewport()
@@ -123,7 +135,7 @@ async def run(origin):
     report = {'status': 'PASS', 'desktop_width': 1440, 'mobile_width': 390, 'page_errors': errors,
               'checks': ['Signed-out help access', 'Assistant sign-in guidance', 'Cited assistant response with safe text rendering', 'Desktop and mobile layout', 'Search and guide navigation',
                          'Bookmarked search', 'Clearly labelled feature placeholders', 'No-results and clear controls',
-                         'Encoded support email draft without sending', 'Useful missing-guide page', 'Five feature guide links', 'Markdown downloads', 'Contents anchors', 'Honest collection limitations'],
+                         'Encoded support email draft without sending', 'Useful missing-guide page', 'Six detailed guides including status reference', 'Markdown downloads', 'Contents anchors', 'Honest collection limitations'],
               'database_calls': 0, 'provider_calls': 0, 'messages_sent': 0}
     (output / 'browser-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, indent=2))
@@ -135,6 +147,9 @@ if __name__ == '__main__':
     @app.get('/')
     async def frontend():
         return FileResponse('index.html')
+    @app.get('/manifest-workflow.js')
+    async def manifest_asset():
+        return FileResponse('manifest-workflow.js',media_type='text/javascript')
     listener = socket.socket()
     listener.bind(('127.0.0.1', 0))
     origin = 'http://127.0.0.1:' + str(listener.getsockname()[1])

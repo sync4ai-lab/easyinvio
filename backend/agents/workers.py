@@ -18,6 +18,9 @@ class IngestionWorkerAgent:
         self.runtime = runtime
 
     async def conversation(self, context, text):
+        from backend.agents.status_guidance import status_question
+        if status_question(text):
+            return ConversationalIntent(intent='HELP')
         @function_tool(failure_error_function=None)
         def submit_conversational_intent(intent: ConversationalIntent) -> str:
             """Extract explicit conversation facts without executing an action."""
@@ -33,6 +36,7 @@ class IngestionWorkerAgent:
             'BOOK_RESERVATION selects a numbered option. FILE_CLAIM describes loss or damage. '
             'TRIGGER_RETURN requests a return for an explicit order or tracking reference. '
             'MANIFEST_STATUS reads dispatch batches. CLOSE_MANIFEST requires an explicit Close manifest carrier command; never invent carrier closure. '
+            'Status explanations and unexpected-state troubleshooting are HELP, never authorization to book, claim, return or refund. '
             'HELP is the default for ambiguous or unsupported requests.',
             {'message': text}, tools=[submit_conversational_intent])
         intent = ConversationalIntent.model_validate_json(result.value)

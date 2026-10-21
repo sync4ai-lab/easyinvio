@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
+import re
 
 import markdown
 from fastapi import APIRouter, HTTPException
@@ -21,6 +22,7 @@ class Guide:
     keywords: str
     prepared: bool = True
     source_file: str | None = None
+    section_chunks: bool = False
 
 
 GUIDES = {
@@ -197,6 +199,11 @@ GUIDES = {
 
 # These repository-authored sources are maintained once and rendered on their pages.
 GUIDES.update({
+    'status-guide': Guide(
+        'Understand statuses and resolve unexpected results', 'Shipping tools',
+        'A complete status reference with practical next steps for orders, quotes, tracking, payments, refunds, returns, claims and account access.',
+        '', 'status statuses meaning unexpected unwanted stuck failed pending imported unquoted draft quote expired booked manifested tracking delivered exception wallet refund return claim insured support registration invitation sync',
+        source_file='docs/status_reference.md', section_chunks=True),
     'features/order-processing': Guide(
         'Import and prepare store orders', 'Shipping tools',
         'Shopify and Amazon intake, validation recovery and the limits of order defaults.',
@@ -240,7 +247,8 @@ def rendered_guide(guide):
     lines = source.splitlines()
     if not lines or lines[0] != '# ' + guide.title:
         raise ValueError('Guide title must match its published catalogue entry')
-    converter = markdown.Markdown(extensions=['toc', 'sane_lists'], output_format='html')
+    converter = markdown.Markdown(extensions=['toc', 'sane_lists'],
+        extension_configs={'toc': {'toc_depth': 2 if guide.section_chunks else 6}}, output_format='html')
     body = converter.convert('\n'.join(lines[1:]))
     return body, converter.toc
 
@@ -331,8 +339,13 @@ async def support_asset(asset: str):
 
 @router.get('/help/search-index.json', include_in_schema=False)
 async def support_search_index():
+    def keywords(guide):
+        if guide.section_chunks:
+            headings = re.findall(r'^### (.+)$', guide_source(guide).read_text(encoding='utf-8'), re.MULTILINE)
+            return guide.keywords + ' ' + ' '.join(headings)
+        return guide.keywords
     return {'guides': [{'title': guide.title, 'category': guide.category, 'summary': guide.summary,
-                        'keywords': guide.keywords, 'prepared': guide.prepared, 'url': '/help/' + slug}
+                        'keywords': keywords(guide), 'prepared': guide.prepared, 'url': '/help/' + slug}
                        for slug, guide in GUIDES.items()]}
 
 

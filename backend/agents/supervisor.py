@@ -29,6 +29,14 @@ class LogisticsSupervisor:
         self.dispatch_permission(context)
         workflow = Workflow()
         workflow.move(State.VALIDATING)
+        from backend.agents.status_guidance import status_question
+        if status_question(text):
+            guidance = await self.help.answer(context, text)
+            workflow.move(State.READY)
+            workflow.move(State.EXECUTING)
+            workflow.move(State.COMPLETED)
+            return {'workflow': workflow.model_dump(mode='json'), 'intent': {'intent': 'HELP'},
+                    'message': guidance['answer'], 'help': guidance, 'booking_authorized': False}
         try:
             intent = await self.ingestion.message(context, text)
         except ValueError:
