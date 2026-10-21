@@ -409,6 +409,15 @@
       "file": "main.py",
       "line": 178,
       "class": "Settings",
+      "field": "tracking_polling_enabled",
+      "environment_name": "TRACKING_POLLING_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "main.py",
+      "line": 179,
+      "class": "Settings",
       "field": "booking_page_url",
       "environment_name": "BOOKING_PAGE_URL",
       "annotation": "str",
@@ -416,7 +425,7 @@
     },
     {
       "file": "main.py",
-      "line": 179,
+      "line": 180,
       "class": "Settings",
       "field": "quote_link_secret",
       "environment_name": "QUOTE_LINK_SECRET",
@@ -425,7 +434,7 @@
     },
     {
       "file": "main.py",
-      "line": 180,
+      "line": 181,
       "class": "Settings",
       "field": "whatsapp_deadline_seconds",
       "environment_name": "WHATSAPP_DEADLINE_SECONDS",
@@ -434,7 +443,7 @@
     },
     {
       "file": "main.py",
-      "line": 181,
+      "line": 182,
       "class": "Settings",
       "field": "whatsapp_provider_seconds",
       "environment_name": "WHATSAPP_PROVIDER_SECONDS",
@@ -893,7 +902,7 @@
     },
     {
       "file": "backend/tracking_and_support.py",
-      "line": 52,
+      "line": 53,
       "class": "TrackingSettings",
       "field": "tracking_webhook_keys",
       "environment_name": "TRACKING_WEBHOOK_KEYS",
@@ -968,6 +977,7 @@
     "INTEGRATION_REGIONAL_ENABLED",
     "INTEGRATION_ROYAL_MAIL_ENABLED",
     "INTEGRATION_EVRI_ENABLED",
+    "TRACKING_POLLING_ENABLED",
     "DATABASE_ENVIRONMENT",
     "SANDBOX_HOOKS_ENABLED",
     "TWILIO_WHATSAPP_SANDBOX_ENABLED",

@@ -1,6 +1,6 @@
 # API reference
 
-194 OpenAPI HTTP operations across 172 paths are listed below, followed by WebSocket/non-schema routes and every request/response component. This export imports the app without starting lifespan.
+213 OpenAPI HTTP operations across 190 paths are listed below, followed by WebSocket/non-schema routes and every request/response component. This export imports the app without starting lifespan.
 
 Use [openapi.json](openapi.json) for structural contracts and [api_inventory.json](api_inventory.json) for source/dependency mapping. Custom Python validators can impose stricter rules than generated JSON Schema, including rejecting floats on a Decimal field. Empty response schemas do not prove an empty response; read the handler/service when no response model is declared.
 
@@ -62,6 +62,12 @@ Workspace Bearer authentication, platform-owner allowlisting, callback signature
 | GET | [/api/v1/admin/tenants](#op-get-api-v1-admin-tenants) | Tenants |
 | POST | [/api/v1/admin/tenants](#op-post-api-v1-admin-tenants) | Create Tenant |
 | PATCH | [/api/v1/admin/tenants/{tenant_id}/seller-classification](#op-patch-api-v1-admin-tenants-tenant-id-seller-classification) | Update Seller Classification |
+| GET | [/api/v1/admin/tracking/health](#op-get-api-v1-admin-tracking-health) | Health |
+| GET | [/api/v1/admin/tracking/shipments](#op-get-api-v1-admin-tracking-shipments) | Global Shipments |
+| GET | [/api/v1/admin/tracking/shipments/{shipment_id}](#op-get-api-v1-admin-tracking-shipments-shipment-id) | Admin Detail |
+| POST | [/api/v1/admin/tracking/shipments/{shipment_id}/refresh](#op-post-api-v1-admin-tracking-shipments-shipment-id-refresh) | Global Refresh |
+| POST | [/api/v1/admin/tracking/shipments/{shipment_id}/retry](#op-post-api-v1-admin-tracking-shipments-shipment-id-retry) | Global Retry |
+| POST | [/api/v1/admin/tracking/shipments/{shipment_id}/review](#op-post-api-v1-admin-tracking-shipments-shipment-id-review) | Global Review |
 | GET | [/api/v1/admin/transactions](#op-get-api-v1-admin-transactions) | Transactions |
 | POST | [/api/v1/agents/customs/information](#op-post-api-v1-agents-customs-information) | Information |
 | POST | [/api/v1/agents/customs/suggest](#op-post-api-v1-agents-customs-suggest) | Customs |
@@ -147,6 +153,8 @@ Workspace Bearer authentication, platform-owner allowlisting, callback signature
 | POST | [/api/v1/logistics/package-guidance](#op-post-api-v1-logistics-package-guidance) | Public Guidance |
 | POST | [/api/v1/logistics/weight](#op-post-api-v1-logistics-weight) | Weight |
 | GET | [/api/v1/profile](#op-get-api-v1-profile) | Profile |
+| POST | [/api/v1/public/tracking/help](#op-post-api-v1-public-tracking-help) | Public Help |
+| POST | [/api/v1/public/tracking/resolve](#op-post-api-v1-public-tracking-resolve) | Public Tracking |
 | POST | [/api/v1/rates/preview](#op-post-api-v1-rates-preview) | Rates Preview |
 | POST | [/api/v1/rates/sample](#op-post-api-v1-rates-sample) | Sample Rates |
 | GET | [/api/v1/routing/disruptions](#op-get-api-v1-routing-disruptions) | Routing |
@@ -189,6 +197,17 @@ Workspace Bearer authentication, platform-owner allowlisting, callback signature
 | POST | [/api/v1/support/tickets/{ticket_id}/resolve](#op-post-api-v1-support-tickets-ticket-id-resolve) | Resolve |
 | POST | [/api/v1/support/whatsapp/consent](#op-post-api-v1-support-whatsapp-consent) | Consent |
 | POST | [/api/v1/support/whatsapp/status/{message_id}](#op-post-api-v1-support-whatsapp-status-message-id) | Status |
+| GET | [/api/v1/tracking/capabilities](#op-get-api-v1-tracking-capabilities) | Capabilities |
+| GET | [/api/v1/tracking/notifications](#op-get-api-v1-tracking-notifications) | Notifications |
+| GET | [/api/v1/tracking/preferences](#op-get-api-v1-tracking-preferences) | Get Preferences |
+| PUT | [/api/v1/tracking/preferences](#op-put-api-v1-tracking-preferences) | Put Preferences |
+| DELETE | [/api/v1/tracking/share-links/{share_id}](#op-delete-api-v1-tracking-share-links-share-id) | Revoke |
+| GET | [/api/v1/tracking/shipments](#op-get-api-v1-tracking-shipments) | Shipments |
+| GET | [/api/v1/tracking/shipments/{shipment_id}](#op-get-api-v1-tracking-shipments-shipment-id) | Detail |
+| POST | [/api/v1/tracking/shipments/{shipment_id}/refresh](#op-post-api-v1-tracking-shipments-shipment-id-refresh) | Refresh |
+| POST | [/api/v1/tracking/shipments/{shipment_id}/review](#op-post-api-v1-tracking-shipments-shipment-id-review) | Review |
+| POST | [/api/v1/tracking/shipments/{shipment_id}/share](#op-post-api-v1-tracking-shipments-shipment-id-share) | Share |
+| GET | [/api/v1/tracking/shipments/{shipment_id}/share-links](#op-get-api-v1-tracking-shipments-shipment-id-share-links) | Shares |
 | POST | [/api/v1/tracking/webhook](#op-post-api-v1-tracking-webhook) | Webhook |
 | GET | [/api/v1/wallet](#op-get-api-v1-wallet) | Wallet |
 | POST | [/api/v1/workspace/invitations](#op-post-api-v1-workspace-invitations) | Invite |
@@ -219,7 +238,7 @@ Workspace Bearer authentication, platform-owner allowlisting, callback signature
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/agents/routes.py:60](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/agents/routes.py#L60), `build_router.<locals>.metrics`.
+Implementation: [backend/agents/routes.py:60](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/agents/routes.py#L60), `build_router.<locals>.metrics`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -250,7 +269,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L107), `build_router.<locals>.platform_report`.
+Implementation: [backend/dashboard_portal.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L107), `build_router.<locals>.platform_report`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -332,7 +351,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/ai_engine.py:282](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ai_engine.py#L282), `build_router.<locals>.owner_audit`.
+Implementation: [backend/ai_engine.py:282](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ai_engine.py#L282), `build_router.<locals>.owner_audit`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -399,7 +418,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:127](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L127), `carriers`.
+Implementation: [backend/admin_management.py:127](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L127), `carriers`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -430,7 +449,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:138](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L138), `add_carrier`.
+Implementation: [backend/admin_management.py:138](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L138), `add_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -480,7 +499,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L210), `remove_carrier`.
+Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L210), `remove_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -538,7 +557,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:183](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L183), `change_carrier`.
+Implementation: [backend/admin_management.py:183](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L183), `change_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -605,7 +624,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L210), `remove_carrier`.
+Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L210), `remove_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -663,7 +682,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/credential_rotation.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/credential_rotation.py#L32), `replace_credentials`.
+Implementation: [backend/credential_rotation.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/credential_rotation.py#L32), `replace_credentials`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `require_recent_admin_auth`.
@@ -730,7 +749,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:111](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/client_assistance.py#L111), `clients`.
+Implementation: [backend/client_assistance.py:111](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/client_assistance.py#L111), `clients`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -789,7 +808,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:164](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/client_assistance.py#L164), `events`.
+Implementation: [backend/client_assistance.py:164](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/client_assistance.py#L164), `events`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -864,7 +883,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:122](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/client_assistance.py#L122), `start`.
+Implementation: [backend/client_assistance.py:122](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/client_assistance.py#L122), `start`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -914,7 +933,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/client_assistance.py#L151), `stop`.
+Implementation: [backend/client_assistance.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/client_assistance.py#L151), `stop`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -972,7 +991,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:588](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_portal.py#L588), `read_individual_pricing`.
+Implementation: [backend/admin_portal.py:588](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_portal.py#L588), `read_individual_pricing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1003,7 +1022,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:595](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_portal.py#L595), `update_individual_pricing`.
+Implementation: [backend/admin_portal.py:595](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_portal.py#L595), `update_individual_pricing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1053,7 +1072,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/shipment_protection.py:2177](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/shipment_protection.py#L2177), `build_router.<locals>.platform_settlement`.
+Implementation: [backend/shipment_protection.py:2177](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/shipment_protection.py#L2177), `build_router.<locals>.platform_settlement`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1103,7 +1122,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/hubspot_crm.py:472](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/hubspot_crm.py#L472), `build_router.<locals>.integration_alerts`.
+Implementation: [backend/hubspot_crm.py:472](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/hubspot_crm.py#L472), `build_router.<locals>.integration_alerts`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1134,7 +1153,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:43](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L43), `margins`.
+Implementation: [backend/admin_management.py:43](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L43), `margins`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1199,7 +1218,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:569](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_portal.py#L569), `create_margin`.
+Implementation: [backend/admin_portal.py:569](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_portal.py#L569), `create_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1251,7 +1270,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:80](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L80), `retire_margin`.
+Implementation: [backend/admin_management.py:80](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L80), `retire_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1309,7 +1328,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:54](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L54), `update_margin`.
+Implementation: [backend/admin_management.py:54](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L54), `update_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1376,7 +1395,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/platform_carriers.py#L107), `list_connections`.
+Implementation: [backend/platform_carriers.py:107](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/platform_carriers.py#L107), `list_connections`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1407,7 +1426,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:114](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/platform_carriers.py#L114), `create`.
+Implementation: [backend/platform_carriers.py:114](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/platform_carriers.py#L114), `create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1457,7 +1476,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:134](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/platform_carriers.py#L134), `capabilities`.
+Implementation: [backend/platform_carriers.py:134](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/platform_carriers.py#L134), `capabilities`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1488,7 +1507,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/platform_carriers.py#L124), `retire`.
+Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/platform_carriers.py#L124), `retire`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1546,7 +1565,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:119](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/platform_carriers.py#L119), `update`.
+Implementation: [backend/platform_carriers.py:119](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/platform_carriers.py#L119), `update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1613,7 +1632,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/platform_carriers.py#L124), `retire`.
+Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/platform_carriers.py#L124), `retire`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1671,7 +1690,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:460](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L460), `build_native_router.<locals>.reconcile_order`.
+Implementation: [backend/automation_three_partners.py:481](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L481), `build_native_router.<locals>.reconcile_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1738,7 +1757,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:526](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L526), `build_native_router.<locals>.read_configuration`.
+Implementation: [backend/automation_three_partners.py:547](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L547), `build_native_router.<locals>.read_configuration`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1796,7 +1815,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:486](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L486), `build_native_router.<locals>.configure`.
+Implementation: [backend/automation_three_partners.py:507](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L507), `build_native_router.<locals>.configure`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1863,7 +1882,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L178), `build_router.<locals>.diagnostics`.
+Implementation: [backend/workspace_settings.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L178), `build_router.<locals>.diagnostics`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1921,7 +1940,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/platform_carriers.py#L141), `upgrade_sendcloud`.
+Implementation: [backend/platform_carriers.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/platform_carriers.py#L141), `upgrade_sendcloud`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1979,7 +1998,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:206](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/platform_carriers.py#L206), `verify_connection`.
+Implementation: [backend/platform_carriers.py:206](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/platform_carriers.py#L206), `verify_connection`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `ShippoAdapter(None, secret, environment=row['environment']).authentication`, `httpx.BasicAuth`.
@@ -2037,7 +2056,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/sandbox_hooks.py:301](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/sandbox_hooks.py#L301), `build_router.<locals>.setup_whatsapp`.
+Implementation: [backend/sandbox_hooks.py:301](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/sandbox_hooks.py#L301), `build_router.<locals>.setup_whatsapp`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `require_sandbox_environment`.
@@ -2087,7 +2106,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/advanced_logistics.py:377](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L377), `build_router.<locals>.owner_manifest`.
+Implementation: [backend/advanced_logistics.py:377](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L377), `build_router.<locals>.owner_manifest`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2118,7 +2137,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:204](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L204), `build_router.<locals>.admin_get_draft`.
+Implementation: [backend/workspace_settings.py:204](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L204), `build_router.<locals>.admin_get_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2186,7 +2205,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L207), `build_router.<locals>.admin_save_draft`.
+Implementation: [backend/workspace_settings.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L207), `build_router.<locals>.admin_save_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2263,7 +2282,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:198](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L198), `build_router.<locals>.all_tickets`.
+Implementation: [backend/dashboard_portal.py:198](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L198), `build_router.<locals>.all_tickets`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2335,7 +2354,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:209](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L209), `build_router.<locals>.admin_intervene`.
+Implementation: [backend/dashboard_portal.py:209](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L209), `build_router.<locals>.admin_intervene`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2402,7 +2421,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:221](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L221), `build_router.<locals>.admin_resolve`.
+Implementation: [backend/dashboard_portal.py:221](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L221), `build_router.<locals>.admin_resolve`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2460,7 +2479,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/support_alert_controls.py:16](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/support_alert_controls.py#L16), `build_router.<locals>.bindings`.
+Implementation: [backend/support_alert_controls.py:16](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/support_alert_controls.py#L16), `build_router.<locals>.bindings`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2491,7 +2510,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/support_alert_controls.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/support_alert_controls.py#L32), `build_router.<locals>.pause`.
+Implementation: [backend/support_alert_controls.py:32](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/support_alert_controls.py#L32), `build_router.<locals>.pause`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2558,7 +2577,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:33](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L33), `tenants`.
+Implementation: [backend/admin_management.py:33](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L33), `tenants`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2618,7 +2637,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:561](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_portal.py#L561), `create_tenant`.
+Implementation: [backend/admin_portal.py:561](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_portal.py#L561), `create_tenant`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2670,7 +2689,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:237](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L237), `update_seller_classification`.
+Implementation: [backend/admin_management.py:237](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L237), `update_seller_classification`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2732,12 +2751,437 @@ Documented responses:
 }
 ```
 
+<a id="op-get-api-v1-admin-tracking-health"></a>
+### GET /api/v1/admin/tracking/health
+
+Platform owner dependency; additional source/helper guards apply.
+
+Implementation: [backend/tracking_workspace.py:596](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L596), `build_router.<locals>.health`.
+
+Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-admin-tracking-shipments"></a>
+### GET /api/v1/admin/tracking/shipments
+
+Platform owner dependency; additional source/helper guards apply.
+
+Implementation: [backend/tracking_workspace.py:469](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L469), `build_router.<locals>.global_shipments`.
+
+Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "tenant_id",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Tenant Id"
+    }
+  },
+  {
+    "name": "q",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "string",
+      "default": "",
+      "title": "Q"
+    }
+  },
+  {
+    "name": "view",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "string",
+      "default": "all",
+      "title": "View"
+    }
+  },
+  {
+    "name": "carrier",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "string",
+      "maxLength": 50,
+      "default": "",
+      "title": "Carrier"
+    }
+  },
+  {
+    "name": "country",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "string",
+      "maxLength": 2,
+      "default": "",
+      "title": "Country"
+    }
+  },
+  {
+    "name": "start",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Start"
+    }
+  },
+  {
+    "name": "end",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "End"
+    }
+  },
+  {
+    "name": "page",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "integer",
+      "maximum": 10000,
+      "minimum": 1,
+      "default": 1,
+      "title": "Page"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-admin-tracking-shipments-shipment-id"></a>
+### GET /api/v1/admin/tracking/shipments/{shipment_id}
+
+Platform owner dependency; additional source/helper guards apply.
+
+Implementation: [backend/tracking_workspace.py:479](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L479), `build_router.<locals>.admin_detail`.
+
+Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-post-api-v1-admin-tracking-shipments-shipment-id-refresh"></a>
+### POST /api/v1/admin/tracking/shipments/{shipment_id}/refresh
+
+Platform owner dependency; additional source/helper guards apply.
+
+Implementation: [backend/tracking_workspace.py:586](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L586), `build_router.<locals>.global_refresh`.
+
+Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "202": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-post-api-v1-admin-tracking-shipments-shipment-id-retry"></a>
+### POST /api/v1/admin/tracking/shipments/{shipment_id}/retry
+
+Platform owner dependency; additional source/helper guards apply.
+
+Implementation: [backend/tracking_workspace.py:591](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L591), `build_router.<locals>.global_retry`.
+
+Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "202": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-post-api-v1-admin-tracking-shipments-shipment-id-review"></a>
+### POST /api/v1/admin/tracking/shipments/{shipment_id}/review
+
+Platform owner dependency; additional source/helper guards apply.
+
+Implementation: [backend/tracking_workspace.py:577](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L577), `build_router.<locals>.global_review`.
+
+Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+{
+  "required": true,
+  "content": {
+    "application/json": {
+      "schema": {
+        "$ref": "#/components/schemas/ReviewRequest"
+      }
+    }
+  }
+}
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
 <a id="op-get-api-v1-admin-transactions"></a>
 ### GET /api/v1/admin/transactions
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:223](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/admin_management.py#L223), `transactions`.
+Implementation: [backend/admin_management.py:223](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/admin_management.py#L223), `transactions`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2802,7 +3246,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:46](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/agents/routes.py#L46), `build_router.<locals>.information`.
+Implementation: [backend/agents/routes.py:46](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/agents/routes.py#L46), `build_router.<locals>.information`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `engine.dispatch_permission`.
@@ -2852,7 +3296,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:29](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/agents/routes.py#L29), `build_router.<locals>.customs`.
+Implementation: [backend/agents/routes.py:29](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/agents/routes.py#L29), `build_router.<locals>.customs`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `engine.dispatch_permission`.
@@ -2902,7 +3346,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:20](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/agents/routes.py#L20), `build_router.<locals>.interpret`.
+Implementation: [backend/agents/routes.py:20](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/agents/routes.py#L20), `build_router.<locals>.interpret`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2952,7 +3396,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:24](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/agents/routes.py#L24), `build_router.<locals>.quote`.
+Implementation: [backend/agents/routes.py:24](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/agents/routes.py#L24), `build_router.<locals>.quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3002,7 +3446,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2382](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/main.py#L2382), `carrier_performance`.
+Implementation: [main.py:2409](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/main.py#L2409), `carrier_performance`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3059,7 +3503,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_and_support.py:347](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tracking_and_support.py#L347), `build_router.<locals>.reports`.
+Implementation: [backend/tracking_and_support.py:386](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_and_support.py#L386), `build_router.<locals>.reports`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3151,7 +3595,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/delivery_quality.py:45](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/delivery_quality.py#L45), `build_router.<locals>.readiness`.
+Implementation: [backend/delivery_quality.py:45](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/delivery_quality.py#L45), `build_router.<locals>.readiness`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -3219,7 +3663,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ai_engine.py:262](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ai_engine.py#L262), `build_router.<locals>.audit`.
+Implementation: [backend/ai_engine.py:262](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ai_engine.py#L262), `build_router.<locals>.audit`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3271,7 +3715,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/ai_engine.py:290](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ai_engine.py#L290), `build_router.<locals>.audit_preview`.
+Implementation: [backend/ai_engine.py:290](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ai_engine.py#L290), `build_router.<locals>.audit_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3321,7 +3765,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/workspace_settings.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L130), `build_router.<locals>.accept`.
+Implementation: [backend/workspace_settings.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L130), `build_router.<locals>.accept`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3371,7 +3815,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:280](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L280), `forgot_password`.
+Implementation: [backend/identity.py:280](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L280), `forgot_password`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3421,7 +3865,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:245](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L245), `logout`.
+Implementation: [backend/identity.py:245](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L245), `logout`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3452,7 +3896,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:223](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L223), `me`.
+Implementation: [backend/identity.py:223](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L223), `me`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3483,7 +3927,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:233](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L233), `update_me`.
+Implementation: [backend/identity.py:233](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L233), `update_me`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3533,7 +3977,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:344](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L344), `register_account`.
+Implementation: [backend/identity.py:344](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L344), `register_account`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3583,7 +4027,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:348](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L348), `verify_account`.
+Implementation: [backend/identity.py:348](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L348), `verify_account`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3633,7 +4077,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L129), `renew`.
+Implementation: [backend/identity.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L129), `renew`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `hashlib.sha256(request.headers.get('authorization', '').encode()).hexdigest`, `request.headers.get('authorization', '').encode`, `settings.auth_jwt_secret.get_secret_value`.
@@ -3664,7 +4108,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:309](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L309), `reset_password`.
+Implementation: [backend/identity.py:309](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L309), `reset_password`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3714,7 +4158,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:74](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/identity.py#L74), `token`.
+Implementation: [backend/identity.py:74](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/identity.py#L74), `token`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `settings.auth_jwt_secret.get_secret_value`, `settings.auth_jwt_secret.get_secret_value().encode`.
@@ -3764,7 +4208,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:591](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_freight_engine.py#L591), `build_router.<locals>.bulk`.
+Implementation: [backend/automation_freight_engine.py:591](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_freight_engine.py#L591), `build_router.<locals>.bulk`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3797,7 +4241,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:580](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_freight_engine.py#L580), `build_router.<locals>.cargo_weight`.
+Implementation: [backend/automation_freight_engine.py:580](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_freight_engine.py#L580), `build_router.<locals>.cargo_weight`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3847,7 +4291,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:584](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_freight_engine.py#L584), `build_router.<locals>.customs`.
+Implementation: [backend/automation_freight_engine.py:584](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_freight_engine.py#L584), `build_router.<locals>.customs`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3905,7 +4349,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:588](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_freight_engine.py#L588), `build_router.<locals>.reconcile`.
+Implementation: [backend/automation_freight_engine.py:588](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_freight_engine.py#L588), `build_router.<locals>.reconcile`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3963,7 +4407,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/card_checkout.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/card_checkout.py#L137), `build_router.<locals>.create`.
+Implementation: [backend/card_checkout.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/card_checkout.py#L137), `build_router.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4013,7 +4457,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/card_checkout.py:140](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/card_checkout.py#L140), `build_router.<locals>.complete`.
+Implementation: [backend/card_checkout.py:140](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/card_checkout.py#L140), `build_router.<locals>.complete`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4071,7 +4515,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:354](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/payment_gateway.py#L354), `build_router.<locals>.create_checkout`.
+Implementation: [backend/payment_gateway.py:354](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/payment_gateway.py#L354), `build_router.<locals>.create_checkout`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_payment_gateway`.
@@ -4123,7 +4567,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/sandbox_hooks.py:284](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/sandbox_hooks.py#L284), `build_router.<locals>.test_topup`.
+Implementation: [backend/sandbox_hooks.py:284](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/sandbox_hooks.py#L284), `build_router.<locals>.test_topup`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4173,7 +4617,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:391](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/payment_gateway.py#L391), `build_router.<locals>.topup_status`.
+Implementation: [backend/payment_gateway.py:391](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/payment_gateway.py#L391), `build_router.<locals>.topup_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4233,7 +4677,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:387](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/payment_gateway.py#L387), `build_router.<locals>.reconcile`.
+Implementation: [backend/payment_gateway.py:387](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/payment_gateway.py#L387), `build_router.<locals>.reconcile`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4291,7 +4735,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:375](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/payment_gateway.py#L375), `build_router.<locals>.activity`.
+Implementation: [backend/payment_gateway.py:375](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/payment_gateway.py#L375), `build_router.<locals>.activity`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4324,7 +4768,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/payment_gateway.py:189](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/payment_gateway.py#L189), `snapshot_webhook`.
+Implementation: [backend/payment_gateway.py:189](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/payment_gateway.py#L189), `snapshot_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4355,7 +4799,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -4460,7 +4904,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -4510,7 +4954,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -4577,7 +5021,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -4644,7 +5088,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -4749,7 +5193,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -4799,7 +5243,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -4866,7 +5310,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -4933,7 +5377,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5038,7 +5482,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5088,7 +5532,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:225](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L225), `build_router.<locals>.by_sku`.
+Implementation: [backend/tenant_catalogs.py:225](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L225), `build_router.<locals>.by_sku`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5145,7 +5589,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5212,7 +5656,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -5279,7 +5723,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/customer_checkout.py#L130), `build_router.<locals>.context`.
+Implementation: [backend/customer_checkout.py:130](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/customer_checkout.py#L130), `build_router.<locals>.context`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5337,7 +5781,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:118](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/customer_checkout.py#L118), `build_router.<locals>.hs_search`.
+Implementation: [backend/customer_checkout.py:118](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/customer_checkout.py#L118), `build_router.<locals>.hs_search`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5387,7 +5831,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:142](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/customer_checkout.py#L142), `build_router.<locals>.prepare`.
+Implementation: [backend/customer_checkout.py:142](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/customer_checkout.py#L142), `build_router.<locals>.prepare`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5439,7 +5883,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:218](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/customer_checkout.py#L218), `build_router.<locals>.invoice`.
+Implementation: [backend/customer_checkout.py:218](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/customer_checkout.py#L218), `build_router.<locals>.invoice`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5497,7 +5941,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:201](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/customer_checkout.py#L201), `build_router.<locals>.receipt`.
+Implementation: [backend/customer_checkout.py:201](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/customer_checkout.py#L201), `build_router.<locals>.receipt`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5557,7 +6001,7 @@ Documented responses:
 
 Public UI/help/health/config surface; inspect projection.
 
-Implementation: [main.py:2313](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/main.py#L2313), `public_config`.
+Implementation: [main.py:2340](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/main.py#L2340), `public_config`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5588,7 +6032,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/conversational_gateway.py:661](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/agents/conversational_gateway.py#L661), `build_router.<locals>.process_message`.
+Implementation: [backend/agents/conversational_gateway.py:664](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/agents/conversational_gateway.py#L664), `build_router.<locals>.process_message`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -5638,7 +6082,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:381](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L381), `build_router.<locals>.countries`.
+Implementation: [backend/advanced_logistics.py:381](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L381), `build_router.<locals>.countries`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5669,7 +6113,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/hubspot_crm.py:454](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/hubspot_crm.py#L454), `build_router.<locals>.sync_tenant`.
+Implementation: [backend/hubspot_crm.py:454](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/hubspot_crm.py#L454), `build_router.<locals>.sync_tenant`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5721,7 +6165,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:186](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L186), `build_router.<locals>.declaration`.
+Implementation: [backend/advanced_logistics.py:186](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L186), `build_router.<locals>.declaration`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5771,7 +6215,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/ai_engine.py:240](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ai_engine.py#L240), `build_router.<locals>.harmonize`.
+Implementation: [backend/ai_engine.py:240](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ai_engine.py#L240), `build_router.<locals>.harmonize`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5821,7 +6265,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:157](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dispatch_workspace.py#L157), `build_router.<locals>.inbox`.
+Implementation: [backend/dispatch_workspace.py:157](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dispatch_workspace.py#L157), `build_router.<locals>.inbox`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -5879,7 +6323,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:195](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dispatch_workspace.py#L195), `build_router.<locals>.prepare`.
+Implementation: [backend/dispatch_workspace.py:195](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dispatch_workspace.py#L195), `build_router.<locals>.prepare`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -5937,7 +6381,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:202](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dispatch_workspace.py#L202), `build_router.<locals>.save_preparation`.
+Implementation: [backend/dispatch_workspace.py:202](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dispatch_workspace.py#L202), `build_router.<locals>.save_preparation`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6004,7 +6448,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:230](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dispatch_workspace.py#L230), `build_router.<locals>.print_bundle`.
+Implementation: [backend/dispatch_workspace.py:230](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dispatch_workspace.py#L230), `build_router.<locals>.print_bundle`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6054,7 +6498,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:215](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dispatch_workspace.py#L215), `build_router.<locals>.process`.
+Implementation: [backend/dispatch_workspace.py:215](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dispatch_workspace.py#L215), `build_router.<locals>.process`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6104,7 +6548,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:176](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dispatch_workspace.py#L176), `build_router.<locals>.sync`.
+Implementation: [backend/dispatch_workspace.py:176](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dispatch_workspace.py#L176), `build_router.<locals>.sync`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -6178,7 +6622,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/manifest_service.py:396](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/manifest_service.py#L396), `build_router.<locals>.close`.
+Implementation: [backend/manifest_service.py:396](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/manifest_service.py#L396), `build_router.<locals>.close`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6230,7 +6674,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/manifest_service.py:392](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/manifest_service.py#L392), `build_router.<locals>.preview`.
+Implementation: [backend/manifest_service.py:392](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/manifest_service.py#L392), `build_router.<locals>.preview`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6286,7 +6730,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/manifest_service.py:401](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/manifest_service.py#L401), `build_router.<locals>.status`.
+Implementation: [backend/manifest_service.py:401](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/manifest_service.py#L401), `build_router.<locals>.status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6346,7 +6790,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/manifest_service.py:404](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/manifest_service.py#L404), `build_router.<locals>.document`.
+Implementation: [backend/manifest_service.py:404](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/manifest_service.py#L404), `build_router.<locals>.document`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6404,7 +6848,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/manifest_service.py:407](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/manifest_service.py#L407), `build_router.<locals>.download`.
+Implementation: [backend/manifest_service.py:407](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/manifest_service.py#L407), `build_router.<locals>.download`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6471,7 +6915,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:61](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L61), `build_router.<locals>.dispatch_summary`.
+Implementation: [backend/dashboard_portal.py:61](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L61), `build_router.<locals>.dispatch_summary`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6504,7 +6948,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/invoice_upload.py:162](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/invoice_upload.py#L162), `build_router.<locals>.upload`.
+Implementation: [backend/invoice_upload.py:162](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/invoice_upload.py#L162), `build_router.<locals>.upload`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6556,7 +7000,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/invoice_upload.py:225](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/invoice_upload.py#L225), `build_router.<locals>.disputes`.
+Implementation: [backend/invoice_upload.py:225](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/invoice_upload.py#L225), `build_router.<locals>.disputes`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6589,7 +7033,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:56](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/agents/routes.py#L56), `build_router.<locals>.search`.
+Implementation: [backend/agents/routes.py:56](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/agents/routes.py#L56), `build_router.<locals>.search`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6639,7 +7083,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:444](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ecommerce_sync.py#L444), `build_router.<locals>.pull_orders`.
+Implementation: [backend/ecommerce_sync.py:444](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ecommerce_sync.py#L444), `build_router.<locals>.pull_orders`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6670,7 +7114,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/ecommerce_sync.py:371](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ecommerce_sync.py#L371), `build_router.<locals>.return_webhook`.
+Implementation: [backend/ecommerce_sync.py:371](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ecommerce_sync.py#L371), `build_router.<locals>.return_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6728,7 +7172,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:384](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ecommerce_sync.py#L384), `build_router.<locals>.tracking_events`.
+Implementation: [backend/ecommerce_sync.py:384](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ecommerce_sync.py#L384), `build_router.<locals>.tracking_events`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6761,7 +7205,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:394](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ecommerce_sync.py#L394), `build_router.<locals>.reconcile_tracking`.
+Implementation: [backend/ecommerce_sync.py:394](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ecommerce_sync.py#L394), `build_router.<locals>.reconcile_tracking`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6821,7 +7265,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:424](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ecommerce_sync.py#L424), `build_router.<locals>.link_return`.
+Implementation: [backend/ecommerce_sync.py:424](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ecommerce_sync.py#L424), `build_router.<locals>.link_return`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6890,7 +7334,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/ecommerce_sync.py:376](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ecommerce_sync.py#L376), `build_router.<locals>.native_webhook`.
+Implementation: [backend/ecommerce_sync.py:376](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ecommerce_sync.py#L376), `build_router.<locals>.native_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6948,7 +7392,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/ecommerce_inbound.py:182](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ecommerce_inbound.py#L182), `build_router.<locals>.orders`.
+Implementation: [backend/ecommerce_inbound.py:182](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ecommerce_inbound.py#L182), `build_router.<locals>.orders`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7006,7 +7450,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/hubspot_provisioning.py:49](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/hubspot_provisioning.py#L49), `webhook`.
+Implementation: [backend/hubspot_provisioning.py:49](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/hubspot_provisioning.py#L49), `webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `verify_signature`.
@@ -7037,7 +7481,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/whatsapp_queue.py:301](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/whatsapp_queue.py#L301), `build_media_status_router.<locals>.status`.
+Implementation: [backend/whatsapp_queue.py:314](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/whatsapp_queue.py#L314), `build_media_status_router.<locals>.status`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7094,7 +7538,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/whatsapp_bot.py:86](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/whatsapp_bot.py#L86), `whatsapp_webhook`.
+Implementation: [backend/whatsapp_bot.py:86](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/whatsapp_bot.py#L86), `whatsapp_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7125,7 +7569,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L178), `build_router.<locals>.cargo_weight`.
+Implementation: [backend/advanced_logistics.py:178](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L178), `build_router.<locals>.cargo_weight`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7175,7 +7619,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/package_guidance.py:159](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/package_guidance.py#L159), `build_router.<locals>.public_guidance`.
+Implementation: [backend/package_guidance.py:159](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/package_guidance.py#L159), `build_router.<locals>.public_guidance`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7225,7 +7669,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:174](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L174), `build_router.<locals>.weight`.
+Implementation: [backend/advanced_logistics.py:174](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L174), `build_router.<locals>.weight`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7275,7 +7719,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/dashboard_portal.py:84](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L84), `build_router.<locals>.profile`.
+Implementation: [backend/dashboard_portal.py:84](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L84), `build_router.<locals>.profile`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `authenticate`, `authenticate_platform_owner`.
@@ -7301,12 +7745,129 @@ Documented responses:
 }
 ```
 
+<a id="op-post-api-v1-public-tracking-help"></a>
+### POST /api/v1/public/tracking/help
+
+Handler/service validation; declared dependencies are not the full security policy.
+
+Implementation: [backend/tracking_workspace.py:519](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L519), `build_router.<locals>.public_help`.
+
+Declared dependencies: none.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Request body:
+
+```json
+{
+  "content": {
+    "application/json": {
+      "schema": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{40,100}$",
+            "title": "Token"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "request_id",
+          "note"
+        ],
+        "title": "CustomerRequest"
+      }
+    }
+  },
+  "required": true
+}
+```
+
+Documented responses:
+
+```json
+{
+  "202": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  }
+}
+```
+
+<a id="op-post-api-v1-public-tracking-resolve"></a>
+### POST /api/v1/public/tracking/resolve
+
+Handler/service validation; declared dependencies are not the full security policy.
+
+Implementation: [backend/tracking_workspace.py:506](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L506), `build_router.<locals>.public_tracking`.
+
+Declared dependencies: none.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Request body:
+
+```json
+{
+  "content": {
+    "application/json": {
+      "schema": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{40,100}$",
+            "title": "Token"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "ResolveRequest"
+      }
+    }
+  },
+  "required": true
+}
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  }
+}
+```
+
 <a id="op-post-api-v1-rates-preview"></a>
 ### POST /api/v1/rates/preview
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:190](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L190), `build_router.<locals>.rates_preview`.
+Implementation: [backend/advanced_logistics.py:190](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L190), `build_router.<locals>.rates_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7358,7 +7919,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:199](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L199), `build_router.<locals>.sample_rates`.
+Implementation: [backend/advanced_logistics.py:199](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L199), `build_router.<locals>.sample_rates`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7410,7 +7971,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ai_engine.py:247](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/ai_engine.py#L247), `build_router.<locals>.routing`.
+Implementation: [backend/ai_engine.py:247](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/ai_engine.py#L247), `build_router.<locals>.routing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7476,7 +8037,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:211](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L211), `build_router.<locals>.routing_preview`.
+Implementation: [backend/advanced_logistics.py:211](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L211), `build_router.<locals>.routing_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7542,7 +8103,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:205](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L205), `build_router.<locals>.sample_routing`.
+Implementation: [backend/advanced_logistics.py:205](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L205), `build_router.<locals>.sample_routing`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7608,7 +8169,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:221](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L221), `build_router.<locals>.batch`.
+Implementation: [backend/advanced_logistics.py:221](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L221), `build_router.<locals>.batch`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7641,7 +8202,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:252](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L252), `build_router.<locals>.batch_preview`.
+Implementation: [backend/advanced_logistics.py:252](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L252), `build_router.<locals>.batch_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7672,7 +8233,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:289](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L289), `build_router.<locals>.review_preview`.
+Implementation: [backend/advanced_logistics.py:289](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L289), `build_router.<locals>.review_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7722,7 +8283,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:285](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L285), `build_router.<locals>.batch_template`.
+Implementation: [backend/advanced_logistics.py:285](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L285), `build_router.<locals>.batch_template`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7780,7 +8341,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:302](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L302), `build_router.<locals>.uploaded_order`.
+Implementation: [backend/advanced_logistics.py:302](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L302), `build_router.<locals>.uploaded_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7840,7 +8401,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:312](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L312), `build_router.<locals>.review_order`.
+Implementation: [backend/advanced_logistics.py:312](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L312), `build_router.<locals>.review_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7909,7 +8470,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/bulk_checkout.py#L141), `build_router.<locals>.checkout`.
+Implementation: [backend/bulk_checkout.py:141](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/bulk_checkout.py#L141), `build_router.<locals>.checkout`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -7959,7 +8520,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:145](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/bulk_checkout.py#L145), `build_router.<locals>.print_bundle`.
+Implementation: [backend/bulk_checkout.py:145](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/bulk_checkout.py#L145), `build_router.<locals>.print_bundle`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -8009,7 +8570,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/bulk_checkout.py#L129), `build_router.<locals>.quote`.
+Implementation: [backend/bulk_checkout.py:129](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/bulk_checkout.py#L129), `build_router.<locals>.quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -8061,7 +8622,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:125](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/bulk_checkout.py#L125), `build_router.<locals>.review`.
+Implementation: [backend/bulk_checkout.py:125](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/bulk_checkout.py#L125), `build_router.<locals>.review`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -8111,7 +8672,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:370](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L370), `build_router.<locals>.manifest`.
+Implementation: [backend/advanced_logistics.py:370](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L370), `build_router.<locals>.manifest`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -8144,7 +8705,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L161), `build_router.<locals>.get_draft`.
+Implementation: [backend/workspace_settings.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L161), `build_router.<locals>.get_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8204,7 +8765,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:167](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L167), `build_router.<locals>.save_draft`.
+Implementation: [backend/workspace_settings.py:167](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L167), `build_router.<locals>.save_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8273,7 +8834,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/sandbox_hooks.py:294](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/sandbox_hooks.py#L294), `build_router.<locals>.print_preview`.
+Implementation: [backend/sandbox_hooks.py:294](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/sandbox_hooks.py#L294), `build_router.<locals>.print_preview`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `request.app.state.finance.authorize_label_preview`.
@@ -8331,7 +8892,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1987](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/shipment_protection.py#L1987), `build_router.<locals>.claim_status`.
+Implementation: [backend/shipment_protection.py:1987](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/shipment_protection.py#L1987), `build_router.<locals>.claim_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -8389,7 +8950,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:2039](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/shipment_protection.py#L2039), `build_router.<locals>.evidence_download`.
+Implementation: [backend/shipment_protection.py:2039](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/shipment_protection.py#L2039), `build_router.<locals>.evidence_download`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -8457,7 +9018,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2069](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L2069), `build_router.<locals>.confirm`.
+Implementation: [backend/automation_three_partners.py:2095](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L2095), `build_router.<locals>.confirm`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8507,7 +9068,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/shipment_protection.py:2069](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/shipment_protection.py#L2069), `build_router.<locals>.insurance_updates`.
+Implementation: [backend/shipment_protection.py:2069](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/shipment_protection.py#L2069), `build_router.<locals>.insurance_updates`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8538,7 +9099,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1695](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/shipment_protection.py#L1695), `build_router.<locals>.insured_list`.
+Implementation: [backend/shipment_protection.py:1695](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/shipment_protection.py#L1695), `build_router.<locals>.insured_list`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`, `validate_tenant_query`.
@@ -8569,7 +9130,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:570](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L570), `build_native_router.<locals>.native_order_statuses`.
+Implementation: [backend/automation_three_partners.py:591](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L591), `build_native_router.<locals>.native_order_statuses`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `authorize`.
@@ -8600,7 +9161,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:541](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L541), `build_native_router.<locals>.synchronize`.
+Implementation: [backend/automation_three_partners.py:562](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L562), `build_native_router.<locals>.synchronize`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `authorize`.
@@ -8650,7 +9211,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/package_guidance.py:163](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/package_guidance.py#L163), `build_router.<locals>.workspace_check`.
+Implementation: [backend/package_guidance.py:163](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/package_guidance.py#L163), `build_router.<locals>.workspace_check`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8702,7 +9263,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2086](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L2086), `build_router.<locals>.prepare_return`.
+Implementation: [backend/automation_three_partners.py:2112](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L2112), `build_router.<locals>.prepare_return`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -8763,7 +9324,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1614](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/shipment_protection.py#L1614), `build_router.<locals>.protection_quote`.
+Implementation: [backend/shipment_protection.py:1614](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/shipment_protection.py#L1614), `build_router.<locals>.protection_quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8821,7 +9382,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1681](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/shipment_protection.py#L1681), `build_router.<locals>.prepare_protection`.
+Implementation: [backend/shipment_protection.py:1681](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/shipment_protection.py#L1681), `build_router.<locals>.prepare_protection`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8875,7 +9436,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/package_guidance.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/package_guidance.py#L137), `build_router.<locals>.quote_support`.
+Implementation: [backend/package_guidance.py:137](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/package_guidance.py#L137), `build_router.<locals>.quote_support`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8927,7 +9488,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2082](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L2082), `build_router.<locals>.void`.
+Implementation: [backend/automation_three_partners.py:2108](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L2108), `build_router.<locals>.void`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8977,7 +9538,7 @@ Documented responses:
 
 Scoped signed return-document capability token.
 
-Implementation: [backend/automation_three_partners.py:2102](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L2102), `build_router.<locals>.return_dropoff`.
+Implementation: [backend/automation_three_partners.py:2128](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L2128), `build_router.<locals>.return_dropoff`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9034,7 +9595,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2095](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L2095), `build_router.<locals>.return_status`.
+Implementation: [backend/automation_three_partners.py:2121](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L2121), `build_router.<locals>.return_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -9092,7 +9653,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1738](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/shipment_protection.py#L1738), `build_router.<locals>.submit_claim`.
+Implementation: [backend/shipment_protection.py:1738](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/shipment_protection.py#L1738), `build_router.<locals>.submit_claim`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -9123,7 +9684,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/automation_three_partners.py:471](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L471), `build_native_router.<locals>.tracking_webhooks`.
+Implementation: [backend/automation_three_partners.py:492](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L492), `build_native_router.<locals>.tracking_webhooks`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9154,7 +9715,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2111](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/automation_three_partners.py#L2111), `build_router.<locals>.document`.
+Implementation: [backend/automation_three_partners.py:2137](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/automation_three_partners.py#L2137), `build_router.<locals>.document`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9221,7 +9782,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:194](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L194), `build_router.<locals>.client_tickets`.
+Implementation: [backend/dashboard_portal.py:194](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L194), `build_router.<locals>.client_tickets`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9252,7 +9813,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:202](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L202), `build_router.<locals>.intervene`.
+Implementation: [backend/dashboard_portal.py:202](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L202), `build_router.<locals>.intervene`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9321,7 +9882,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:213](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L213), `build_router.<locals>.resolve`.
+Implementation: [backend/dashboard_portal.py:213](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L213), `build_router.<locals>.resolve`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9381,7 +9942,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/support_delivery.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/support_delivery.py#L151), `build_router.<locals>.consent`.
+Implementation: [backend/support_delivery.py:151](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/support_delivery.py#L151), `build_router.<locals>.consent`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9433,7 +9994,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/support_delivery.py:148](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/support_delivery.py#L148), `build_router.<locals>.status`.
+Implementation: [backend/support_delivery.py:148](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/support_delivery.py#L148), `build_router.<locals>.status`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9486,12 +10047,659 @@ Documented responses:
 }
 ```
 
+<a id="op-get-api-v1-tracking-capabilities"></a>
+### GET /api/v1/tracking/capabilities
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:610](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L610), `build_router.<locals>.capabilities`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-tracking-notifications"></a>
+### GET /api/v1/tracking/notifications
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:551](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L551), `build_router.<locals>.notifications`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-tracking-preferences"></a>
+### GET /api/v1/tracking/preferences
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:531](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L531), `build_router.<locals>.get_preferences`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  }
+}
+```
+
+<a id="op-put-api-v1-tracking-preferences"></a>
+### PUT /api/v1/tracking/preferences
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:539](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L539), `build_router.<locals>.put_preferences`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Inline role conditions: `context.role not in {'OWNER', 'ADMIN'}`.
+
+Request body:
+
+```json
+{
+  "content": {
+    "application/json": {
+      "schema": {
+        "$ref": "#/components/schemas/Preferences"
+      }
+    }
+  },
+  "required": true
+}
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-delete-api-v1-tracking-share-links-share-id"></a>
+### DELETE /api/v1/tracking/share-links/{share_id}
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:487](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L487), `build_router.<locals>.revoke`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "share_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Share Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-tracking-shipments"></a>
+### GET /api/v1/tracking/shipments
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:464](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L464), `build_router.<locals>.shipments`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "q",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "string",
+      "default": "",
+      "title": "Q"
+    }
+  },
+  {
+    "name": "view",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "string",
+      "default": "all",
+      "title": "View"
+    }
+  },
+  {
+    "name": "carrier",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "string",
+      "maxLength": 50,
+      "default": "",
+      "title": "Carrier"
+    }
+  },
+  {
+    "name": "country",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "string",
+      "maxLength": 2,
+      "default": "",
+      "title": "Country"
+    }
+  },
+  {
+    "name": "start",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Start"
+    }
+  },
+  {
+    "name": "end",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "End"
+    }
+  },
+  {
+    "name": "page",
+    "in": "query",
+    "required": false,
+    "schema": {
+      "type": "integer",
+      "maximum": 10000,
+      "minimum": 1,
+      "default": 1,
+      "title": "Page"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-tracking-shipments-shipment-id"></a>
+### GET /api/v1/tracking/shipments/{shipment_id}
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:475](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L475), `build_router.<locals>.detail`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-post-api-v1-tracking-shipments-shipment-id-refresh"></a>
+### POST /api/v1/tracking/shipments/{shipment_id}/refresh
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:581](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L581), `build_router.<locals>.refresh`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "202": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-post-api-v1-tracking-shipments-shipment-id-review"></a>
+### POST /api/v1/tracking/shipments/{shipment_id}/review
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:573](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L573), `build_router.<locals>.review`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+{
+  "required": true,
+  "content": {
+    "application/json": {
+      "schema": {
+        "$ref": "#/components/schemas/ReviewRequest"
+      }
+    }
+  }
+}
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-post-api-v1-tracking-shipments-shipment-id-share"></a>
+### POST /api/v1/tracking/shipments/{shipment_id}/share
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:483](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L483), `build_router.<locals>.share`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+{
+  "required": true,
+  "content": {
+    "application/json": {
+      "schema": {
+        "$ref": "#/components/schemas/ShareRequest"
+      }
+    }
+  }
+}
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
+<a id="op-get-api-v1-tracking-shipments-shipment-id-share-links"></a>
+### GET /api/v1/tracking/shipments/{shipment_id}/share-links
+
+Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
+
+Implementation: [backend/tracking_workspace.py:498](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_workspace.py#L498), `build_router.<locals>.shares`.
+
+Declared dependencies: `HTTPBearer`, `authenticate`.
+Guard/helper calls in handler: follow linked implementation and service.
+
+Parameters:
+
+```json
+[
+  {
+    "name": "shipment_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Shipment Id"
+    }
+  }
+]
+```
+
+Request body:
+
+```json
+null
+```
+
+Documented responses:
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {}
+      }
+    }
+  },
+  "422": {
+    "description": "Validation Error",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+      }
+    }
+  }
+}
+```
+
 <a id="op-post-api-v1-tracking-webhook"></a>
 ### POST /api/v1/tracking/webhook
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/tracking_and_support.py:313](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/tracking_and_support.py#L313), `build_router.<locals>.webhook`.
+Implementation: [backend/tracking_and_support.py:352](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/tracking_and_support.py#L352), `build_router.<locals>.webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9522,7 +10730,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:386](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/advanced_logistics.py#L386), `build_router.<locals>.wallet`.
+Implementation: [backend/advanced_logistics.py:386](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/advanced_logistics.py#L386), `build_router.<locals>.wallet`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9555,7 +10763,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:95](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L95), `build_router.<locals>.invite`.
+Implementation: [backend/workspace_settings.py:95](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L95), `build_router.<locals>.invite`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9605,7 +10813,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:123](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L123), `build_router.<locals>.cancel`.
+Implementation: [backend/workspace_settings.py:123](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L123), `build_router.<locals>.cancel`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9663,7 +10871,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:112](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L112), `build_router.<locals>.resend`.
+Implementation: [backend/workspace_settings.py:112](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L112), `build_router.<locals>.resend`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9721,7 +10929,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:71](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L71), `build_router.<locals>.settings`.
+Implementation: [backend/workspace_settings.py:71](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L71), `build_router.<locals>.settings`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9752,7 +10960,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:79](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L79), `build_router.<locals>.company`.
+Implementation: [backend/workspace_settings.py:79](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L79), `build_router.<locals>.company`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9802,7 +11010,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:37](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L37), `build_router.<locals>.stores`.
+Implementation: [backend/dashboard_portal.py:37](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L37), `build_router.<locals>.stores`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9835,7 +11043,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:46](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L46), `build_router.<locals>.create_store`.
+Implementation: [backend/dashboard_portal.py:46](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L46), `build_router.<locals>.create_store`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9887,7 +11095,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:53](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L53), `build_router.<locals>.store_state`.
+Implementation: [backend/dashboard_portal.py:53](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L53), `build_router.<locals>.store_state`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9956,7 +11164,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:79](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/store_connections.py#L79), `build_router.<locals>.read`.
+Implementation: [backend/store_connections.py:79](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/store_connections.py#L79), `build_router.<locals>.read`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10014,7 +11222,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:87](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/store_connections.py#L87), `build_router.<locals>.save`.
+Implementation: [backend/store_connections.py:87](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/store_connections.py#L87), `build_router.<locals>.save`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10081,7 +11289,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:152](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/store_connections.py#L152), `build_router.<locals>.notifications`.
+Implementation: [backend/store_connections.py:152](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/store_connections.py#L152), `build_router.<locals>.notifications`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10139,7 +11347,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/store_connections.py#L161), `build_router.<locals>.retry`.
+Implementation: [backend/store_connections.py:161](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/store_connections.py#L161), `build_router.<locals>.retry`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10207,7 +11415,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:68](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dashboard_portal.py#L68), `build_router.<locals>.add_member`.
+Implementation: [backend/dashboard_portal.py:68](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dashboard_portal.py#L68), `build_router.<locals>.add_member`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10259,7 +11467,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:85](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/workspace_settings.py#L85), `build_router.<locals>.member`.
+Implementation: [backend/workspace_settings.py:85](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/workspace_settings.py#L85), `build_router.<locals>.member`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10326,7 +11534,7 @@ Documented responses:
 
 Public UI/help/health/config surface; inspect projection.
 
-Implementation: [main.py:2302](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/main.py#L2302), `health`.
+Implementation: [main.py:2314](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/main.py#L2314), `health`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10363,7 +11571,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2322](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/main.py#L2322), `get_rates`.
+Implementation: [main.py:2349](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/main.py#L2349), `get_rates`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10417,7 +11625,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2400](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/main.py#L2400), `create_wallet_topup`.
+Implementation: [main.py:2427](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/main.py#L2427), `create_wallet_topup`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10471,7 +11679,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2473](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/main.py#L2473), `resolve_quote_choice`.
+Implementation: [main.py:2500](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/main.py#L2500), `resolve_quote_choice`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10534,7 +11742,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [main.py:2421](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/main.py#L2421), `stripe_webhook`.
+Implementation: [main.py:2448](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/main.py#L2448), `stripe_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10571,7 +11779,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [main.py:2467](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/main.py#L2467), `inbound_whatsapp`.
+Implementation: [main.py:2494](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/main.py#L2494), `inbound_whatsapp`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10601,7 +11809,7 @@ Documented responses:
 
 `/api/v1/dispatch-workspace/live` requires an approved Origin, rejects URL query tokens, and expects the first JSON message within ten seconds to contain access_token. Assistance adds assistance_session_id when applicable. It applies normal authentication and revalidates membership while sending events. Messages include refresh_required, shipment_changed and heartbeat. A bounded queue overflow or listener reconnect requires HTTP refresh. The broker enforces a maximum of 100 sockets; these are notifications, not booking or wallet commands.
 
-- `/api/v1/dispatch-workspace/live` — [backend/dispatch_realtime.py:56](https://github.com/sync4ai-lab/veloce.ai/blob/7b1b41073a803ccb69f39491a4b4e2920aa6ceda/backend/dispatch_realtime.py#L56).
+- `/api/v1/dispatch-workspace/live` — [backend/dispatch_realtime.py:56](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15e30b39174e9e0658c0dfd07d43720c0c3/backend/dispatch_realtime.py#L56).
 
 ## Routes excluded from OpenAPI
 
@@ -10617,6 +11825,10 @@ Documented responses:
 | HEAD | `/redoc` | `FastAPI.setup.<locals>.redoc_html` |
 | GET | `/set-password` | `frontend` |
 | GET | `/` | `frontend` |
+| GET | `/track` | `public_tracking_page` |
+| GET | `/tracking-ui.css` | `tracking_asset` |
+| GET | `/tracking-public.js` | `tracking_asset` |
+| GET | `/tracking-workspace.js` | `tracking_asset` |
 | GET | `/help/` | `support_hub` |
 | GET | `/help` | `support_hub` |
 | GET | `/help/assets/{asset}` | `support_asset` |
@@ -14726,6 +15938,53 @@ All schema branches, constraints, required fields and defaults are retained. Fol
 }
 ```
 
+### Preferences
+
+```json
+{
+  "properties": {
+    "in_app_enabled": {
+      "type": "boolean",
+      "title": "In App Enabled",
+      "default": true
+    },
+    "categories": {
+      "items": {
+        "type": "string",
+        "enum": [
+          "IN_TRANSIT",
+          "OUT_FOR_DELIVERY",
+          "DELIVERED",
+          "EXCEPTION",
+          "RETURNED_TO_SENDER",
+          "AVAILABLE_FOR_PICKUP"
+        ]
+      },
+      "type": "array",
+      "maxItems": 6,
+      "title": "Categories"
+    },
+    "stale_hours": {
+      "type": "integer",
+      "maximum": 720.0,
+      "minimum": 12.0,
+      "title": "Stale Hours",
+      "default": 48
+    },
+    "poll_interval_minutes": {
+      "type": "integer",
+      "maximum": 1440.0,
+      "minimum": 60.0,
+      "title": "Poll Interval Minutes",
+      "default": 360
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "title": "Preferences"
+}
+```
+
 ### PreviewManifest
 
 ```json
@@ -15547,6 +16806,50 @@ All schema branches, constraints, required fields and defaults are retained. Fol
 }
 ```
 
+### ReviewRequest
+
+```json
+{
+  "properties": {
+    "state": {
+      "type": "string",
+      "enum": [
+        "ACKNOWLEDGED",
+        "IN_REVIEW",
+        "ESCALATED",
+        "RESOLVED"
+      ],
+      "title": "State"
+    },
+    "assigned_to": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Assigned To"
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Note"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "state",
+    "note"
+  ],
+  "title": "ReviewRequest"
+}
+```
+
 ### SelectedOffer
 
 ```json
@@ -15650,6 +16953,35 @@ All schema branches, constraints, required fields and defaults are retained. Fol
     "seller_classification"
   ],
   "title": "SellerClassificationUpdate"
+}
+```
+
+### ShareRequest
+
+```json
+{
+  "properties": {
+    "include_order": {
+      "type": "boolean",
+      "title": "Include Order",
+      "default": false
+    },
+    "include_returns": {
+      "type": "boolean",
+      "title": "Include Returns",
+      "default": false
+    },
+    "expires_in_days": {
+      "type": "integer",
+      "maximum": 30.0,
+      "minimum": 1.0,
+      "title": "Expires In Days",
+      "default": 7
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "title": "ShareRequest"
 }
 ```
 

@@ -530,6 +530,28 @@
         "guard_manifest_assignment",
         "protect_manifest_event"
       ]
+    },
+    {
+      "file": "migrations/045_unified_tracking.sql",
+      "sha256": "449dbf8cc22cf643b4041e0d4f14e744b7481f7002db25a22a91152644152fe9",
+      "created_tables": [
+        "tracking_share_links",
+        "tracking_customer_requests",
+        "tracking_preferences",
+        "tracking_notifications",
+        "tracking_refresh_jobs",
+        "tracking_provider_limits",
+        "tracking_case_reviews",
+        "tracking_operations_audit"
+      ],
+      "alter_table_targets": [
+        "public",
+        "tracking_events"
+      ],
+      "created_functions": [
+        "guard_tracking_share",
+        "protect_tracking_history"
+      ]
     }
   ],
   "hash_format": "SHA-256 with CRLF normalized to LF",
@@ -869,6 +891,54 @@
       "file": "migrations/044_carrier_manifests_and_media.sql",
       "line": 160,
       "create_definition": "CREATE TABLE public.logistics_media_assets (\n id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),shipment_id uuid NOT NULL,\n object_key text NOT NULL,content_sha256 text NOT NULL CHECK(content_sha256 ~ '^[a-f0-9]{64}$'),\n mime_type text NOT NULL CHECK(mime_type IN ('image/png','image/jpeg')),\n created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(tenant_id,shipment_id,content_sha256),\n CHECK(object_key LIKE tenant_id::text||'/'||shipment_id::text||'/%'),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "tracking_share_links",
+      "file": "migrations/045_unified_tracking.sql",
+      "line": 30,
+      "create_definition": "CREATE TABLE public.tracking_share_links (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(tenant_id),\n anchor_shipment_id uuid NOT NULL, shipment_ids uuid[] NOT NULL CHECK(cardinality(shipment_ids) BETWEEN 1 AND 100),\n token_sha256 text NOT NULL UNIQUE CHECK(token_sha256 ~ '^[a-f0-9]{64}$'),\n created_by uuid NOT NULL REFERENCES auth.users(id), created_at timestamptz NOT NULL DEFAULT now(),\n expires_at timestamptz NOT NULL CHECK(expires_at>created_at AND expires_at<=created_at+interval '30 days'),\n revoked_at timestamptz, UNIQUE(tenant_id,id),\n FOREIGN KEY(tenant_id,anchor_shipment_id) REFERENCES public.shipments(tenant_id,id),\n CHECK(anchor_shipment_id=ANY(shipment_ids))\n);"
+    },
+    {
+      "name": "tracking_customer_requests",
+      "file": "migrations/045_unified_tracking.sql",
+      "line": 57,
+      "create_definition": "CREATE TABLE public.tracking_customer_requests (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL,shipment_id uuid NOT NULL,\n share_link_id uuid NOT NULL,request_id uuid NOT NULL,\n input_sha256 text NOT NULL CHECK(input_sha256 ~ '^[a-f0-9]{64}$'),\n note text NOT NULL CHECK(length(note) BETWEEN 10 AND 1000),\n state text NOT NULL DEFAULT 'OPEN' CHECK(state IN ('OPEN','ACKNOWLEDGED')),\n created_at timestamptz NOT NULL DEFAULT now(),acknowledged_at timestamptz,\n UNIQUE(share_link_id,request_id),FOREIGN KEY(tenant_id,share_link_id) REFERENCES public.tracking_share_links(tenant_id,id),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "tracking_preferences",
+      "file": "migrations/045_unified_tracking.sql",
+      "line": 68,
+      "create_definition": "CREATE TABLE public.tracking_preferences (\n tenant_id uuid PRIMARY KEY REFERENCES public.tenants(tenant_id),\n in_app_enabled boolean NOT NULL DEFAULT true,\n categories text[] NOT NULL DEFAULT ARRAY['IN_TRANSIT','OUT_FOR_DELIVERY','DELIVERED','EXCEPTION','RETURNED_TO_SENDER'],\n stale_hours integer NOT NULL DEFAULT 48 CHECK(stale_hours BETWEEN 12 AND 720),\n poll_interval_minutes integer NOT NULL DEFAULT 360 CHECK(poll_interval_minutes BETWEEN 60 AND 1440),\n updated_by uuid REFERENCES auth.users(id),updated_at timestamptz NOT NULL DEFAULT now(),\n CHECK(categories <@ ARRAY['IN_TRANSIT','OUT_FOR_DELIVERY','DELIVERED','EXCEPTION','RETURNED_TO_SENDER','AVAILABLE_FOR_PICKUP'])\n);"
+    },
+    {
+      "name": "tracking_notifications",
+      "file": "migrations/045_unified_tracking.sql",
+      "line": 77,
+      "create_definition": "CREATE TABLE public.tracking_notifications (\n id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL,\n shipment_id uuid NOT NULL, tracking_event_id uuid NOT NULL,\n event_sha256 text NOT NULL CHECK(event_sha256 ~ '^[a-f0-9]{64}$'),\n category text NOT NULL, channel text NOT NULL DEFAULT 'IN_APP' CHECK(channel='IN_APP'),\n state text NOT NULL DEFAULT 'READY' CHECK(state='READY'),\n created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(tenant_id,id),UNIQUE(tenant_id,event_sha256),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id),\n FOREIGN KEY(tenant_id,tracking_event_id) REFERENCES public.tracking_events(tenant_id,id)\n);"
+    },
+    {
+      "name": "tracking_refresh_jobs",
+      "file": "migrations/045_unified_tracking.sql",
+      "line": 88,
+      "create_definition": "CREATE TABLE public.tracking_refresh_jobs (\n tenant_id uuid NOT NULL,shipment_id uuid NOT NULL,requested_by uuid NOT NULL REFERENCES auth.users(id),\n state text NOT NULL DEFAULT 'DUE' CHECK(state IN ('DUE','RUNNING','COMPLETE','DEAD','UNSUPPORTED')),\n attempts integer NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 5),\n next_attempt_at timestamptz NOT NULL DEFAULT now(),lease_token uuid,lease_until timestamptz,\n last_attempt_at timestamptz,last_success_at timestamptz,error_code text,\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,shipment_id),FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id),\n CHECK((state='RUNNING')=(lease_token IS NOT NULL AND lease_until IS NOT NULL))\n);"
+    },
+    {
+      "name": "tracking_provider_limits",
+      "file": "migrations/045_unified_tracking.sql",
+      "line": 99,
+      "create_definition": "CREATE TABLE public.tracking_provider_limits (\n carrier_account_id uuid PRIMARY KEY REFERENCES public.carrier_accounts(id),\n next_allowed_at timestamptz NOT NULL\n);"
+    },
+    {
+      "name": "tracking_case_reviews",
+      "file": "migrations/045_unified_tracking.sql",
+      "line": 103,
+      "create_definition": "CREATE TABLE public.tracking_case_reviews (\n tenant_id uuid NOT NULL,shipment_id uuid NOT NULL,\n state text NOT NULL CHECK(state IN ('ACKNOWLEDGED','IN_REVIEW','ESCALATED','RESOLVED')),\n assigned_to uuid REFERENCES auth.users(id),note text NOT NULL CHECK(length(note) BETWEEN 1 AND 1000),\n updated_by uuid NOT NULL REFERENCES auth.users(id),updated_at timestamptz NOT NULL DEFAULT now(),\n PRIMARY KEY(tenant_id,shipment_id),FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "tracking_operations_audit",
+      "file": "migrations/045_unified_tracking.sql",
+      "line": 110,
+      "create_definition": "CREATE TABLE public.tracking_operations_audit (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,tenant_id uuid REFERENCES public.tenants(tenant_id),\n actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),shipment_id uuid,\n action text NOT NULL CHECK(action IN ('SEARCH','DETAIL','SHARE','REVOKE','REFRESH','RETRY','REVIEW','PREFERENCES')),\n detail jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(detail)='object'),created_at timestamptz NOT NULL DEFAULT now(),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
     }
   ],
   "scope": "Exact repository CREATE TABLE blocks; not live introspection or a final flattened schema after all ALTERs.",
