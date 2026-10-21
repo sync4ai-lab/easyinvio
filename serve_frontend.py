@@ -7,7 +7,7 @@ class FrontendHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         route=self.path.split('?',1)[0]
         assets={'/':'index.html','/index.html':'index.html','/set-password':'index.html','/track':'tracking.html',
-                '/tracking-workspace.js':'tracking-workspace.js','/tracking-public.js':'tracking-public.js','/tracking-ui.css':'tracking-ui.css'}
+                '/tracking-workspace.js':'tracking-workspace.js','/tracking-public.js':'tracking-public.js','/tracking-ui.css':'tracking-ui.css','/manifest-workflow.js':'manifest-workflow.js'}
         if route not in assets:
             self.send_error(404)
             return

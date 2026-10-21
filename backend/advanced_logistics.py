@@ -318,27 +318,36 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
             return await service.review_and_quote(context,shipment_id,body)
 
     async def read_manifest(request: Request, tenant_id, financial_details=True):
+        from backend.manifest_workflow import workflow, decoded
+        server_time = datetime.now(timezone.utc)
         try:
             async with request.app.state.finance.pool.acquire() as connection:
-                rows = await connection.fetch("""SELECT id,tenant_id,customer_reference,status,currency,final_client_price,tracking_number,logistics_metadata,
-                                                  origin_country,destination_country,cargo_type,proof_of_delivery_url,tracking_url,
-                                                  customs_required,customs_items,sender_address,recipient_address,parcel_weight_kg,
-                                                  customs_reviewed_at,booked_at,dispatched_at,delivered_at,last_tracking_event_at
-                                                  FROM public.shipments WHERE ($1::uuid IS NULL OR tenant_id=$1) ORDER BY created_at DESC,id DESC LIMIT 200""", tenant_id)
+                rows = await connection.fetch("""SELECT s.*,r.status AS reservation_status,t.billing_plan,
+                    j.state AS order_job_state FROM public.shipments s
+                    JOIN public.tenants t ON t.tenant_id=s.tenant_id
+                    LEFT JOIN public.wallet_reservations r ON r.tenant_id=s.tenant_id AND r.shipment_id=s.id
+                    LEFT JOIN LATERAL (SELECT state FROM public.partner_order_jobs
+                        WHERE tenant_id=s.tenant_id AND shipment_id=s.id AND state IN ('SENDING','RECONCILIATION_REQUIRED') LIMIT 1) j ON true
+                    WHERE ($1::uuid IS NULL OR s.tenant_id=$1) ORDER BY s.created_at DESC,s.id DESC LIMIT 200""", tenant_id)
         except asyncpg.PostgresError:
             raise HTTPException(503, "Manifest unavailable; check logistics migration") from None
         result = []
         for row in rows:
+            actions = workflow(row, now=server_time)
             metadata = json.loads(row["logistics_metadata"]) if isinstance(row["logistics_metadata"], str) else row["logistics_metadata"]
             label_status = metadata.get('label_lifecycle_status') if isinstance(metadata,dict) else None
-            lifecycle_type = ('RETURN_SHIPMENT' if (metadata or {}).get('automation_order',{}).get('is_return') else 'FORWARD_SHIPMENT')
+            lifecycle_type = row.get('tracking_lifecycle_type') or ('RETURN_SHIPMENT' if (metadata or {}).get('automation_order',{}).get('is_return') else 'FORWARD_SHIPMENT')
             insurance = metadata.get('insurance') if isinstance(metadata,dict) else None
             insurance = {key:insurance[key] for key in ('provider','status','policy_id','premium','tax_amount','total_charge') if key in insurance} if isinstance(insurance,dict) else None
             if isinstance(metadata,dict) and 'insurance' in metadata:
                 metadata=dict(metadata,insurance=insurance)
             if not financial_details and isinstance(metadata,dict):
                 metadata={k:v for k,v in metadata.items() if k in {'carrier','destination','cargo_type','tracking','ecommerce','synthetic','fixture_batch','stackable','batch_csv','automation_customs'}}
-            entry={"id": str(row["id"]), "status": row["status"], "currency": row["currency"], "price": str(row["final_client_price"]), "tracking_number": row["tracking_number"], "metadata": metadata}
+            entry={"id": str(row["id"]), "status": row["status"], "currency": row["currency"], "price": str(row["final_client_price"]) if row["final_client_price"] is not None else None, "tracking_number": row["tracking_number"], "metadata": metadata}
+            selected = decoded(decoded(row.get('pricing_snapshot')).get('selected_rate'))
+            entry['carrier_code'] = row.get('carrier_code') or selected.get('carrier_code') or decoded(metadata).get('carrier')
+            entry['service_code'] = row.get('service_code') or selected.get('service_code')
+            entry['workflow'] = actions
             entry['label_status']=label_status
             entry['tracking_lifecycle_type']=lifecycle_type
             entry['insurance']=insurance
@@ -347,7 +356,7 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
             entry['batch_import']=isinstance(metadata,dict) and 'batch_csv' in metadata
             for field in ['origin_country','destination_country','cargo_type','proof_of_delivery_url','tracking_url','customs_required']:
                 entry[field]=row.get(field)
-            for field in ['booked_at','dispatched_at','delivered_at','last_tracking_event_at']:
+            for field in ['booked_at','dispatched_at','delivered_at','last_tracking_event_at','quoted_at','quote_expires_at']:
                 value=row.get(field);entry[field]=value.isoformat() if value else None
             entry['customs_declaration']=metadata.get('automation_customs') if isinstance(metadata,dict) else None
             if not entry['customs_declaration'] and row.get('customs_required') and row.get('customs_reviewed_at'):
@@ -365,7 +374,28 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
                 except (ValueError,TypeError,KeyError):
                     entry['customs_declaration']=None
             result.append(entry)
-        return {"shipments": result, "limit": 200}
+        return {"shipments": result, "limit": 200, "server_time": server_time.isoformat()}
+
+    @router.get('/shipments/{shipment_id}/requote-context')
+    async def restore_quote(shipment_id: UUID, request: Request, context: Any=Depends(authenticate)):
+        from main import validate_tenant_query
+        from backend.manifest_workflow import requote_context
+        validate_tenant_query(request, context.tenant_id)
+        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:
+            raise HTTPException(403,'Dispatch permission required')
+        try:
+            async with request.app.state.finance.pool.acquire() as connection:
+                row = await connection.fetchrow('''SELECT s.*,r.status AS reservation_status,j.state AS order_job_state
+                    FROM public.shipments s
+                    LEFT JOIN public.wallet_reservations r ON r.tenant_id=s.tenant_id AND r.shipment_id=s.id
+                    LEFT JOIN LATERAL (SELECT state FROM public.partner_order_jobs
+                        WHERE tenant_id=s.tenant_id AND shipment_id=s.id AND state IN ('SENDING','RECONCILIATION_REQUIRED') LIMIT 1) j ON true
+                    WHERE s.tenant_id=$1 AND s.id=$2''',context.tenant_id,shipment_id)
+        except asyncpg.PostgresError:
+            raise HTTPException(503,'Saved shipment details are temporarily unavailable') from None
+        if row is None:
+            raise HTTPException(404,'Shipment not found in this workspace')
+        return requote_context(row)
 
     @router.get('/shipments/manifest')
     async def manifest(request: Request,context: Any=Depends(authenticate)):

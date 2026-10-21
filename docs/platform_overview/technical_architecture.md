@@ -125,3 +125,7 @@ Each phone/receiving-number thread is serialized using ordered eligible heads an
 ## Shared Tracking 2.0 domain
 
 `backend/tracking_workspace.py` owns tenant-scoped search, multi-parcel/order/return projections, customer capabilities and operator review. The browser workspace, public `/track` page and conversational gateway consume this same domain. Existing signed ingress and TrackingSupportService remain the event owner; migration 045 adds immutable event protection and private operational tables. `backend/tracking_refresh.py` implements optional EasyPost GET-only reconciliation, leased SQL work, account-wide cooldowns and bounded retry exhaustion. Startup enables the observer only after all eight 045 tables exist; legacy booking/tracking remains available without that migration. Polling defaults off.
+
+## Manifest action ownership
+
+`backend/manifest_workflow.py` owns the read-only action policy and allowlisted requote projection. `advanced_logistics.py` returns carrier/service identity, quote expiry, server time and evidence flags; its tenant-bound GET requote-context route never books or mutates rows. `manifest-workflow.js` renders context-appropriate actions and a customer-readable drawer, restores complex shipment facts and drops expired batch selections. SQL uses a bounded lateral lookup for unresolved historical provider jobs. Existing native confirmation, financial locks and document host validation remain authoritative.

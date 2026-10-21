@@ -17,6 +17,7 @@ let pendingConversationQuote = (() => {
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
+<script src="/manifest-workflow.js?v=1"></script>
 <title>EasyInvio.com | Dispatch intelligence</title>
 <script async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4">
 </script>
@@ -2394,7 +2395,7 @@ $('#manifest-search').addEventListener('input', () => renderManifest());
 $('#manifest-filter').addEventListener('change', () => renderManifest());
 $('#manifest-refresh').addEventListener('click', () => busy($('#manifest-refresh'), refreshManifestRecords));
 $('#manifest-export').addEventListener('click', () => exportCSV('easyinvio-manifest.csv', [
-  ['ID', 'Reference', 'Tracking', 'Status', 'Currency', 'Price'], ...state.manifest.map(row => [row.id, row.reference, row.tracking_number, row.status, row.currency, row.price])
+  ['ID', 'Reference', 'Tracking', 'Stored status', 'Display status', 'Carrier', 'Service', 'Quote expires at', 'Currency', 'Quote / booked price'], ...state.manifest.map(row => [row.id, row.reference, row.tracking_number, row.status, displayedStatus(row), row.carrier_code || row.metadata?.carrier || '', row.service_code || '', row.quote_expires_at || '', row.currency, row.price])
 ]));
 
 function safeZPL(value) {
@@ -3385,14 +3386,14 @@ function displayedStatus(row) {
 function pipeline(row) {
   const status = displayedStatus(row),
     stages = ['BOOKED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'],
-    active = stages.indexOf(status === 'LABEL_CREATED' ? 'BOOKED' : status);
+    active = stages.indexOf(['LABEL_CREATED','MANIFESTED','DISPATCHED'].includes(status) ? 'BOOKED' : status);
   return '<div class="pipeline" aria-label="Shipment lifecycle">' + stages.map((s, i) => `<span class="${i<active?'done':i===active?'active':''}">${({BOOKED:'Booked',IN_TRANSIT:'In transit',OUT_FOR_DELIVERY:'Out for delivery',DELIVERED:'Delivered'})[s]}</span>${i<3?'<i class="'+(i<active?'done':'')+'"></i>':''}`).join('') + (status === 'EXCEPTION' ? '<span class="pipeline-alert">· Exception</span>' : '') + '</div>'
 }
 renderManifest = function() {
   const query = $('#manifest-search').value.toLowerCase(),
     filter = $('#manifest-filter').value,
     all = manifestRecords(),
-    rows = all.filter(r => (filter === 'all' || displayedStatus(r) === filter) && [r.reference, r.id, r.tracking_number, r.metadata?.carrier, r.metadata?.destination, r.destination_country].join(' ').toLowerCase().includes(query));
+    rows = all.filter(r => (filter === 'all' || displayedStatus(r) === filter) && [r.reference, r.id, r.tracking_number, r.carrier_code, r.service_code, r.metadata?.carrier, r.metadata?.destination, r.destination_country].join(' ').toLowerCase().includes(query));
   $('#manifest-count').textContent = rows.length;
   $('#manifest-ready').textContent = rows.filter(r => ['BOOKED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(displayedStatus(r))).length;
   $('#manifest-source').textContent = state.session ? portal.role === 'SUPER_ADMIN' ? 'Platform manifest · owner-authorized client records. Intermediate milestones appear when reported.' : 'Workspace manifest · your authorized records. Intermediate milestones appear when reported.' : 'SAMPLE MANIFEST · These three examples are not real bookings or delivery evidence. Sign in and refresh for your workspace.';
@@ -3417,6 +3418,7 @@ async function refreshManifestRecords() {
   });
   if (epoch !== portal.epoch) return;
   state.manifest = result.shipments;
+  state.manifestClockOffset = Number.isFinite(Date.parse(result.server_time)) ? Date.parse(result.server_time) - Date.now() : 0;
   renderManifest()
 }
 $('#manifest-body').addEventListener('click', event => {
@@ -3721,7 +3723,7 @@ function allowedEnterpriseViews() {
   if (portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN'))
     return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins', 'profile'];
   if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest', 'settings', 'profile'];
-  if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'dispatch', 'wallet', 'customs', 'stores', 'settings', 'profile'];
+  if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'dispatch', 'manifest', 'wallet', 'customs', 'stores', 'settings', 'profile'];
   if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard', 'profile'];
   return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile', ...(['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role) ? ['settings'] : [])];
 }
@@ -5139,9 +5141,12 @@ clearSession = function() {
 };
 
 async function downloadPartnerDocument(path) {
-  if (!state.session || !/^\/api\/v1\/shipping\/[0-9a-f-]+\/documents\/(label|[0-9]+)$/.test(path)) throw Error('Invalid workspace document.');
+  const shipping = /^\/api\/v1\/shipping\/[0-9a-f-]{36}\/documents\/(label|return-qr|[0-9]+)$/.test(path),
+    checkout = /^\/api\/v1\/checkout\/[0-9a-f-]{36}\/(receipt|commercial-invoice)\.pdf$/.test(path);
+  if (!state.session || (!shipping && !checkout)) throw Error('Invalid workspace document.');
   const session = state.session;
   const response = await fetch(API + path, {
+    redirect: 'error',
     headers: {
       Authorization: 'Bearer ' + session.access_token
     }
@@ -5153,7 +5158,12 @@ async function downloadPartnerDocument(path) {
   }
   const blob = await response.blob();
   if (session !== state.session) throw Error('Session changed.');
-  download('easyinvio-shipping-document.pdf', blob, 'application/pdf');
+  if (blob.size > 15_000_000) throw Error('Shipping document exceeds download limit.');
+  const qr = path.endsWith('/return-qr');
+  const mime = (response.headers.get('content-type') || '').split(';')[0];
+  if (qr ? !['image/png','image/jpeg'].includes(mime) : mime !== 'application/pdf') throw Error('Unexpected shipping document format.');
+  const extension = qr ? (mime === 'image/jpeg' ? 'jpg' : 'png') : 'pdf';
+  download('easyinvio-' + (qr ? 'carrier-drop-off-qr' : checkout ? path.includes('receipt') ? 'booking-receipt' : 'commercial-invoice' : 'shipping-label') + '.' + extension, blob, mime);
 }
 </script>
 <script>
@@ -8720,6 +8730,7 @@ document.addEventListener('pointerdown', event => { if (!overviewInfo.contains(e
 })();
 </script>
 <link rel="stylesheet" href="/tracking-ui.css?v=1">
+<script>ManifestWorkflow.install();</script>
 <script src="/tracking-workspace.js?v=1"></script>
 </body>
 </html>

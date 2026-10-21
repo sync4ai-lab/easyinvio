@@ -83,3 +83,7 @@ No migration, live close-out, Storage upload, payment or message was executed. S
 ## Tracking 2.0 verification
 
 The new offline suite covers scoped APIs and sanitized shared projections. An explicit disposable PGlite 0.5.10 bridge runs actual 043/044/045 DDL and service SQL, including event immutability, link hashing/revocation, grouped parcels/returns, customer help, lease recovery, retry exhaustion and provider cooldowns. These tests skip unless PGLITE_TEST_MODULE is configured; they never fall back to live Supabase. Synthetic browser QA covers owner, tenant admin, dispatcher, accountant, individual and platform owner at desktop/mobile widths, plus public customer intake and revoked links. See [the implementation guide](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15/docs/tracking_2_implementation.md) for commands and external acceptance limits.
+
+## Manifest workflow regression
+
+The manifest audit adds 24 offline state/API tests and one explicit disposable PostgreSQL query test. Browser QA checks 18 state/asset cases across six personas, plus direct booking review, counted batch selection, in-place expiry, all-box/goods restoration, PDF/QR/receipt/invoice downloads, proof gating, readable customs and responsive widths. Platform-owner management navigation stays restricted; ordinary tenant dispatch is never inferred from global read access. Synthetic browser documents establish UI plumbing, not carrier acceptance or live postage.
