@@ -4,7 +4,9 @@ Use an authorized development/sandbox environment for integration setup and muta
 
 ## Local startup
 
-From `C:\Projects\veloce-ai` in PowerShell:
+From `C:\Projects\easyinvio` in PowerShell:
+
+After moving this checkout, use [the folder-rename and environment repair guide](https://github.com/sync4ai-lab/veloce.ai/blob/main/docs/project_folder_rename.md). Existing Windows virtual-environment launchers can retain the old absolute directory even when the Python executable still works. The repair preserves installed packages and private configuration. A folder rename does not change the public domain, Git repository, database schema or compatibility identifiers.
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000

@@ -63,7 +63,7 @@ must be assigned through the established platform workflow.
 ## Reproduce
 
 ```powershell
-$env:PYTHONPATH='C:\Projects\veloce-ai;C:\Projects\veloce-ai\tests'
+$env:PYTHONPATH='C:\Projects\easyinvio;C:\Projects\easyinvio\tests'
 .\.venv\Scripts\python.exe -m unittest tests.test_hubspot_crm tests.test_hubspot_activation tests.test_core_pillars tests.test_admin_portal tests.test_support_monitoring tests.test_dashboard_portal tests.test_automation_freight tests.test_enterprise_security tests.test_order_csv -q
 .\.venv\Scripts\python.exe -m tests.hubspot_database_probe
 .\.venv\Scripts\python.exe -m tests.test_hubspot_browser

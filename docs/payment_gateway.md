@@ -88,7 +88,7 @@ be called directly, avoiding PATH and PowerShell script-policy issues:
 ```
 
 Approve the browser pairing for the intended Stripe account/sandbox. Starting
-PowerShell in `C:\WINDOWS\system32` is fine; `cd C:\Projects\veloce-ai` selects
+PowerShell in `C:\WINDOWS\system32` is fine; `cd C:\Projects\easyinvio` selects
 this project but does not install the CLI. Copy commands without the PS prompt,
 trailing backslashes or Markdown link formatting.
 

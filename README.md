@@ -1,8 +1,10 @@
 # EasyInvio.com operations prototype
 
-The current [application manual](docs/platform_overview/overview.html) is the consolidated functional/technical architecture and onboarding reference through migration 045. It includes all agent responsibilities, generated API schemas, integrations, security/financial invariants and operational recovery procedures. Its [source index](docs/platform_overview/README.md) explains how to rebuild the `EasyInvio-Architecture` folder and downloadable ZIP. Older feature/UAT reports below retain their original evidence scope.
+The current [application manual](docs/platform_overview/overview.html) is the consolidated functional/technical architecture and onboarding reference through migration 046. It includes all agent responsibilities, generated API schemas, integrations, security/financial invariants and operational recovery procedures. Its [source index](docs/platform_overview/README.md) explains how to rebuild the `EasyInvio-Architecture` folder and downloadable ZIP. Older feature/UAT reports below retain their original evidence scope.
 
-The product is branded **EasyInvio.com**. Existing `veloce_*` database/CRM identifiers, webhook headers, token issuers, browser storage keys and fixture IDs remain compatible with deployed data and integrations. The local project folder and configured Git remote keep their existing names.
+The product and local project folder are **EasyInvio.com** and `C:\Projects\easyinvio`. Application paths resolve relative to the checkout, so the folder name is not an API or database setting. See [moving or renaming the checkout](docs/project_folder_rename.md) for virtual-environment repair and verification.
+
+Existing `veloce_*` database/CRM identifiers, webhook headers, token issuers, browser storage keys and fixture IDs remain compatible with deployed data and integrations. The GitHub repository is still `sync4ai-lab/veloce.ai`; its working remote and source links are intentionally preserved until the repository itself is renamed.
 
 The [CSV orders v2 guide](docs/bulk_csv/REPORT.md) covers the 21-column client template,
 per-order persistence, cargo routing, customs review and optional storefront associations.

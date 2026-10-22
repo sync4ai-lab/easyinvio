@@ -19,7 +19,7 @@ path, host, scheme or query string are rejected. Never paste `POST ` into a URL.
 3. Run from PowerShell:
 
    ```powershell
-   cd C:\Projects\veloce-ai
+   cd C:\Projects\easyinvio
    .\.venv\Scripts\python.exe scripts\configure_whatsapp_tunnel.py
    ```
 
@@ -104,7 +104,7 @@ was absent during this check and remains required for the new Stripe controller.
 Repeat checks:
 
 ```powershell
-$env:PYTHONPATH='C:\Projects\veloce-ai;C:\Projects\veloce-ai\tests'
+$env:PYTHONPATH='C:\Projects\easyinvio;C:\Projects\easyinvio\tests'
 .\.venv\Scripts\python.exe -m unittest tests.test_whatsapp_bot tests.test_sandbox_hooks tests.test_support_monitoring tests.test_optional_integrations -q
 .\.venv\Scripts\python.exe tests\whatsapp_database_probe.py
 ```

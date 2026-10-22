@@ -120,7 +120,7 @@ Invoicing, Tax or dispute workflows.
 Run:
 
 ```powershell
-$env:PYTHONPATH='C:\Projects\veloce-ai;C:\Projects\veloce-ai\tests'
+$env:PYTHONPATH='C:\Projects\easyinvio;C:\Projects\easyinvio\tests'
 .\.venv\Scripts\python.exe -m unittest tests.test_stripe_snapshots tests.test_payment_gateway tests.test_sandbox_hooks -q
 .\.venv\Scripts\python.exe -m tests.stripe_snapshot_database_probe
 ```
