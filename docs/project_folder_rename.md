@@ -69,11 +69,13 @@ unchanged. They are compatibility identifiers, not the customer-facing brand or
 folder path. Blind replacement would invalidate existing integrations, links,
 saved preferences or synthetic-data identity.
 
-The configured Git remote remains
-`https://github.com/sync4ai-lab/veloce.ai.git`. Renaming the local folder does not
-rename the GitHub repository. Source/documentation links retain the real repository
-URL. If the repository is renamed separately, verify its new URL before updating
-the remote and architecture source-link generator.
+The configured Git remote is
+`https://github.com/sync4ai-lab/easyinvio.git`. The GitHub repository was renamed
+separately after the local folder move, retaining its existing commit history.
+The local remote and architecture source-link generator now use the new URL.
+Renaming the local folder alone does not rename a GitHub repository. For any future
+repository rename, verify the new URL before updating these references and check
+the hosting project's Git connection before the next deployment.
 
 ## Verification
 

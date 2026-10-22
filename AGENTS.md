@@ -9,7 +9,7 @@ in response to their instructions. This authorization persists across sessions.
   relevant checks, review the diff, commit the changes and push to `origin`.
   Do not ask for confirmation again for these routine commits and pushes.
 - Use the current working branch unless the user asks for a different branch.
-  The configured repository is currently `sync4ai-lab/veloce.ai` on GitHub.
+  The configured repository is currently `sync4ai-lab/easyinvio` on GitHub.
   Verify the remote before pushing; explicit user changes to the destination
   take precedence over this recorded repository name.
 - Commit coherent, completed work, not every intermediate edit. Use a clear

@@ -126,7 +126,7 @@ def source_sha(path):
 
 def rel(path):return Path(path).resolve().relative_to(PROJECT).as_posix()
 def cell(value):return str(value).replace('|','&#124;').replace('\n',' ')
-def link(file,line,rev):return f'https://github.com/sync4ai-lab/veloce.ai/blob/{rev}/{file}#L{line}'
+def link(file,line,rev):return f'https://github.com/sync4ai-lab/easyinvio/blob/{rev}/{file}#L{line}'
 def chapter_id(name):return 'chapter-'+Path(name).stem.lower().replace('_','-')
 
 def routes(router,prefix=''):

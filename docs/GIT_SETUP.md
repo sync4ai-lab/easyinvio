@@ -6,7 +6,7 @@ Commit and push when requested, after reviewing the diff and relevant checks.
 Stage only task-related changes, exclude secrets, and report the commit/push result.
 There is no automatic file watcher, database deployment or force-push workflow.
 Renaming the checkout does not rename the configured GitHub repository; the current
-remote remains `https://github.com/sync4ai-lab/veloce.ai.git`.
+remote is `https://github.com/sync4ai-lab/easyinvio.git`.
 
 Git is installed and this workspace is now synchronized with GitHub. The first
 upload instructions below are retained as a setup reference. `.gitignore` now

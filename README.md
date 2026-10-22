@@ -4,7 +4,7 @@ The current [application manual](docs/platform_overview/overview.html) is the co
 
 The product and local project folder are **EasyInvio.com** and `C:\Projects\easyinvio`. Application paths resolve relative to the checkout, so the folder name is not an API or database setting. See [moving or renaming the checkout](docs/project_folder_rename.md) for virtual-environment repair and verification.
 
-Existing `veloce_*` database/CRM identifiers, webhook headers, token issuers, browser storage keys and fixture IDs remain compatible with deployed data and integrations. The GitHub repository is still `sync4ai-lab/veloce.ai`; its working remote and source links are intentionally preserved until the repository itself is renamed.
+Existing `veloce_*` database/CRM identifiers, webhook headers, token issuers, browser storage keys and fixture IDs remain compatible with deployed data and integrations. The GitHub repository is `sync4ai-lab/easyinvio`; the local Git remote and maintained source links use that repository name.
 
 The [CSV orders v2 guide](docs/bulk_csv/REPORT.md) covers the 21-column client template,
 per-order persistence, cargo routing, customs review and optional storefront associations.
