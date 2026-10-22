@@ -82,7 +82,7 @@ No migration, live close-out, Storage upload, payment or message was executed. S
 
 ## Tracking 2.0 verification
 
-The new offline suite covers scoped APIs and sanitized shared projections. An explicit disposable PGlite 0.5.10 bridge runs actual 043/044/045 DDL and service SQL, including event immutability, link hashing/revocation, grouped parcels/returns, customer help, lease recovery, retry exhaustion and provider cooldowns. These tests skip unless PGLITE_TEST_MODULE is configured; they never fall back to live Supabase. Synthetic browser QA covers owner, tenant admin, dispatcher, accountant, individual and platform owner at desktop/mobile widths, plus public customer intake and revoked links. See [the implementation guide](https://github.com/sync4ai-lab/veloce.ai/blob/c5b7b15/docs/tracking_2_implementation.md) for commands and external acceptance limits.
+The new offline suite covers scoped APIs and sanitized shared projections. An explicit disposable PGlite 0.5.10 bridge runs actual 043/044/045 DDL and service SQL, including event immutability, link hashing/revocation, grouped parcels/returns, customer help, lease recovery, retry exhaustion and provider cooldowns. These tests skip unless PGLITE_TEST_MODULE is configured; they never fall back to live Supabase. Synthetic browser QA covers owner, tenant admin, dispatcher, accountant, individual and platform owner at desktop/mobile widths, plus public customer intake and revoked links. See [the implementation guide](https://github.com/sync4ai-lab/easyinvio/blob/c5b7b15/docs/tracking_2_implementation.md) for commands and external acceptance limits.
 
 ## Manifest workflow regression
 
