@@ -16,7 +16,7 @@ The supervisor coordinates narrow workers around existing services. It is an app
 | Booking | Existing authenticated confirm-booking route passes a chosen opaque offer to Supervisor, then PartnerLifecycleService | Existing FinanceEngine locks, reservation/capture/release, uncertain-purchase reconciliation and PDF proxies are unchanged. No model has this tool |
 | Invoice audits | InvoiceSurchargeAuditorAgent delegates existing exact Decimal comparisons | Current tenant-scoped snapshots, confidence definition, idempotency and billing_disputes writes stay authoritative. Zero model tokens |
 | Tracking exceptions | ProactiveClaimsSupportAgent delegates authenticated provider ingestion and durable ticket/outbox staging | Current signature checks, event deduplication, administrator controls, verified recipient and notification consent remain mandatory. Zero model tokens |
-| Help | Published local guides are split at section headings into versioned, bounded chunks with direct section citations. Optional 256-dimensional embeddings rank excerpts; structured answers must cite retrieved IDs | Authenticated workspace requests only. No access to customer records, purchases or messages. Unavailable AI falls back to compact related-guide cards with an explicit availability message |
+| Help | Published local guides are split at section headings into versioned, bounded chunks with direct section citations. Optional 256-dimensional embeddings rank excerpts; structured answers must cite retrieved IDs | Authenticated workspace requests only. No access to customer records, purchases or messages. Unavailable AI returns readable authored guidance; low-evidence general logistics questions can use a separately labelled, cited public web fallback. Search has no account or action tools |
 
 ## API surface
 
@@ -40,7 +40,63 @@ The existing rates, official tariff search, CSV, invoice, tracking and confirm-b
 
 ## Cost, privacy and resilience
 
-Each model run is limited to one turn, 600 output tokens by default, no model retries, a six-second timeout and four concurrent slots. WhatsApp parsing has a tighter three-second budget. Per-tenant, per-process sliding limits conservatively reserve input bytes plus schema overhead and output allowance. These are abuse controls, not guaranteed billing caps or shared limits across multiple server processes.
+Action/preparation model runs are limited to one turn, 600 output tokens by default, no model retries, a six-second timeout and four concurrent slots. HelpSupportAgent has a separate default 1,600-output-token and fifteen-second budget so requested setup steps fit. Other worker limits remain unchanged. WhatsApp parsing has a tighter three-second budget. Per-tenant, per-process sliding limits conservatively reserve input bytes plus schema overhead and output allowance. These are abuse controls, not guaranteed billing caps or shared limits across multiple server processes.
+
+## Grounded help and public web fallback
+
+Web chat, signed WhatsApp and the Help Centre assistant share HelpRetriever.
+Known Amazon and Shopify setup topics select their authored setup sections before
+optional generation. Other queries use absolute keyword coverage, heading boosts
+and a maximum twelve-chunk semantic shortlist. Source chunks preserve published
+anchors and complete line boundaries. Unknown topics do not receive a confident
+answer merely because one weak match ranked highest. The full corpus remains
+bounded at 256 chunks; answers are bounded at 9,000 characters.
+
+The [Amazon integration guide](../docs_amazon_integration.md) documents actual
+seller fields, SKU weights, AWS notifications, queued order retrieval, eligibility
+and UAT limits. The Help Centre also contains a signed-webhook WooCommerce guide.
+Help questions bypass action extraction and preserve an existing draft's exact
+fifteen-minute deadline. Responses do not append the command catalogue unless the
+user actually asks for Help/Commands. The two channels share receipts and advice;
+WhatsApp uses the configured BOOKING_PAGE_URL for stable Help Centre links.
+
+LOGISTICS_HELP_WEB_SEARCH_ENABLED defaults true, gated by the existing AI flag
+and a usable OpenAI key. LOGISTICS_WEB_SEARCH_MODEL defaults to gpt-4.1-mini,
+separately from the existing answer/action model. Public web search runs only for
+unanswered public general-information questions, prioritising logistics/ecommerce support. It uses one required hosted
+web-search tool call, the help time/output bounds, shared concurrency and tenant
+usage controls, store=false, no automatic retries and no action tools. Account
+questions, obvious personal data/references and credentials are excluded from
+search. No database records, conversation history or tenant identifier are sent
+to the web tool. These filters are defence in depth; users should keep personal
+information out of general help questions.
+
+A completed web search must supply safe HTTPS URL citations. The response is
+labelled general web guidance, not verified EasyInvio functionality. Web-search
+failure or missing citations never becomes a claimed successful lookup. Help
+answers and web results remain tenant/role scoped in a short in-memory cache;
+customer prompts are not written to the documentation index. The Help Centre
+shows clickable inline web citations, and chat formats numbered source links.
+The bridge preserves up to 9,000 characters and six sources. HTML stays inert.
+
+LOGISTICS_HELP_TIMEOUT_SECONDS and LOGISTICS_HELP_OUTPUT_TOKENS tune help only.
+Use GET /api/v1/admin/agents/metrics with existing platform-owner authentication
+to inspect configured flags, models, help budgets and the last sanitised failure
+(worker/type/HTTP status only). Configured=true is not a provider connectivity
+check. HTTP 401 normally requires correcting OPENAI_API_KEY; 429 needs an account
+quota/rate-limit check. Never paste keys or provider error bodies into chat.
+A local .env change does not update Vercel: save the key in that deployment's
+environment and redeploy. Do not enable every integration to diagnose help.
+
+Validation lives in tests/test_help_answer_quality.py, the existing agent/status/
+conversation tests, and the Help Centre/chat browser probes. Live provider
+acceptance must be verified separately with a valid key; mock tests do not prove
+billing/quota or model access. No new migration is required.
+
+References: [OpenAI web search](https://developers.openai.com/api/docs/guides/tools-web-search),
+[Amazon authorisation](https://developer-docs.amazon/sp-api/docs/authorizing-selling-partner-api-applications),
+[Amazon notifications](https://developer-docs.amazon/sp-api/docs/notifications-api),
+[AWS input transformation](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-pipes-input-transformation.html).
 
 ## Conversational commands and deployment
 

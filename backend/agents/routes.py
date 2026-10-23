@@ -63,6 +63,11 @@ def build_router(authenticate, rating_model, authenticate_platform_owner):
         return {'configured': engine.runtime.available, 'scope': 'current application process',
             'usage': dict(engine.runtime.usage), 'model': engine.runtime.settings.logistics_agent_model,
             'embedding_model': engine.runtime.settings.logistics_embedding_model,
+            'help_timeout_seconds': engine.runtime.settings.logistics_help_timeout_seconds,
+            'help_output_tokens': engine.runtime.settings.logistics_help_output_tokens,
+            'web_search_enabled': engine.runtime.available and engine.runtime.settings.logistics_help_web_search_enabled,
+            'web_search_model': engine.runtime.settings.logistics_web_search_model,
+            'last_failure': engine.runtime.last_failure,
             'customer_prompt_logging': False, 'autonomous_purchases': False}
 
     return router

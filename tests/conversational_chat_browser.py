@@ -40,7 +40,7 @@ async def run(origin):
                     await route.fulfill(status=503, json={'detail': 'Outcome could not be confirmed.'})
                     return
                 data = {'status': 'COMPLETED', 'action_taken': 'HELP',
-                    'conversational_reply': '<img src=x onerror=alert(1)>\nhttps://checkout.stripe.com/c/pay/synthetic'}
+                    'conversational_reply': '<img src=x onerror=alert(1)>\nhttps://checkout.stripe.com/c/pay/synthetic\nhttps://developer-docs.amazon/sp-api/docs/orders-api\nhttps://127.0.0.1/private'}
             elif path in ('config', 'auth/config'):
                 data = {'mode': 'configured', 'supabase_url': None, 'publishable_key': None}
             else:
@@ -61,7 +61,9 @@ async def run(origin):
         await page.locator('#conversation-message').press('Enter')
         await expect(page.locator('#conversation-log')).to_contain_text('<img src=x onerror=alert(1)>')
         assert await page.locator('#conversation-log img').count() == 0
-        await expect(page.locator('#conversation-log a')).to_have_attribute('rel', 'noopener noreferrer')
+        await expect(page.locator('#conversation-log a').first).to_have_attribute('rel', 'noopener noreferrer')
+        assert await page.locator('#conversation-log a[href*=developer-docs]').count()==1
+        assert await page.locator('#conversation-log a[href*="127"]').count()==0
         assert len(calls) == 1
         assert authorizations == ['Bearer synthetic-chat']
         assert calls[0]['channel'] == 'WEB_CHAT' and 'sender_id' not in calls[0]
@@ -117,6 +119,14 @@ if __name__ == '__main__':
     @app.get('/')
     async def frontend():
         return FileResponse('index.html')
+
+    from scripts.build_vercel import ASSETS
+    @app.get('/{asset}')
+    async def frontend_asset(asset: str):
+        if asset not in ASSETS:
+            from fastapi import HTTPException
+            raise HTTPException(404)
+        return FileResponse(asset)
 
     listener = socket.socket()
     listener.bind(('127.0.0.1', 0))

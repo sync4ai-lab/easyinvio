@@ -25,6 +25,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 from backend.agents.models import ConversationalIntent, StrictOutput
 from backend.agents.conversation_context import ConversationDraft, collect_reply, explicit_quote
 from backend.agents.status_guidance import status_question
+from backend.agents.rag_support import documentation_question
 
 logger = logging.getLogger('easyinvio.conversation')
 ROLES = {'OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT'}
@@ -160,7 +161,7 @@ class ConversationalActionGateway:
         return {'status': status, 'conversational_reply': text, 'action_taken': action, **details}
 
     async def interpret(self, context, text):
-        if status_question(text):
+        if status_question(text) or documentation_question(text):
             return ConversationalIntent(intent='HELP')
         closing = re.fullmatch(r'\s*close\s+manifest\s+([A-Za-z0-9 _-]{1,50})\s*',text,re.I)
         if closing:
@@ -244,7 +245,7 @@ class ConversationalActionGateway:
                 await self.store.finish(context, message_id, result)
                 return self.public(result)
             try:
-                status_help = status_question(body.message_body)
+                status_help = status_question(body.message_body) or documentation_question(body.message_body)
                 new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|return|topup|help|commands|manifest)\b|\btop\s+up\b', body.message_body, re.I)
                 if status_help:
                     intent = ConversationalIntent(intent='HELP')
@@ -400,21 +401,21 @@ class ConversationalActionGateway:
         commands = ('You can ask for a quote without a saved route; I will collect missing locations, measured packaging and addresses. '
                     'You can also track, book a displayed option, arrange a top-up, create a return or record a claim support case. Send Cancel to clear a draft.\n'
                     'Examples: Quote 4.5kg from London to Paris; Track EINVIO-00000050; Book option 1; Return order EINVIO-00000050; Top up 50 GBP; My package is lost.')
-        if engine is not None and len(body.message_body.strip()) >= 3 and body.message_body.strip().lower() not in {'help', 'hello', 'commands'}:
+        if engine is not None and len(body.message_body.strip()) >= 3 and body.message_body.strip().lower() not in {'help', 'hello', 'hi', 'commands'}:
             answer = await engine.help.answer(context, body.message_body[:800])
-            sources = answer.get('sources', [])[:3]
+            sources = answer.get('sources', [])[:6]
             excerpts = answer.get('excerpts', [])[:2]
             text = answer['answer']
             if excerpts:
                 text += '\n' + '\n'.join(item['text'] for item in excerpts)
-            for item in sources:
+            for number, item in enumerate(sources, 1):
                 url = item['url']
                 if body.channel == 'WHATSAPP' and url.startswith('/help/'):
                     base = getattr(self.state.settings, 'booking_page_url', '')
                     parsed_base = urlsplit(base)
                     url = urljoin(base, url) if parsed_base.scheme == 'https' and parsed_base.hostname else ''
-                text += '\n' + item['title'] + (': ' + url if url else ' — open Help Centre in your workspace')
-            return self.reply('HELP', text + '\n\n' + commands)
+                text += '\n[' + str(number) + '] ' + item['title'] + (': ' + url if url else ' — open Help Centre in your workspace')
+            return self.reply('HELP', text, answer_mode=answer.get('mode'), sources=sources, help_fallback_reason=answer.get('fallback_reason'))
         return self.reply('HELP', commands)
 
     async def quote(self, context, body, intent, message_id):

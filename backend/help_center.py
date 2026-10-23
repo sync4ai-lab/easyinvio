@@ -199,6 +199,30 @@ GUIDES = {
 
 # These repository-authored sources are maintained once and rendered on their pages.
 GUIDES.update({
+    'connect-stores': Guide(
+        'Choose and connect a sales channel', 'Connect your stores',
+        'Supported store import methods and platforms that still need an adapter.',
+        '''<h2 id="choose">Choose your platform before connecting</h2><p>EasyInvio currently implements Shopify order notifications/retrieval, WooCommerce signed order webhooks, and Amazon authorised seller order lookup triggered by AWS notifications. A workspace owner or admin manages connections in Store Integrations; dispatchers use the imported orders in Marketplace Workspace.</p>
+        <p>eBay, BigCommerce and PrestaShop are catalogue entries for assisted setup. Their order adapters and authorisation onboarding still need implementation; entering credentials does not activate imports. Etsy, Magento, Wix and TikTok are not implemented native order importers in this application.</p>
+        <ol><li>Tell us which store platform you use.</li><li>For Shopify, WooCommerce or Amazon, follow that platform's connection guide and save credentials only in its secure connection settings.</li><li>Verify an imported order in Marketplace Workspace, review shipment details and explicitly choose/book a carrier. Store connection never purchases labels automatically.</li></ol>
+        <p>For an unsupported platform, use an available manual shipment or CSV preparation workflow while discussing an adapter with support. Do not use Shopify setup instructions for a different platform.</p>''',
+        'stores storefront platform connect integration amazon shopify woocommerce ebay bigcommerce prestashop etsy magento wix tiktok'),
+    'connect-woocommerce': Guide(
+        'Connect WooCommerce with signed order webhooks', 'Connect your stores',
+        'Register the store, save a signing secret and verified weights, then configure order webhooks.',
+        '''<h2 id="setup">Set up WooCommerce order imports</h2>
+        <ol><li>Sign in as a workspace owner or admin. Open Store Integrations, choose WooCommerce and register the store.</li>
+        <li>Open Connection settings. Save a strong webhook signing secret of at least 32 characters and verified SKU weights in grams, for example MUG-BLUE = 350.</li>
+        <li>In your WooCommerce administration, open Settings, Advanced, Webhooks. Configure an Order created webhook and, if needed, Order updated. Use your public EasyInvio origin plus /api/v1/integration/webhooks/ and this registered store's UUID as the delivery URL.</li>
+        <li>Use the same signing secret in WooCommerce and EasyInvio. EasyInvio verifies the x-wc-webhook-signature and supported order.created/order.updated topic before importing.</li>
+        <li>Send an eligible order notification. Open Marketplace Workspace to review the imported address, goods, packing and customs, then compare rates and explicitly book. Import does not buy a label or charge a wallet.</li></ol>
+        <h2 id="troubleshoot">If an order is missing</h2><p>Check webhook delivery logs, the exact store UUID, signing secret, recipient address, prices and verified SKU weights. Keep the original reference when investigating repeated events. The Shopify Retrieve orders button is not WooCommerce polling; this connector uses signed notifications.</p>''',
+        'woocommerce wordpress connect integration setup webhook orders weights'),
+    'connect-amazon': Guide(
+        'Connect Amazon Marketplace and import orders', 'Connect your stores',
+        'Seller authorisation, connection settings, SKU weights, AWS notifications and import troubleshooting.',
+        '', 'amazon marketplace sp api seller integration connect setup sqs aws eventbridge order_change',
+        source_file='docs_amazon_integration.md', section_chunks=True),
     'status-guide': Guide(
         'Understand statuses and resolve unexpected results', 'Shipping tools',
         'A complete status reference with practical next steps for orders, quotes, tracking, payments, refunds, returns, claims and account access.',

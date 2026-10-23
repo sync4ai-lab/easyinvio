@@ -8,6 +8,10 @@ class AgentSettings(BaseSettings):
     openai_api_key: SecretStr = SecretStr('')
     logistics_agent_model: str = 'gpt-4o-mini'
     logistics_embedding_model: str = 'text-embedding-3-small'
+    logistics_help_timeout_seconds: float = Field(default=15, ge=3, le=30)
+    logistics_help_output_tokens: int = Field(default=1600, ge=600, le=3000)
+    logistics_help_web_search_enabled: bool = True
+    logistics_web_search_model: str = 'gpt-4.1-mini'
     logistics_agent_timeout_seconds: float = Field(default=6, ge=1, le=20)
     logistics_agent_concurrency: int = Field(default=4, ge=1, le=16)
     logistics_agent_output_tokens: int = Field(default=600, ge=128, le=1200)

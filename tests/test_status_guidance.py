@@ -71,7 +71,7 @@ def test_published_guide_is_searchable_downloadable_and_every_citation_anchor_ex
             if 'id' in values:self.ids.add(values['id'])
     anchors=Anchors();anchors.feed(body.text)
     chunks,_=engine().help.corpus()
-    assert len(chunks)<=160
+    assert len(chunks)<=256
     for chunk in chunks:
         if chunk.source_file=='docs/status_reference.md' and '#' in chunk.url:
             assert chunk.url.split('#',1)[1] in anchors.ids

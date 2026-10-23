@@ -14,7 +14,7 @@ EasyInvio combines bounded optional model assistance with deterministic domain s
 | Worker 3 `MarginOptimizerAgent` | Advises over up to ten already-priced eligible offers and recorded route performance | One typed `StrategicChoice` model result under an outer 1.5-second optional deadline | Exactly one supported badge; never reprices, reorders or buys. Failure preserves original offers and stages bounded troubleshooting |
 | Worker 4 `InvoiceSurchargeAuditorAgent` | Calls existing `invoice_upload.compare_line` using exact saved shipment/invoice snapshots | None | Comparison delegate only; native endpoint owns tenant lookup, transaction, duplicate detection and dispute persistence |
 | Worker 5 `ProactiveClaimsSupportAgent` | Delegates authenticated tracking ingestion and durable exception-ticket/outbox wakeup | None | No autonomous insurer filing, refund or permission bypass; native security and delivery consent remain mandatory |
-| `HelpRetriever` | Versioned published-guide chunks, lexical/optional semantic retrieval, grounded answers with section citations | Optional 256-dimensional embeddings and a cited-answer run | Searches documentation only; unavailable generation returns supported related-guide/fallback content |
+| `HelpRetriever` | Versioned published-guide chunks, lexical/optional semantic retrieval, grounded answers with section citations | Optional 256-dimensional embeddings and a cited-answer run | Prioritises authored product guidance; unavailable generation returns complete documented steps. An unanswered public question can use a separately labelled cited web fallback with no account/action tools |
 
 Worker numbers are explanatory labels for the five specialist roles above. The additional concrete worker/run names below are actual names passed to the shared runtime, not separately deployed processes.
 
@@ -34,7 +34,7 @@ The generated call catalog is authoritative for current runtime names, source li
 
 ## Shared runtime controls
 
-`AgentSettings` is source-declared configuration. Defaults are AI disabled, model `gpt-4o-mini`, embeddings `text-embedding-3-small`, six-second request timeout, four concurrent slots, 600 output tokens, twenty per-tenant requests/minute, 100,000 reserved tokens/minute and a 256-entry response cache. Defaults are configurable names/limits, not claims about active remote model versions or provider account budgets.
+`AgentSettings` is source-declared configuration. Defaults are AI disabled, model `gpt-4o-mini`, embeddings `text-embedding-3-small`, six-second request timeout, four concurrent slots, 600 output tokens, twenty per-tenant requests/minute, 100,000 reserved tokens/minute and a 256-entry response cache. HelpSupportAgent separately defaults to fifteen seconds and 1,600 output tokens. Public web fallback is configurable with LOGISTICS_HELP_WEB_SEARCH_ENABLED and LOGISTICS_WEB_SEARCH_MODEL (default gpt-4.1-mini), gated by the AI flag and key. Defaults are configurable names/limits, not claims about active remote model versions or provider account budgets.
 
 `AgentRuntime` uses `AsyncOpenAI(max_retries=0)`, one Runner turn, temperature zero, non-parallel tools, forced tool choice where tools are supplied, `store=False` and disabled tracing/sensitive trace inclusion. Capacity checks occur before a model call. The process-local cache is keyed by tenant, worker, model and a digest of inputs/instructions, with bounded TTL/LRU behavior. Agent metrics aggregate model/embedding calls, tokens, cache hits, failures and deterministic calls for the current process.
 
@@ -44,9 +44,31 @@ When AI is enabled, the applicable model payload can include a user message, shi
 
 ## Help retrieval
 
-The corpus comes from `backend/help_center.py` GUIDES: built-in bodies plus the five root operational guides for order processing, routing rules, tracking/branding, returns and pickups. `GuideSections` splits headings; text chunks are up to 1,600 characters with a 1,400-character stride and a maximum bounded corpus of 160 chunks. Stable digests/versioning protect cached embeddings from stale corpus changes.
+HelpRetriever indexes the authored GUIDES registry in backend/help_center.py, not
+arbitrary private repository files. It preserves section anchors, numbered steps
+and complete line boundaries, with a 256-chunk cap and versioned caches. Known
+Amazon, Shopify and WooCommerce setup questions choose the corresponding guide;
+other queries use absolute lexical coverage and at most twelve optionally embedded
+candidates. A top relative score alone is not evidence. Unknown/assisted platforms
+must not borrow instructions claiming another connector works for them.
 
-Lexical retrieval remains available. Optional embeddings are 256-dimensional validated finite vectors, cached under `output/agents`; this is a small local index rather than a separate hosted vector database. Generated answers must cite retrieved chunk IDs and become section links. Unsupported citations or insufficient evidence cause a fallback. Editing the architecture manual does not automatically add it to the public HelpRetriever corpus.
+Generated product answers cite supplied chunk IDs. Unsupported generation falls
+back to complete authored guidance instead of clipped prose. Generic public
+questions without sufficient local evidence can use one required read-only web
+search, with a separate model, time/output bounds, verified HTTPS citations and
+an explicit general-guidance label. Account queries and obvious private data are
+excluded from search. There are no shipment, payment, SQL or messaging tools in
+that search request. Invalid citations, outages and unsupported models never
+become claims of successful research. The source implementation and limitations
+are detailed in [the agent operating guide](https://github.com/sync4ai-lab/easyinvio/blob/main/docs/agent_architecture.md).
+
+Web chat, WhatsApp and the Help Centre share this retriever. Informational
+questions preserve an existing draft's exact deadline; help answers omit the
+command catalogue unless requested. The Help Centre bridge carries up to 9,000
+characters and six sources without sending a session token to another window.
+The protected metrics endpoint reports configured models/help budgets and the
+last sanitised provider failure. An enabled flag and present key do not prove
+provider authentication; a 401 requires checking the runtime's OPENAI_API_KEY.
 
 ## Conversational controllers
 

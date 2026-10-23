@@ -6,7 +6,7 @@ from backend.agents.models import Workflow, State
 from backend.agents.runtime import AgentRuntime
 from backend.agents.workers import (IngestionWorkerAgent, CustomsHarmonizerAgent,
     InvoiceSurchargeAuditorAgent, ProactiveClaimsSupportAgent)
-from backend.agents.rag_support import HelpRetriever
+from backend.agents.rag_support import HelpRetriever, documentation_question
 
 
 class LogisticsSupervisor:
@@ -30,7 +30,7 @@ class LogisticsSupervisor:
         workflow = Workflow()
         workflow.move(State.VALIDATING)
         from backend.agents.status_guidance import status_question
-        if status_question(text):
+        if status_question(text) or documentation_question(text):
             guidance = await self.help.answer(context, text)
             workflow.move(State.READY)
             workflow.move(State.EXECUTING)

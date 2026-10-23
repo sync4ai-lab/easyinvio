@@ -77,6 +77,22 @@ async def run(origin):
         await expect(page.locator('#support-agent-answer .support-answer-guides')).to_contain_text('Credit is reserved first')
         assert await page.locator('#support-agent-answer ul').count() == 0
         await page.screenshot(path=str(output / 'assistant-fallback-mobile.png'), full_page=True)
+        # Full authored setup answers survive the bridge and remain visible without AI.
+        full_answer = 'From the EasyInvio Help Centre:\n\n1. Open Store Integrations.\n\n' + ('Documented setup detail. ' * 150) + '\n\n6. Verify the final Amazon import activity.'
+        await workspace.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
+            'answer':full_answer,'sources':[{'title':'Connect Amazon','url':'/help/connect-amazon#setup-steps-with-a-uk-example'}],
+            'excerpts':[],'mode':'DOCUMENT_EXCERPTS','fallback_reason':'AI_NOT_CONFIGURED'}))
+        await page.get_by_role('button',name='Ask the help assistant').click()
+        await expect(page.locator('#support-agent-answer')).to_contain_text('6. Verify the final Amazon import activity.')
+        external='https://developer-docs.amazon/sp-api/docs/orders-api'
+        await workspace.route('**/api/v1/help/search-agent', lambda route: route.fulfill(json={
+            'answer':'General web guidance, not verified EasyInvio setup.\n\nCheck the official order API [1].',
+            'sources':[{'title':'Amazon Orders API','url':external},{'title':'Unsafe','url':'https://127.0.0.1/private'}],
+            'excerpts':[],'mode':'WEB_CITED_ANSWER'}))
+        await page.get_by_role('button',name='Ask the help assistant').click()
+        await expect(page.locator('#support-agent-answer .support-answer-body a')).to_have_attribute('href',external)
+        assert await page.locator('#support-agent-answer a[href*="127"]').count()==0
+        await expect(page.locator('#support-agent-answer .support-answer-badge')).to_have_text('General web guidance')
         # A response from a workspace that changed while answering must not cross scopes.
         requested=asyncio.Event();release=asyncio.Event()
         async def delayed(route):

@@ -77,13 +77,17 @@
       return element;
     }
 
-    function safeLink(source) {
+    function safeLink(source, allowExternal = false) {
       if (!source || typeof source.url !== 'string' || typeof source.title !== 'string') return null;
       try {
         const url = new URL(source.url, location.origin);
-        if (url.origin !== location.origin || !url.pathname.startsWith('/help/')) return null;
+        const host = url.hostname.toLowerCase();
+        const local = url.origin === location.origin && url.pathname.startsWith('/help/');
+        const external = allowExternal && url.protocol === 'https:' && host.includes('.') && !/^(?:[0-9.]+|\[)/.test(host) && !/\.(?:local|localhost|internal|invalid|test)$/.test(host);
+        if (url.username || url.password || (!local && url.port && url.port !== '443') || (!local && !external)) return null;
         const link = document.createElement('a');
-        link.href = url.pathname + url.hash;
+        link.href = local ? url.pathname + url.hash : url.href;
+        if (!local) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
         link.textContent = source.title;
         return link;
       } catch { return null; }
@@ -101,7 +105,7 @@
       controller?.abort();
       const active = new AbortController();
       controller = active;
-      const timeout = setTimeout(() => active.abort(), 25000);
+      const timeout = setTimeout(() => active.abort(), 45000);
       ask.disabled = true;
       results.hidden = true;
       answer.setAttribute('aria-busy', 'true');
@@ -110,15 +114,26 @@
         const data = await workspaceHelp(question,active.signal);
         if (typeof data.answer !== 'string' || !Array.isArray(data.sources)) throw Error('Assistance is unavailable. Browse the guides below.');
         if (search.value.trim() !== question) return;
-        const generated = data.mode === 'AI_CITED_ANSWER';
-        const authored = data.answer.startsWith('General guidance: ');
-        frame(question, generated ? 'AI answer' : authored ? 'Document guidance' : 'Related guides');
+        const external = data.mode === 'WEB_CITED_ANSWER';
+        const generated = data.mode === 'AI_CITED_ANSWER' || external;
+        const authored = data.answer.startsWith('General guidance: ') || data.answer.startsWith('From the EasyInvio Help Centre:');
+        frame(question, external ? 'General web guidance' : generated ? 'AI answer' : authored ? 'Document guidance' : 'Related guides');
         if (generated || authored || data.mode === 'NO_EVIDENCE') {
           const content = document.createElement('div');
           content.className = 'support-answer-body';
-          for (const block of data.answer.trim().split(/\n\s*\n/).slice(0, 12)) {
+          for (const block of data.answer.trim().split(/\n\s*\n/).slice(0, 40)) {
             const text = document.createElement('p');
-            text.textContent = block.trim();
+            if (external) {
+              let offset = 0;
+              for (const match of block.matchAll(/\[(\d+)\]/g)) {
+                text.append(document.createTextNode(block.slice(offset, match.index)));
+                const link = safeLink(data.sources[Number(match[1]) - 1], true);
+                if (link) { link.textContent = match[0]; text.append(link); }
+                else text.append(document.createTextNode(match[0]));
+                offset = match.index + match[0].length;
+              }
+              text.append(document.createTextNode(block.slice(offset)));
+            } else text.textContent = block.trim();
             content.append(text);
           }
           answer.append(content);
@@ -138,8 +153,8 @@
         }
         const seen = new Set();
         const sources = !generated && Array.isArray(data.excerpts) && data.excerpts.length ? data.excerpts : data.sources;
-        for (const source of sources.slice(0, 4)) {
-          const link = safeLink(source);
+        for (const source of sources.slice(0, 6)) {
+          const link = safeLink(source, external);
           if (!link || seen.has(link.href)) continue;
           seen.add(link.href);
           const item = document.createElement('div');
@@ -156,7 +171,7 @@
         const footer = document.createElement('div');
         footer.className = 'support-answer-footer';
         const caption = document.createElement('span');
-        caption.textContent = generated ? 'Based on EasyInvio guides. Check the source before acting.' : 'Still need help?';
+        caption.textContent = external ? 'External sources describe general guidance, not confirmed EasyInvio capabilities.' : generated || authored ? 'Based on EasyInvio guides. Check the source before acting.' : 'Still need help?';
         const contact = safeLink({url: '/help/contact', title: 'Contact support'});
         footer.append(caption, contact);
         answer.append(footer);

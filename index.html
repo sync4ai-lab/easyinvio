@@ -8460,7 +8460,9 @@ else if(!state.session)resetSessionForms();
       let safe = false;
       try {
         const url = new URL(match[0], location.origin);
-        safe = !url.username && !url.password && (!url.port || url.port === '443') && (url.origin === location.origin || url.hostname === 'checkout.stripe.com');
+        const host = url.hostname.toLowerCase();
+        const external = url.protocol === 'https:' && host.includes('.') && !/^(?:[0-9.]+|\[)/.test(host) && !/\.(?:local|localhost|internal|invalid|test)$/.test(host);
+        safe = !url.username && !url.password && (url.origin === location.origin || (external && (!url.port || url.port === '443')));
       } catch {}
       if (safe) {
         const link = document.createElement('a');

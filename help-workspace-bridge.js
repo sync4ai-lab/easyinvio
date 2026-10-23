@@ -24,8 +24,8 @@
       const source=item=>({title:String(item.title||'').slice(0,300),url:String(item.url||'').slice(0,1000),
         ...(typeof item.text==='string'?{text:item.text.slice(0,280)}:{})});
       channel.postMessage({kind:'ANSWER',requestId:data.requestId,instance,result:{
-        answer:String(result.answer||'').slice(0,3000),mode:result.mode,fallback_reason:result.fallback_reason,
-        sources:(result.sources||[]).slice(0,4).map(source),excerpts:(result.excerpts||[]).slice(0,4).map(source)}});
+        answer:String(result.answer||'').slice(0,9000),mode:result.mode,fallback_reason:result.fallback_reason,
+        sources:(result.sources||[]).slice(0,6).map(source),excerpts:(result.excerpts||[]).slice(0,6).map(source)}});
     }catch{channel.postMessage({kind:'ERROR',requestId:data.requestId,instance});}
     finally{running=false;}
   };

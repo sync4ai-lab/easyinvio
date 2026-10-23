@@ -50,10 +50,11 @@ class AgentRuntime:
         self.client = client
         if self.client is None and settings.available:
             self.client = AsyncOpenAI(api_key=settings.openai_api_key.get_secret_value(), max_retries=0,
-                                      timeout=settings.logistics_agent_timeout_seconds)
+                                      timeout=max(settings.logistics_agent_timeout_seconds, settings.logistics_help_timeout_seconds))
         self.slots = asyncio.Semaphore(settings.logistics_agent_concurrency)
         self.cache = Cache(settings.logistics_agent_cache_entries)
         self.windows = OrderedDict()
+        self.last_failure = None
         self.usage = {'model_calls': 0, 'embedding_calls': 0, 'input_tokens': 0, 'output_tokens': 0,
                       'cached_input_tokens': 0, 'cache_hits': 0, 'failures': 0, 'deterministic_calls': 0}
 
@@ -89,7 +90,10 @@ class AgentRuntime:
     async def run(self, tenant, worker, instructions, payload, output_type=None, tools=None):
         if not self.available:
             raise HTTPException(503, 'AI assistance is not configured. Standard shipping tools remain available.')
-        key = self.key(tenant, worker, {'payload': payload, 'instructions': instructions})
+        help_run = worker == 'HelpSupportAgent'
+        output_limit = self.settings.logistics_help_output_tokens if help_run else self.settings.logistics_agent_output_tokens
+        timeout = self.settings.logistics_help_timeout_seconds if help_run else self.settings.logistics_agent_timeout_seconds
+        key = self.key(tenant, worker, {'payload': payload, 'instructions': instructions, 'output_limit': output_limit})
         cached = self.cache.get(key)
         if cached is not None:
             self.usage['cache_hits'] += 1
@@ -97,17 +101,17 @@ class AgentRuntime:
         text = json.dumps(payload, ensure_ascii=False)
         schema = output_type.model_json_schema() if output_type else {}
         tool_schema = [tool.params_json_schema for tool in tools or []]
-        estimated = len((instructions + text + json.dumps(schema) + json.dumps(tool_schema)).encode()) + 2000 + self.settings.logistics_agent_output_tokens
+        estimated = len((instructions + text + json.dumps(schema) + json.dumps(tool_schema)).encode()) + 2000 + output_limit
         self.reserve(tenant, estimated)
         agent = Agent(name=worker, instructions=instructions,
             model=OpenAIResponsesModel(self.settings.logistics_agent_model, self.client),
             output_type=output_type, tools=tools or [],
             tool_use_behavior='stop_on_first_tool' if tools else 'run_llm_again',
-            model_settings=ModelSettings(temperature=0, max_tokens=self.settings.logistics_agent_output_tokens,
+            model_settings=ModelSettings(temperature=0, max_tokens=output_limit,
                 store=False, parallel_tool_calls=False, tool_choice='required' if tools else None))
         self.usage['model_calls'] += 1
         try:
-            async with asyncio.timeout(self.settings.logistics_agent_timeout_seconds):
+            async with asyncio.timeout(timeout):
                 async with self.slots:
                     result = await Runner.run(agent, text, max_turns=1,
                         run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False))
@@ -122,6 +126,7 @@ class AgentRuntime:
             raise
         except Exception as error:
             self.usage['failures'] += 1
+            self.last_failure = {'worker': worker, 'error_type': type(error).__name__, 'status_code': getattr(error, 'status_code', None)}
             logger.warning('agent_deferred worker=%s error_type=%s', worker, type(error).__name__)
             raise HTTPException(503, 'AI assistance could not complete. Use the standard form; no booking was made.') from None
 
@@ -148,6 +153,7 @@ class AgentRuntime:
             raise
         except Exception as error:
             self.usage['failures'] += 1
+            self.last_failure = {'worker': 'document_embeddings', 'error_type': type(error).__name__, 'status_code': getattr(error, 'status_code', None)}
             logger.warning('embedding_deferred error_type=%s', type(error).__name__)
             raise HTTPException(503, 'Semantic retrieval temporarily unavailable') from None
 
