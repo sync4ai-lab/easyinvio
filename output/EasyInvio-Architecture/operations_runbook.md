@@ -190,6 +190,26 @@ Monitor return_customer_deliveries: READY is queued, ACCEPTED is provider accept
 
 ## Maintaining status answers
 
-Maintain `docs/status_reference.md` as the customer source, registered by `backend/help_center.py`. Section-aware indexing in HelpRetriever preserves heading anchors and complete recovery guidance. The shared corpus has a hard 160-chunk limit; current coverage uses 154 chunks, including 72 status-guide chunks. Content changes alter the corpus hash and invalidate versioned answers/embedding caches automatically. Run status/help/agent tests after changing states or wording. Model/vector outages must retain cited document guidance; uncertain carrier or money operations still require reconciliation, never replay to clear a status.
+Maintain `docs/status_reference.md` as the customer source, registered by `backend/help_center.py`. Section-aware indexing in HelpRetriever preserves heading anchors and complete recovery guidance. The shared corpus has a hard 256-chunk limit; semantic retrieval embeds at most twelve source candidates per lookup. Content changes alter the corpus hash and invalidate versioned answers/embedding caches automatically. Run status/help/agent tests after changing states or wording. Model/vector outages must retain cited document guidance; uncertain carrier or money operations still require reconciliation, never replay to clear a status.
 
 The Help Centre assistant requires an open signed-in workspace in another tab on the same origin; its general-guidance channel does not read legacy localStorage tokens. Restart the app and refresh existing tabs after updates. Cited document guidance is displayed when AI is disabled; no new migration or provider activation is needed.
+
+
+## Irrelevant assistant answers or unavailable AI
+
+Use the protected agent metrics endpoint and the [agent operating guide](https://github.com/sync4ai-lab/easyinvio/blob/main/docs/agent_architecture.md).
+Check LOGISTICS_AGENTS_ENABLED and OPENAI_API_KEY in the actual deployed environment;
+a local .env edit does not update Vercel. Configured=true means configuration is
+present, not that provider authentication succeeded. The last sanitised worker/
+error type/HTTP status can distinguish a rejected key (401) from rate/quota limits
+(429) and model/transport failures. Never paste secrets or provider response bodies.
+
+Web chat, WhatsApp and Help Centre use the same source-backed retrieval. The
+Amazon guide is /help/connect-amazon; WooCommerce is /help/connect-woocommerce.
+Unknown or assisted storefronts must not receive Shopify setup instructions.
+Detailed answers use their separate help budget. Public web fallback is labelled
+as general guidance and cannot assert undocumented EasyInvio functionality.
+If model access fails, complete authored steps should still appear. Run the help
+quality, status, conversational and browser citation tests before publishing.
+Refresh the worker source bundle after adding source files and help documents.
+No database migration or carrier/payment enablement is needed for these fixes.

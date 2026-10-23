@@ -114,7 +114,7 @@ The same authenticated controller supports QUOTE, BOOK_RESERVATION, TRACK_PACKAG
 
 WhatsApp `Book option N` hands off to signed web checkout. The WEB_CHAT booking command can confirm the displayed wallet option under the user’s dispatch role. Top-up commands return a Stripe confirmation link. Explicit return commands authorize a retailer-paid full-parcel return. Twilio deadlines and durable uncertainty fences still apply; a timeout is not proof that nothing happened.
 
-Public guides remain readable without AI. Authenticated RAG answers retrieve only the published help corpus and cite sections; they do not query arbitrary customer records. Company lead research is a separate, manually invoked Companies House utility producing unsent drafts. It sends no campaign messages, allocates no wallet money and does not infer ethnicity/nationality from company names.
+Public guides remain readable without AI. Authenticated product answers prioritise the published help corpus and cite sections; they do not query arbitrary customer records. Common store setup questions return complete source-backed steps. Unanswered public general questions can use a separately labelled, cited web-search fallback without account or action tools. Company lead research is a separate, manually invoked Companies House utility producing unsent drafts. It sends no campaign messages, allocates no wallet money and does not infer ethnicity/nationality from company names.
 
 ## WhatsApp premise selection and asynchronous replies
 

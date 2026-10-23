@@ -508,6 +508,42 @@
       "file": "backend/agents/config.py",
       "line": 11,
       "class": "AgentSettings",
+      "field": "logistics_help_timeout_seconds",
+      "environment_name": "LOGISTICS_HELP_TIMEOUT_SECONDS",
+      "annotation": "float",
+      "default_expression": "Field(default=15, ge=3, le=30)"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 12,
+      "class": "AgentSettings",
+      "field": "logistics_help_output_tokens",
+      "environment_name": "LOGISTICS_HELP_OUTPUT_TOKENS",
+      "annotation": "int",
+      "default_expression": "Field(default=1600, ge=600, le=3000)"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 13,
+      "class": "AgentSettings",
+      "field": "logistics_help_web_search_enabled",
+      "environment_name": "LOGISTICS_HELP_WEB_SEARCH_ENABLED",
+      "annotation": "bool",
+      "default_expression": "True"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 14,
+      "class": "AgentSettings",
+      "field": "logistics_web_search_model",
+      "environment_name": "LOGISTICS_WEB_SEARCH_MODEL",
+      "annotation": "str",
+      "default_expression": "'gpt-4.1-mini'"
+    },
+    {
+      "file": "backend/agents/config.py",
+      "line": 15,
+      "class": "AgentSettings",
       "field": "logistics_agent_timeout_seconds",
       "environment_name": "LOGISTICS_AGENT_TIMEOUT_SECONDS",
       "annotation": "float",
@@ -515,7 +551,7 @@
     },
     {
       "file": "backend/agents/config.py",
-      "line": 12,
+      "line": 16,
       "class": "AgentSettings",
       "field": "logistics_agent_concurrency",
       "environment_name": "LOGISTICS_AGENT_CONCURRENCY",
@@ -524,7 +560,7 @@
     },
     {
       "file": "backend/agents/config.py",
-      "line": 13,
+      "line": 17,
       "class": "AgentSettings",
       "field": "logistics_agent_output_tokens",
       "environment_name": "LOGISTICS_AGENT_OUTPUT_TOKENS",
@@ -533,7 +569,7 @@
     },
     {
       "file": "backend/agents/config.py",
-      "line": 14,
+      "line": 18,
       "class": "AgentSettings",
       "field": "logistics_agent_tokens_per_minute",
       "environment_name": "LOGISTICS_AGENT_TOKENS_PER_MINUTE",
@@ -542,7 +578,7 @@
     },
     {
       "file": "backend/agents/config.py",
-      "line": 15,
+      "line": 19,
       "class": "AgentSettings",
       "field": "logistics_agent_requests_per_minute",
       "environment_name": "LOGISTICS_AGENT_REQUESTS_PER_MINUTE",
@@ -551,7 +587,7 @@
     },
     {
       "file": "backend/agents/config.py",
-      "line": 16,
+      "line": 20,
       "class": "AgentSettings",
       "field": "logistics_agent_cache_entries",
       "environment_name": "LOGISTICS_AGENT_CACHE_ENTRIES",
@@ -1114,6 +1150,10 @@
     "LOGISTICS_AGENT_TIMEOUT_SECONDS",
     "LOGISTICS_AGENT_CONCURRENCY",
     "LOGISTICS_AGENT_OUTPUT_TOKENS",
+    "LOGISTICS_HELP_TIMEOUT_SECONDS",
+    "LOGISTICS_HELP_OUTPUT_TOKENS",
+    "LOGISTICS_HELP_WEB_SEARCH_ENABLED",
+    "LOGISTICS_WEB_SEARCH_MODEL",
     "LOGISTICS_AGENT_TOKENS_PER_MINUTE",
     "LOGISTICS_AGENT_REQUESTS_PER_MINUTE",
     "LOGISTICS_AGENT_CACHE_ENTRIES",
