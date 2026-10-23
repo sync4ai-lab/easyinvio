@@ -1820,6 +1820,78 @@ const shippingCountries = [{
 }];
 $('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','country'][i]}</label>${i===4?`<select id="${prefix}-${field}" required><option value="">Choose country</option>${shippingCountries.map(c=>`<option value="${c.code}">${escapeHTML(c.name)} (${c.code})</option>`).join('')}</select>`:`<input id="${prefix}-${field}" placeholder="${addressDefaults[prefix][i]}" maxlength="${i===2?100:i===3?30:200}" required>`}</div>`).join('')).join('');
 
+// PAF selection changes only the corresponding end of the shipment.
+const ukAddressPanels = {};
+for (const prefix of ['origin', 'destination']) {
+  const postcode = $('#' + prefix + '-postal_code');
+  const country = $('#' + prefix + '-country_code');
+  const panel = document.createElement('div');
+  panel.className = 'uk-address-lookup';
+  panel.innerHTML = `<button type="button" class="secondary" id="${prefix}-lookup">Find UK address</button><label for="${prefix}-premises" hidden>Select building / flat<select id="${prefix}-premises"><option value="">Choose your address</option></select></label><p id="${prefix}-address-check" class="subtle" role="status" aria-live="polite"></p>`;
+  postcode.parentElement.append(panel);
+  const button = panel.querySelector('button'), select = panel.querySelector('select');
+  const status = panel.querySelector('[role=status]');
+  let options = [], generation = 0, verified = null, observed = null;
+  const fingerprint = () => JSON.stringify(['country_code','postal_code','line1','line2','city'].map(field => $('#' + prefix + '-' + field)?.value.trim() || ''));
+  function update() {
+    const uk = country.value === 'GB';
+    button.hidden = !uk;
+    const current = fingerprint();
+    if (observed !== current) {
+      observed = current;
+      verified = null;
+      select.parentElement.hidden = true;
+      options = [];
+      generation++;
+      status.textContent = !country.value ? 'Choose the address country first.' : uk ? 'Address not verified. Enter the postcode, then select the exact building or flat using Find UK address.' : 'Check the full address and postal code with the recipient. UK PAF lookup does not verify international addresses.';
+    }
+    if (uk && postcode.value.trim()) {
+      const compact = postcode.value.replace(/\s/g, '').toUpperCase();
+      const valid = /^(?:GIR0AA|(?:[A-PR-UWYZ][0-9][0-9A-HJKPSTUW]?|[A-PR-UWYZ][A-HK-Y][0-9][0-9ABEHMNPRVWXY]?)[0-9][ABD-HJLNP-UW-Z]{2})$/.test(compact);
+      postcode.setCustomValidity(valid ? '' : 'Enter a complete UK postcode, for example LS1 2EJ.');
+    } else postcode.setCustomValidity('');
+  }
+  button.addEventListener('click', () => busy(button, async () => {
+    update();
+    if (country.value !== 'GB') return;
+    if (!postcode.value.trim()) { postcode.reportValidity(); return; }
+    if (!postcode.reportValidity()) return;
+    options = []; select.parentElement.hidden = true; verified = null;
+    const requestGeneration = ++generation, session = state.session, before = fingerprint();
+    status.textContent = 'Looking up Royal Mail PAF addresses?';
+    try {
+      const result = await api('/api/v1/addresses/uk/lookup', {method:'POST', auth:true, body:{postcode:postcode.value.trim()}});
+      if (generation !== requestGeneration || session !== state.session || before !== fingerprint()) return;
+      options = result.addresses;
+      select.replaceChildren(new Option('Choose your exact building / flat', ''));
+      options.forEach((option, index) => select.add(new Option(option.label, String(index))));
+      select.parentElement.hidden = !options.length;
+      status.textContent = options.length ? 'Select the exact address to fill the street, post town and postcode.' : 'No PAF address found. Check the postcode with the recipient. This address has not been verified.';
+    } catch (error) {
+      if (generation === requestGeneration && session === state.session) status.textContent = error.message;
+      throw error;
+    }
+  }));
+  select.addEventListener('change', () => {
+    if (select.value === '') return;
+    const selected = options[Number(select.value)];
+    if (!selected) return;
+    for (const field of ['line1','line2','city','postal_code','country_code']) {
+      const input = $('#' + prefix + '-' + field);
+      if (input) input.value = selected.address[field] || '';
+    }
+    // Invalidate old quotes and customs documents before establishing this match.
+    $('#quote-form').dispatchEvent(new Event('input', {bubbles:true}));
+    verified = fingerprint();
+    select.parentElement.hidden = true;
+    status.textContent = 'Address matched to Royal Mail PAF. Carrier service coverage is checked when requesting rates.';
+  });
+  $('#quote-form').addEventListener('input', update);
+  $('#quote-form').addEventListener('change', update);
+  ukAddressPanels[prefix] = {update};
+  update();
+}
+
 function cents(value) {
   const text = String(value);
   if (!/^-?\d+(\.\d{1,2})?$/.test(text)) throw Error('Use an amount with at most two decimal places.');

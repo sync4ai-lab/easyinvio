@@ -5,6 +5,7 @@ from datetime import datetime,timedelta,timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+from pydantic import SecretStr
 from uuid import uuid4
 import httpx
 from fastapi import FastAPI,HTTPException
@@ -104,6 +105,13 @@ class AutomationTests(unittest.IsolatedAsyncioTestCase):
         repository=SimpleNamespace(accounts=AsyncMock(return_value=[account]))
         finance=SimpleNamespace(reserve=AsyncMock(return_value=object()),mark_submitted=AsyncMock(),finish_booking=AsyncMock())
         service=AutomationService(db,rating,finance,repository,main.RatingRequest,None,SimpleNamespace(provider_environment='LIVE',automation_purchase_enabled=True,db_pool_max_size=10))
+        # Financial tests still pass through the real LIVE address gate using
+        # a synthetic PAF provider, never real customer lookups or label calls.
+        service.settings.ideal_postcodes_api_key = SecretStr('synthetic-paf-key')
+        service.rating.client = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200,
+            json={'code':2000, 'result':[{'udprn':123, 'postcode':'SW1A 1AA', 'line_1':'1 Example Street',
+                'post_town':'London', 'building_number':'1', 'thoroughfare':'Example Street'}]})))
+        self.addAsyncCleanup(service.rating.client.aclose)
         adapter=SimpleNamespace(buy=AsyncMock(return_value={'tracking_number':'TRACK1','label_url':'https://files.example/label.pdf','carrier_forms':[]}),reconcile=AsyncMock())
         service.adapters['EASYPOST']=adapter
         return db,service,SimpleNamespace(tenant_id=db.tenant,user_id=db.user,role='OWNER'),adapter
@@ -141,6 +149,15 @@ class AutomationTests(unittest.IsolatedAsyncioTestCase):
         result=await service.process(context,order(),'FULFILL')
         self.assertEqual(result['status'],'RECONCILIATION_REQUIRED')
         service.finance.finish_booking.assert_not_awaited()
+
+    async def test_live_address_failure_happens_before_wallet_reservation(self):
+        db,service,context,adapter=self.service()
+        service.settings.ideal_postcodes_api_key = SecretStr('')
+        result=await service.process(context,order(),'FULFILL')
+        self.assertEqual(result['status'],'FAILED')
+        service.finance.reserve.assert_not_awaited()
+        service.finance.mark_submitted.assert_not_awaited()
+        adapter.buy.assert_not_awaited()
 
     async def test_bulk_99_orders_survive_one_failure(self):
         app=FastAPI();active=maximum=0

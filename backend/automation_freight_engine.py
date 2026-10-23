@@ -511,6 +511,10 @@ class AutomationService:
                         raise HTTPException(409,'Shipping integration disabled; request fresh quotes before booking')
                     if getattr(self,"native_orders",None) is not None:
                         await self.native_orders.ensure_order(context.tenant_id,shipment_id,rate.account_id)
+                    from main import Address
+                    from backend.address_validation import verify_shipping_addresses
+                    await verify_shipping_addresses(getattr(self.rating, 'client', None), self.settings,
+                        [('Pickup', Address.model_validate(order.origin)), ('Delivery', Address.model_validate(order.destination))])
                     permit=await self.finance.reserve(context,shipment_id)
                     await self.finance.mark_submitted(permit);submitted=True
                     try: label=await adapter.buy(account,rate)

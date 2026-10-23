@@ -334,6 +334,14 @@ class Address(StrictModel):
         return value
 
 
+    @model_validator(mode="after")
+    def normalize_uk_postcode(self) -> Address:
+        if self.country_code == 'GB':
+            from backend.paf_lookup import uk_postcode
+            self.postal_code = uk_postcode(self.postal_code)
+        return self
+
+
 from backend.package_sets import PackageInput, package_charge, validate_goods_allocation
 
 class RatingRequest(StrictModel):
@@ -1145,6 +1153,9 @@ class RatingService:
                     provider_deadline: int | None = None, *, return_of_shipment_id: UUID | None = None,
                     return_network_selection: bool = False, return_warehouse_id: UUID | None = None,
                     return_warehouse_version: int | None = None) -> RatingResponse:
+        from backend.address_validation import verify_shipping_addresses
+        await verify_shipping_addresses(self.client, self.settings,
+            [('Pickup', request.origin), ('Delivery', request.destination)])
         dimensions=request.dimensions[0] if request.dimensions else None
         cargo=Cargo(cargo_type=request.cargo_type,actual_weight_kg=request.weights_kg[0],stackable=request.stackable,
             length_cm=dimensions.length_cm if dimensions else None,width_cm=dimensions.width_cm if dimensions else None,height_cm=dimensions.height_cm if dimensions else None)
@@ -2299,7 +2310,45 @@ async def public_config(request: Request):
     settings = request.app.state.settings
     return {"mode": "configured", "supabase_url": settings.supabase_url,
             "publishable_key": settings.supabase_publishable_key.get_secret_value(),
+            "uk_address_lookup_available": bool(settings.ideal_postcodes_api_key.get_secret_value()),
+            "uk_address_verification_required": settings.provider_environment == 'LIVE' or bool(settings.ideal_postcodes_api_key.get_secret_value()),
             "dispatch_updates_mode": "POLLING" if getattr(request.app.state, "runtime_role", "COMBINED") == "WEB" else "WEBSOCKET"}
+
+
+class UKAddressLookupRequest(StrictModel):
+    postcode: str = Field(min_length=1, max_length=30)
+
+
+class UKAddressChoice(StrictModel):
+    id: str
+    label: str
+    address: Address
+
+
+class UKAddressLookupResponse(StrictModel):
+    postcode: str
+    source: Literal['ROYAL_MAIL_PAF'] = 'ROYAL_MAIL_PAF'
+    addresses: list[UKAddressChoice]
+
+
+@app.post('/api/v1/addresses/uk/lookup', response_model=UKAddressLookupResponse)
+async def lookup_uk_address(body: UKAddressLookupRequest, request: Request,
+                            context: Annotated[TenantContext, Depends(authenticate)]):
+    from backend.paf_lookup import PAFLookupUnavailable, uk_postcode
+    if context.role not in DISPATCH_ROLES | FINANCE_ROLES:
+        raise HTTPException(403, 'Workspace address access required')
+    try:
+        postcode = uk_postcode(body.postcode)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+    try:
+        options = await request.app.state.paf.lookup(postcode)
+    except PAFLookupUnavailable:
+        raise HTTPException(503, 'UK address lookup is unavailable. The platform administrator must check the PAF API key and lookup balance. Your address has not been verified.') from None
+    return {'postcode': postcode, 'source': 'ROYAL_MAIL_PAF',
+            'addresses': [{'id': option.udprn, 'label': option.label,
+                           'address': option.address('Recipient').model_dump(mode='json')}
+                          for option in options]}
 
 
 @app.post("/v1/rates", response_model=RatingResponse)

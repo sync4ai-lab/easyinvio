@@ -63,7 +63,10 @@ class MatrixPool:
         self.shipment = {
             'id': self.shipment_id, 'status': 'QUOTED', 'currency': 'GBP',
             'final_client_price': Decimal('12.00'), 'quote_expires_at': self.expires,
-            'pricing_snapshot': {}, 'logistics_metadata': {},
+            'pricing_snapshot': {}, 'logistics_metadata': {'automation_order': {
+                'origin': {'name':'Synthetic sender','line1':'1 Example Street','city':'London','postal_code':'SW1A 1AA','country_code':'GB'},
+                'destination': {'name':'Synthetic recipient','line1':'2 Example Street','city':'Leeds','postal_code':'LS1 2EJ','country_code':'GB'},
+            }},
         }
         self.native_rows = {
             TENANT_A: [{'shipment_id': str(uuid4()), 'state': 'A_ONLY'}],

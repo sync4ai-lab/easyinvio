@@ -67,7 +67,7 @@ class NativeProviderSettings(BaseModel):
     @classmethod
     def secret_length(cls, value):
         if value and not 32 <= len(value.get_secret_value().encode()) <= 4096:
-            raise ValueError('Use a webhook secret of 32–4096 bytes')
+            raise ValueError('Use a webhook secret of 32â€“4096 bytes')
         return value
 
 
@@ -1778,6 +1778,16 @@ class PartnerLifecycleService:
                         WHERE tenant_id=$1 AND id=$2 AND status='QUOTED' ''', context.tenant_id, row['id'], rate.account_id,
                         wholesale, markup, rate.currency, json.dumps(selected), rate.carrier_code, rate.service_code,
                         rate.upstream_shipment_id, rate.upstream_rate_id, offer['expires_at'])
+                    from main import Address
+                    from backend.address_validation import verify_shipping_addresses
+                    order_addresses = metadata.get('automation_order') or {}
+                    from pydantic import ValidationError
+                    try:
+                        addresses = [('Pickup', Address.model_validate(order_addresses.get('origin'))),
+                                     ('Delivery', Address.model_validate(order_addresses.get('destination')))]
+                    except ValidationError:
+                        raise HTTPException(422, 'Stored pickup or delivery address is incomplete. Requote the shipment with complete addresses before booking.') from None
+                    await verify_shipping_addresses(self.client, self.automation.settings, addresses)
                     native_orders=getattr(self.automation,'native_orders',None)
                     if native_orders is not None:
                         await native_orders.ensure_order(context.tenant_id,row['id'],account.id)

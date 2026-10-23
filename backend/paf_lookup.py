@@ -1,6 +1,7 @@
 """Asynchronous licensed PAF lookup boundary. Postcode syntax is not delivery proof."""
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import TYPE_CHECKING, Protocol
 
@@ -17,7 +18,7 @@ class PAFLookupUnavailable(ValueError):
 
 def uk_postcode(value: str) -> str:
     compact = re.sub(r'\s+', '', value).upper()
-    if not re.fullmatch(r'(?:GIR0AA|[A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2})', compact):
+    if not re.fullmatch(r'(?:GIR0AA|(?:[A-PR-UWYZ][0-9][0-9A-HJKPSTUW]?|[A-PR-UWYZ][A-HK-Y][0-9][0-9ABEHMNPRVWXY]?)[0-9][ABD-HJLNP-UW-Z]{2})', compact):
         raise ValueError('Enter a complete UK postcode.')
     return compact[:-3] + ' ' + compact[-3:]
 
@@ -57,9 +58,17 @@ class IdealPostcodesClient:
         self.client, self.api_key = client, api_key
 
     async def lookup(self, postcode: str) -> list[PAFPremise]:
+        # The pagination loop must also fit a bounded overall request window.
+        try:
+            async with asyncio.timeout(8):
+                return await self._lookup(postcode)
+        except TimeoutError:
+            raise PAFLookupUnavailable('UK address lookup timed out. Retry before booking.') from None
+
+    async def _lookup(self, postcode: str) -> list[PAFPremise]:
         normalized = uk_postcode(postcode)
         if not self.api_key.get_secret_value():
-            raise PAFLookupUnavailable('UK address lookup is not configured. Please use the web shipment form or contact support.')
+            raise PAFLookupUnavailable('UK address lookup is not configured. The platform administrator must configure IDEAL_POSTCODES_API_KEY.')
         premises: list[PAFPremise] = []
         try:
             for page in range(11):
@@ -98,4 +107,4 @@ class IdealPostcodesClient:
                     return premises
             raise ValueError('Too many delivery points')
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
-            raise PAFLookupUnavailable('UK address lookup is temporarily unavailable. Reply Retry or use the web shipment form.') from None
+            raise PAFLookupUnavailable('UK address lookup is temporarily unavailable. Retry the lookup before booking.') from None

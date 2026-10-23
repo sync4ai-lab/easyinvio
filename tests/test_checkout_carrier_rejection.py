@@ -39,3 +39,25 @@ async def test_unavailable_carrier_releases_reservation_and_retires_offer(authen
     assert repeated.status_code == 409, repeated.text
     purchase.assert_awaited_once()
     assert len(matrix_pool.ledger) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('failure', ['missing_address', 'missing_live_paf_key'])
+async def test_address_gate_precedes_stored_offer_wallet_reservation(authenticated_client, matrix_pool, monkeypatch, failure):
+    purchase = AsyncMock()
+    monkeypatch.setattr(FactoryPurchaseBridge, 'buy', purchase)
+    monkeypatch.setattr('backend.automation_three_partners.create_adapter',
+        lambda *args, **kwargs: object.__new__(EasyPostAdapter))
+    if failure == 'missing_address':
+        matrix_pool.shipment['logistics_metadata'] = {}
+    else:
+        lifecycle = main.app.state.partner_lifecycle
+        lifecycle.automation.settings.provider_environment = 'LIVE'
+        # Isolate PAF from the separately tested test/live environment fence.
+        monkeypatch.setattr(lifecycle, 'environment', lambda tenant: 'LIVE')
+    response = await authenticated_client.post('/api/v1/shipping/confirm-booking',
+        json={'tenant_id':str(TENANT_A), 'offer_id':str(matrix_pool.rate.offer_id)})
+    assert response.status_code == (422 if failure == 'missing_address' else 503), response.text
+    assert matrix_pool.reservation is None
+    assert not matrix_pool.ledger
+    purchase.assert_not_awaited()

@@ -26,6 +26,11 @@ class Guide:
 
 
 GUIDES = {
+    'address-validation': Guide(
+        'Find and verify pickup and delivery addresses', 'Create and manage shipments',
+        'Use Royal Mail PAF postcode lookup, select the exact building or flat, and resolve address mismatches.',
+        '', 'postcode post code address validation verification PAF UK building flat delivery pickup city town incorrect invalid',
+        source_file='docs_address_validation.md', section_chunks=True),
     'account-access': Guide(
         'Sign in and find your workspace', 'Start with confidence',
         'Get into the right company workspace, accept an invitation or reset your password.',
