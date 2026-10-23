@@ -275,3 +275,26 @@ async def test_platform_refresh_and_retry_after_are_account_bound(world):
     assert row['next_attempt_at']>datetime.now(timezone.utc)+timedelta(seconds=590)
     account_hold=await w.db.fetchval('SELECT next_allowed_at FROM public.tracking_provider_limits')
     assert account_hold>datetime.now(timezone.utc)+timedelta(seconds=590)
+
+
+@pytest.mark.asyncio
+async def test_pickup_preferences_apply_only_to_future_carrier_events(world):
+    w = world
+    key = TrackingKey(tenant_id=w.tenants[0], carrier_account_id=w.accounts[0], secret=SecretStr('x'*40))
+    start = datetime.now(timezone.utc) - timedelta(minutes=10)
+    async def scan(index):
+        event = TrackingEvent(event_id=f'pickup-{index}', tracking_number='TRACK-0',
+            status='IN_TRANSIT', milestone='AVAILABLE_FOR_PICKUP', occurred_at=start+timedelta(minutes=index))
+        return await w.support.ingest('test', key, event, str(index)*64)
+    await scan(1)
+    assert await w.db.fetchval('SELECT count(*) FROM public.tracking_notifications') == 0
+    await w.db.execute("INSERT INTO public.tracking_preferences(tenant_id,categories) VALUES($1,ARRAY['AVAILABLE_FOR_PICKUP'])", w.tenants[0])
+    assert await w.db.fetchval('SELECT count(*) FROM public.tracking_notifications') == 0
+    await scan(2)
+    assert await w.db.fetchval('SELECT category FROM public.tracking_notifications') == 'AVAILABLE_FOR_PICKUP'
+    await w.db.execute('UPDATE public.tracking_preferences SET in_app_enabled=false WHERE tenant_id=$1', w.tenants[0])
+    await scan(3)
+    assert await w.db.fetchval('SELECT count(*) FROM public.tracking_notifications') == 1
+    detail = await w.engine.detail(w.scope, w.shipments[0])
+    assert detail['shipments'][0]['status'] == 'AVAILABLE_FOR_PICKUP'
+    assert len(detail['shipments'][0]['timeline']) == 3

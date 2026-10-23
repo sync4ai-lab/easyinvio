@@ -119,12 +119,12 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <span class="topbar-status">
 <span class="signal">
 </span>One workspace. Every shipment.</span>
-<button id="account-btn" class="outline">Connect workspace</button>
+<button id="account-btn" class="outline" hidden>Sign in</button>
 </div>
 </header>
 <div class="app-shell">
 <aside class="sidebar">
-<div class="sidebar-caption">Workspace operations</div>
+<div class="sidebar-caption" hidden></div>
 <nav role="tablist" aria-label="Workspace navigation">
 <button id="tab-dashboard" role="tab" data-view="dashboard" aria-selected="true">
 <span class="nav-symbol">
@@ -518,7 +518,6 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div>
 <b>Choose cargo</b>
 <small>Letter, parcel, pallet or road freight.</small>
-<button type="button" class="secondary" data-packaging-open style="margin-top:8px">Packaging sizes</button>
 </div>
 </li>
 <li>
@@ -543,10 +542,6 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 </li>
 </ol>
-<div class="actions">
-<button class="secondary full" data-view="manifest">Open tracking manifest</button>
-
-</div>
 </article>
 </div>
 </div>
@@ -910,8 +905,8 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 <dialog id="account-dialog">
 <button type="button" class="close" data-close="account-dialog" aria-label="Close account dialog">×</button>
-<h2>Connect your workspace</h2>
-<p>Sign in with a Supabase Auth user linked to an active tenant.</p>
+<h2>Sign in to EasyInvio</h2>
+<p>Use your EasyInvio email and password.</p>
 <form id="login-form" style="margin-top:22px">
 <div class="field">
 <label for="login-email">Email</label>
@@ -1870,7 +1865,22 @@ function notify(message, error = false) {
   $('#toast').hidden = false;
   toastTimer = setTimeout(() => $('#toast').hidden = true, 6500)
 }
-async function api(path, {
+const activeReadRequests = new Map();
+async function api(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  if (method !== 'GET' || options.signal || options.body !== undefined) return performApiRequest(path, options);
+  const session = state.session;
+  const key = JSON.stringify([API, path, !!options.auth, state.generation,
+    session?.access_token, state.assistance?.tenant_id, state.assistance?.session_id]);
+  let pending = activeReadRequests.get(key);
+  if (!pending) {
+    pending = performApiRequest(path, options);
+    activeReadRequests.set(key, pending);
+  }
+  try { return structuredClone(await pending); }
+  finally { if (activeReadRequests.get(key) === pending) activeReadRequests.delete(key); }
+}
+async function performApiRequest(path, {
   method = 'GET',
   body,
   raw = false,
@@ -2495,10 +2505,11 @@ $('#audit-form').addEventListener('submit', event => {
 $('#account-btn').addEventListener('click', () => $('#account-dialog').showModal());
 
 function renderAccount() {
-  $('#account-btn').textContent = state.session ? 'Workspace connected' : 'Connect workspace';
+  $('#account-btn').hidden = true;
+  $('#modebar').hidden = !!state.session && !state.assistance;
   $('#signout-btn').hidden = !state.session;
   $('#login-form').hidden = !!state.session;
-  $('#login-status').textContent = state.session ? 'Session token is held in memory. Tenant authorization is checked on every backend request.' : state.mode === 'local-preview' ? 'Configure .env and restart without --local-preview to enable login.' : 'Sign in using your Supabase Auth email and password.'
+  $('#login-status').textContent = state.session ? 'You are signed in. Open Profile to manage your account.' : state.mode === 'local-preview' ? 'Configure .env and restart without --local-preview to enable login.' : 'Sign in using your EasyInvio email and password.'
 }
 $('#login-form').addEventListener('submit', event => {
   event.preventDefault();
@@ -3116,10 +3127,15 @@ let customsDocument = null,
   activeManifestDocument = null,
   activeDispute = null;
 
+let iconRefreshFrame = null;
 function refreshIcons() {
-  try {
-    if (document.querySelector?.('i[data-lucide]')) globalThis.lucide?.createIcons()
-  } catch {}
+  if (iconRefreshFrame !== null) return;
+  iconRefreshFrame = requestAnimationFrame(() => {
+    iconRefreshFrame = null;
+    try {
+      if (document.querySelector('i[data-lucide]')) globalThis.lucide?.createIcons();
+    } catch {}
+  });
 }
 
 function invalidateCustoms() {
@@ -3749,7 +3765,7 @@ function refreshEnterpriseNavigation() {
   const key = allowed.join('|');
   if (key !== enterpriseNavKey) {
     enterpriseNavKey = key;
-    const buttons = allowed.filter(view => view !== 'boxes').map(view => {
+    const buttons = allowed.filter(view => !['boxes', 'tracking'].includes(view)).map(view => {
       const [label, icon] = enterpriseNavItems[view];
       const fallback = ({
         dashboard: 'grid',
@@ -3775,7 +3791,8 @@ function refreshEnterpriseNavigation() {
   if (!state.session && admin) $('#mode-label').textContent = 'SAMPLE PLATFORM CONTROL PLANE · Sign in as an authorized owner to manage database configuration.';
   $('#role-admin').hidden = !!state.session && !state.assistance && portal.profile?.portal_role !== 'SUPER_ADMIN';
   $('#role-client').hidden = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
-  $('.sidebar-caption').textContent = admin ? 'Platform control plane' : warehouse ? 'Warehouse operations' : 'Client workspace';
+  $('.sidebar-caption').hidden = true;
+  $('#modebar').hidden = !!state.session && !state.assistance;
   $('#dashboard .support-card').hidden = warehouse;
   $('#health-label').textContent = state.session ? 'SIGNED IN' : state.mode === 'local-preview' ? 'PREVIEW' : 'BACKEND ONLINE';
   $('#tenant-new').innerHTML = '<i data-lucide="building-2"></i>' + (state.session ? 'Onboard New Tenant' : 'Sign in to onboard a tenant');
@@ -3921,9 +3938,12 @@ async function loadEnterpriseView(view) {
       'admin-margins': '/margins',
       transactions: '/transactions'
     };
-    const result = await api('/api/v1/admin' + paths[view], {
-      auth: true
-    });
+    const [result, shared, capabilities, tenants] = await Promise.all([
+      api('/api/v1/admin' + paths[view], {auth: true}),
+      view === 'admin-carriers' ? api('/api/v1/admin/platform-carriers', {auth: true}) : null,
+      view === 'admin-carriers' ? api('/api/v1/admin/platform-carriers/capabilities', {auth: true}) : null,
+      !['admin-clients', 'transactions'].includes(view) ? api('/api/v1/admin/tenants', {auth: true}) : null
+    ]);
     if (generation !== enterprise.generation) return;
     enterprise[({
       'admin-clients': 'tenants',
@@ -3932,22 +3952,13 @@ async function loadEnterpriseView(view) {
       transactions: 'transactions'
     })[view]] = result.tenants || result.connections || result.rules || result.transactions;
     if (view === 'admin-carriers') {
-      const shared = await api('/api/v1/admin/platform-carriers', {
-        auth: true
-      });
       if (generation !== enterprise.generation) return;
       enterprise.carriers = [...shared.connections, ...enterprise.carriers];
-      const capabilities = await api('/api/v1/admin/platform-carriers/capabilities', {
-        auth: true
-      });
       if (generation !== enterprise.generation) return;
       enterprise.providerProfiles = capabilities.providers;
       renderProviderCatalogue();
     }
     if (view !== 'admin-clients' && view !== 'transactions') {
-      const tenants = await api('/api/v1/admin/tenants', {
-        auth: true
-      });
       if (generation !== enterprise.generation) return;
       enterprise.tenants = tenants.tenants;
     }
@@ -5529,7 +5540,8 @@ document.querySelector('main').insertAdjacentHTML('beforeend', `<section id="pro
 <div class="pagehead"><div><div class="eyebrow">Your identity</div><h1>User Profile</h1><p>Manage contact details. Permissions are assigned by your administrator.</p></div></div>
 <article class="card bg-slate-950 border border-slate-800"><span id="identity-role" class="tag green"></span><p id="identity-email-badge" class="mono"></p>
 <form id="identity-profile-form"><label>Full name<input name="full_name" required maxlength="200" autocomplete="name"></label><label>Phone (E.164)<input name="phone_e164" type="tel" pattern="\\+[1-9][0-9]{7,14}" placeholder="+447700900123" autocomplete="tel"></label><p class="subtle">Editing contact details does not change verified WhatsApp pairing.</p><button class="primary" type="submit">Save Profile</button></form></article></section>`);
-document.querySelector('.topbar-actions').insertAdjacentHTML('beforeend', `<div id="identity-user-widget" hidden><button id="identity-avatar" aria-label="Open user profile"></button><button id="identity-logout" class="outline" aria-label="Log out"><i data-lucide="log-out"></i>Log Out</button></div>`);
+document.querySelector('.topbar-actions').insertAdjacentHTML('beforeend', `<div id="identity-user-widget" hidden><button id="identity-avatar" aria-label="Open user profile"></button></div>`);
+document.querySelector('.sidebar').insertAdjacentHTML('beforeend', `<div class="sidebar-account"><button id="identity-logout" class="outline" aria-label="Log out" hidden><i data-lucide="log-out"></i>Log Out</button></div>`);
 
 function showIdentityGate() {
   const signedIn = !identityRecoveryHash && !!state.session && !!identityProfile;
@@ -5537,6 +5549,7 @@ function showIdentityGate() {
   document.body.classList.toggle('auth-ready', signedIn);
   $('#loginContainer').hidden = signedIn;
   $('#identity-user-widget').hidden = !signedIn;
+  $('#identity-logout').hidden = !signedIn;
   if (signedIn) $('#identity-avatar').textContent = identityProfile.email.slice(0, 1).toUpperCase();
   refreshIcons();
 }

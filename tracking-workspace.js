@@ -6,20 +6,20 @@
   const human = value => String(value || 'Not available').toLowerCase().replaceAll('_', ' ');
   const when = value => value ? new Date(value).toLocaleString() : 'No carrier scan yet';
   const badge = value => `<span class="tracking-badge" data-status="${escape(value)}">${escape(human(value))}</span>`;
-  let generation = 0, detailGeneration = 0, page = 1, activeView = 'all', current = null;
+  let generation = 0, detailGeneration = 0, preferenceGeneration = 0, page = 1, activeView = 'all', current = null;
   const contextKey = () => JSON.stringify([portal.profile?.tenant_id, state.assistance?.tenant_id, state.assistance?.session_id || state.assistance?.id, portal.role, portal.profile?.workspace_role]);
   const admin = () => portal.role === 'SUPER_ADMIN' && portal.profile?.portal_role === 'SUPER_ADMIN';
   const writable = () => !admin() && ['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role);
   const prefix = () => admin() ? '/api/v1/admin/tracking' : '/api/v1/tracking';
   const section = document.createElement('section'); section.id = 'tracking'; section.hidden = true;
-  section.innerHTML = `<div class="pagehead"><div><div class="eyebrow">Shipping visibility</div><h1 id="tracking-title">Shipment tracking</h1><p>Shipments, returns and delivery exceptions in one place.</p></div><button class="secondary" id="tracking-reload">Refresh view</button></div>
+  section.innerHTML = `<div class="pagehead"><div><div class="eyebrow">Shipping visibility</div><h1 id="tracking-title">Shipment tracking</h1><p>Shipments, returns and delivery exceptions in one place.</p></div><div class="tracking-actions"><button class="secondary" id="tracking-preferences">Notification preferences</button><button class="secondary" id="tracking-reload">Refresh view</button></div></div>
     <div class="tracking-toolbar"><label>Order or tracking reference<input id="tracking-search" type="search" maxlength="120" placeholder="Search order, tracking or return reference"></label>
     <label id="tracking-tenant-wrap" hidden>Tenant ID<input id="tracking-tenant" placeholder="All authorized workspaces"></label>
     <label>Carrier<input id="tracking-carrier" maxlength="50" placeholder="All carriers"></label><label>Destination<input id="tracking-country" maxlength="2" placeholder="e.g. GB"></label>
     <label>From<input id="tracking-start" type="date"></label><label>To<input id="tracking-end" type="date"></label><button class="primary" id="tracking-find">Search</button></div>
     <div id="tracking-cards" class="tracking-cards"></div><div id="tracking-message" role="status" aria-live="polite"></div>
     <article class="card"><div class="scrolltable"><table><thead><tr><th>Order / parcel</th><th>Carrier</th><th>Status</th><th>Last carrier update</th><th>Attention</th></tr></thead><tbody id="tracking-rows"></tbody></table></div>
-    <div class="tracking-actions"><button class="secondary" id="tracking-prev">Previous</button><span id="tracking-page"></span><button class="secondary" id="tracking-next">Next</button><button class="secondary" id="tracking-preferences">Notification preferences</button></div></article>
+    <div class="tracking-actions"><button class="secondary" id="tracking-prev">Previous</button><span id="tracking-page"></span><button class="secondary" id="tracking-next">Next</button></div></article>
     <div id="tracking-health"></div>`;
   document.querySelector('main').append(section);
   const drawer = document.createElement('dialog'); drawer.className = 'tracking-drawer'; drawer.setAttribute('aria-labelledby', 'tracking-detail-title');
@@ -27,12 +27,12 @@
   document.body.append(drawer);
   const preferences = document.createElement('dialog'); preferences.className = 'tracking-drawer'; preferences.setAttribute('aria-label', 'Tracking notification preferences');
   preferences.innerHTML = `<header><h2>Tracking preferences</h2><button class="secondary" id="tracking-pref-close">Close</button></header><form id="tracking-pref-form"><label class="check"><input name="in_app_enabled" type="checkbox">In-app milestone notifications</label>
-    <div class="tracking-toolbar"><label>Review quiet tracking after (hours)<input name="stale_hours" type="number" min="12" max="720" required></label><label>Carrier refresh interval (minutes)<input name="poll_interval_minutes" type="number" min="60" max="1440" required></label></div>
-    <details><summary>Advanced milestone selection</summary><div id="tracking-pref-events"></div></details><p class="tracking-muted">Visibility is included. WhatsApp support alerts retain their existing opt-in controls. New SMS, email and paid WhatsApp milestone campaigns are not enabled.</p><button class="primary" type="submit">Save preferences</button><p id="tracking-pref-message" role="status"></p></form>`;
+    <div class="tracking-toolbar"><label>Flag shipments with no carrier update after (hours)<input name="stale_hours" type="number" min="12" max="720" required></label><label id="tracking-pref-interval">Carrier refresh interval (minutes)<input name="poll_interval_minutes" type="number" min="60" max="1440" required></label></div>
+    <details><summary>Advanced milestone selection</summary><div id="tracking-pref-events"></div></details><p class="tracking-muted">Choose which future carrier updates appear in Recent milestones. Selecting an event does not change shipment status or add past updates.</p><button class="primary" type="submit">Save preferences</button><p id="tracking-pref-message" role="status"></p></form>`;
   document.body.append(preferences);
   const global = document.createElement('form'); global.className = 'tracking-global'; global.hidden = true;
-  global.innerHTML = '<input type="search" aria-label="Find an order or shipment" maxlength="120" placeholder="Find an order or shipment"><button class="secondary">Track</button>';
-  document.querySelector('header').append(global);
+  global.innerHTML = '<input type="search" aria-label="Find an Order" maxlength="120" placeholder="Find an Order"><button class="secondary">Track</button>';
+  document.querySelector('.topbar-actions').insertBefore(global, document.getElementById('identity-user-widget'));
   const allowed = allowedEnterpriseViews;
   allowedEnterpriseViews = function () {
     const views = allowed.apply(this, arguments);
@@ -50,7 +50,7 @@
   };
   const clear = clearSession;
   clearSession = function () {
-    generation++; detailGeneration++; current = null; page = 1; activeView = 'all';
+    generation++; detailGeneration++; preferenceGeneration++; current = null; page = 1; activeView = 'all';
     drawer.close(); preferences.close(); section.hidden = true; global.hidden = true;
     global.querySelector('input').value = ''; document.getElementById('tracking-pref-form').reset();
     document.getElementById('tracking-pref-events').replaceChildren(); document.getElementById('tracking-pref-message').textContent = '';
@@ -69,6 +69,8 @@
     if (isAdmin && document.getElementById('tracking-tenant').value.trim()) params.set('tenant_id', document.getElementById('tracking-tenant').value.trim());
     document.getElementById('tracking-message').textContent = 'Loading recorded shipment activity…';
     try {
+      const supplementary = api(isAdmin ? '/api/v1/admin/tracking/health' : '/api/v1/tracking/notifications', { auth: true })
+        .then(value => ({value}), error => ({error}));
       const result = await api(prefix() + '/shipments?' + params, { auth: true });
       if (epoch !== generation || context !== contextKey()) return;
       const cards = [['all','All shipments',result.counts.total],['IN_TRANSIT','In transit',result.counts.in_transit],['OUT_FOR_DELIVERY','Out for delivery',result.counts.out_for_delivery],['DELIVERED','Delivered',result.counts.delivered],['EXCEPTION','Delivery exceptions',result.counts.exceptions],['STALE','Needs tracking review',result.counts.stale],['RETURNS','Returns awaiting receipt',result.counts.returns],['CUSTOMER_REQUESTS','Customer requests',result.counts.customer_requests]];
@@ -78,11 +80,16 @@
       document.getElementById('tracking-page').textContent = 'Page ' + page;
       document.getElementById('tracking-prev').disabled = page === 1; document.getElementById('tracking-next').disabled = !result.has_more;
       if (isAdmin) {
-        const health = await api('/api/v1/admin/tracking/health', { auth: true }); if (epoch !== generation || context !== contextKey()) return;
+        const extra = await supplementary; if (epoch !== generation || context !== contextKey()) return;
+        if (extra.error) { document.getElementById('tracking-health').textContent = 'Could not load synchronization health. Refresh to try again.'; return; }
+        const health = extra.value;
         document.getElementById('tracking-health').innerHTML = `<article class="card"><h2>Synchronization health</h2><p>${health.polling_enabled ? 'Read-only carrier reconciliation enabled.' : 'Scheduled polling is off; signed webhooks remain active.'}</p>${health.jobs.length ? health.jobs.map(job => `<p><button class="tracking-ref" data-tracking-open="${escape(job.shipment_id)}">${escape(job.company_name)}</button> · ${escape(human(job.state))} · ${escape(human(job.error_code))} · ${Number(job.attempts)} attempts</p>`).join('') : '<p>No recorded refresh failures.</p>'}</article>`;
       } else {
         document.getElementById('tracking-health').replaceChildren();
-        const updates = await api('/api/v1/tracking/notifications', { auth: true });
+        const extra = await supplementary;
+        if (epoch !== generation || context !== contextKey()) return;
+        if (extra.error) { document.getElementById('tracking-health').textContent = 'Could not load recent milestones. Refresh to try again.'; return; }
+        const updates = extra.value;
         if (epoch !== generation || context !== contextKey()) return;
         const notices = updates.notifications || [];
         document.getElementById('tracking-health').innerHTML = notices.length ? `<details class="card"><summary>Recent milestones (${notices.length})</summary>${notices.slice(0,10).map(item => `<p><button class="tracking-ref" data-tracking-open="${escape(item.shipment_id)}">${escape(item.customer_reference || 'Shipment')}</button> · ${escape(human(item.category))} · ${escape(when(item.created_at))}</p>`).join('')}</details>` : '';
@@ -111,21 +118,50 @@
     } catch (error) { if (epoch === detailGeneration && drawer.open) document.getElementById('tracking-detail-content').textContent = error.message; }
   }
   async function showPreferences() {
-    const result = await api('/api/v1/tracking/preferences', { auth: true });
+    const epoch = ++preferenceGeneration, context = contextKey(), session = state.session;
     const form = document.getElementById('tracking-pref-form');
-    form.elements.in_app_enabled.checked = result.preferences.in_app_enabled;
-    form.elements.stale_hours.value = result.preferences.stale_hours;
-    form.elements.poll_interval_minutes.value = result.preferences.poll_interval_minutes;
-    document.getElementById('tracking-pref-events').innerHTML = ['IN_TRANSIT','OUT_FOR_DELIVERY','DELIVERED','EXCEPTION','RETURNED_TO_SENDER','AVAILABLE_FOR_PICKUP'].map(value => `<label class="check"><input type="checkbox" name="category" value="${value}" ${result.preferences.categories.includes(value) ? 'checked' : ''}>${escape(human(value))}</label>`).join('');
-    const editable = ['OWNER','ADMIN'].includes(portal.profile?.workspace_role);
-    for (const element of form.elements) element.disabled = !editable;
-    document.getElementById('tracking-pref-message').textContent = result.refresh_enabled ? 'Carrier refresh is enabled for supported connections.' : 'Polling is off. Existing signed carrier webhooks remain active.';
-    preferences.showModal();
+    form.reset(); document.getElementById('tracking-pref-events').replaceChildren();
+    for (const element of form.elements) element.disabled = true;
+    document.getElementById('tracking-pref-message').textContent = 'Loading preferences...';
+    if (!preferences.open) preferences.showModal();
+    try {
+      const result = await api('/api/v1/tracking/preferences', { auth: true });
+      if (epoch !== preferenceGeneration || !preferences.open || session !== state.session || context !== contextKey()) return;
+      form.elements.in_app_enabled.checked = result.preferences.in_app_enabled;
+      form.elements.stale_hours.value = result.preferences.stale_hours;
+      form.elements.poll_interval_minutes.value = result.preferences.poll_interval_minutes;
+      document.getElementById('tracking-pref-interval').hidden = !result.refresh_enabled;
+      document.getElementById('tracking-pref-events').innerHTML = ['IN_TRANSIT','OUT_FOR_DELIVERY','DELIVERED','EXCEPTION','RETURNED_TO_SENDER','AVAILABLE_FOR_PICKUP'].map(value => `<label class="check"><input type="checkbox" name="category" value="${value}" ${result.preferences.categories.includes(value) ? 'checked' : ''}>${escape(human(value))}</label>`).join('');
+      const editable = ['OWNER','ADMIN'].includes(portal.profile?.workspace_role);
+      for (const element of form.elements) element.disabled = !editable;
+      form.querySelector('[type=submit]').hidden = !editable;
+      document.getElementById('tracking-pref-message').textContent = editable ? '' : 'Only workspace owners and admins can change these preferences.';
+    } catch (error) {
+      if (epoch === preferenceGeneration && preferences.open) document.getElementById('tracking-pref-message').textContent = error.message;
+    }
   }
+  preferences.addEventListener('close', () => { if (!preferences.open) preferenceGeneration++; });
+  document.getElementById('tracking-pref-form').addEventListener('change', () => {
+    document.getElementById('tracking-pref-message').textContent = 'Unsaved changes.';
+  });
   document.getElementById('tracking-pref-form').addEventListener('submit', async event => {
     event.preventDefault(); const form = event.currentTarget;
-    try { await api('/api/v1/tracking/preferences', { auth: true, method: 'PUT', body: { in_app_enabled: form.elements.in_app_enabled.checked, stale_hours: Number(form.elements.stale_hours.value), poll_interval_minutes: Number(form.elements.poll_interval_minutes.value), categories: [...form.querySelectorAll('[name=category]:checked')].map(node => node.value) } }); document.getElementById('tracking-pref-message').textContent = 'Preferences saved.'; }
-    catch (error) { document.getElementById('tracking-pref-message').textContent = error.message; }
+    if (!['OWNER','ADMIN'].includes(portal.profile?.workspace_role) || form.querySelector('[type=submit]').disabled) return;
+    const epoch = preferenceGeneration, session = state.session, context = contextKey();
+    const body = { in_app_enabled: form.elements.in_app_enabled.checked, stale_hours: Number(form.elements.stale_hours.value), poll_interval_minutes: Number(form.elements.poll_interval_minutes.value), categories: [...form.querySelectorAll('[name=category]:checked')].map(node => node.value) };
+    for (const element of form.elements) element.disabled = true;
+    document.getElementById('tracking-pref-message').textContent = 'Saving preferences...';
+    try {
+      await api('/api/v1/tracking/preferences', { auth: true, method: 'PUT', body });
+      if (epoch !== preferenceGeneration || !preferences.open || session !== state.session || context !== contextKey()) return;
+      document.getElementById('tracking-pref-message').textContent = 'Preferences saved. Your choices apply to future carrier updates.';
+      notify('Tracking preferences saved.');
+      if (!section.hidden) void load();
+    } catch (error) {
+      if (epoch === preferenceGeneration && session === state.session && context === contextKey()) document.getElementById('tracking-pref-message').textContent = error.message;
+    } finally {
+      if (epoch === preferenceGeneration && session === state.session && context === contextKey()) for (const element of form.elements) element.disabled = false;
+    }
   });
   global.addEventListener('submit', event => { event.preventDefault(); document.getElementById('tracking-search').value = global.querySelector('input').value; page = 1; activeView = 'all'; setView('tracking'); });
   document.getElementById('tracking-find').onclick = () => { page = 1; load(); };

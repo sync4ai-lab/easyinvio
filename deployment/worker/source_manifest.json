@@ -106,7 +106,7 @@
   "backend/workspace_settings.py": "d10fc3b26b1590c81172868f98d5799215731b07ed47ad7e97992827299efc05",
   "backend/xcover_claims.py": "3d5bd35996edee6ca05c5cd858c18cb289f10470a7a481c89d3a3f442422aec7",
   "certs/supabase-root-2021.crt": "700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7",
-  "docs/status_reference.md": "ffe3001237b368195163361b45e485e703ff00ae970df2cf3185b0ffedd94f93",
+  "docs/status_reference.md": "2a555dfe0c6920a9269cb3dbb0764feb32fdc1f4e6dca30254923b9a5b6d7ddd",
   "docs_carrier_pickups.md": "451b28ed80d3312ca0f897750d5702ba4eebfe868104779c3af9c79e6bcf35a2",
   "docs_order_processing.md": "6e95868afe4fb5b1ce16e4c2fe93183030a39ec3034e9e89fe3c9a27088b1a18",
   "docs_returns_lifecycle.md": "0dd678814592dc8098aede25660b010250ce79874f48377bc38fb784abda26e6",

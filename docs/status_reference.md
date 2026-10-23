@@ -610,3 +610,37 @@ For an unexpected result that remains unresolved, use [Contact support](/help/co
 and include the screen, exact status, reference, time and amount/currency if relevant.
 General assistant guidance cannot verify your live shipment, refund or claim;
 an authenticated tracking lookup or the relevant native workspace record is needed.
+
+
+## Tracking notification preferences
+
+Open **Track** in the header, then **Notification preferences** beside **Refresh
+view**. These preferences belong to the current workspace, not one browser or
+one marketplace connection. Owners and workspace admins can save changes;
+dispatchers and accountants can view them.
+
+- **In-app milestone notifications** controls creation of new entries in
+  **Recent milestones** on Track. Turning it off stops new entries; it does not
+  remove existing history or stop shipment tracking.
+- **Advanced milestone selection** chooses which future applied carrier updates
+  create those entries. **Available for pickup** requires the carrier to report
+  a collection-ready event. Selecting it does not make a parcel ready for pickup,
+  add historical notices, or send an email or WhatsApp message.
+- **Flag shipments with no carrier update after (hours)** changes the quiet
+  tracking threshold for shipments in transit or with an exception. Matching
+  shipments appear under **Needs tracking review**. It does not alter carrier
+  scans or promise a delivery date.
+- **Carrier refresh interval (minutes)** sets the interval used by supported,
+  enabled scheduled carrier reconciliation. The control is shown only when that
+  facility is enabled. **Refresh view** reloads recorded data; it does not make a
+  new carrier scan or force a carrier refresh.
+
+Click **Save preferences** and wait for the saved confirmation. Changes affect
+future carrier updates and are not retroactive. If no new notice appears, check
+that in-app notifications and the relevant milestone are selected, then inspect
+that shipment's timeline for a new carrier event. An unchanged timeline means
+there is no new carrier fact to announce. Existing notifications remain visible.
+
+The user avatar opens Profile. Log Out ends the application session. Marketplace
+connections are managed separately under Store integrations and Marketplace
+Workspace; signing in does not connect a storefront.
