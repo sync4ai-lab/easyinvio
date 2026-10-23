@@ -2265,12 +2265,14 @@ async def health(request: Request) -> dict[str, str]:
 
 
 @app.get("/", include_in_schema=False)
+@app.get("/index.html", include_in_schema=False)
 @app.get("/set-password", include_in_schema=False)
 async def frontend():
     return FileResponse(Path(__file__).with_name("index.html"), media_type="text/html", headers={'Cache-Control':'no-store'})
 
 
 @app.get('/track',include_in_schema=False)
+@app.get('/tracking.html',include_in_schema=False)
 async def public_tracking_page():
     return FileResponse(Path(__file__).with_name('tracking.html'),media_type='text/html',headers={
         'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',

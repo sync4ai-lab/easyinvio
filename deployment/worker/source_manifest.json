@@ -117,7 +117,7 @@
   "frontend/components/SupportHub.html": "37821c371e788148474b2bf0fecb116986604b45fa57d395b3669b0759119613",
   "frontend/components/support.css": "cac06eec53a50e4d5facb393cf6a52d7c5b10b2b78ca6f399d58b5af926bc1b2",
   "frontend/components/support.js": "427975ec86ccf700da07782b98763c2e10d522b0805d0a7a34bdf152aa4b8577",
-  "main.py": "4458660c3637f30a59e3c058834d150e9535421c6f6a6e3af9584c0916012c4c",
+  "main.py": "2d00ac4f2f44307e2b59fc7ce3f029f6fce5edca3a927d5c59aaa115fe29fb23",
   "requirements.lock.txt": "300c619fdf9efa94a8e96f8360187988d6bedb8adc8dc5cb09d749f38c60be45",
   "requirements.txt": "f847e7ee5ea0a909408135db9d2cb7feea94441d8d639a927b03088b61f0611e"
 }

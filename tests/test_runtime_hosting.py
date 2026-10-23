@@ -264,3 +264,27 @@ def test_bundle_rejects_changed_contents_and_unsafe_members(tmp_path, fault):
         target.write_bytes(output.getvalue())
     with pytest.raises(RuntimeError, match='stale or invalid'):
         prepare(tmp_path)
+
+
+def test_vercel_page_rewrites_resolve_to_complete_html_without_database():
+    """Exercise rewritten destinations, not just the local friendly URLs."""
+    import httpx
+    import main
+
+    async def scenario():
+        transport = httpx.ASGITransport(app=main.app)
+        async with httpx.AsyncClient(transport=transport, base_url='https://testserver') as client:
+            config = json.loads((Path(__file__).parents[1] / 'vercel.json').read_text())
+            for rewrite in config['rewrites']:
+                response = await client.get(rewrite['destination'])
+                assert response.status_code == 200, rewrite
+                assert 'text/html' in response.headers['content-type']
+                assert '<html' in response.text.lower()
+                assert response.headers['cache-control'] == 'no-store'
+            for path in ['/', '/set-password', '/track']:
+                response = await client.get(path)
+                assert response.status_code == 200
+            tracking = await client.get('/tracking.html')
+            assert "frame-ancestors 'none'" in tracking.headers['content-security-policy']
+
+    asyncio.run(scenario())
