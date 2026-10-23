@@ -57,9 +57,41 @@ def bundle(files: dict[str, bytes]) -> bytes:
     return result.getvalue()
 
 
+def verify_bundle(target: Path, manifest: Path, files: dict[str, bytes]) -> None:
+    """Compare source contents, independent of Python/zlib archive encoding."""
+    expected = {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}
+    try:
+        recorded = json.loads(manifest.read_text(encoding='utf-8'))
+        if not isinstance(recorded, dict):
+            raise ValueError('Source manifest must be an object')
+        changed = sorted(name for name in set(expected) | set(recorded)
+                         if expected.get(name) != recorded.get(name))
+        if changed:
+            raise ValueError('Source manifest differs: ' + ', '.join(changed[:30]))
+        with tarfile.open(target, mode='r:gz') as archive:
+            seen: set[str] = set()
+            for member in archive:
+                name = member.name
+                if name not in files or name in seen or not member.isfile():
+                    raise ValueError('Archive has an unexpected, duplicate or non-regular member')
+                seen.add(name)
+                expected_data = files[name]
+                if member.size != len(expected_data):
+                    raise ValueError(f'Archive source differs: {name}')
+                stream = archive.extractfile(member)
+                if stream is None or stream.read(len(expected_data) + 1) != expected_data:
+                    raise ValueError(f'Archive source differs: {name}')
+            if seen != set(files):
+                raise ValueError('Archive is missing source files')
+    except (OSError, EOFError, tarfile.TarError, ValueError) as exc:
+        raise RuntimeError(
+            f'Worker bundle is stale or invalid ({exc}). '
+            'Run python scripts/build_vercel.py --bundle and commit it.'
+        ) from exc
+
+
 def prepare(root: Path = ROOT, *, write_bundle: bool = False) -> dict[str, int]:
     files = runtime_files(root)
-    archive = bundle(files)
     context = root / 'deployment' / 'worker'
     target = context / 'runtime.tar.gz'
     manifest = context / 'source_manifest.json'
@@ -67,11 +99,10 @@ def prepare(root: Path = ROOT, *, write_bundle: bool = False) -> dict[str, int]:
                            for name, data in files.items()}, indent=2) + '\n'
     if write_bundle:
         context.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(archive)
+        target.write_bytes(bundle(files))
         manifest.write_text(metadata, encoding='utf-8', newline='\n')
-    elif (not target.is_file() or target.read_bytes() != archive
-          or not manifest.is_file() or manifest.read_text(encoding='utf-8') != metadata):
-        raise RuntimeError('Worker bundle is stale. Run python scripts/build_vercel.py --bundle and commit it.')
+    else:
+        verify_bundle(target, manifest, files)
     public = root / 'public'
     public.mkdir(exist_ok=True)
     if public.is_symlink() or public.resolve().parent != root.resolve():

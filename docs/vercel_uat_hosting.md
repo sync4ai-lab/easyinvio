@@ -91,7 +91,10 @@ After runtime changes, run:
 ```
 
 Commit the refreshed archive and manifest with their source changes. The Vercel
-build command checks the bundle against the current source and fails on drift.
+build command checks every archived file and SHA-256 manifest entry against the
+current source and fails on drift. It rejects missing, duplicate, unexpected and
+non-regular archive members without extracting them. Compressed archive bytes
+are not compared: Python/zlib versions can encode identical sources differently.
 Do not bypass this check: different web and worker source versions are unsafe.
 Public assets are generated and ignored by Git. Runtime bundle inputs are the
 Python backend, main.py, requirements, public CA certificates, Help Centre sources

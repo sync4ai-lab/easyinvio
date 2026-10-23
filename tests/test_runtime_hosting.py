@@ -218,3 +218,49 @@ def test_daemon_entrypoint_forces_worker_role_and_cleans_up_on_failure(monkeypat
         assert closed == [True]
 
     asyncio.run(scenario())
+
+
+def test_bundle_accepts_different_compression_of_identical_sources(tmp_path):
+    import gzip
+
+    fixture_checkout(tmp_path)
+    prepare(tmp_path, write_bundle=True)
+    target = tmp_path / 'deployment/worker/runtime.tar.gz'
+    original = target.read_bytes()
+    target.write_bytes(gzip.compress(gzip.decompress(original), compresslevel=1, mtime=123))
+    assert target.read_bytes() != original
+    prepare(tmp_path)
+
+
+@pytest.mark.parametrize('fault', ['changed', 'missing', 'extra', 'duplicate', 'symlink', 'traversal', 'manifest', 'corrupt'])
+def test_bundle_rejects_changed_contents_and_unsafe_members(tmp_path, fault):
+    fixture_checkout(tmp_path)
+    prepare(tmp_path, write_bundle=True)
+    target = tmp_path / 'deployment/worker/runtime.tar.gz'
+    files = runtime_files(tmp_path)
+    if fault == 'manifest':
+        (target.parent / 'source_manifest.json').write_text('{}', encoding='utf-8')
+    elif fault == 'corrupt':
+        target.write_bytes(b'not gzip')
+    else:
+        output = io.BytesIO()
+        with tarfile.open(fileobj=output, mode='w:gz') as archive:
+            for name, data in files.items():
+                if fault == 'missing' and name == 'main.py':
+                    continue
+                if fault == 'changed' and name == 'main.py':
+                    data = b'x' * len(data)
+                member = tarfile.TarInfo(name)
+                member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+            if fault in {'extra', 'duplicate', 'symlink', 'traversal'}:
+                name = {'extra': 'private.txt', 'duplicate': 'main.py',
+                        'symlink': 'main.py', 'traversal': '../main.py'}[fault]
+                member = tarfile.TarInfo(name)
+                if fault == 'symlink':
+                    member.type = tarfile.SYMTYPE
+                    member.linkname = '/etc/passwd'
+                archive.addfile(member, io.BytesIO(b''))
+        target.write_bytes(output.getvalue())
+    with pytest.raises(RuntimeError, match='stale or invalid'):
+        prepare(tmp_path)
