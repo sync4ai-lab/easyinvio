@@ -7032,11 +7032,39 @@ const dispatchLive = {
   socket: null,
   session: null,
   retry: null,
-  refresh: null
+  refresh: null,
+  poll: null
 };
 
 function connectDispatchUpdates() {
   if (!state.session || !portal.profile?.tenant_id) return;
+  if (state.config?.dispatch_updates_mode === 'POLLING') {
+    if (dispatchLive.session === state.session && dispatchLive.poll) return;
+    clearTimeout(dispatchLive.poll);
+    clearTimeout(dispatchLive.retry);
+    dispatchLive.socket?.close();
+    dispatchLive.socket = null;
+    const session = state.session;
+    dispatchLive.session = session;
+    const poll = async () => {
+      if (session !== state.session) return;
+      try {
+        if (!document.hidden) {
+          if (enterprise.currentView === 'workspace') await loadDispatchWorkspace();
+          if (enterprise.currentView === 'manifest') $('#manifest-refresh').click();
+          if (enterprise.currentView === 'wallet') await refreshBookingWallet();
+        }
+      } catch {
+        // Normal request handlers retain authentication and visible error handling.
+      } finally {
+        if (session === state.session) dispatchLive.poll = setTimeout(poll, 15000);
+      }
+    };
+    dispatchLive.poll = setTimeout(poll, 15000);
+    return;
+  }
+  clearTimeout(dispatchLive.poll);
+  dispatchLive.poll = null;
   if (dispatchLive.session === state.session && dispatchLive.socket && dispatchLive.socket.readyState < 2) return;
   clearTimeout(dispatchLive.retry);
   dispatchLive.socket?.close();
@@ -7093,6 +7121,8 @@ refreshEnterpriseNavigation = function(...args) {
   if (!state.session) {
     clearTimeout(dispatchLive.retry);
     clearTimeout(dispatchLive.refresh);
+    clearTimeout(dispatchLive.poll);
+    dispatchLive.poll = null;
     dispatchLive.session = null;
     dispatchLive.socket?.close();
     dispatchLive.socket = null;

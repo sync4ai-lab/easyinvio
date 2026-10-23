@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+# The archive contains allowlisted source only; never .env or build arguments.
+ADD runtime.tar.gz /app/
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && useradd --create-home --uid 10001 easyinvio \
+    && mkdir -p /app/output/agents \
+    && chown -R easyinvio:easyinvio /app/output
+USER easyinvio
+CMD ["python", "-m", "backend.worker_runtime"]

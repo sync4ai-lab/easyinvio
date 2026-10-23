@@ -2,6 +2,18 @@
 
 Use an authorized development/sandbox environment for integration setup and mutation testing. Application startup, a passing unit suite and a provider accepting an email are separate checks. Record the exact application revision, migration state and environment before diagnosing an incident.
 
+## Vercel UAT process separation
+
+Use [the Vercel UAT hosting guide](https://github.com/sync4ai-lab/easyinvio/blob/main/docs/vercel_uat_hosting.md)
+for WEB/WORKER/COMBINED ownership, the dedicated daemon, allowlisted CDN assets,
+session-pool budgets, polling and acceptance checks. Web instances must not start
+continuous queue consumers. Keep session pooling for existing financial advisory
+locks; a transaction-pooler port change alone is unsafe. A 200-client pooler limit
+does not enlarge the 15-session pool. Verify the daemon actually starts before
+accepting payment completion or queued WhatsApp/return delivery as functional.
+After runtime edits, regenerate and commit the worker source bundle using
+`python scripts/build_vercel.py --bundle`; the deployment build rejects stale bundles.
+
 ## Local startup
 
 From `C:\Projects\easyinvio` in PowerShell:

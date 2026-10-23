@@ -12,6 +12,8 @@
 *.png binary
 *.jpg binary
 *.pdf binary
+*.tar.gz binary
+Containerfile text eol=lf
 docs/platform_overview/*.mmd text eol=lf
 docs/platform_overview/*.svg text eol=lf
 output/EasyInvio-Architecture/*.mmd text eol=lf

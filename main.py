@@ -120,6 +120,7 @@ QUOTE_PATTERN = re.compile(
 
 
 from backend.integration_policy import IntegrationSettings, integration_enabled, integration_code
+from backend.runtime_hosting import BackgroundJobs, RuntimeRole, pool_options, resolve_role
 
 
 class Settings(IntegrationSettings):
@@ -134,6 +135,8 @@ class Settings(IntegrationSettings):
     database_url: SecretStr
     database_ca_file: str | None = None
     database_tls_strict: bool = True
+    runtime_role: RuntimeRole = 'AUTO'
+    worker_db_pool_max_size: int = Field(default=8, ge=4, le=20)
     automation_purchase_enabled: bool = False
     partner_document_allowed_hosts: list[str] = ['easypost-files.s3.amazonaws.com', 'easypost-files.s3.us-west-2.amazonaws.com', 'deliver.goshippo.com',
         'shippo-delivery.s3.amazonaws.com', 'panel.sendcloud.sc']
@@ -1914,6 +1917,10 @@ async def deterministic_lifespan(application: FastAPI):
         return
     application.state.local_preview = False
     settings = Settings()
+    role = resolve_role(settings.runtime_role, os.environ)
+    jobs = BackgroundJobs(role in {'COMBINED', 'WORKER'})
+    application.state.runtime_role = role
+    application.state.background_jobs = jobs
     from backend.whatsapp_bot import initialize_whatsapp
     initialize_whatsapp(settings)
     tls = database_tls_context(settings.database_ca_file, strict=settings.database_tls_strict)
@@ -1924,8 +1931,10 @@ async def deterministic_lifespan(application: FastAPI):
     ) as http_client:
         pool = await asyncpg.create_pool(
             dsn=settings.database_url.get_secret_value(), ssl=tls,
-            # Reserve a connection for the shared commit-time dispatch listener.
-            min_size=1, max_size=max(2, settings.db_pool_max_size - 1), command_timeout=15,
+            # Local combined mode reserves a listener connection; hosted web
+            # processes close sessions on release and never start queue consumers.
+            **pool_options(role, settings.db_pool_max_size, settings.worker_db_pool_max_size),
+            command_timeout=15, timeout=10,
             server_settings={"application_name": "veloce-main", "statement_timeout": "15000",
                              "lock_timeout": "5000", "idle_in_transaction_session_timeout": "15000"},
         )
@@ -2003,8 +2012,8 @@ async def deterministic_lifespan(application: FastAPI):
                 await application.state.tracking_workspace.initialise()
                 if application.state.tracking_workspace.ready:
                     application.state.tracking_support.workspace = application.state.tracking_workspace
-                tracking_refresh_task = (asyncio.create_task(TrackingRefreshWorker(application.state.tracking_workspace,
-                    application.state.tracking_support).worker()) if application.state.tracking_workspace.ready and settings.tracking_polling_enabled else None)
+                jobs.start('tracking-refresh', lambda: TrackingRefreshWorker(application.state.tracking_workspace,
+                    application.state.tracking_support).worker(), enabled=application.state.tracking_workspace.ready and settings.tracking_polling_enabled)
                 application.state.support_delivery = SupportDelivery(pool,http_client,settings,DeliverySettings())
                 application.state.sandbox_billing = SandboxBillingService(application.state.finance, settings) if settings.stripe_enabled else None
                 application.state.admin_portal = AdminService(pool)
@@ -2017,120 +2026,50 @@ async def deterministic_lifespan(application: FastAPI):
                     cache_jwk_set=True, lifespan=300, timeout=5,
                 )
                 configure_ecommerce_service(application.state.ecommerce)
-                ecommerce_task = asyncio.create_task(tracking_worker(application.state.ecommerce))
+                jobs.start('ecommerce-tracking', lambda: tracking_worker(application.state.ecommerce))
                 from backend.automation_three_partners import NativePartnerService
                 application.state.native_partners = NativePartnerService(application.state.automation_freight,http_client,application.state.tracking_support)
                 application.state.automation_freight.native_orders = application.state.native_partners
-                native_order_task = asyncio.create_task(application.state.native_partners.worker())
-                partner_task = asyncio.create_task(application.state.partner_lifecycle.worker())
-                protection_task = asyncio.create_task(application.state.protection.worker()) if application.state.xcover.settings.unavailable_reason() is None else None
-                claims_task = asyncio.create_task(application.state.claims.worker()) if application.state.claims.client.unavailable_reason() is None else None
+                jobs.start('native-orders', application.state.native_partners.worker)
+                jobs.start('partner-lifecycle', application.state.partner_lifecycle.worker)
+                jobs.start('protection', application.state.protection.worker, enabled=application.state.xcover.settings.unavailable_reason() is None)
+                jobs.start('claims', application.state.claims.worker, enabled=application.state.claims.client.unavailable_reason() is None)
                 from backend.dispatch_realtime import DispatchUpdates
                 application.state.dispatch_updates = DispatchUpdates(settings, tls)
-                dispatch_updates_task = asyncio.create_task(application.state.dispatch_updates.worker())
+                jobs.start('dispatch-listener', application.state.dispatch_updates.worker, enabled=role == 'COMBINED')
                 from backend.ecommerce_inbound import AmazonInbound
                 application.state.amazon_inbound = AmazonInbound(application.state.ecommerce)
-                amazon_inbound_task = asyncio.create_task(application.state.amazon_inbound.worker())
-                support_task = asyncio.create_task(application.state.tracking_support.worker())
-                notification_task = asyncio.create_task(application.state.support_delivery.worker())
-                whatsapp_tasks = [asyncio.create_task(application.state.whatsapp_queue.worker(), name=f'whatsapp-queue-{index}')
-                    for index in range(settings.whatsapp_queue_workers)] if settings.twilio_enabled else []
+                jobs.start('amazon-intake', application.state.amazon_inbound.worker)
+                jobs.start('tracking-support', application.state.tracking_support.worker)
+                jobs.start('support-delivery', application.state.support_delivery.worker)
+                if settings.twilio_enabled:
+                    for index in range(settings.whatsapp_queue_workers):
+                        jobs.start(f'whatsapp-queue-{index}', application.state.whatsapp_queue.worker)
                 from backend.payment_gateway import SnapshotWebhookService
                 application.state.payment_snapshots = SnapshotWebhookService(application.state.finance)
-                payment_task = asyncio.create_task(application.state.payment_snapshots.worker()) if settings.stripe_enabled else None
+                jobs.start('stripe-events', application.state.payment_snapshots.worker, enabled=settings.stripe_enabled)
                 from backend.card_checkout import cart_worker
-                card_task=asyncio.create_task(cart_worker(application.state.partner_lifecycle)) if settings.stripe_enabled else None
+                jobs.start('card-checkout', lambda: cart_worker(application.state.partner_lifecycle), enabled=settings.stripe_enabled)
                 from backend.return_delivery import ReturnDeliverySettings, ReturnDeliveryWorker
                 application.state.partner_lifecycle.return_delivery_settings = ReturnDeliverySettings()
                 async with pool.acquire() as return_connection:
                     return_delivery_ready = await return_connection.fetchval("SELECT to_regclass('public.return_customer_deliveries') IS NOT NULL")
-                return_delivery_task = (asyncio.create_task(ReturnDeliveryWorker(application.state.partner_lifecycle).worker())
-                    if return_delivery_ready else None)
-                crm_task = None
+                jobs.start('return-delivery', lambda: ReturnDeliveryWorker(application.state.partner_lifecycle).worker(),
+                           enabled=bool(return_delivery_ready))
                 application.state.hubspot = None
                 try:
                     crm_settings = HubSpotSettings()
                     if crm_settings.hubspot_enabled:
                         application.state.hubspot = HubSpotService(pool, HubSpotClient(http_client, crm_settings))
                         configure_hubspot_service(application.state.hubspot)
-                        crm_task = asyncio.create_task(application.state.hubspot.worker())
+                        jobs.start('hubspot', application.state.hubspot.worker)
                 except (ValueError, ValidationError):
                     logger.warning("HubSpot configuration invalid; optional CRM worker disabled")
-                try:
-                    yield
-                finally:
-                    if return_delivery_task is not None:
-                        return_delivery_task.cancel()
-                        await asyncio.gather(return_delivery_task, return_exceptions=True)
-                    if tracking_refresh_task is not None:
-                        tracking_refresh_task.cancel()
-                        await asyncio.gather(tracking_refresh_task,return_exceptions=True)
-                    for task in whatsapp_tasks:
-                        task.cancel()
-                    await asyncio.gather(*whatsapp_tasks, return_exceptions=True)
-                    if claims_task is not None:
-                        claims_task.cancel()
-                        try:
-                            await claims_task
-                        except asyncio.CancelledError:
-                            pass
-                    if protection_task is not None:
-                        protection_task.cancel()
-                        try:
-                            await protection_task
-                        except asyncio.CancelledError:
-                            pass
-                    dispatch_updates_task.cancel()
-                    amazon_inbound_task.cancel()
-                    for integration_task in (dispatch_updates_task, amazon_inbound_task):
-                        try:
-                            await integration_task
-                        except asyncio.CancelledError:
-                            pass
-                    native_order_task.cancel()
-                    try:
-                        await native_order_task
-                    except asyncio.CancelledError:
-                        pass
-                    partner_task.cancel()
-                    try:
-                        await partner_task
-                    except asyncio.CancelledError:
-                        pass
-                    if card_task is not None:
-                        card_task.cancel()
-                        try:await card_task
-                        except asyncio.CancelledError:pass
-                    if payment_task is not None:
-                        payment_task.cancel()
-                        try:
-                            await payment_task
-                        except asyncio.CancelledError:
-                            pass
-                    notification_task.cancel()
-                    try:
-                        await notification_task
-                    except asyncio.CancelledError:
-                        pass
-                    support_task.cancel()
-                    try:
-                        await support_task
-                    except asyncio.CancelledError:
-                        pass
-                    if crm_task is not None:
-                        crm_task.cancel()
-                        try:
-                            await crm_task
-                        except asyncio.CancelledError:
-                            pass
-                    configure_hubspot_service(None)
-                    ecommerce_task.cancel()
-                    try:
-                        await ecommerce_task
-                    except asyncio.CancelledError:
-                        pass
-                    configure_ecommerce_service(None)
+                yield
             finally:
+                await jobs.close()
+                configure_hubspot_service(None)
+                configure_ecommerce_service(None)
                 await stripe_http.close_async()
         finally:
             configure_pricing_pool(None)
@@ -2355,7 +2294,8 @@ async def public_config(request: Request):
         return {"mode": "local-preview", "supabase_url": None, "publishable_key": None}
     settings = request.app.state.settings
     return {"mode": "configured", "supabase_url": settings.supabase_url,
-            "publishable_key": settings.supabase_publishable_key.get_secret_value()}
+            "publishable_key": settings.supabase_publishable_key.get_secret_value(),
+            "dispatch_updates_mode": "POLLING" if getattr(request.app.state, "runtime_role", "COMBINED") == "WEB" else "WEBSOCKET"}
 
 
 @app.post("/v1/rates", response_model=RatingResponse)

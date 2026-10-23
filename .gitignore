@@ -39,6 +39,7 @@ supabase/.temp/
 supabase/.branches/
 .coverage
 htmlcov/
+public/
 tmp/pdfs/
 output/pdf/
 
