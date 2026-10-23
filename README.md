@@ -4,6 +4,14 @@ The current [application manual](docs/platform_overview/overview.html) is the co
 
 The product and local project folder are **EasyInvio.com** and `C:\Projects\easyinvio`. Application paths resolve relative to the checkout, so the folder name is not an API or database setting. See [moving or renaming the checkout](docs/project_folder_rename.md) for virtual-environment repair and verification.
 
+For hosted UAT, follow [Vercel web/worker deployment](docs/vercel_uat_hosting.md).
+Continuous jobs run in a dedicated daemon, static assets use the CDN, and web
+database sessions close on release. After editing runtime sources, run
+`python scripts/build_vercel.py --bundle` and commit the updated worker archive
+and source manifest. Deployment checks reject a stale worker bundle. Confirm
+both the HTTP app and daemon are healthy before testing payment completion or
+queued message delivery.
+
 Existing `veloce_*` database/CRM identifiers, webhook headers, token issuers, browser storage keys and fixture IDs remain compatible with deployed data and integrations. The GitHub repository is `sync4ai-lab/easyinvio`; the local Git remote and maintained source links use that repository name.
 
 The [CSV orders v2 guide](docs/bulk_csv/REPORT.md) covers the 21-column client template,

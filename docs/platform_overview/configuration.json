@@ -2,7 +2,7 @@
   "source_fields": [
     {
       "file": "main.py",
-      "line": 126,
+      "line": 127,
       "class": "Settings",
       "field": "sendcloud_methods",
       "environment_name": "SENDCLOUD_METHODS",
@@ -11,7 +11,7 @@
     },
     {
       "file": "main.py",
-      "line": 131,
+      "line": 132,
       "class": "Settings",
       "field": "supabase_url",
       "environment_name": "SUPABASE_URL",
@@ -20,7 +20,7 @@
     },
     {
       "file": "main.py",
-      "line": 132,
+      "line": 133,
       "class": "Settings",
       "field": "supabase_publishable_key",
       "environment_name": "SUPABASE_PUBLISHABLE_KEY",
@@ -29,7 +29,7 @@
     },
     {
       "file": "main.py",
-      "line": 133,
+      "line": 134,
       "class": "Settings",
       "field": "supabase_service_role_key",
       "environment_name": "SUPABASE_SERVICE_ROLE_KEY",
@@ -38,7 +38,7 @@
     },
     {
       "file": "main.py",
-      "line": 134,
+      "line": 135,
       "class": "Settings",
       "field": "database_url",
       "environment_name": "DATABASE_URL",
@@ -47,7 +47,7 @@
     },
     {
       "file": "main.py",
-      "line": 135,
+      "line": 136,
       "class": "Settings",
       "field": "database_ca_file",
       "environment_name": "DATABASE_CA_FILE",
@@ -56,7 +56,7 @@
     },
     {
       "file": "main.py",
-      "line": 136,
+      "line": 137,
       "class": "Settings",
       "field": "database_tls_strict",
       "environment_name": "DATABASE_TLS_STRICT",
@@ -65,7 +65,25 @@
     },
     {
       "file": "main.py",
-      "line": 137,
+      "line": 138,
+      "class": "Settings",
+      "field": "runtime_role",
+      "environment_name": "RUNTIME_ROLE",
+      "annotation": "RuntimeRole",
+      "default_expression": "'AUTO'"
+    },
+    {
+      "file": "main.py",
+      "line": 139,
+      "class": "Settings",
+      "field": "worker_db_pool_max_size",
+      "environment_name": "WORKER_DB_POOL_MAX_SIZE",
+      "annotation": "int",
+      "default_expression": "Field(default=8, ge=4, le=20)"
+    },
+    {
+      "file": "main.py",
+      "line": 140,
       "class": "Settings",
       "field": "automation_purchase_enabled",
       "environment_name": "AUTOMATION_PURCHASE_ENABLED",
@@ -74,7 +92,7 @@
     },
     {
       "file": "main.py",
-      "line": 138,
+      "line": 141,
       "class": "Settings",
       "field": "partner_document_allowed_hosts",
       "environment_name": "PARTNER_DOCUMENT_ALLOWED_HOSTS",
@@ -83,7 +101,7 @@
     },
     {
       "file": "main.py",
-      "line": 140,
+      "line": 143,
       "class": "Settings",
       "field": "freight_kg_per_m3",
       "environment_name": "FREIGHT_KG_PER_M3",
@@ -92,7 +110,7 @@
     },
     {
       "file": "main.py",
-      "line": 141,
+      "line": 144,
       "class": "Settings",
       "field": "freight_kg_per_loading_metre",
       "environment_name": "FREIGHT_KG_PER_LOADING_METRE",
@@ -101,7 +119,7 @@
     },
     {
       "file": "main.py",
-      "line": 142,
+      "line": 145,
       "class": "Settings",
       "field": "freight_deck_width_m",
       "environment_name": "FREIGHT_DECK_WIDTH_M",
@@ -110,7 +128,7 @@
     },
     {
       "file": "main.py",
-      "line": 143,
+      "line": 146,
       "class": "Settings",
       "field": "jwt_algorithm",
       "environment_name": "JWT_ALGORITHM",
@@ -119,7 +137,7 @@
     },
     {
       "file": "main.py",
-      "line": 144,
+      "line": 147,
       "class": "Settings",
       "field": "jwt_audience",
       "environment_name": "JWT_AUDIENCE",
@@ -128,7 +146,7 @@
     },
     {
       "file": "main.py",
-      "line": 145,
+      "line": 148,
       "class": "Settings",
       "field": "credential_keys",
       "environment_name": "CREDENTIAL_KEYS",
@@ -137,7 +155,7 @@
     },
     {
       "file": "main.py",
-      "line": 146,
+      "line": 149,
       "class": "Settings",
       "field": "regional_allowed_origins",
       "environment_name": "REGIONAL_ALLOWED_ORIGINS",
@@ -146,7 +164,7 @@
     },
     {
       "file": "main.py",
-      "line": 147,
+      "line": 150,
       "class": "Settings",
       "field": "provider_environment",
       "environment_name": "PROVIDER_ENVIRONMENT",
@@ -155,7 +173,7 @@
     },
     {
       "file": "main.py",
-      "line": 148,
+      "line": 151,
       "class": "Settings",
       "field": "provider_deadline_seconds",
       "environment_name": "PROVIDER_DEADLINE_SECONDS",
@@ -164,7 +182,7 @@
     },
     {
       "file": "main.py",
-      "line": 149,
+      "line": 152,
       "class": "Settings",
       "field": "max_parallel_provider_requests",
       "environment_name": "MAX_PARALLEL_PROVIDER_REQUESTS",
@@ -173,7 +191,7 @@
     },
     {
       "file": "main.py",
-      "line": 150,
+      "line": 153,
       "class": "Settings",
       "field": "max_accounts_per_tenant",
       "environment_name": "MAX_ACCOUNTS_PER_TENANT",
@@ -182,7 +200,7 @@
     },
     {
       "file": "main.py",
-      "line": 151,
+      "line": 154,
       "class": "Settings",
       "field": "quote_ttl_seconds",
       "environment_name": "QUOTE_TTL_SECONDS",
@@ -191,7 +209,7 @@
     },
     {
       "file": "main.py",
-      "line": 152,
+      "line": 155,
       "class": "Settings",
       "field": "db_pool_max_size",
       "environment_name": "DB_POOL_MAX_SIZE",
@@ -200,7 +218,7 @@
     },
     {
       "file": "main.py",
-      "line": 153,
+      "line": 156,
       "class": "Settings",
       "field": "platform_admin_user_ids",
       "environment_name": "PLATFORM_ADMIN_USER_IDS",
@@ -209,7 +227,7 @@
     },
     {
       "file": "main.py",
-      "line": 154,
+      "line": 157,
       "class": "Settings",
       "field": "database_environment",
       "environment_name": "DATABASE_ENVIRONMENT",
@@ -218,7 +236,7 @@
     },
     {
       "file": "main.py",
-      "line": 155,
+      "line": 158,
       "class": "Settings",
       "field": "sandbox_hooks_enabled",
       "environment_name": "SANDBOX_HOOKS_ENABLED",
@@ -227,7 +245,7 @@
     },
     {
       "file": "main.py",
-      "line": 157,
+      "line": 160,
       "class": "Settings",
       "field": "auth_jwt_secret",
       "environment_name": "AUTH_JWT_SECRET",
@@ -236,7 +254,7 @@
     },
     {
       "file": "main.py",
-      "line": 158,
+      "line": 161,
       "class": "Settings",
       "field": "auth_recovery_redirect_url",
       "environment_name": "AUTH_RECOVERY_REDIRECT_URL",
@@ -245,7 +263,7 @@
     },
     {
       "file": "main.py",
-      "line": 159,
+      "line": 162,
       "class": "Settings",
       "field": "stripe_enabled",
       "environment_name": "STRIPE_ENABLED",
@@ -254,7 +272,7 @@
     },
     {
       "file": "main.py",
-      "line": 160,
+      "line": 163,
       "class": "Settings",
       "field": "stripe_secret_key",
       "environment_name": "STRIPE_SECRET_KEY",
@@ -263,7 +281,7 @@
     },
     {
       "file": "main.py",
-      "line": 161,
+      "line": 164,
       "class": "Settings",
       "field": "stripe_webhook_secret",
       "environment_name": "STRIPE_WEBHOOK_SECRET",
@@ -272,7 +290,7 @@
     },
     {
       "file": "main.py",
-      "line": 162,
+      "line": 165,
       "class": "Settings",
       "field": "stripe_livemode",
       "environment_name": "STRIPE_LIVEMODE",
@@ -281,7 +299,7 @@
     },
     {
       "file": "main.py",
-      "line": 163,
+      "line": 166,
       "class": "Settings",
       "field": "checkout_success_url",
       "environment_name": "CHECKOUT_SUCCESS_URL",
@@ -290,7 +308,7 @@
     },
     {
       "file": "main.py",
-      "line": 164,
+      "line": 167,
       "class": "Settings",
       "field": "checkout_cancel_url",
       "environment_name": "CHECKOUT_CANCEL_URL",
@@ -299,7 +317,7 @@
     },
     {
       "file": "main.py",
-      "line": 166,
+      "line": 169,
       "class": "Settings",
       "field": "whatsapp_brand_name",
       "environment_name": "WHATSAPP_BRAND_NAME",
@@ -308,7 +326,7 @@
     },
     {
       "file": "main.py",
-      "line": 167,
+      "line": 170,
       "class": "Settings",
       "field": "twilio_enabled",
       "environment_name": "TWILIO_ENABLED",
@@ -317,7 +335,7 @@
     },
     {
       "file": "main.py",
-      "line": 168,
+      "line": 171,
       "class": "Settings",
       "field": "whatsapp_onboarding_enabled",
       "environment_name": "WHATSAPP_ONBOARDING_ENABLED",
@@ -326,7 +344,7 @@
     },
     {
       "file": "main.py",
-      "line": 169,
+      "line": 172,
       "class": "Settings",
       "field": "whatsapp_onboarding_daily_limit",
       "environment_name": "WHATSAPP_ONBOARDING_DAILY_LIMIT",
@@ -335,7 +353,7 @@
     },
     {
       "file": "main.py",
-      "line": 170,
+      "line": 173,
       "class": "Settings",
       "field": "twilio_account_sid",
       "environment_name": "TWILIO_ACCOUNT_SID",
@@ -344,7 +362,7 @@
     },
     {
       "file": "main.py",
-      "line": 171,
+      "line": 174,
       "class": "Settings",
       "field": "twilio_auth_token",
       "environment_name": "TWILIO_AUTH_TOKEN",
@@ -353,7 +371,7 @@
     },
     {
       "file": "main.py",
-      "line": 172,
+      "line": 175,
       "class": "Settings",
       "field": "twilio_whatsapp_number",
       "environment_name": "TWILIO_WHATSAPP_NUMBER",
@@ -362,7 +380,7 @@
     },
     {
       "file": "main.py",
-      "line": 173,
+      "line": 176,
       "class": "Settings",
       "field": "twilio_whatsapp_sandbox_enabled",
       "environment_name": "TWILIO_WHATSAPP_SANDBOX_ENABLED",
@@ -371,7 +389,7 @@
     },
     {
       "file": "main.py",
-      "line": 174,
+      "line": 177,
       "class": "Settings",
       "field": "twilio_webhook_url",
       "environment_name": "TWILIO_WEBHOOK_URL",
@@ -380,7 +398,7 @@
     },
     {
       "file": "main.py",
-      "line": 175,
+      "line": 178,
       "class": "Settings",
       "field": "whatsapp_queue_workers",
       "environment_name": "WHATSAPP_QUEUE_WORKERS",
@@ -389,7 +407,7 @@
     },
     {
       "file": "main.py",
-      "line": 176,
+      "line": 179,
       "class": "Settings",
       "field": "ideal_postcodes_api_key",
       "environment_name": "IDEAL_POSTCODES_API_KEY",
@@ -398,7 +416,7 @@
     },
     {
       "file": "main.py",
-      "line": 177,
+      "line": 180,
       "class": "Settings",
       "field": "logistics_media_bucket",
       "environment_name": "LOGISTICS_MEDIA_BUCKET",
@@ -407,7 +425,7 @@
     },
     {
       "file": "main.py",
-      "line": 178,
+      "line": 181,
       "class": "Settings",
       "field": "tracking_polling_enabled",
       "environment_name": "TRACKING_POLLING_ENABLED",
@@ -416,7 +434,7 @@
     },
     {
       "file": "main.py",
-      "line": 179,
+      "line": 182,
       "class": "Settings",
       "field": "booking_page_url",
       "environment_name": "BOOKING_PAGE_URL",
@@ -425,7 +443,7 @@
     },
     {
       "file": "main.py",
-      "line": 180,
+      "line": 183,
       "class": "Settings",
       "field": "quote_link_secret",
       "environment_name": "QUOTE_LINK_SECRET",
@@ -434,7 +452,7 @@
     },
     {
       "file": "main.py",
-      "line": 181,
+      "line": 184,
       "class": "Settings",
       "field": "whatsapp_deadline_seconds",
       "environment_name": "WHATSAPP_DEADLINE_SECONDS",
@@ -443,7 +461,7 @@
     },
     {
       "file": "main.py",
-      "line": 182,
+      "line": 185,
       "class": "Settings",
       "field": "whatsapp_provider_seconds",
       "environment_name": "WHATSAPP_PROVIDER_SECONDS",
@@ -1049,6 +1067,9 @@
     "STRIPE_ENABLED",
     "TWILIO_ENABLED",
     "DATABASE_TLS_STRICT",
+    "RUNTIME_ROLE",
+    "DB_POOL_MAX_SIZE",
+    "WORKER_DB_POOL_MAX_SIZE",
     "TRACKING_WEBHOOK_KEYS",
     "AUTOMATION_PURCHASE_ENABLED",
     "FREIGHT_KG_PER_M3",
