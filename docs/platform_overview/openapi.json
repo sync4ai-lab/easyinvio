@@ -43,6 +43,49 @@
         }
       }
     },
+    "/api/v1/addresses/uk/lookup": {
+      "post": {
+        "summary": "Lookup Uk Address",
+        "operationId": "lookup_uk_address_api_v1_addresses_uk_lookup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UKAddressLookupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UKAddressLookupResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/rates": {
       "post": {
         "summary": "Get Rates",
@@ -14822,6 +14865,73 @@
           "checkout_url"
         ],
         "title": "TopupResponse"
+      },
+      "UKAddressChoice": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "address"
+        ],
+        "title": "UKAddressChoice"
+      },
+      "UKAddressLookupRequest": {
+        "properties": {
+          "postcode": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Postcode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "postcode"
+        ],
+        "title": "UKAddressLookupRequest"
+      },
+      "UKAddressLookupResponse": {
+        "properties": {
+          "postcode": {
+            "type": "string",
+            "title": "Postcode"
+          },
+          "source": {
+            "type": "string",
+            "const": "ROYAL_MAIL_PAF",
+            "title": "Source",
+            "default": "ROYAL_MAIL_PAF"
+          },
+          "addresses": {
+            "items": {
+              "$ref": "#/components/schemas/UKAddressChoice"
+            },
+            "type": "array",
+            "title": "Addresses"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "postcode",
+          "addresses"
+        ],
+        "title": "UKAddressLookupResponse"
       },
       "ValidationError": {
         "properties": {
