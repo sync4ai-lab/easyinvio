@@ -58,7 +58,7 @@ changing pool capacity. Do not terminate unknown sessions or raise limits blindl
 
 ## CDN assets and dashboard updates
 
-The build copies only eight explicitly named public HTML/JS/CSS files into
+The build copies only ten explicitly named public HTML/JS/CSS files into
 `public/`. Vercel serves those through its CDN. Only `/`, `/set-password` and
 `/track` receive frontend rewrites; API requests retain their original paths.
 No .env, source tree, customer export, uploaded document or private media directory

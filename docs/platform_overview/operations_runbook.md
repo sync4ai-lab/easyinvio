@@ -34,6 +34,13 @@ For an isolated local preview with the full module import order:
 
 Preview is sample UI/logic, not evidence of real database, wallet, payment or carrier success. Do not pass `--local-preview` directly to the uvicorn command parser. The optional `serve_frontend.py` serves only allowed UI routes on 5500 and avoids exposing the project directory; the SPA routes API calls from that port to loopback 8000. Never use a generic directory server at the project root that could serve `.env` or exports.
 
+## Form validation and saved addresses
+
+For missing-field feedback and saved recipient selection failures, see
+[form validation and saved-address safeguards](https://github.com/sync4ai-lab/easyinvio/blob/main/docs/form_validation_and_saved_addresses.md).
+The shared browser guard prevents invalid form submission and highlights the
+specific fields; it never substitutes carrier or server-side validation.
+
 ## Port and process diagnosis
 
 `WinError 10048` means the listening address/port is already occupied, often by the first backend instance. It does not mean the application needs a different Twilio endpoint. Identify the listener without terminating unrelated processes:

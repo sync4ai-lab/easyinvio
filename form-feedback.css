@@ -1,0 +1,5 @@
+.form-field-error{color:#fecaca!important;font-size:13px;margin:6px 0 12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+[data-validation-error=true]{border-color:#f87171!important;outline:1px solid #f87171;outline-offset:1px}
+.form-validation-summary{padding:14px 16px;margin:0 0 18px;border:1px solid #f87171;border-radius:10px;background:#32191f;color:#fecaca;overflow-wrap:anywhere}
+.form-validation-summary ul{padding-left:20px;margin:8px 0 0}
+.form-validation-summary button{display:inline!important;min-height:0!important;width:auto!important;padding:2px 0!important;border:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;text-align:left;text-decoration:underline;font:inherit!important;white-space:normal;cursor:pointer}

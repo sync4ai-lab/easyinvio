@@ -17,6 +17,8 @@ let pendingConversationQuote = (() => {
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="/form-feedback.css">
+<script src="/form-feedback.js" defer></script>
 <script src="/manifest-workflow.js?v=1"></script>
 <title>EasyInvio.com | Dispatch intelligence</title>
 <script async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4">
@@ -1821,7 +1823,7 @@ const shippingCountries = [{
   "code": "AX",
   "name": "\u00c5land Islands"
 }];
-$('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','country'][i]}</label>${i===4?`<select id="${prefix}-${field}" required><option value="">Choose country</option>${shippingCountries.map(c=>`<option value="${c.code}">${escapeHTML(c.name)} (${c.code})</option>`).join('')}</select>`:`<input id="${prefix}-${field}" placeholder="${addressDefaults[prefix][i]}" maxlength="200" required>`}</div>`).join('')).join('');
+$('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','country'][i]}</label>${i===4?`<select id="${prefix}-${field}" required><option value="">Choose country</option>${shippingCountries.map(c=>`<option value="${c.code}">${escapeHTML(c.name)} (${c.code})</option>`).join('')}</select>`:`<input id="${prefix}-${field}" placeholder="${addressDefaults[prefix][i]}" maxlength="${i===2?100:i===3?30:200}" required>`}</div>`).join('')).join('');
 
 function cents(value) {
   const text = String(value);
@@ -1902,7 +1904,7 @@ async function api(path, {
       else clearSession()
     }
     const detail = data.detail;
-    const error = Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';') : detail?.message ? detail.message + (detail.reason ? ': ' + detail.reason : '') : detail?.code || `Request failed (${response.status})`);
+    const error = Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? (window.easyinvioFormFeedback?.formatErrors(detail) || detail.map(row => `${row.loc?.join('.')}: ${row.msg}`).join(';')) : detail?.message ? detail.message + (detail.reason ? ': ' + detail.reason : '') : detail?.code || `Request failed (${response.status})`);
     error.status = response.status;
     error.code = typeof detail?.code === 'string' ? detail.code : null;
     error.requiresFreshQuote = detail?.retry_requires_fresh_quote === true;
@@ -7666,7 +7668,7 @@ renderAccount = function() {
   const names = {addresses:'Warehouse addresses',contacts:'Saved contacts',products:'Product catalog'};
   const descriptions = {addresses:'Separate sender, return, pickup and invoice locations. Defaults are saved per role.',contacts:'Keep recipient details ready for your next shipment.',products:'Save SKU details, exact unit weights, values and reviewed customs codes.'};
   let selectedPrefixes=new Set(), selectedPrimary=false;
-  let active='addresses', rows=[], offset=0, hasMore=false, generation=0, editing=null, ownerKey='', pickerTarget=null, searchTimer;
+  let active='addresses', rows=[], offset=0, hasMore=false, generation=0, editing=null, ownerKey='', pickerTarget=null, directoryVersion=0, searchTimer;
   const key = () => state.session && portal.profile?.tenant_id ? portal.profile.tenant_id+':'+portal.profile.workspace_role : '';
   const canWrite = () => !!state.session && ['OWNER','ADMIN','DISPATCHER'].includes(portal.profile?.workspace_role);
   function resetScope() {
@@ -7867,20 +7869,72 @@ renderAccount = function() {
     phone.addEventListener('invalid',()=>{container.open=true;});
     $('#address-fields').append(container);
   }
-  async function loadDirectory() {
-    const scope=key(), query=$('#catalog-directory-search').value.trim(),target=pickerTarget;
-    $('#catalog-directory-status').textContent='Loading directory…';
-    const kinds=target==='origin'?['addresses','contacts']:['contacts','addresses'];
-    const pages=await Promise.all(kinds.map(kind=>requestCatalog(kind,query,0,30)));
-    const result={items:pages.flatMap((page,index)=>page.items.map(row=>({...row,directory_kind:kinds[index]})))};
-    if(scope!==key()||target!==pickerTarget||query!==$('#catalog-directory-search').value.trim()||!directory.open)return;
-    const items=result.items;
+  function clearDirectory() {
+    directoryVersion++;
     $('#catalog-directory-list').replaceChildren();
-    $('#catalog-directory-status').textContent=items.length?'Choose the correct location. Check it before quoting.':'No matching records. Save one in Settings or enter the address manually.';
-    for(const row of items){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=row.label+' · '+(row.address_role?row.address_role.toLowerCase():'contact')+(row.is_default?' · Default':'');const detail=document.createElement('small');detail.textContent=[row.address.name,row.address.company,row.address.line1,row.address.city,row.address.postal_code,row.address.country_code].filter(Boolean).join(' · ');button.append(detail);button.addEventListener('click',()=>{for(const field of ['name','company','line1','line2','city','state','postal_code','country_code','phone','email']){const element=$('#'+target+'-'+field);if(element){element.value=row.address[field]||'';element.dispatchEvent(new Event('input',{bubbles:true}));element.dispatchEvent(new Event('change',{bubbles:true}));}}selectedPrefixes.add(target);directory.close();notify('Saved address applied. Review it before requesting rates.');});$('#catalog-directory-list').append(button);}
+    $('#catalog-directory-status').textContent='Loading saved addresses?';
   }
-  document.addEventListener('click',event=>{const button=event.target.closest('[data-catalog-directory]');if(!button)return;pickerTarget=button.dataset.catalogDirectory;$('#catalog-directory-search').value='';$('#catalog-directory-title').textContent=pickerTarget==='origin'?'Choose a sender address':'Choose a recipient address';directory.showModal();loadDirectory().catch(error=>{$('#catalog-directory-status').textContent=error.message;});});
-  $('#catalog-directory-search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadDirectory().catch(error=>{$('#catalog-directory-status').textContent=error.message;}),250);});
+  directory.addEventListener('close',()=>{
+    if(directory.open)return;
+    clearTimeout(searchTimer);
+    pickerTarget=null;
+    clearDirectory();
+  });
+  async function loadDirectory() {
+    const scope=key(), session=state.session, query=$('#catalog-directory-search').value.trim(), target=pickerTarget;
+    clearDirectory();
+    const version=directoryVersion;
+    const current=()=>directory.open && version===directoryVersion && scope===key() &&
+      session===state.session && target===pickerTarget && query===$('#catalog-directory-search').value.trim();
+    if(!['origin','destination'].includes(target))return;
+    const kinds=target==='origin'?['addresses','contacts']:['contacts','addresses'];
+    try {
+      const pages=await Promise.all(kinds.map(kind=>requestCatalog(kind,query,0,30)));
+      if(!current())return;
+      const items=pages.flatMap((page,index)=>page.items.map(row=>({...row,directory_kind:kinds[index]})));
+      $('#catalog-directory-status').textContent=items.length?'Choose the correct location. Check it before quoting.':'No matching records. Save one in Settings or enter the address manually.';
+      for(const row of items){
+        const button=document.createElement('button');
+        button.type='button';button.className='secondary';
+        button.textContent=row.label+' ? '+(row.address_role?row.address_role.toLowerCase():'contact')+(row.is_default?' ? Default':'');
+        const detail=document.createElement('small');
+        detail.textContent=[row.address.name,row.address.company,row.address.line1,row.address.city,row.address.postal_code,row.address.country_code].filter(Boolean).join(' ? ');
+        button.append(detail);
+        button.addEventListener('click',()=>{
+          if(!current())return;
+          const inputs=[];
+          // Populate one reviewed side atomically before dispatching dependent events.
+          for(const field of ['name','company','line1','line2','city','state','postal_code','country_code','phone','email']){
+            const element=$('#'+target+'-'+field);
+            if(element){element.value=row.address[field]||'';inputs.push(element);}
+          }
+          selectedPrefixes.add(target);
+          for(const element of inputs){
+            element.dispatchEvent(new Event('input',{bubbles:true}));
+            element.dispatchEvent(new Event('change',{bubbles:true}));
+          }
+          directory.close();
+          notify('Saved '+(target==='origin'?'pickup':'delivery')+' address applied. Review it before requesting rates.');
+        });
+        $('#catalog-directory-list').append(button);
+      }
+    } catch(error){
+      if(current())$('#catalog-directory-status').textContent=error.message||'Saved addresses could not be loaded. Please retry.';
+    }
+  }
+  document.addEventListener('click',event=>{
+    const button=event.target.closest('[data-catalog-directory]');if(!button)return;
+    pickerTarget=button.dataset.catalogDirectory;
+    $('#catalog-directory-search').value='';
+    $('#catalog-directory-title').textContent=pickerTarget==='origin'?'Choose a sender address':'Choose a recipient address';
+    clearDirectory();
+    directory.showModal();
+    loadDirectory();
+  });
+  $('#catalog-directory-search').addEventListener('input',()=>{
+    clearTimeout(searchTimer);clearDirectory();
+    searchTimer=setTimeout(loadDirectory,250);
+  });
   const goods=$('#shipment-description').closest('details');
   goods.querySelector('summary').insertAdjacentHTML('afterend','<label>Product SKU (type or search)<input id="shipment-sku" data-catalog-sku maxlength="200" autocomplete="off" placeholder="Type your SKU or search saved products"></label><div class="catalog-sku-options" id="shipment-sku-options"></div><p class="subtle" id="shipment-catalog-status"></p>');
   goods.querySelector('.fields').insertAdjacentHTML('beforeend','<input id="shipment-hs-code" type="hidden">');
