@@ -29,6 +29,15 @@ class EmailDeliverySettings(BaseSettings):
     smtp_password: SecretStr = SecretStr('')
     smtp_timeout_seconds: int = Field(default=10, ge=1, le=15)
 
+    @field_validator('smtp_port', mode='before')
+    @classmethod
+    def environment_port(cls, value: object) -> object:
+        # Environment values are strings; Literal[int] does not coerce them.
+        # Preserve the strict TLS-only port allowlist after normalisation.
+        if isinstance(value, str) and value.strip() in {'465', '587'}:
+            return int(value.strip())
+        return value
+
     @field_validator('smtp_host')
     @classmethod
     def hostname(cls, value: str) -> str:

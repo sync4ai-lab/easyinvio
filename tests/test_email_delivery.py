@@ -150,3 +150,25 @@ async def test_connection_and_authentication_failures_never_submit_message(error
         receipt=await send()
     assert receipt.state==state
     assert not any(row[0]=='send' for row in smtp.events)
+
+
+@pytest.mark.parametrize('port',['465','587'])
+def test_real_environment_port_and_shared_notification_settings(monkeypatch,port):
+    from backend.shipment_notifications import ShipmentNotificationSettings
+    from backend.return_delivery import ReturnDeliverySettings
+    monkeypatch.setenv('SMTP_PORT',port)
+    monkeypatch.setenv('SMTP_USERNAME','support@easyinvio.com')
+    monkeypatch.setenv('SMTP_PASSWORD','synthetic-password')
+    monkeypatch.setenv('SHIPMENT_NOTIFICATION_TEST_RECIPIENTS','["tester@example.test"]')
+    shipment=ShipmentNotificationSettings(_env_file=None,shipment_email_notifications_enabled=True)
+    returns=ReturnDeliverySettings(_env_file=None,return_email_enabled=True)
+    assert shipment.smtp_port==returns.smtp_port==int(port)
+    assert shipment.shipment_notification_test_recipients==['tester@example.test']
+    assert email_configured(shipment,shipment.shipment_email_from,shipment.shipment_sendgrid_api_key)
+    assert email_configured(returns,returns.return_email_from,returns.return_sendgrid_api_key)
+
+
+@pytest.mark.parametrize('port',['25','2525','smtp://465'])
+def test_environment_does_not_bypass_secure_port_allowlist(monkeypatch,port):
+    monkeypatch.setenv('SMTP_PORT',port)
+    with pytest.raises(ValidationError):EmailDeliverySettings(_env_file=None)
