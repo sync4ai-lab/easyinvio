@@ -153,11 +153,11 @@ async def test_hostinger_worker_commits_before_send_and_preserves_retry_fences(w
     w=world;await migrate(w)
     await w.db.execute("UPDATE public.shipment_sender_notifications SET state='SKIPPED' WHERE channel='WHATSAPP'")
     cfg=config();cfg.email_delivery_provider='HOSTINGER_SMTP'
-    cfg.smtp_username='operations@easyinvio.com';cfg.smtp_password=SecretStr('synthetic')
+    cfg.smtp_username='support@easyinvio.com';cfg.smtp_password=SecretStr('synthetic')
     calls=[]
     async def smtp(client,config,**message):
         assert await w.db.fetchval("SELECT state FROM public.shipment_sender_notifications WHERE channel='EMAIL'")=='SENDING'
-        assert message['sender']=='operations@easyinvio.com' and message['recipient']=='sender@example.test'
+        assert message['sender']=='support@easyinvio.com' and message['recipient']=='sender@example.test'
         calls.append(message)
         return {'accepted':EmailReceipt('ACCEPTED','synthetic-smtp-id'),
                 'temporary':EmailReceipt('RETRYABLE',error_code='SMTP_TEMPORARY_REFUSAL'),

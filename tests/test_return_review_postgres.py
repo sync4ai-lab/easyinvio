@@ -246,7 +246,7 @@ async def test_hostinger_return_notices_keep_payment_and_document_gates(world,mo
     from backend.email_delivery import EmailReceipt
     x=await setup(world,payer,True)
     cfg=x.lifecycle.return_delivery_settings;cfg.email_delivery_provider='HOSTINGER_SMTP'
-    cfg.smtp_username='operations@easyinvio.com';cfg.smtp_password=SecretStr('synthetic')
+    cfg.smtp_username='support@easyinvio.com';cfg.smtp_password=SecretStr('synthetic')
     with patch('backend.automation_three_partners.prepare_return_quote',side_effect=x.quote):
         await x.service.prepare(x.context,x.body)
     with patch('backend.card_checkout.create_cart',AsyncMock(return_value={'url':'https://checkout.stripe.com/c/pay/synthetic','cart_id':str(x.body.request_id)})):
@@ -254,7 +254,7 @@ async def test_hostinger_return_notices_keep_payment_and_document_gates(world,mo
     calls=[]
     async def smtp(client,config,**message):
         assert await world.db.fetchval('SELECT state FROM public.return_customer_deliveries')=='SENDING'
-        assert message['sender']=='operations@easyinvio.com' and message['recipient']=='customer@example.test'
+        assert message['sender']=='support@easyinvio.com' and message['recipient']=='customer@example.test'
         if payer=='CUSTOMER_PAY':
             assert 'https://checkout.stripe.com/c/pay/synthetic' in message['text']
             assert 'customer-document' not in message['text']+message['html_body']

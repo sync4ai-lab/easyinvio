@@ -288,3 +288,18 @@ def test_vercel_page_rewrites_resolve_to_complete_html_without_database():
             assert "frame-ancestors 'none'" in tracking.headers['content-security-policy']
 
     asyncio.run(scenario())
+
+@pytest.mark.asyncio
+async def test_brand_assets_are_public_typed_and_tracking_policy_allows_local_images():
+    import httpx
+    import main
+    transport=httpx.ASGITransport(app=main.app)
+    async with httpx.AsyncClient(transport=transport,base_url='https://testserver') as client:
+        for name,kind in [('brand-mark.svg','image/svg+xml'),('brand.css','text/css'),('favicon.svg','image/svg+xml'),('favicon-32.png','image/png'),('apple-touch-icon.png','image/png'),('app-icon-192.png','image/png'),('app-icon-512.png','image/png'),('site.webmanifest','application/manifest+json')]:
+            response=await client.get('/'+name)
+            assert response.status_code==200 and kind in response.headers['content-type']
+            assert response.headers['x-content-type-options']=='nosniff'
+        tracking=await client.get('/track')
+        assert "img-src 'self'" in tracking.headers['content-security-policy']
+        assert "manifest-src 'self'" in tracking.headers['content-security-policy']
+        assert (await client.get('/brand/../../.env')).status_code==404

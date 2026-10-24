@@ -7,16 +7,16 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-nav,body.auth-locked>#customs-backdrop,body.auth-locked>#box-backdrop{display:none!important}
 #loginContainer{min-height:100dvh;display:grid;place-items:center;padding:24px;color:#f1f5f9;background:radial-gradient(ellipse at 50% 20%,#25245666,transparent 60%),#0f172a}
 #loginContainer[hidden]{display:none}.identity-login-card{width:100%;max-width:440px;background:#020617;border:1px solid #1e293b;border-radius:24px;padding:32px;box-shadow:0 0 50px #4f46e526;animation:identityFade .35s ease-out}
-.identity-logo{font-size:32px;font-weight:900;letter-spacing:-1px;animation:identityGlow 3s ease-in-out infinite}.identity-logo em{color:#34d399;font-style:normal}
+
 .identity-input{display:flex;align-items:center;gap:10px;background:#0f172a;border:1px solid #334155;border-radius:12px;padding:0 12px;margin-bottom:18px}.identity-input input{border:0;background:transparent;min-width:0;color:#f1f5f9;flex:1}.identity-input svg{width:20px;height:20px;color:#818cf8;flex-shrink:0}.identity-input:has(.lucide)>.icon-fallback{display:none}
 #identity-login-submit{width:100%;background:#4f46e5;color:#f1f5f9;border:0;border-radius:12px;padding:14px;font-weight:800;cursor:pointer}#identity-login-submit:hover{background:#6366f1}
 #identity-user-widget{display:flex;align-items:center;gap:10px}#identity-avatar{width:34px;height:34px;border-radius:50%;background:#312e81;color:#e0e7ff;display:grid;place-items:center;font-weight:800}#identity-logout:hover{color:#f87171}
-body.auth-ready>.app-shell{animation:identityFade .3s ease-out}@keyframes identityFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes identityGlow{50%{text-shadow:0 0 28px #818cf888}}
+body.auth-ready>.app-shell{animation:identityFade .3s ease-out}@keyframes identityFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.identity-logo,.identity-login-card,body.auth-ready>.app-shell{animation:none}}
 </style>`);
 document.body.insertAdjacentHTML('afterbegin', `<section id="loginContainer" aria-label="EasyInvio sign in">
 <div class="identity-login-card bg-slate-950 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
- <div class="identity-logo shadow-[0_0_50px_rgba(79,70,229,0.15)]">EasyInvio<em>.com</em></div>
+ <div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"></div>
  <p class="eyebrow">Shipping intelligence platform</p><h1 style="font-size:26px;margin-top:24px">Sign in to your workspace</h1><p class="subtle">Your verified identity controls access to shipments, billing and administration.</p>
  <form id="identity-login-form" style="margin-top:24px"><label for="identity-email">Email</label><div class="identity-input"><i data-lucide="mail"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg><input id="identity-email" type="email" autocomplete="username" required maxlength="254"></div>
  <label for="identity-password">Password</label><div class="identity-input"><i data-lucide="lock"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg><input id="identity-password" type="password" autocomplete="current-password" required maxlength="4096"></div>

@@ -25,7 +25,7 @@ class ReturnDeliverySettings(EmailDeliverySettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore', hide_input_in_errors=True)
     return_email_enabled: bool = False
     return_sendgrid_api_key: SecretStr = SecretStr('')
-    return_email_from: str = 'operations@easyinvio.com'
+    return_email_from: str = 'support@easyinvio.com'
     return_whatsapp_enabled: bool = False
     return_whatsapp_content_sid: str = ''
     return_whatsapp_messaging_service_sid: str = ''

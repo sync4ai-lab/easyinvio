@@ -2309,7 +2309,7 @@ async def frontend():
 async def public_tracking_page():
     return FileResponse(Path(__file__).with_name('tracking.html'),media_type='text/html',headers={
         'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',
-        'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"})
+        'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; manifest-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"})
 
 
 @app.get('/tracking-workspace.js',include_in_schema=False)
@@ -2323,6 +2323,21 @@ async def public_tracking_page():
 async def tracking_asset(request:Request):
     tracking_asset=request.url.path.removeprefix('/')
     return FileResponse(Path(__file__).with_name(tracking_asset),media_type='text/css' if tracking_asset.endswith('.css') else 'text/javascript',headers={'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'})
+
+
+@app.get('/brand-mark.svg', include_in_schema=False)
+@app.get('/brand.css', include_in_schema=False)
+@app.get('/favicon.svg', include_in_schema=False)
+@app.get('/favicon-32.png', include_in_schema=False)
+@app.get('/apple-touch-icon.png', include_in_schema=False)
+@app.get('/app-icon-192.png', include_in_schema=False)
+@app.get('/app-icon-512.png', include_in_schema=False)
+@app.get('/site.webmanifest', include_in_schema=False)
+async def brand_asset(request: Request):
+    name = request.url.path.removeprefix('/')
+    media = {'.svg': 'image/svg+xml', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json'}
+    return FileResponse(Path(__file__).with_name(name), media_type=media[Path(name).suffix],
+                        headers={'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff'})
 
 
 @app.get("/api/v1/config")

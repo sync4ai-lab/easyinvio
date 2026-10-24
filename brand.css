@@ -1,0 +1,10 @@
+/* Icon-only EasyInvio mark. Dimensions reserve space before the SVG loads. */
+.topbar .brand,.tracking-public header .brand{display:inline-flex;align-items:center;justify-content:center;flex:0 0 56px;width:56px;height:48px;padding:5px 10px;text-decoration:none;line-height:1}
+.brand-mark{display:block;width:32.571px;height:38px;max-width:none;object-fit:contain;flex-shrink:0;filter:none}
+.identity-logo{display:flex;justify-content:center;margin:0 0 16px;animation:none}
+.identity-logo .brand-mark{width:48px;height:56px}
+/* Explicit surface variants follow the surface, not the operating system theme. */
+[data-theme="light"] .brand-mark,.brand-on-light .brand-mark{filter:brightness(.48) saturate(1.25)}
+[data-theme="dark"] .brand-mark,.brand-on-dark .brand-mark{filter:none}
+@media(max-width:767px){.topbar .brand,.tracking-public header .brand{flex-basis:44px;width:44px;height:44px;padding:7px 9px}.brand-mark{width:25.714px;height:30px}}
+@media(forced-colors:active){.brand-mark{forced-color-adjust:none}}

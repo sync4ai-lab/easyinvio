@@ -27,7 +27,7 @@ class ShipmentNotificationSettings(EmailDeliverySettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore', hide_input_in_errors=True)
     shipment_email_notifications_enabled: bool = False
     shipment_sendgrid_api_key: SecretStr = SecretStr('')
-    shipment_email_from: str = 'operations@easyinvio.com'
+    shipment_email_from: str = 'support@easyinvio.com'
     shipment_whatsapp_notifications_enabled: bool = False
     shipment_whatsapp_content_sid: str = ''
     shipment_notification_test_recipients: list[str] = Field(default_factory=list, max_length=100)

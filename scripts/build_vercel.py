@@ -17,7 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ('index.html', 'tracking.html', 'tracking-workspace.js',
           'tracking-public.js', 'tracking-ui.css', 'manifest-workflow.js',
           'help-workspace-bridge.js', 'return-workspace.js',
-          'form-feedback.js', 'form-feedback.css')
+          'form-feedback.js', 'form-feedback.css',
+          'brand-mark.svg', 'brand.css', 'favicon.svg', 'favicon-32.png',
+          'apple-touch-icon.png', 'app-icon-192.png', 'app-icon-512.png', 'site.webmanifest')
 RUNTIME_PATTERNS = ('main.py', 'requirements.txt', 'requirements.lock.txt',
                     'backend/**/*.py', 'certs/*.crt', 'frontend/components/*.html',
                     'frontend/components/*.js', 'frontend/components/*.css',

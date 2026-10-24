@@ -11,7 +11,7 @@ from backend.email_delivery import EmailDeliverySettings, EmailReceipt, email_co
 
 
 def settings(**changes):
-    values=dict(smtp_username='operations@easyinvio.com',smtp_password='synthetic-password')
+    values=dict(smtp_username='support@easyinvio.com',smtp_password='synthetic-password')
     values.update(changes)
     return EmailDeliverySettings(_env_file=None,**values)
 
@@ -49,7 +49,7 @@ def smtp():
 
 
 async def send(config=None,**changes):
-    values=dict(sender='operations@easyinvio.com',recipient='tester@example.test',subject='Booking confirmed',
+    values=dict(sender='support@easyinvio.com',recipient='tester@example.test',subject='Booking confirmed',
                 text='TEST booking reference EINVIO-SYNTHETIC',html_body='<p>TEST booking reference EINVIO-SYNTHETIC</p>',
                 message_key='synthetic:1',api_key=SecretStr('a-legacy-key-must-not-trigger-sendgrid'))
     values.update(changes)
@@ -69,8 +69,8 @@ async def test_tls_auth_mime_and_sender_identity(port,smtp):
     if port==587:
         assert [row[0] for row in events].index('starttls') < [row[0] for row in events].index('login')
     message=next(row[1] for row in events if row[0]=='send')
-    assert message['From']=='EasyInvio <operations@easyinvio.com>'
-    assert message['Reply-To']=='operations@easyinvio.com'
+    assert message['From']=='EasyInvio <support@easyinvio.com>'
+    assert message['Reply-To']=='support@easyinvio.com'
     assert message['To']=='tester@example.test' and receipt.reference==message['Message-ID']
     assert message.get_body(preferencelist=('plain',)).get_content().startswith('TEST booking')
     assert message.get_body(preferencelist=('html',)) is not None
