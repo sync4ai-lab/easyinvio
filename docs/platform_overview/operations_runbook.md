@@ -221,3 +221,10 @@ Use the same SMTP settings above with SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED=true 
 ## Card checkout with a small hosted web pool
 
 The WEB role creates card baskets with sequential database acquisition and returns payment status without running nested label-booking operations. The WORKER role owns durable cart completion and requires capacity for basket, shipment and financial locks (at least four connections; default eight). Keep the logistics worker running for paid labels to progress beyond BOOKING. Do not increase every Vercel web instance pool to solve the former card-creation guard error. Reconciliation remains tenant scoped and idempotent, with no unpaid label released.
+
+
+## Support Agent access (048)
+
+Apply migration 048 before deploying this role model. Grant staff only through privileged, reviewed platform-owner administration; never add an Agent to PLATFORM_ADMIN_USER_IDS or a customer role invitation. Preserve the Auth UUID, disable mistaken customer memberships, revoke old app sessions and keep an immutable staff-grant reason. Change issuer-controlled tenant metadata to null; database staff grants remain authoritative. Sign in again to obtain AGENT identity. Owner and Agent select a client with a support reason; neither creates personal shipping transactions outside assistance. The customer team directory excludes retained staff audit memberships. Keep historical shipment/audit foreign keys intact.
+
+Use separate customer users for Dispatcher and Accountant UAT. Client assistance tests Owner capabilities and staff attribution; it does not impersonate a narrower employee persona. The old private MKR ADMIN seed is retired and must not be rerun.

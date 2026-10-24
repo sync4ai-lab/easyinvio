@@ -11,16 +11,17 @@ EasyInvio provides a shared shipping workspace for business merchants and indivi
 | Persona | Developed capabilities | Consequential limits |
 | --- | --- | --- |
 | Platform super administrator | Cross-tenant dashboards; company/personal client administration; tenant billing and classification controls; carrier connections, verification and rotation; business margin rules; individual global markup; support, agent metrics and audited client assistance | Requires an Auth user in the server-side platform-admin allowlist; a tenant OWNER role alone does not grant platform access |
+| EasyInvio AGENT | Consolidated client, shipment, transaction and support views; onboarding new clients; audited assistance with client Owner capabilities | Server-only staff grant, no active customer membership; no root credentials, pricing policy or staff privileges |
 | Workspace OWNER | Workspace and team configuration; catalog maintenance; store setup; shipment preparation and booking; wallet/card workflows; reports; invoice disputes; permitted protection/claim/return operations | Every action remains subject to active membership, billing/environment checks and provider capability |
-| Workspace ADMIN | Operational and configuration functions admitted by endpoint guards; booking, card-funded baskets and return checkout | OWNER-only endpoints may still deny ADMIN; use the API source guard rather than assuming universal parity |
-| DISPATCHER | Import/review orders, measurements and goods; quotes, customs preparation, labels, tracking, retailer-paid returns and permitted catalog/support operations | No platform configuration; private financial fields are projected out where required; customer-paid return checkout/card baskets require OWNER/ADMIN |
-| ACCOUNTANT | Permitted financial views, wallet activity and top-up, invoice audit/dispute operations, permitted quote/help/catalog reads | A financial role is not booking permission; dispatch writes and card-funded shipping baskets have their own guards |
+| Legacy workspace ADMIN | Existing company shipping and finance access; no platform authority | Retained for compatibility; new team invitations cannot create ADMIN; company/team management is OWNER-only |
+| DISPATCHER | Operational status overview; imports, quotes, customs, labels, tracking, returns, catalog and store integrations; card checkout for an exact reviewed label basket | Cannot manage team/company settings, arbitrary wallet top-ups or billing configuration; private wholesale and margin details remain hidden |
+| ACCOUNTANT | Finance overview, wallet funding, payments, invoices, dispute drafts and shipment history; read-only catalog access | Cannot quote/book shipments, create returns, modify catalogs/integrations or manage the company/team |
 | Individual sender | Personal signup/profile and the same permitted quote, booking, wallet, documents, tracking, support and return journeys | Global individual markup replaces business rules; personal status does not create a tax exemption or blanket insurance eligibility |
 | Registered WhatsApp or web-chat user | Shared quote, selected booking, tracking, top-up, claim intake, returns and help controller | Registered phone binding or authenticated browser session supplies identity; text, sender_id and a model do not |
 | Prospective customer | Public help, labeled sample workflows, personal/business registration and email verification | No live spending, tenant access or free wallet allocation before verified provisioning |
 | Platform operator assisting a client | Search/select client workspace, record reason, operate with the support owner context, return to platform view | Original operator remains attributable; this is not impersonation of a particular employee’s narrower role |
 
-Support is an administrative responsibility and workflow, not a universally defined separate `SUPPORT` membership role. See endpoint-specific guards for exact permissions.
+Migration 048 defines EasyInvio AGENT in a server-only staff registry, separate from customer membership roles. Platform Admin remains SUPER_ADMIN in the server allowlist. Staff enter client operations only through verified, audited assistance; customer Owners invite Dispatcher and Accountant only. See docs_team_roles.md and /help/team-and-security for the customer-facing matrix.
 
 ## Workspace acquisition and onboarding
 
@@ -100,7 +101,7 @@ The headless return API, chat commands and signed merchant/marketplace gateway u
 
 The manual flow opens a RETURN SHIPMENT panel in Create shipment with saved packing and goods for self-service review/editing and fresh customs consent. Up to ten current services are sorted by exact price with budget tie preference; partial provider results are disclosed before explicit selection. The automated command retains its original single-parcel maximum-price authorization. Grouped multi-piece return purchase remains unsupported. Expired prices require fresh comparison; preparation never buys postage.
 
-RETAILER_PAY delegates to normal booking/billing. CUSTOMER_PAY creates an OWNER/ADMIN-authorized Stripe checkout and waits for verified payment. A durable receipt fences one full-parcel return per original shipment, including interrupted requests. Repeated delivery of the same command observes status; another key cannot bypass it.
+RETAILER_PAY delegates to normal booking/billing. CUSTOMER_PAY creates a dispatch-authorized, exact-basket Stripe checkout and waits for verified payment. A durable receipt fences one full-parcel return per original shipment, including interrupted requests. Repeated delivery of the same command observes status; another key cannot bypass it.
 
 Paperless documents are advertised only when supplied/confirmed by the provider. Sendcloud labelless-capable options and EasyPost USPS Label Broker have separate contracts. Otherwise the response requires a printed label. A shared 24-hour application link grants one drop-off document, not workspace access. Eligible carrier locations, not every post office/depot, determine where it can be used.
 

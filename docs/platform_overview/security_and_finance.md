@@ -20,6 +20,10 @@ Private backend tables enable RLS and revoke ordinary PUBLIC/anon/authenticated 
 
 ## Administrative assistance
 
+Platform Admin remains server-allowlisted SUPER_ADMIN. Migration 048 adds revocable AGENT grants in public.platform_staff with RLS and immutable grant-event history. A database trigger prevents simultaneous active staff/customer memberships. Token metadata cannot grant staff authority. Global pricing, credentials and root controls retain the owner-only dependency; operational staff routes use the separate verified operator dependency. Staff profiles/login tokens carry no customer tenant. The financial transaction rechecks the actual staff identity and live tenant-bound assistance session before admitting effective Owner permissions.
+
+Dispatcher card permission is limited to a saved label basket with the same request ID, tenant, actor, amount and pending state; ordinary wallet funding retains the finance role guard. Accountants cannot use the shipping basket endpoint. Background card booking retains assistance identity and requires current authorization; transactional return notices retain the authorization recorded when the review was created.
+
 Support sessions retain actor Auth ID, selected tenant, controlled operator membership, reason, hashed bearer binding, creation/expiry and revocation. Events record session starts/ends and request starts/finishes. The append-only event trigger disallows normal event updates/deletes. An active support context uses selected workspace owner functionality without issuing the target employee’s JWT or concealing the original administrator.
 
 Assistance is time-limited and revocable, and renewal cannot extend beyond the implemented maximum. Keep session scoping and audit persistence on new routes. A required write-ahead audit failure must not silently become an unaudited privileged write. Ordinary service/registration/return receipts additionally retain the original requesting actor.

@@ -397,7 +397,7 @@
       [
         "payer",
         "Charge bearer",
-        "Retailer: native workspace billing|Customer: owner/admin Stripe link"
+        "Retailer: native workspace billing|Customer: reviewed Stripe basket"
       ],
       [
         "book",

@@ -91,3 +91,8 @@ The manifest audit adds 24 offline state/API tests and one explicit disposable P
 ## Status knowledge verification
 
 The published status guide is indexed by individual anchored sections, including recovery instructions. Tests cover exact-code discovery, all citation targets, offline authored answers, mocked cited AI generation, ambiguous-status clarification, preservation of explicit native commands, and pending quote TTL/receipt replay in both WhatsApp and web chat. Local regression completed with 1026 passed, one skipped, two warnings and 14 subtests passed using explicit disposable PostgreSQL. The Help Centre browser suite passed at desktop/mobile widths with no page errors, live provider calls or sent messages. These checks validate documentation/routing, not a live carrier or insurer outcome.
+
+
+## Platform staff and persona regressions
+
+The 048 suite tests registry-only Agent access, revocation and renewal, refusal of forged role metadata, owner-only configuration boundaries, root-required client selection, audited client assistance, Dispatcher store and exact-basket card permissions, Accountant shipping denial and Owner-only team management. Disposable PostgreSQL verifies actual RLS, immutable staff events, exclusion of simultaneous staff/customer membership and cart tenant/actor/price/status matching. The isolated client-assistance browser harness supports EASYINVIO_BROWSER_STAFF_ROLE=AGENT or SUPER_ADMIN, exercises desktop/mobile switching and checks persona navigation without provider or configured-database calls. Return notice tests include an Agent-assisted booking.

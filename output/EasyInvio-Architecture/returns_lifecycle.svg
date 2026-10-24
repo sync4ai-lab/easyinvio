@@ -43,7 +43,7 @@
 <rect x="526" y="438" width="6" height="220" rx="3" fill="#4f46e5"/>
 <text x="548" y="476" style="font:700 22px Arial,sans-serif;fill:#0f172a">Charge bearer</text>
 <text x="548" y="516" style="font:18px Arial,sans-serif;fill:#334155">Retailer: native workspace billing</text>
-<text x="548" y="540" style="font:18px Arial,sans-serif;fill:#334155">Customer: owner/admin Stripe link</text>
+<text x="548" y="540" style="font:18px Arial,sans-serif;fill:#334155">Customer: reviewed Stripe basket</text>
 </g>
 <g data-node="book"><rect x="1004" y="438" width="440" height="220" rx="16" fill="white" stroke="#cbd5e1"/>
 <rect x="1004" y="438" width="6" height="220" rx="3" fill="#059669"/>

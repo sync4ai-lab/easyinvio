@@ -578,6 +578,21 @@
       "created_functions": [
         "queue_sender_shipment_milestone"
       ]
+    },
+    {
+      "file": "migrations/048_platform_agents.sql",
+      "sha256": "c43422c2953e2a2342726128317a77d0b5ddbfc1b1f3c2a99770a65bedc3fe96",
+      "created_tables": [
+        "platform_staff",
+        "platform_staff_events"
+      ],
+      "alter_table_targets": [
+        "platform_staff",
+        "platform_staff_events"
+      ],
+      "created_functions": [
+        "guard_staff_membership"
+      ]
     }
   ],
   "hash_format": "SHA-256 with CRLF normalized to LF",
@@ -983,6 +998,18 @@
       "file": "migrations/047_sender_shipment_notifications.sql",
       "line": 10,
       "create_definition": "CREATE TABLE public.shipment_sender_notifications (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n tenant_id uuid NOT NULL, shipment_id uuid NOT NULL,\n category text NOT NULL CHECK(category IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','OUT_FOR_DELIVERY','AVAILABLE_FOR_PICKUP','DELIVERED','EXCEPTION','RETURNED_TO_SENDER','CANCELLED')),\n channel text NOT NULL CHECK(channel IN ('EMAIL','WHATSAPP')),\n environment text NOT NULL CHECK(environment IN ('TEST','LIVE')),\n state text NOT NULL DEFAULT 'READY' CHECK(state IN ('READY','SENDING','ACCEPTED','FAILED','SKIPPED','REVIEW_REQUIRED')),\n provider_reference text, error_code text,\n attempts integer NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 3),\n next_attempt_at timestamptz NOT NULL DEFAULT now(),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),\n UNIQUE(tenant_id,shipment_id,category,channel),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
+    },
+    {
+      "name": "platform_staff",
+      "file": "migrations/048_platform_agents.sql",
+      "line": 4,
+      "create_definition": "CREATE TABLE public.platform_staff (\n auth_user_id uuid PRIMARY KEY REFERENCES auth.users(id),\n role text NOT NULL DEFAULT 'AGENT' CHECK(role='AGENT'),\n is_active boolean NOT NULL DEFAULT true,\n created_by uuid NOT NULL REFERENCES auth.users(id),\n created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()\n);"
+    },
+    {
+      "name": "platform_staff_events",
+      "file": "migrations/048_platform_agents.sql",
+      "line": 11,
+      "create_definition": "CREATE TABLE public.platform_staff_events (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n actor_auth_user_id uuid NOT NULL REFERENCES auth.users(id),\n staff_auth_user_id uuid NOT NULL REFERENCES auth.users(id),\n is_active boolean NOT NULL, reason text NOT NULL CHECK(length(reason) BETWEEN 10 AND 500),\n created_at timestamptz NOT NULL DEFAULT now()\n);"
     }
   ],
   "scope": "Exact repository CREATE TABLE blocks; not live introspection or a final flattened schema after all ALTERs.",
