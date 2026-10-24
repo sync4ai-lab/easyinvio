@@ -1,10 +1,17 @@
-/* Icon-only EasyInvio mark. Dimensions reserve space before the SVG loads. */
-.topbar .brand,.tracking-public header .brand{display:inline-flex;align-items:center;justify-content:center;flex:0 0 56px;width:56px;height:48px;padding:5px 10px;text-decoration:none;line-height:1}
+/* Independent icon and live wordmark; dimensions reserve space before loading. */
+.topbar .brand,.tracking-public header .brand{display:inline-flex;align-items:center;justify-content:flex-start;flex:0 1 auto;width:auto;max-width:100%;min-height:48px;gap:12px;padding:0;text-decoration:none;line-height:1}
 .brand-mark{display:block;width:32.571px;height:38px;max-width:none;object-fit:contain;flex-shrink:0;filter:none}
-.identity-logo{display:flex;justify-content:center;margin:0 0 16px;animation:none}
+.brand-copy{display:flex;flex-direction:column;gap:5px;min-width:0;text-align:left}
+.brand-name{display:block;color:#f1f5f9;font:850 24px/1.1 Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-1px;white-space:nowrap}
+.brand-name em{color:#34d399;font-style:normal}
+.brand-tagline{display:block;color:#93c5fd;font:750 9px/1.35 Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.identity-logo{display:flex;align-items:center;justify-content:center;gap:14px;margin:0 0 26px;animation:none}
 .identity-logo .brand-mark{width:48px;height:56px}
-/* Explicit surface variants follow the surface, not the operating system theme. */
-[data-theme="light"] .brand-mark,.brand-on-light .brand-mark{filter:brightness(.48) saturate(1.25)}
-[data-theme="dark"] .brand-mark,.brand-on-dark .brand-mark{filter:none}
-@media(max-width:767px){.topbar .brand,.tracking-public header .brand{flex-basis:44px;width:44px;height:44px;padding:7px 9px}.brand-mark{width:25.714px;height:30px}}
+.identity-logo .brand-name{font-size:32px}
+.identity-logo .brand-tagline{font-size:8px;letter-spacing:.12em}
+[data-theme="light"] .brand-name,.brand-on-light .brand-name{color:#0f172a}
+[data-theme="light"] .brand-tagline,.brand-on-light .brand-tagline{color:#4338ca}
+[data-theme="light"] .brand-name em,.brand-on-light .brand-name em{color:#047857}
+@media(max-width:767px){.topbar .brand,.tracking-public header .brand{min-height:44px;gap:10px}.brand-mark{width:25.714px;height:30px}.brand-name{font-size:22px}.brand-tagline{font-size:7px;letter-spacing:.11em}.identity-logo{gap:10px}.identity-logo .brand-mark{width:37.714px;height:44px}.identity-logo .brand-name{font-size:26px}.identity-logo .brand-tagline{font-size:7px;letter-spacing:.08em}}
+@media(max-width:359px){.identity-login-card{padding:24px}.identity-logo{gap:8px}.identity-logo .brand-name{font-size:23px}.identity-logo .brand-tagline{font-size:6px}.identity-logo .brand-mark{width:30.857px;height:36px}}
 @media(forced-colors:active){.brand-mark{forced-color-adjust:none}}

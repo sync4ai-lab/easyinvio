@@ -20,6 +20,15 @@ async def check(origin: str) -> None:
         await page.route('**/*',local_only)
         await page.goto(origin,wait_until='domcontentloaded')
         await page.wait_for_function("state.mode==='local-preview'")
+        for width in [320,1440]:
+            await page.set_viewport_size({'width':width,'height':900})
+            await page.wait_for_function("document.querySelector('.identity-logo img').complete")
+            wordmark=page.locator('.identity-logo .brand-copy')
+            assert 'EasyInvio.com' in await wordmark.inner_text()
+            box=await page.locator('.identity-logo').bounding_box()
+            name_box=await wordmark.bounding_box()
+            assert box and name_box and name_box['x']>=box['x'] and name_box['x']+name_box['width']<=box['x']+box['width']+1
+            await page.screenshot(path=str(output/f'sign-in-{width}.png'))
         await page.evaluate("document.querySelector('#loginContainer').hidden=true;document.body.classList.remove('auth-locked');document.body.classList.add('auth-ready')")
         results=[]
         for role in ['OWNER','ADMIN','DISPATCHER','ACCOUNTANT']:
@@ -35,7 +44,10 @@ async def check(origin: str) -> None:
             assert box and abs(box['height']-(30 if width<768 else 38))<.5,box
             assert box['x']>=0 and box['x']+box['width']<=width
             assert abs(box['width']/box['height']-96/112)<.01
-            assert await page.locator('.topbar .brand').inner_text()==''
+            assert 'EasyInvio.com' in await page.locator('.topbar .brand').inner_text()
+            assert 'shipping intelligence platform' in (await page.locator('.topbar .brand').inner_text()).casefold()
+            group=await page.locator('.topbar .brand').bounding_box()
+            assert group and group['x']+group['width']<=width
             results.append({'width':width,'logo_height':box['height'],'uncropped':True})
             if width in [320,1440]:await page.screenshot(path=str(output/f'header-{width}.png'))
         # Same vector on explicit dark and light surfaces; verify no decorative badge.
@@ -44,10 +56,12 @@ async def check(origin: str) -> None:
         await page.set_content('<style>'+css+'</style><div class="brand-on-dark" style="background:#020617;padding:30px;display:inline-block"><img class="brand-mark" src="'+origin+'/brand-mark.svg" alt="EasyInvio.com"></div><div class="brand-on-light" style="background:#fff;padding:30px;display:inline-block"><img class="brand-mark" src="'+origin+'/brand-mark.svg" alt="EasyInvio.com"></div>')
         await page.locator('img').last.wait_for()
         await page.wait_for_function('Array.from(document.images).every(image=>image.complete&&image.naturalWidth>0)')
-        assert await page.locator('.brand-on-light img').evaluate('(image)=>getComputedStyle(image).filter')!='none'
+        assert await page.locator('.brand-on-light img').evaluate('(image)=>getComputedStyle(image).filter')=='none'
         await page.screenshot(path=str(output/'surfaces.png'))
         await page.goto(origin+'/tracking.html',wait_until='domcontentloaded')
         assert await page.locator('header img').get_attribute('alt')=='EasyInvio.com'
+        assert 'EasyInvio.com' in await page.locator('header .brand-name').inner_text()
+        assert await page.locator('header .brand-name').evaluate('(element)=>getComputedStyle(element).color')=='rgb(241, 245, 249)'
         assert await page.locator('header img').evaluate('(image)=>image.complete&&image.naturalWidth>0')
         for name in ['brand-mark.svg','favicon.svg','favicon-32.png','apple-touch-icon.png','app-icon-192.png','app-icon-512.png','site.webmanifest','brand.css']:
             response=await page.request.get(origin+'/'+name)

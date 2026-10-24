@@ -1,12 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 112" fill="none" color="#34d399">
-<g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linejoin="round">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 112" fill="none">
+<defs>
+<linearGradient id="route" x1="12" y1="12" x2="80" y2="98" gradientUnits="userSpaceOnUse"><stop stop-color="#93c5fd"/><stop offset=".28" stop-color="#818cf8"/><stop offset=".45" stop-color="#e0e7ff"/><stop offset=".57" stop-color="#818cf8"/><stop offset="1" stop-color="#6366f1"/></linearGradient>
+<linearGradient id="parcel" x1="34" y1="35" x2="59" y2="70" gradientUnits="userSpaceOnUse"><stop stop-color="#6ee7b7"/><stop offset=".36" stop-color="#34d399"/><stop offset=".47" stop-color="#d1fae5"/><stop offset=".57" stop-color="#34d399"/><stop offset="1" stop-color="#10b981"/></linearGradient>
+<linearGradient id="silver" x1="37" y1="73" x2="59" y2="94" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset=".4" stop-color="#e2e8f0"/><stop offset=".51" stop-color="#fff"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient>
+<radialGradient id="node" cx=".3" cy=".25" r=".85"><stop stop-color="#fff"/><stop offset=".45" stop-color="#f8fafc"/><stop offset="1" stop-color="#cbd5e1"/></radialGradient>
+</defs>
+<g fill="none" stroke="url(#route)" stroke-width="4.5" stroke-linejoin="round">
 <path d="M37 13 20 23Q10 29 10 39M59 13l17 10q10 6 10 16M10 59v12q0 8 9 13l18 11M86 59v12q0 8-9 13L59 95"/>
 <path d="M48 17v7q0 6-6 9L22 45M48 24q0 6 6 9l20 12M20 54l7 4M76 54l-7 4"/>
 </g>
-<g fill="currentColor">
+<g fill="url(#node)" stroke="#818cf8" stroke-width=".5">
 <circle cx="48" cy="9" r="6"/><circle cx="9" cy="49" r="6"/><circle cx="87" cy="49" r="6"/><circle cx="48" cy="103" r="6"/>
+</g>
+<g fill="url(#parcel)">
 <path d="m48 35 17 10-17 10-17-10Zm-17 15 14 8v12l-14-8Zm20 8 14-8v12l-14 8Z"/>
 </g>
-<path d="m48 74 11 5v3q0 7-11 12-11-5-11-12v-3Z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
-<path d="m48 74 11 5v3q0 7-11 12Z" fill="currentColor"/>
+<path d="m48 74 11 5v3q0 7-11 12-11-5-11-12v-3Z" fill="none" stroke="url(#silver)" stroke-width="3.5" stroke-linejoin="round"/>
+<path d="m48 74 11 5v3q0 7-11 12Z" fill="url(#silver)"/>
 </svg>

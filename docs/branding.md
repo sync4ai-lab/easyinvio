@@ -1,13 +1,13 @@
 # EasyInvio brand assets and preview
 
-The header, sign-in screen and public tracking page use an icon-only SVG redrawing of the supplied parcel, shield and connected-node motif. Fine glow and shading were removed for legibility at 30–38 pixels. The mark is emerald #34d399 on the existing navy surfaces, with a darker CSS variant for explicitly light surfaces. PNG app icons use dark emerald #047857 on transparency. The original supplied PNG is not distributed because its opaque glow is unsuitable for a navigation asset.
+The header, sign-in screen and public tracking page show the independent SVG mark beside the restored EasyInvio.com wordmark and Shipping intelligence platform tagline. The name is live HTML, not embedded into the icon. The parcel uses the brand emerald green, the security shield and four nodes use silver-white, and the surrounding routes use the existing indigo/blue palette. Static gradients create a subtle metallic highlight without animation, glow, shadows or a surrounding badge.
 
-The image proportions are 96:112. Header marks are 38px high on desktop and 30px below 768px, within fixed clear-space wrappers. No wordmark, badge, gradient, shadow or animation is added. Every displayed image has alt="EasyInvio.com". The SVG favicon adapts to the browser colour scheme. A manifest supplies 192px and 512px ordinary icons; no offline service worker or installability guarantee is introduced.
+The image proportions remain 96:112. Header marks are 38px high on desktop and 30px below 768px. Wordmark size, tagline spacing and sign-in grouping shrink at mobile breakpoints, including 320px. Every displayed image has alt="EasyInvio.com"; adjacent duplicate branding text is hidden from assistive technology. The favicon and transparent PNG app icons share the coloured mark. A manifest supplies ordinary 192px and 512px icons; no offline service worker or installability guarantee is introduced.
 
 ## Files changed
 
 - Brand assets: brand-mark.svg, brand.css, favicon.svg, favicon-32.png, apple-touch-icon.png, app-icon-192.png, app-icon-512.png, site.webmanifest.
-- Application UI: index.html, tracking.html and frontend/identity.js.
+- Application UI: index.html, tracking.html, tracking-ui.css and frontend/identity.js.
 - Hosting: main.py (explicit asset routes and tracking image policy), vercel.json (matching policy), scripts/build_vercel.py (public allowlist), scripts/generate_brand_icons.py (reproducible PNG rendering).
 - Email defaults/setup: backend/return_delivery.py, backend/shipment_notifications.py, .env.example, docs_shipment_updates.md. The mailbox login and both notification From addresses are support@easyinvio.com. Explicit environment variables override these defaults; no password is stored in source.
 - Regression checks: tests/brand_browser.py, tests/test_runtime_hosting.py, tests/test_email_delivery.py, tests/test_sender_notifications.py, tests/test_return_review_postgres.py.

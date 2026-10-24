@@ -118,7 +118,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </symbol>
 </svg>
 <header class="topbar">
-<a class="brand" href="/" aria-label="EasyInvio.com home"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112" fetchpriority="high" decoding="async"></a>
+<a class="brand" href="/" aria-label="EasyInvio.com home"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112" fetchpriority="high" decoding="async"><span class="brand-copy" aria-hidden="true"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></a>
 <div class="topbar-actions">
 <span class="topbar-status">
 <span class="signal">
@@ -5604,8 +5604,8 @@ body.auth-ready>.app-shell{animation:identityFade .3s ease-out}@keyframes identi
 </style>`);
 document.body.insertAdjacentHTML('afterbegin', `<section id="loginContainer" aria-label="EasyInvio sign in">
 <div class="identity-login-card bg-slate-950 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
- <div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"></div>
- <p class="eyebrow">Shipping intelligence platform</p><h1 style="font-size:26px;margin-top:24px">Sign in to your workspace</h1><p class="subtle">Your verified identity controls access to shipments, billing and administration.</p>
+ <div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"><span class="brand-copy" aria-hidden="true"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></div>
+ <h1 style="font-size:26px;margin-top:24px">Sign in to your workspace</h1><p class="subtle">Your verified identity controls access to shipments, billing and administration.</p>
  <form id="identity-login-form" style="margin-top:24px"><label for="identity-email">Email</label><div class="identity-input"><i data-lucide="mail"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg><input id="identity-email" type="email" autocomplete="username" required maxlength="254"></div>
  <label for="identity-password">Password</label><div class="identity-input"><i data-lucide="lock"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg><input id="identity-password" type="password" autocomplete="current-password" required maxlength="4096"></div>
  <button id="identity-login-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-slate-100 font-bold py-3 rounded-xl transition-all" type="submit">Sign In</button>
