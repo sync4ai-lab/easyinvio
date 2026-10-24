@@ -1,7 +1,7 @@
 // Embedded in index.html: owner command center and notification receipt visibility.
 document.head.insertAdjacentHTML('beforeend','<style>#owner-command-center{min-width:0;margin:18px 0}#owner-command-center .responsive-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:16px 0}#owner-command-center .card{min-width:0}@media(max-width:900px){#owner-command-center .responsive-grid{grid-template-columns:minmax(0,1fr)}}</style>');
 $('#dashboard-metrics').insertAdjacentHTML('afterend', `<div id="owner-command-center" hidden>
- <div class="toolbar"><h2>Super-Admin Command Center</h2><label>Data environment<select id="owner-environment"><option value="PRODUCTION">Production accounts</option><option value="SANDBOX">Sandbox test accounts</option></select></label></div>
+ <div class="toolbar"><h2>Platform business overview</h2><label>Data environment<select id="owner-environment"><option value="PRODUCTION">Production accounts</option><option value="SANDBOX">Sandbox test accounts</option></select></label></div>
  <p id="owner-monitoring-source" class="notice"></p>
  <div class="responsive-grid"><article class="card"><h3>Network revenue and stored margin</h3><div class="scrolltable"><table><thead><tr><th>Currency</th><th>Gross revenue</th><th>Gross markup</th><th>Packages</th></tr></thead><tbody id="owner-currency-rows"></tbody></table></div><p class="subtle">Currencies are kept separate. Stored markup excludes operating expenses and is not net accounting profit.</p></article>
  <article class="card"><h3>Company billing pipeline</h3><div id="owner-billing-pipeline"></div><h3>Wallet payment states</h3><div id="owner-payment-pipeline"></div></article></div>
@@ -44,15 +44,18 @@ renderTickets=function(){
     }
   });
 };
-$('#admin-carriers').insertAdjacentHTML('beforeend', `<article class="card" id="admin-alert-settings" style="margin-top:18px"><div class="cardhead"><div><h2>WhatsApp notification settings</h2><p class="subtle">Control delivery for verified, consenting recipients. Internal booking and application failures stay in the admin support center.</p></div><button type="button" class="secondary" id="admin-alert-refresh">Refresh</button></div><p id="admin-alert-setup" class="notice">Load settings to check sender configuration and verified recipients.</p><div class="scrolltable"><table><thead><tr><th>Company / environment</th><th>Verified number</th><th>Recipient consent</th><th>Delivery</th><th>Control</th></tr></thead><tbody id="admin-alert-bindings"></tbody></table></div></article>`);
-let adminAlertEpoch=0;
-async function loadAdminAlerts(){
-  const generation=++adminAlertEpoch, session=state.session;
-  if(portal.role!=='SUPER_ADMIN' || !session)return;
-  const result=await api('/api/v1/admin/support/whatsapp/bindings',{auth:true});
-  if(generation!==adminAlertEpoch || session!==state.session || portal.role!=='SUPER_ADMIN')return;
-  $('#admin-alert-setup').textContent=(result.configured?'Sender enabled. ':'Sender is not configured for delivery. ')+(result.controls_ready?'':'Apply migration 034 for pause/resume controls. ')+result.setup;
-  $('#admin-alert-bindings').innerHTML=result.bindings.map(binding=>`<tr><td>${escapeHTML(binding.company_name)}<br>${binding.is_sandbox?'TEST':'LIVE'}</td><td>Ending ${escapeHTML(binding.number_suffix)}${binding.is_active?'':' (inactive)'}</td><td>${binding.notification_opt_in?'Opted in':'Not opted in'}</td><td>${binding.alerts_paused?'Paused':!binding.verified || !binding.is_active?'Awaiting verification':!binding.notification_opt_in?'Awaiting consent':result.configured?'Eligible for delivery':'Sender setup needed'}</td><td><button type="button" class="secondary" data-alert-binding="${escapeHTML(binding.id)}" data-alert-paused="${!binding.alerts_paused}" ${!result.controls_ready || (binding.alerts_paused && (!binding.is_active || !binding.notification_opt_in || !binding.verified))?'disabled':''}>${binding.alerts_paused?'Resume delivery':'Pause delivery'}</button></td></tr>`).join('') || '<tr><td colspan="5">No verified WhatsApp numbers linked. Contact recipients to complete verification and opt-in before delivery.</td></tr>';
+$('#admin-carriers').insertAdjacentHTML('beforeend', `<article class="card" id="admin-alert-settings" style="margin-top:18px"><div class="cardhead"><div><h2>WhatsApp support alert recipients</h2><p class="subtle">Linked WhatsApp identities for support alerts. Number verification enables identity checks; recipients separately consent to alerts. This is not the list of shipment-update subscribers or WhatsApp label purchases.</p></div><button type="button" class="secondary" id="admin-alert-refresh">Refresh</button></div><p id="admin-alert-setup" class="notice">Load settings to check sender configuration and verified recipients.</p><div class="scrolltable"><table><thead><tr><th>Company / environment</th><th>Verified number</th><th>Recipient consent</th><th>Delivery</th><th>Control</th></tr></thead><tbody id="admin-alert-bindings"></tbody></table></div></article>`);
+let adminAlertEpoch = 0;
+async function loadAdminAlerts() {
+  const generation = ++adminAlertEpoch,
+    session = state.session;
+  if (portal.role !== 'SUPER_ADMIN' || !session) return;
+  const result = await api('/api/v1/admin/support/whatsapp/bindings', {
+    auth: true
+  });
+  if (generation !== adminAlertEpoch || session !== state.session || portal.role !== 'SUPER_ADMIN') return;
+  $('#admin-alert-setup').textContent = (result.configured ? 'Sender enabled. ' : 'Sender is not configured for delivery. ') + (result.controls_ready ? '' : 'Apply migration 034 for pause/resume controls. ') + result.setup + ' Verification does not grant alert consent. Only the recipient can opt in; platform controls only pause or resume delivery.';
+  $('#admin-alert-bindings').innerHTML = result.bindings.map(binding => `<tr><td>${escapeHTML(binding.company_name)}${binding.recipient_name?`<p class="subtle">${escapeHTML(binding.recipient_name)}</p>`:''}<br>${binding.is_sandbox?'TEST':'LIVE'}</td><td>Ending ${escapeHTML(binding.number_suffix)}${binding.is_active?'':' (inactive)'}<p class="subtle">${binding.verified?'Number verified':'Not verified'}</p></td><td>${binding.notification_opt_in?'Opted in':'Not opted in'}</td><td>${binding.user_active===false?'User inactive':binding.alerts_paused?'Paused':!binding.verified || !binding.is_active?'Awaiting verification':!binding.notification_opt_in?'Awaiting consent':result.configured?'Eligible; delivery rules apply':'Sender setup needed'}</td><td><button type="button" class="secondary" data-alert-binding="${escapeHTML(binding.id)}" data-alert-paused="${!binding.alerts_paused}" ${!result.controls_ready || (binding.alerts_paused && (!binding.is_active || binding.user_active===false || !binding.notification_opt_in || !binding.verified))?'disabled':''}>${binding.alerts_paused?'Resume delivery':'Pause delivery'}</button></td></tr>`).join('') || '<tr><td colspan="5">No verified WhatsApp numbers linked. Contact recipients to complete verification and opt-in before delivery.</td></tr>';
 }
 $('#admin-alert-refresh').addEventListener('click',()=>busy($('#admin-alert-refresh'),loadAdminAlerts));
 $('#admin-alert-bindings').addEventListener('click',event=>{

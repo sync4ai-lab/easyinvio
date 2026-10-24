@@ -55,3 +55,30 @@ Never edit shipment created_by values, audit actors, wallet ledgers or historica
 ## 5. Verify
 
 After re-sign-in, open User Profile and check the displayed role. The authenticated /api/v1/auth/me endpoint reports the current identity role, and /api/v1/profile reports the platform/customer view and tenant scope. SQL inspection cannot read Vercel's owner allowlist: check that variable separately for SUPER_ADMIN. Test a permitted action and a denied action using the actual user session, not SQL Editor.
+
+
+## 6. Platform owner console
+
+The platform console aggregates client activity. Use **Assist a client** for customer shipment or wallet operations; it retains the operator identity and audit trail. The platform owner is not a customer employee.
+
+| Tab | Platform purpose |
+| --- | --- |
+| Overview | Environment and date-scoped shipping revenue, stored gross markup, active clients, carrier distribution, monthly package trends, leading clients, booking-state cohorts, current wallet exposure, account cohorts, billing/payment pipelines and support threads. Currencies are separate. Gross markup is not net profit. |
+| Client Accounts | Client registrations, billing plans, environment, CRM linkage and processing status, optional quote-recommendation preferences, and the newest 200 wallet events in the selected ledger environment. The client registry is capped at 200 loaded accounts; reporting totals are queried across the selected environment. |
+| Carrier Connections | Platform-owned shared aggregator/direct-carrier connections, their capabilities and diagnostics. Client-assigned accounts are older or administrator-created tenant connections, not marketplace stores or self-service customer carrier credentials. The client-account filter and archived/disabled-legacy filter are independent. |
+| Marketplace Connections | Environment-scoped client/store registrations and saved-setting status, lifetime imported-order count and most recent import. Search company, store or marketplace. Up to 200 matches are displayed. Saved credentials are not evidence of valid remote access or a successful live health check. |
+| Pricing & Margins | Business/client/lane pricing rules and personal-account global markup. These are platform pricing controls, not the customer's warehouse controls. |
+| Platform Shipments | Latest 200 shipment records across clients, with company and sandbox/production context, lifecycle evidence and document visibility. Search by company or shipment. This recent-record register is not the complete historical analytics dataset; use Overview for reporting. |
+| User Profile | The authenticated operator's identity and profile. It does not change platform authority. |
+
+Agents have the read-only/support views appropriate to their role, including Marketplace Connections; carrier credentials, pricing mutations and recommendation preference changes remain platform-owner controls.
+
+CRM labels distinguish disabled runtime processing, environment mismatch, queued work, blocked work, retry and saved links. A missing link alone does not prove a HubSpot outage. Runtime CRM configuration belongs to the deployed application's environment; a local .env does not establish Vercel's state. CRM work uses the existing durable jobs and configured worker. This console does not turn on CRM processing or transmit additional client records by itself.
+
+The business recommendation preference is an explicit saved choice. Balanced advice considers price/speed/risk. Budget preference may recommend an eligible Evri, Royal Mail or Yodel offer no dearer than other eligible offers and no more than two estimated days slower than the fastest non-budget service, excluding active exceptions/high-delay alerts. It only influences optional recommendation advice; it never changes quoted prices, hides other offers, books automatically or guarantees advice when the agent is unavailable. Personal accounts use budget preference automatically.
+
+Wallet rows are append-only accounting events. RESERVE holds funds; a successful confirmed label purchase appends CAPTURE, reducing balance and held funds. RELEASE removes an unused hold. TOPUP credits a confirmed wallet payment (sandbox may have explicit fixture/test credits). SHIPMENT_REFUND credits an eligible shipment refund; REFUND_DEBIT reverses a refunded top-up. Balance/hold changes are signed deltas; wallet-after and held-after are historical balances at that row. A reserve row never changes into a capture row.
+
+WhatsApp support-alert recipients are identity bindings, not a report of all WhatsApp label purchasers or sender shipment-update subscriptions. Verification and notification consent are separate. The platform may pause/resume eligible alerts, but must not opt in for a recipient. A customer Owner/legacy company Admin can open User Profile → WhatsApp support alerts and save their own preference for active verified bindings. The read endpoint is scoped to that tenant and authenticated user. This control is hidden during assistance and for platform staff, dispatchers and accountants. The displayed company is the bound user's workspace; a seeded company indicates a test binding. Shipment milestone email/WhatsApp subscriptions have their own settings and are not represented by this table.
+
+Validation: tests/test_platform_console.py, tests/platform_console_browser.py and tests/mobile_auth_browser.py cover authorization, reporting scope, public metadata, populated tables, independent carrier filters, explicit preference saving, consent labels and phone/tablet/desktop layouts. Browser fixtures use synthetic identities and never contact shipping, CRM, payment or messaging providers.

@@ -19,6 +19,8 @@ let pendingConversationQuote = (() => {
 <style id="identity-first-paint">body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-nav,body.auth-locked>#customs-backdrop,body.auth-locked>#box-backdrop{display:none!important}</style>
 <link rel="stylesheet" href="/workspace-ui.css">
 <script src="/workspace-ui.js" defer></script>
+<link rel="stylesheet" href="/platform-console.css">
+<script src="/platform-console.js" defer></script>
 <meta name="color-scheme" content="dark">
 <link rel="stylesheet" href="/form-feedback.css">
 <script src="/form-feedback.js" defer></script>
@@ -2799,10 +2801,10 @@ function renderPortal() {
   $('#dashboard-source').classList.toggle('real', !demo);
   $('#distribution-title').textContent = admin ? 'Carrier volume distribution' : 'Shipping lane costs';
   $('#distribution-subtitle').textContent = admin ? 'Booked packages by carrier.' : 'Confirmed bookings by route and currency.';
-  $('#secondary-chart-title').textContent = admin ? 'Shipping volume trend' : 'Shipment outcomes & transit';
+  $('#secondary-chart-title').textContent = admin ? 'Confirmed package volume' : 'Shipment outcomes & transit';
   $('#transit-info').setAttribute('aria-label', admin ? 'About shipping volume' : 'About shipment outcomes and transit');
   $('#transit-tooltip').textContent = admin
-    ? 'Booked package counts for the selected UTC period. A historical trend is shown only when a trend series is available.'
+    ? 'Confirmed booked packages for the selected UTC period. Monthly trends appear in Shipping growth.'
     : 'For shipments booked in the selected UTC period. Average transit runs from the first accepted in-transit update to delivery. Only deliveries with both valid timestamps count; it is not a delivery guarantee or a measure of warehouse productivity.';
   $('#transit-tooltip').hidden = true;
   if (demo) {
@@ -3031,8 +3033,8 @@ async function refreshPortal() {
       })]);
       if (generation !== portal.epoch) return;
       portal.report = report;
-      const gbp = report.totals_by_currency.find(r => r.currency === 'GBP');
-      $('#dashboard-metrics').innerHTML = metric('Consolidated Gross Revenue', money(gbp?.revenue || '0.00', 'GBP'), 'GBP only · selected reporting period', 'wallet') + metric('Platform Gross Margin', money(gbp?.margin || '0.00', 'GBP'), 'Stored markup · net profit not supplied', 'chart') + metric('Active Tenant Count', String(report.active_tenants), 'Active non-sandbox SMEs', 'grid');
+      const summary = report.totals_by_currency.find(r=>r.currency==='GBP') || report.totals_by_currency[0] || {currency:'GBP'};
+      $('#dashboard-metrics').innerHTML = metric('Shipping revenue · '+summary.currency, money(summary.revenue||'0.00',summary.currency), 'Confirmed bookings in selected period', 'wallet') + metric('Stored gross markup · '+summary.currency, money(summary.margin||'0.00',summary.currency), 'Before operating expenses and adjustments', 'chart') + metric('Active client accounts', String(report.active_tenants), report.environment==='SANDBOX'?'Sandbox accounts':'Production accounts', 'grid');
       portal.tickets = tickets.tickets;
       renderCharts(true, report.carriers)
     } else {
@@ -3504,15 +3506,15 @@ renderManifest = function() {
   const query = $('#manifest-search').value.toLowerCase(),
     filter = $('#manifest-filter').value,
     all = manifestRecords(),
-    rows = all.filter(r => (filter === 'all' || displayedStatus(r) === filter) && [r.reference, r.id, r.tracking_number, r.carrier_code, r.service_code, r.metadata?.carrier, r.metadata?.destination, r.destination_country].join(' ').toLowerCase().includes(query));
+    rows = all.filter(r => (filter === 'all' || displayedStatus(r) === filter) && [r.company_name, r.reference, r.id, r.tracking_number, r.carrier_code, r.service_code, r.metadata?.carrier, r.metadata?.destination, r.destination_country].join(' ').toLowerCase().includes(query));
   $('#manifest-count').textContent = rows.length;
   $('#manifest-ready').textContent = rows.filter(r => ['BOOKED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(displayedStatus(r))).length;
-  $('#manifest-source').textContent = state.session ? portal.role === 'SUPER_ADMIN' ? 'Platform manifest · authorized client records. Intermediate milestones appear when reported.' : 'Workspace manifest · your authorized records. Intermediate milestones appear when reported.' : 'SAMPLE MANIFEST · These three examples are not real bookings or delivery evidence. Sign in and refresh for your workspace.';
+  $('#manifest-source').textContent = state.session ? portal.role === 'SUPER_ADMIN' ? 'Platform shipment register · Latest 200 records across all clients, including sandbox and production. Search by company, reference or carrier. Assist a client for customer operations.' : 'Workspace manifest · your authorized records. Intermediate milestones appear when reported.' : 'SAMPLE MANIFEST · These three examples are not real bookings or delivery evidence. Sign in and refresh for your workspace.';
   $('#manifest-body').innerHTML = rows.length ? rows.map(row => {
     const status = displayedStatus(row),
       carrier = row.metadata?.carrier || row.carrier_code || 'Not recorded',
       type = row.cargo_type || row.metadata?.cargo_type || 'PARCEL';
-    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div><span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}${row.insurance?`<p class="subtle">Protection: ${escapeHTML(({CONFIRMED:'XCover confirmed',PENDING:'awaiting insurer confirmation',FAILED:'not added',CANCELLED:'policy cancelled'})[row.insurance.status]||'not confirmed')}</p>`:''}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(({PENDING_IMPORT:'Imported - needs review',DRAFT:'Draft - needs quote',QUOTED:'Quoted - not booked',BOOKING:'Booking in progress',LABEL_CREATED:'Label created'})[status]||status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}${['BOOKED','LABEL_CREATED','DISPATCHED','IN_TRANSIT','OUT_FOR_DELIVERY','EXCEPTION','DELIVERED'].includes(status)&&['OWNER','ADMIN','DISPATCHER'].includes(portal.profile?.workspace_role)&&row.tracking_lifecycle_type!=='RETURN_SHIPMENT'?`<button class="secondary" data-prepare-return="${escapeHTML(row.id)}">Create return</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
+    return `<tr><td><div class="manifest-ref">${svgIcon('truck')}<b>${escapeHTML(row.reference||row.id.slice(0,12))}</b></div>${portal.role==='SUPER_ADMIN'&&row.company_name?`<p class="subtle">${escapeHTML(row.company_name)} · ${row.is_sandbox?'SANDBOX':'PRODUCTION'}</p>`:''}<span class="mono subtle">${escapeHTML(row.tracking_number||'Awaiting tracking')}</span>${pipeline(row)}${row.insurance?`<p class="subtle">Protection: ${escapeHTML(({CONFIRMED:'XCover confirmed',PENDING:'awaiting insurer confirmation',FAILED:'not added',CANCELLED:'policy cancelled'})[row.insurance.status]||'not confirmed')}</p>`:''}</td><td>${escapeHTML(carrier)}<br><span class="subtle">${escapeHTML(row.origin_country||'—')} → ${escapeHTML(row.destination_country||row.metadata?.destination||'—')}</span><br><span class="tag">${escapeHTML(cargoTitles[type]||type)}</span></td><td><span class="tag status-${escapeHTML(status.toLowerCase())}">${escapeHTML(({PENDING_IMPORT:'Imported - needs review',DRAFT:'Draft - needs quote',QUOTED:'Quoted - not booked',BOOKING:'Booking in progress',LABEL_CREATED:'Label created'})[status]||status)}</span></td><td class="mono">${row.price==null||['PENDING_IMPORT','DRAFT'].includes(status)?'Unquoted':money(row.price,row.currency)}</td><td><div class="manifest-actions">${status==='EXCEPTION'?`<button class="secondary exception-action" data-exception-sheet="${escapeHTML(row.id)}">Review exception</button>`:''}${['BOOKED','LABEL_CREATED','DISPATCHED','IN_TRANSIT','OUT_FOR_DELIVERY','EXCEPTION','DELIVERED'].includes(status)&&['OWNER','ADMIN','DISPATCHER'].includes(portal.profile?.workspace_role)&&row.tracking_lifecycle_type!=='RETURN_SHIPMENT'?`<button class="secondary" data-prepare-return="${escapeHTML(row.id)}">Create return</button>`:''}<button class="secondary" data-manifest-detail="${escapeHTML(row.id)}">Timeline & docs</button><button class="secondary" data-manifest-pod="${escapeHTML(row.id)}">View POD</button><button class="secondary" data-print="${escapeHTML(row.id)}" ${['BOOKED','LABEL_CREATED','DELIVERED'].includes(status)&&portal.profile?.workspace_role!=='ACCOUNTANT'?'':'disabled'}>Print ZPL Thermal Label</button></div></td></tr>`
   }).join('') : '<tr><td colspan="5"><div class="empty"><h3>No Active Shipments</h3><p>No shipments match this view. Create a quote or change the filter.</p><button class="secondary" data-manifest-create="true">Open Speed Quote Matrix</button></div></td></tr>';
   refreshIcons()
 };
@@ -3767,24 +3769,30 @@ const enterprise = {
   currentView: 'dashboard',
   generation: 0
 };
-const enterpriseViews = ['admin-clients', 'admin-carriers', 'admin-margins', 'stores', 'workspace'];
+const enterpriseViews = ['admin-stores', 'admin-clients', 'admin-carriers', 'admin-margins', 'stores', 'workspace'];
 const mainContent = document.querySelector('main');
 mainContent.insertAdjacentHTML('beforeend', `
+<section id="admin-stores" hidden>
+ <div class="pagehead"><div><div class="eyebrow">Platform / Client integrations</div><h1>Marketplace Connections</h1><p>See which clients registered marketplaces, saved connection settings and imported orders.</p></div><button type="button" class="secondary" id="platform-store-refresh">Refresh connections</button></div>
+ <article class="card"><div class="toolbar"><label>Environment<select id="platform-store-environment"><option value="PRODUCTION">Production</option><option value="SANDBOX">Sandbox</option></select></label><label class="platform-search">Search client or store<input id="platform-store-search" type="search" maxlength="200" placeholder="Company, store or marketplace"></label></div>
+ <p id="platform-store-status" class="subtle" role="status"></p><div class="scrolltable"><table><thead><tr><th>Client / store</th><th>Marketplace</th><th>Registry</th><th>Connection settings</th><th>Imported orders</th><th>Latest import</th></tr></thead><tbody id="platform-store-rows"></tbody></table></div>
+ <p class="footnote">Settings saved means credentials are on file, not that remote access has been verified. Import counts cover recorded orders from all dates. Carrier accounts are managed separately.</p></article>
+</section>
 <section id="admin-clients" hidden>
-  <div class="pagehead"><div><div class="eyebrow">Platform / Client accounts node</div><h1>Client Accounts Hub</h1><p>Company profiles, billing plans and network transaction history.</p></div><button class="primary" id="tenant-new"><i data-lucide="building-2"></i>Onboard New Tenant</button></div>
-  <div class="enterprise-banner" data-admin-source></div>
+  <div class="pagehead"><div><div class="eyebrow">Platform / Client accounts</div><h1>Client Accounts Hub</h1><p>Manage client accounts, recommendation preferences and wallet activity across the platform.</p></div><button class="primary" id="tenant-new"><i data-lucide="building-2"></i>Onboard New Tenant</button></div>
+  <div class="enterprise-banner" data-admin-source hidden></div>
   <article class="card"><div class="toolbar"><input id="tenant-search" placeholder="Search company, email or workspace" aria-label="Search clients"><button class="secondary" data-admin-refresh="admin-clients">Refresh clients</button></div><div class="scrolltable"><table><thead><tr><th>Company / workspace</th><th>Billing / currency</th><th>Status</th><th>Environment</th><th>Configuration</th><th>CRM timeline</th></tr></thead><tbody id="tenant-rows"></tbody></table></div></article>
-  <article class="card" style="margin-top:20px"><div class="cardhead"><div><h2>Aggregate wallet transaction log</h2><p class="subtle">Newest 200 ledger entries. Currency values are kept separate.</p></div><button class="secondary" data-admin-refresh="transactions">Refresh log</button></div><div class="scrolltable"><table><thead><tr><th>Company</th><th>Entry</th><th>Balance movement</th><th>Reserved movement</th><th>Time</th></tr></thead><tbody id="transaction-rows"></tbody></table></div></article>
+  <article class="card" style="margin-top:20px"><div class="cardhead"><div><h2>Aggregate wallet transaction log</h2><p class="subtle">Latest 200 accounting events across clients in the selected environment. Amounts are changes, not shipment statuses; currencies stay separate.</p></div><label>Ledger environment<select id="transaction-environment"><option value="PRODUCTION">Production</option><option value="SANDBOX">Sandbox</option></select></label><button class="secondary" data-admin-refresh="transactions">Refresh log</button></div><div class="scrolltable"><table><thead><tr><th>Company</th><th>Event</th><th>Wallet change</th><th>Hold change</th><th>Wallet after</th><th>Held after</th><th>Time</th></tr></thead><tbody id="transaction-rows"></tbody></table></div></article>
 </section>
 <section id="admin-carriers" hidden>
   <div class="pagehead"><div><div class="eyebrow">Platform / Carrier connectors</div><h1>Carrier Provider Settings</h1><p>EasyInvio-owned provider connections serve all eligible clients. Credentials remain private on the server.</p></div><button class="primary" id="carrier-new"><i data-lucide="plug"></i>Add New Aggregator</button></div>
-  <div class="enterprise-banner" data-admin-source></div>
+  <div class="enterprise-banner" data-admin-source hidden></div>
   <div class="provider-grid" id="provider-catalogue"><article class="card"><span class="tag green">SUPPORTED ADAPTER</span><h2>EasyPost</h2><p class="subtle">Official v2 endpoint. Tenant-bound encrypted credentials.</p><button class="primary" id="easypost-setup">Set Up</button><p class="subtle">Configure EasyInvio’s shared account once. No client assignment or key disclosure.</p></article><article class="card"><span class="tag green">NATIVE V3 ADAPTER</span><h2>Sendcloud</h2><p class="subtle">Discover active carriers and actual quotes through Sendcloud v3. Public + secret keys stay server-encrypted. Native v3 label announcements and cancellation are available for LIVE accounts. Ordinary TEST accounts remain quotes-only because Sendcloud labels can be billed.</p><button class="primary" id="sendcloud-setup">Set Up</button></article><article class="card"><span class="tag green">NATIVE ADAPTER</span><h2>Shippo</h2><p class="subtle">Native parcel rates, transaction labels and confirmed refunds. Configure a private TEST or LIVE token.</p><button class="primary" id="shippo-setup">Set Up</button></article></div>
-  <article class="card"><div class="cardhead"><h2>Configured aggregators</h2><label class="check"><input id="carrier-show-legacy" type="checkbox">Show client-specific overrides</label><label class="check"><input id="carrier-show-removed" type="checkbox">Show legacy archived connections</label><button class="secondary" data-admin-refresh="admin-carriers">Refresh</button></div><div class="scrolltable"><table><thead><tr><th>Account / company</th><th>Provider</th><th>Environment</th><th>Status / priority</th><th>Actions</th></tr></thead><tbody id="carrier-rows"></tbody></table></div></article>
+  <article class="card"><div class="cardhead"><h2>Configured aggregators</h2><label class="check"><input id="carrier-show-legacy" type="checkbox">Include client-assigned carrier accounts</label><label class="check"><input id="carrier-show-removed" type="checkbox">Include archived and disabled legacy accounts</label><button class="secondary" data-admin-refresh="admin-carriers">Refresh</button></div><div class="scrolltable"><table><thead><tr><th>Account / company</th><th>Provider</th><th>Environment</th><th>Status / priority</th><th>Actions</th></tr></thead><tbody id="carrier-rows"></tbody></table></div></article>
 </section>
 <section id="admin-margins" hidden>
   <div class="pagehead"><div><div class="eyebrow">Platform / Pricing control</div><h1>Dynamic Margin Matrix</h1><p>Client and lane rules with exact Decimal values. Lower numeric priority wins.</p></div><button class="primary" id="margin-new"><i data-lucide="sliders-horizontal"></i>Add Pricing Rule</button></div>
-  <div class="enterprise-banner" data-admin-source></div>
+  <div class="enterprise-banner" data-admin-source hidden></div>
   <article class="card"><div class="toolbar"><select id="margin-tenant-filter" aria-label="Filter pricing by client"></select><button class="secondary" data-admin-refresh="admin-margins">Refresh rules</button></div><div class="scrolltable"><table><thead><tr><th>Company / rule</th><th>Lane / carrier</th><th>Formula</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead><tbody id="margin-rows"></tbody></table></div></article>
   <div class="notice">Deleting a rule retires it from price selection. Existing shipment prices and applied-rule references are retained.</div>
 </section>
@@ -3816,9 +3824,10 @@ document.querySelector('.topbar-actions').prepend(personaControls);
 const enterpriseNavItems = {
   dashboard: ['Overview', 'layout-dashboard'],
   settings: ['Settings', 'settings'],
-  'admin-clients': ['Client Accounts Node', 'building-2'],
-  'admin-carriers': ['Carrier Connectors', 'plug'],
-  'admin-margins': ['Margin Rule Matrix', 'sliders-horizontal'],
+  'admin-clients': ['Client Accounts', 'building-2'],
+  'admin-stores': ['Marketplace Connections', 'store'],
+  'admin-carriers': ['Carrier Connections', 'plug'],
+  'admin-margins': ['Pricing & Margins', 'sliders-horizontal'],
   dispatch: ['Speed Quote Matrix', 'send'],
   boxes: ['Packaging sizes', 'boxes'],
   manifest: ['Manifest & Labels', 'package-check'],
@@ -3831,9 +3840,9 @@ const enterpriseNavItems = {
 
 function allowedEnterpriseViews() {
   if (state.session && !portal.profile) return [];
-  if (state.session && portal.profile?.portal_role === 'AGENT') return ['dashboard','admin-clients','manifest','profile'];
+  if (state.session && portal.profile?.portal_role === 'AGENT') return ['dashboard','admin-clients','admin-stores','manifest','profile'];
   if (portal.role === 'SUPER_ADMIN' && (!state.session || isPlatformStaff()))
-    return ['dashboard','admin-clients','admin-carriers','admin-margins','manifest','profile'];
+    return ['dashboard','admin-clients','admin-carriers','admin-stores','admin-margins','manifest','profile'];
   if (portal.profile?.workspace_role === 'DISPATCHER') return ['dashboard','workspace','dispatch','boxes','manifest','stores','customs','settings','profile'];
   if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard','wallet','manifest','settings','profile'];
   if (state.session && isPlatformStaff()) return ['dashboard','profile'];
@@ -3859,10 +3868,12 @@ function refreshEnterpriseNavigation() {
   if (key !== enterpriseNavKey) {
     enterpriseNavKey = key;
     const buttons = allowed.filter(view => !['boxes', 'tracking'].includes(view)).map(view => {
-      const [label, icon] = enterpriseNavItems[view];
+      const [baseLabel, icon] = enterpriseNavItems[view];
+      const label=view==='manifest'&&isPlatformStaff()?'Platform Shipments':baseLabel;
       const fallback = ({
         dashboard: 'grid',
         'admin-clients': 'grid',
+        'admin-stores': 'box',
         'admin-carriers': 'truck',
         'admin-margins': 'chart',
         dispatch: 'truck',
@@ -3892,7 +3903,7 @@ function refreshEnterpriseNavigation() {
   $('#health-label').textContent = state.session ? 'SIGNED IN' : state.mode === 'local-preview' ? 'PREVIEW' : 'BACKEND ONLINE';
   $('#tenant-new').innerHTML = '<i data-lucide="building-2"></i>' + (state.session ? 'Onboard New Tenant' : 'Sign in to onboard a tenant');
   $$('[data-admin-source]').forEach(node => node.textContent = state.session ?
-    'OWNER-AUTHORIZED DATABASE CONTROLS · All mutations are validated server-side.' :
+    '' :
     'SAMPLE CONTROL PLANE · Changes affect this browser session only. Sign in as an authorized platform owner to modify the database.');
   $('#dashboard').hidden = enterprise.currentView !== 'dashboard' || !allowed.includes('dashboard');
   if (allowed.length && !allowed.includes(enterprise.currentView)) setView(allowed[0]);
@@ -3925,7 +3936,8 @@ setView = function(view) {
     button.setAttribute('aria-selected', String(button.dataset.enterpriseView === view));
     button.setAttribute('aria-current', button.dataset.enterpriseView === view ? 'page' : 'false');
   });
-  if (enterpriseViews.includes(view)) busy($(`#${view} .primary`) || $('#store-refresh'), () => loadEnterpriseView(view));
+  if (view==='admin-stores') void window.PlatformConsole?.loadStores();
+  else if (enterpriseViews.includes(view)) busy($(`#${view} .primary`) || $('#store-refresh'), () => loadEnterpriseView(view));
   refreshIcons();
 };
 document.addEventListener('click', event => {
@@ -4034,12 +4046,13 @@ async function loadEnterpriseView(view) {
       transactions: '/transactions'
     };
     const [result, shared, capabilities, tenants] = await Promise.all([
-      api('/api/v1/admin' + paths[view], {auth: true}),
+      api('/api/v1/admin' + paths[view] + (view==='transactions'?'?environment='+$('#transaction-environment').value:''), {auth: true}),
       view === 'admin-carriers' ? api('/api/v1/admin/platform-carriers', {auth: true}) : null,
       view === 'admin-carriers' ? api('/api/v1/admin/platform-carriers/capabilities', {auth: true}) : null,
       !['admin-clients', 'transactions'].includes(view) ? api('/api/v1/admin/tenants', {auth: true}) : null
     ]);
     if (generation !== enterprise.generation) return;
+    if(view==='admin-clients')enterprise.crm=result.crm;
     enterprise[({
       'admin-clients': 'tenants',
       'admin-carriers': 'carriers',
@@ -4075,18 +4088,32 @@ function providerDisplayName(connection) {
   })[connection.api_base_url] || (connection.aggregator === 'EASYPOST' ? 'EasyPost' : connection.regional_provider_code || 'Custom regional connector');
 }
 
+function platformCrmLink(t) {
+  const crm=enterprise.crm;
+  const linked=/^\d+$/.test(String(t.hubspot_company_id||''))&&/^\d+$/.test(String(t.hubspot_portal_id||''));
+  const link=linked?`<a href="https://app.hubspot.com/contacts/${t.hubspot_portal_id}/record/0-2/${t.hubspot_company_id}" target="_blank" rel="noopener noreferrer">Open CRM timeline</a>`:'';
+  let status=!crm?.enabled?'CRM processing disabled':crm.environment&&((crm.environment==='SANDBOX')!==!!t.is_sandbox)?'Outside CRM environment':t.crm_blocked?'Sync needs attention':t.crm_error?'Retry scheduled':t.crm_queued?'Sync queued':linked?'Linked':'Not linked';
+  return `${link}<p class="subtle">${escapeHTML(status)}</p>${t.crm_error?`<small>${escapeHTML(t.crm_error)}</small>`:''}`;
+}
+function platformStrategyControl(t) {
+  if(t.workspace_type==='INDIVIDUAL')return '<span class="tag">Budget preference</span><p class="subtle">Automatic for personal accounts</p>';
+  const budget=t.seller_classification==='HIGH_VOLUME_COST_SENSITIVE_SELLER';
+  if(portal.profile?.portal_role==='AGENT')return `<p class="subtle">${budget?'Budget preference':'Balanced recommendation'}</p>`;
+  return `<label class="strategy-field">Recommendation<select data-seller-choice="${escapeHTML(t.tenant_id)}" aria-label="Carrier recommendation for ${escapeHTML(t.company_name)}"><option value="STANDARD" ${!budget?'selected':''}>Balanced</option><option value="HIGH_VOLUME_COST_SENSITIVE_SELLER" ${budget?'selected':''}>Budget preference</option></select></label><button type="button" class="secondary" data-seller-strategy="${escapeHTML(t.tenant_id)}">Save preference</button>`;
+}
+function ledgerEntryLabel(type) {
+  return ({RESERVE:'Funds held',CAPTURE:'Label charged',RELEASE:'Hold released',TOPUP:'Wallet credited',SHIPMENT_REFUND:'Shipment refunded',REFUND_DEBIT:'Top-up refunded'})[type]||String(type||'Ledger entry').replaceAll('_',' ').toLowerCase();
+}
+
 function renderEnterpriseTables() {
   const query = $('#tenant-search').value.toLowerCase();
-  const crmLink = t => /^\d+$/.test(String(t.hubspot_company_id || '')) && /^\d+$/.test(String(t.hubspot_portal_id || '')) ?
-    `<a href="https://app.hubspot.com/contacts/${t.hubspot_portal_id}/record/0-2/${t.hubspot_company_id}" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1" aria-label="Open HubSpot company timeline"><i data-lucide="external-link"></i><span>HubSpot</span></a>` :
-    '<span class="subtle">Not synchronized</span>';
-  $('#tenant-rows').innerHTML = enterprise.tenants.filter(t => JSON.stringify(t).toLowerCase().includes(query)).map(t => `<tr><td><b>${escapeHTML(t.company_name || t.workspace_slug)}</b><p class="subtle">${escapeHTML(t.workspace_type || 'BUSINESS')} &middot; ${escapeHTML(t.billing_email)} · ${escapeHTML(t.workspace_slug)}</p><span class="mono subtle">${escapeHTML(t.tenant_id)}</span></td><td>${escapeHTML(t.billing_plan)}<br>${escapeHTML(t.default_currency)}</td><td><span class="tag green">${escapeHTML(t.workspace_status)}</span></td><td>${t.is_sandbox ? 'SANDBOX' : 'PRODUCTION'}</td><td><button class="secondary" data-client-margins="${escapeHTML(t.tenant_id)}">Pricing rules</button><p class="subtle">${t.workspace_type === 'INDIVIDUAL' ? 'Personal account budget preference' : t.seller_classification === 'HIGH_VOLUME_COST_SENSITIVE_SELLER' ? 'High-volume cost-sensitive seller' : 'Balanced carrier strategy'}</p><button type="button" class="secondary" data-seller-strategy="${escapeHTML(t.tenant_id)}" ${t.workspace_type === 'INDIVIDUAL' ? 'disabled' : ''}>${t.workspace_type === 'INDIVIDUAL' ? 'Automatic for personal accounts' : t.seller_classification === 'HIGH_VOLUME_COST_SENSITIVE_SELLER' ? 'Use balanced strategy' : 'Prefer budget carriers'}</button></td><td>${crmLink(t)}</td></tr>`).join('') || '<tr><td colspan="6">No client accounts match this view.</td></tr>';
+  $('#tenant-rows').innerHTML = enterprise.tenants.filter(t => JSON.stringify(t).toLowerCase().includes(query)).map(t => `<tr><td><b>${escapeHTML(t.company_name || t.workspace_slug)}</b><p class="subtle">${escapeHTML(t.workspace_type || 'BUSINESS')} &middot; ${escapeHTML(t.billing_email)} · ${escapeHTML(t.workspace_slug)}</p><span class="mono subtle">${escapeHTML(t.tenant_id)}</span></td><td>${escapeHTML(t.billing_plan)}<br>${escapeHTML(t.default_currency)}</td><td><span class="tag green">${escapeHTML(t.workspace_status)}</span></td><td>${t.is_sandbox ? 'SANDBOX' : 'PRODUCTION'}</td><td><button class="secondary" data-client-margins="${escapeHTML(t.tenant_id)}">Pricing rules</button>${platformStrategyControl(t)}</td><td>${platformCrmLink(t)}</td></tr>`).join('') || '<tr><td colspan="6">No client accounts match this view.</td></tr>';
   const filter = $('#margin-tenant-filter').value;
   $('#margin-tenant-filter').innerHTML = tenantOptions(true);
   $('#margin-tenant-filter').value = filter;
-  $('#carrier-rows').innerHTML = enterprise.carriers.filter(c => (!c.retired_at || $('#carrier-show-removed').checked) && (!state.session || c.platform_owned || $('#carrier-show-legacy').checked)).map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(providerDisplayName(c))}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions">${c.platform_owned ? `<button class="secondary" data-carrier-verify="${escapeHTML(c.id)}">Verify Connection</button><button class="secondary" data-quote-diagnostics="${escapeHTML(c.id)}">Capabilities &amp; quote diagnostics</button>${c.api_base_url==='https://panel.sendcloud.sc/api/v2'?`<button class="secondary" data-sendcloud-upgrade="${escapeHTML(c.id)}">Upgrade Sendcloud to v3</button>`:""}${enterprise.providerProfiles.some(p=>p.endpoint===c.api_base_url&&p.label_purchase)?`<button class="secondary" data-native-settings="${escapeHTML(c.id)}">Orders &amp; Webhooks</button>`:""}` : ""}<button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Edit Settings</button><button class="secondary" data-carrier-disable="${escapeHTML(c.id)}" ${!c.is_active?'disabled':''}>Disable</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
+  $('#carrier-rows').innerHTML = enterprise.carriers.filter(c => ((c.platform_owned ? !c.retired_at : c.is_active) || $('#carrier-show-removed').checked) && (!state.session || c.platform_owned || $('#carrier-show-legacy').checked)).map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(providerDisplayName(c))}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions">${c.platform_owned ? `<button class="secondary" data-carrier-verify="${escapeHTML(c.id)}">Verify Connection</button><button class="secondary" data-quote-diagnostics="${escapeHTML(c.id)}">Capabilities &amp; quote diagnostics</button>${c.api_base_url==='https://panel.sendcloud.sc/api/v2'?`<button class="secondary" data-sendcloud-upgrade="${escapeHTML(c.id)}">Upgrade Sendcloud to v3</button>`:""}${enterprise.providerProfiles.some(p=>p.endpoint===c.api_base_url&&p.label_purchase)?`<button class="secondary" data-native-settings="${escapeHTML(c.id)}">Orders &amp; Webhooks</button>`:""}` : ""}<button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Edit Settings</button><button class="secondary" data-carrier-disable="${escapeHTML(c.id)}" ${!c.is_active?'disabled':''}>Disable</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
   $('#margin-rows').innerHTML = enterprise.margins.filter(m => !filter || m.tenant_id === filter).map(m => `<tr><td><b>${escapeHTML(m.company_name || enterprise.tenants.find(t => t.tenant_id === m.tenant_id)?.company_name || m.tenant_id)}</b><p class="subtle">${escapeHTML(m.rule_name || m.id)}</p></td><td>${escapeHTML(m.origin_country || 'ANY')} → ${escapeHTML(m.destination_country || 'ANY')}<br><span class="subtle">${escapeHTML(m.carrier_code || 'Any carrier')} ? ${escapeHTML(m.cargo_type || 'Any cargo')} ? ${escapeHTML(m.billing_plan || 'Any tier')}<br>Volume: ${escapeHTML(m.min_volume_m3 ?? '0')}?${escapeHTML(m.max_volume_m3 ?? 'unlimited')} m?</span></td><td class="finance-value">${escapeHTML(m.markup_value)} ${m.markup_type === 'PERCENTAGE' ? '%' : escapeHTML(m.currency)}</td><td>${m.priority}</td><td><span class="tag ${m.is_active ? 'green' : ''}">${m.is_active ? 'ACTIVE' : 'RETIRED'}</span></td><td><div class="actions"><button class="secondary" data-margin-edit="${escapeHTML(m.id)}">Edit</button><button class="secondary" data-margin-retire="${escapeHTML(m.id)}">Delete</button></div></td></tr>`).join('') || '<tr><td colspan="6">No pricing rules for this selection.</td></tr>';
-  $('#transaction-rows').innerHTML = enterprise.transactions.map(t => `<tr><td>${escapeHTML(t.company_name)}</td><td><span class="tag">${escapeHTML(t.entry_type)}</span></td><td class="finance-value">${money(t.balance_delta, t.currency)}</td><td>${money(t.reserved_delta, t.currency)}</td><td>${escapeHTML(new Date(t.created_at).toLocaleString())}</td></tr>`).join('') || '<tr><td colspan="5">No ledger entries available in this view.</td></tr>';
+  $('#transaction-rows').innerHTML = enterprise.transactions.map(t => `<tr><td>${escapeHTML(t.company_name)}${typeof t.is_sandbox==='boolean'?`<p class="subtle">${t.is_sandbox?'SANDBOX':'PRODUCTION'}</p>`:''}</td><td><span class="tag">${escapeHTML(t.entry_type)}</span><p class="subtle">${escapeHTML(ledgerEntryLabel(t.entry_type))}</p></td><td class="finance-value">${money(t.balance_delta, t.currency)}</td><td>${money(t.reserved_delta, t.currency)}</td><td>${t.balance_after==null?'Not recorded':money(t.balance_after,t.currency)}</td><td>${t.reserved_after==null?'Not recorded':money(t.reserved_after,t.currency)}</td><td>${escapeHTML(new Date(t.created_at).toLocaleString())}</td></tr>`).join('') || '<tr><td colspan="7">No ledger entries available in this view.</td></tr>';
 }
 $('#tenant-search').addEventListener('input', renderEnterpriseTables);
 $('#margin-tenant-filter').addEventListener('change', renderEnterpriseTables);
@@ -5278,7 +5305,7 @@ async function downloadPartnerDocument(path) {
 // Embedded in index.html: owner command center and notification receipt visibility.
 document.head.insertAdjacentHTML('beforeend', '<style>#owner-command-center{min-width:0;margin:18px 0}#owner-command-center .responsive-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:16px 0}#owner-command-center .card{min-width:0}@media(max-width:900px){#owner-command-center .responsive-grid{grid-template-columns:minmax(0,1fr)}}</style>');
 $('#dashboard-metrics').insertAdjacentHTML('afterend', `<div id="owner-command-center" hidden>
- <div class="toolbar"><h2>Super-Admin Command Center</h2><label>Data environment<select id="owner-environment"><option value="PRODUCTION">Production accounts</option><option value="SANDBOX">Sandbox test accounts</option></select></label></div>
+ <div class="toolbar"><h2>Platform business overview</h2><label>Data environment<select id="owner-environment"><option value="PRODUCTION">Production accounts</option><option value="SANDBOX">Sandbox test accounts</option></select></label></div>
  <p id="owner-monitoring-source" class="notice"></p>
  <div class="responsive-grid"><article class="card"><h3>Network revenue and stored margin</h3><div class="scrolltable"><table><thead><tr><th>Currency</th><th>Gross revenue</th><th>Gross markup</th><th>Packages</th></tr></thead><tbody id="owner-currency-rows"></tbody></table></div></article>
  <article class="card"><h3>Company billing pipeline</h3><div id="owner-billing-pipeline"></div><h3>Wallet payment states</h3><div id="owner-payment-pipeline"></div></article></div>
@@ -5349,7 +5376,7 @@ renderTickets = function() {
     }
   });
 };
-$('#admin-carriers').insertAdjacentHTML('beforeend', `<article class="card" id="admin-alert-settings" style="margin-top:18px"><div class="cardhead"><div><h2>WhatsApp notification settings</h2><p class="subtle">Control delivery for verified, consenting recipients. Internal booking and application failures stay in the admin support center.</p></div><button type="button" class="secondary" id="admin-alert-refresh">Refresh</button></div><p id="admin-alert-setup" class="notice">Load settings to check sender configuration and verified recipients.</p><div class="scrolltable"><table><thead><tr><th>Company / environment</th><th>Verified number</th><th>Recipient consent</th><th>Delivery</th><th>Control</th></tr></thead><tbody id="admin-alert-bindings"></tbody></table></div></article>`);
+$('#admin-carriers').insertAdjacentHTML('beforeend', `<article class="card" id="admin-alert-settings" style="margin-top:18px"><div class="cardhead"><div><h2>WhatsApp support alert recipients</h2><p class="subtle">Linked WhatsApp identities for support alerts. Number verification enables identity checks; recipients separately consent to alerts. This is not the list of shipment-update subscribers or WhatsApp label purchases.</p></div><button type="button" class="secondary" id="admin-alert-refresh">Refresh</button></div><p id="admin-alert-setup" class="notice">Load settings to check sender configuration and verified recipients.</p><div class="scrolltable"><table><thead><tr><th>Company / environment</th><th>Verified number</th><th>Recipient consent</th><th>Delivery</th><th>Control</th></tr></thead><tbody id="admin-alert-bindings"></tbody></table></div></article>`);
 let adminAlertEpoch = 0;
 async function loadAdminAlerts() {
   const generation = ++adminAlertEpoch,
@@ -5359,8 +5386,8 @@ async function loadAdminAlerts() {
     auth: true
   });
   if (generation !== adminAlertEpoch || session !== state.session || portal.role !== 'SUPER_ADMIN') return;
-  $('#admin-alert-setup').textContent = (result.configured ? 'Sender enabled. ' : 'Sender is not configured for delivery. ') + (result.controls_ready ? '' : 'Apply migration 034 for pause/resume controls. ') + result.setup;
-  $('#admin-alert-bindings').innerHTML = result.bindings.map(binding => `<tr><td>${escapeHTML(binding.company_name)}<br>${binding.is_sandbox?'TEST':'LIVE'}</td><td>Ending ${escapeHTML(binding.number_suffix)}${binding.is_active?'':' (inactive)'}</td><td>${binding.notification_opt_in?'Opted in':'Not opted in'}</td><td>${binding.alerts_paused?'Paused':!binding.verified || !binding.is_active?'Awaiting verification':!binding.notification_opt_in?'Awaiting consent':result.configured?'Eligible for delivery':'Sender setup needed'}</td><td><button type="button" class="secondary" data-alert-binding="${escapeHTML(binding.id)}" data-alert-paused="${!binding.alerts_paused}" ${!result.controls_ready || (binding.alerts_paused && (!binding.is_active || !binding.notification_opt_in || !binding.verified))?'disabled':''}>${binding.alerts_paused?'Resume delivery':'Pause delivery'}</button></td></tr>`).join('') || '<tr><td colspan="5">No verified WhatsApp numbers linked. Contact recipients to complete verification and opt-in before delivery.</td></tr>';
+  $('#admin-alert-setup').textContent = (result.configured ? 'Sender enabled. ' : 'Sender is not configured for delivery. ') + (result.controls_ready ? '' : 'Apply migration 034 for pause/resume controls. ') + result.setup + ' Verification does not grant alert consent. Only the recipient can opt in; platform controls only pause or resume delivery.';
+  $('#admin-alert-bindings').innerHTML = result.bindings.map(binding => `<tr><td>${escapeHTML(binding.company_name)}${binding.recipient_name?`<p class="subtle">${escapeHTML(binding.recipient_name)}</p>`:''}<br>${binding.is_sandbox?'TEST':'LIVE'}</td><td>Ending ${escapeHTML(binding.number_suffix)}${binding.is_active?'':' (inactive)'}<p class="subtle">${binding.verified?'Number verified':'Not verified'}</p></td><td>${binding.notification_opt_in?'Opted in':'Not opted in'}</td><td>${binding.user_active===false?'User inactive':binding.alerts_paused?'Paused':!binding.verified || !binding.is_active?'Awaiting verification':!binding.notification_opt_in?'Awaiting consent':result.configured?'Eligible; delivery rules apply':'Sender setup needed'}</td><td><button type="button" class="secondary" data-alert-binding="${escapeHTML(binding.id)}" data-alert-paused="${!binding.alerts_paused}" ${!result.controls_ready || (binding.alerts_paused && (!binding.is_active || binding.user_active===false || !binding.notification_opt_in || !binding.verified))?'disabled':''}>${binding.alerts_paused?'Resume delivery':'Pause delivery'}</button></td></tr>`).join('') || '<tr><td colspan="5">No verified WhatsApp numbers linked. Contact recipients to complete verification and opt-in before delivery.</td></tr>';
 }
 $('#admin-alert-refresh').addEventListener('click', () => busy($('#admin-alert-refresh'), loadAdminAlerts));
 $('#admin-alert-bindings').addEventListener('click', event => {
@@ -8857,7 +8884,8 @@ $('#tenant-rows').addEventListener('click', event => {
     if (!state.session) throw Error('Sign in as the platform administrator.');
     const tenant = enterprise.tenants.find(row => row.tenant_id === button.dataset.sellerStrategy);
     if (!tenant) throw Error('Refresh the client list before changing its strategy.');
-    const classification = tenant.seller_classification === 'HIGH_VOLUME_COST_SENSITIVE_SELLER' ? 'STANDARD' : 'HIGH_VOLUME_COST_SENSITIVE_SELLER';
+    const classification = [...document.querySelectorAll('[data-seller-choice]')].find(node=>node.dataset.sellerChoice===tenant.tenant_id)?.value;
+    if(!classification)throw Error('Choose a recommendation preference before saving.');
     await api('/api/v1/admin/tenants/' + encodeURIComponent(tenant.tenant_id) + '/seller-classification', {
       auth:true,method:'PATCH',body:{seller_classification:classification}});
     await loadEnterpriseView('admin-clients');

@@ -58,7 +58,7 @@ class StaffTests(unittest.IsolatedAsyncioTestCase):
     async def test_read_only_client_routes_allow_staff_but_configuration_stays_owner_only(self):
         from backend.admin_management import router
         from fastapi.routing import APIRoute
-        expected={'/api/v1/admin/tenants','/api/v1/admin/transactions'}
+        expected={'/api/v1/admin/tenants','/api/v1/admin/transactions','/api/v1/admin/marketplaces'}
         for route in router.routes:
             if not isinstance(route,APIRoute):continue
             dependency=route.dependant.dependencies[0].call

@@ -148,6 +148,16 @@ def build_router(authenticate):
     @router.post('/status/{message_id}')
     async def status(message_id:UUID,request:Request):
         return await request.app.state.support_delivery.callback(request,message_id)
+    @router.get('/consent')
+    async def consent_status(request:Request,context=Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Merchant notification permission required')
+        async with request.app.state.finance.pool.acquire() as c:
+            rows=await c.fetch("""SELECT right(b.sender_e164,4) AS number_suffix,b.notification_opt_in
+                FROM public.whatsapp_bindings b JOIN public.users u ON u.id=b.user_id AND u.tenant_id=b.tenant_id
+                WHERE b.tenant_id=$1 AND u.auth_user_id=$2 AND u.is_active AND b.is_active AND b.verified_at IS NOT NULL
+                ORDER BY b.id""",context.tenant_id,context.user_id)
+        return {'eligible':bool(rows),'notification_opt_in':bool(rows) and all(r['notification_opt_in'] for r in rows),
+            'bindings':[dict(r) for r in rows]}
     @router.post('/consent')
     async def consent(body:Consent,request:Request,context=Depends(authenticate)):
         if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Merchant notification permission required')

@@ -35,6 +35,7 @@ async def run(origin):
    elif path=='/api/v1/auth/forgot-password':data={'message':'If this email is registered, a password reset link will arrive shortly. Check your spam folder.'}
    elif '/analytics/' in path:
     await asyncio.sleep(.6);data=report
+   elif path=='/api/v1/support/whatsapp/consent':data={'eligible':True,'notification_opt_in':False,'bindings':[{'number_suffix':'0123','notification_opt_in':False}]}
    elif path=='/api/v1/wallet':data={'balance':'0.00','reserved_balance':'0.00','available':'0.00','currency':'GBP','history':[]}
    elif path=='/api/v1/dispatch-workspace/orders':data={'orders':[{'id':str(uuid4()),'customer_reference':'ORDER-WITH-A-LONG-REFERENCE-001','display_name':'Synthetic marketplace','cargo_type':'PARCEL','status':'PENDING_IMPORT','tracking_sync_status':'Not queued'}],'stores':[],'more_available':False}
    elif path=='/api/v1/workspace/settings':data={'company':{'company_name':'Synthetic test company','workspace_name':'Synthetic test company','billing_email':'test@example.invalid'},'members':[],'invitations':[]}
@@ -94,6 +95,9 @@ async def run(origin):
     await page.evaluate('scrollTo(0,0)');await page.mouse.move(0,0)
     if width==393:await page.screenshot(path=str(OUT/(view+'-mobile.png')))
    results.append({'width':width,'views':views,'overflow':False})
+  await page.evaluate("setView('profile')");await expect(page.locator('#customer-whatsapp-consent')).to_be_enabled()
+  await page.locator('#customer-whatsapp-consent').check();await page.locator('#customer-whatsapp-save').click()
+  await expect(page.locator('#customer-whatsapp-save')).to_be_enabled()
   for persona in ['DISPATCHER','ACCOUNTANT','SUPER_ADMIN','AGENT']:
    role=persona
    await page.evaluate('clearSession()')

@@ -17,7 +17,7 @@ class EnterpriseSecurityTests(unittest.TestCase):
     headers=fixtures.AdminHTTPTests.headers
     def test_all_management_routes_reject_missing_and_customer_tokens(self):
         uid=str(uuid4())
-        routes=[('GET','tenants',None),('GET','carriers',None),('GET','margins',None),('GET','transactions',None),
+        routes=[('GET','marketplaces',None),('GET','tenants',None),('GET','carriers',None),('GET','margins',None),('GET','transactions',None),
             ('DELETE',f'carriers/{uid}',None),('DELETE',f'margins/{uid}',None),
             ('PATCH',f'carriers/{uid}',{'is_active':False}),
             ('PUT',f'margins/{uid}',{'tenant_id':uid,'markup_type':'PERCENTAGE','markup_value':'20'}),

@@ -1,0 +1,65 @@
+/* Platform management uses one type scale, control size and table system. */
+body.platform-console main{--console-text:14px;--console-label:12px}
+body.platform-console main :is(p,td,input,select,textarea,button,.subtle){font-size:var(--console-text);line-height:1.5}
+body.platform-console main :is(th,label,.eyebrow,.footnote){font-size:var(--console-label)}
+body.platform-console main h1{font-size:clamp(26px,2.6vw,34px);line-height:1.2;letter-spacing:-.025em}
+body.platform-console main h2{font-size:20px;line-height:1.3}
+body.platform-console main h3{font-size:16px;line-height:1.4}
+body.platform-console main :is(.primary,.secondary){min-height:44px;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.4;font-weight:650}
+body.platform-console main :is(input:not([type=checkbox]),select){min-height:44px;padding:10px 12px}
+body.platform-console main .card{padding:20px;border-radius:14px}
+body.platform-console main .cardhead{align-items:flex-start;gap:14px}
+body.platform-console main :is(td,th){padding:14px 12px;vertical-align:top;word-break:normal}
+body.platform-console main .tag{white-space:nowrap;word-break:normal;overflow-wrap:normal;line-height:1.4;font-size:11px}
+body.platform-console main [data-admin-source]{display:none!important}
+body.platform-console main .scrolltable table{min-width:900px;table-layout:auto}
+body.platform-console #admin-clients .scrolltable table{min-width:1050px;table-layout:fixed}
+#admin-clients th:nth-child(1){width:27%}#admin-clients th:nth-child(2){width:13%}#admin-clients th:nth-child(3){width:9%}#admin-clients th:nth-child(4){width:11%}#admin-clients th:nth-child(5){width:23%}#admin-clients th:nth-child(6){width:17%}
+#tenant-rows td:first-child :is(p,.mono){overflow-wrap:anywhere;word-break:normal}
+#tenant-rows .mono{font-size:11px;display:block;margin-top:6px}
+#tenant-rows .strategy-field{margin-top:12px;font-size:12px}
+#tenant-rows .strategy-field select{margin:6px 0}
+body.platform-console #admin-clients article:has(#transaction-rows) table{min-width:1100px;table-layout:auto}
+#transaction-rows td:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
+body.platform-console .provider-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:18px;margin:18px 0}
+body.platform-console .provider-grid>.card{margin:0!important;display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-height:270px}
+body.platform-console .provider-grid>.card :is(h2,p){margin:0}
+body.platform-console .provider-grid>.card .primary{margin-top:auto}
+body.platform-console #admin-carriers .cardhead{flex-wrap:wrap}
+body.platform-console #admin-carriers .cardhead h2{flex:1 1 100%}
+body.platform-console #admin-carriers .cardhead label{flex:1 1 240px;margin:0}
+body.platform-console #carrier-rows td:first-child{max-width:260px;overflow-wrap:anywhere}
+.platform-executive-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:18px 0}
+.platform-executive-grid>.card{margin:0!important;min-width:0}
+.platform-executive-grid .platform-wide{grid-column:1/-1}
+.platform-search{flex:1;min-width:180px}
+.platform-months{display:flex;align-items:flex-end;gap:10px;height:160px;overflow-x:auto;padding:12px 0;margin:12px 0}
+.platform-month{flex:1 0 42px;min-width:42px;text-align:center;font-size:11px}
+.platform-month-bar{width:min(100%,42px);margin:6px auto;background:#10b981;border-radius:4px 4px 0 0}
+.platform-status-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.platform-guide{margin:16px 0;padding:14px;border:1px solid #334155;border-radius:10px}
+.platform-guide summary{padding:0;font-size:13px}.platform-guide p{margin-top:10px}
+body.platform-console .platform-executive-grid .scrolltable table{min-width:540px}
+body.platform-console .platform-executive-grid .platform-wide table{min-width:800px}
+@media(max-width:1100px){body.platform-console .provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){
+ body.platform-console main{--console-text:14px;--console-label:12px}
+ body.platform-console main .card{padding:16px}
+ body.platform-console .provider-grid,.platform-executive-grid{grid-template-columns:minmax(0,1fr)}
+ body.platform-console .provider-grid>.card{min-height:230px}
+ body.platform-console .platform-executive-grid .platform-wide{grid-column:auto}
+ body.platform-console main .toolbar{align-items:stretch;gap:12px}
+ body.platform-console main .toolbar>*{width:100%;flex:1 1 100%;min-width:0}
+ body.platform-console main .toolbar input{min-width:0}
+ body.platform-console #manifest .scrolltable table{min-width:0}
+}
+
+body.platform-console .header-personas button{font-size:12px!important;min-height:44px}
+body.platform-console .sidebar nav button{font-size:13px}
+#tenant-rows td:nth-child(5)>.tag{display:table;margin-top:8px}
+body.platform-console main .metric-foot{font-size:12px}
+body.platform-console main .metric-label{font-size:13px}
+body.platform-console .mobile-nav>button[data-enterprise-view]{font-size:11px;flex-basis:104px;min-width:104px}
+
+body.platform-console #transaction-rows td:nth-child(n+3):not(:last-child),body.platform-console table:has(#transaction-rows) th:nth-child(n+3):not(:last-child){text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:767px){body.platform-console main :is(input:not([type=checkbox]),select,textarea){font-size:16px}}

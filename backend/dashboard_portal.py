@@ -150,6 +150,28 @@ def build_router(authenticate):
                     GROUP BY t.workspace_type''', start,end,sandbox)
                 cohort_accounts = await connection.fetch('''SELECT workspace_type,count(*)::bigint AS active_tenants
                     FROM public.tenants WHERE is_sandbox=$1 AND workspace_status='ACTIVE' GROUP BY workspace_type''',sandbox)
+                monthly=await connection.fetch("""SELECT date_trunc('month',booked_at AT TIME ZONE 'UTC')::date AS month,
+                    s.currency,count(*)::bigint AS labels,sum(s.parcel_count)::bigint AS packages,
+                    sum(s.final_client_price)::numeric AS gross_revenue,sum(s.profit_markup)::numeric AS gross_markup
+                    FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
+                    WHERE t.is_sandbox=$3 AND s.booked_at >= $1 AND s.booked_at < $2
+                    AND s.status::text IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
+                    GROUP BY month,s.currency ORDER BY month,s.currency""",start,end,sandbox)
+                leaders=await connection.fetch("""SELECT t.tenant_id,t.company_name,s.currency,count(*)::bigint AS labels,
+                    sum(s.parcel_count)::bigint AS packages,sum(s.final_client_price)::numeric AS gross_revenue,
+                    sum(s.profit_markup)::numeric AS gross_markup
+                    FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
+                    WHERE t.is_sandbox=$3 AND s.booked_at >= $1 AND s.booked_at < $2
+                    AND s.status::text IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')
+                    GROUP BY t.tenant_id,t.company_name,s.currency ORDER BY packages DESC,t.company_name,s.currency LIMIT 20""",start,end,sandbox)
+                funnel=await connection.fetch("""SELECT s.status::text AS status,count(*)::bigint AS shipments
+                    FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
+                    WHERE t.is_sandbox=$3 AND s.created_at >= $1 AND s.created_at < $2
+                    GROUP BY s.status::text ORDER BY shipments DESC,s.status::text""",start,end,sandbox)
+                wallet_exposure=await connection.fetch("""SELECT w.currency,count(*)::bigint AS wallets,
+                    sum(w.balance)::numeric AS wallet_balance,sum(w.reserved_balance)::numeric AS reserved_balance
+                    FROM public.wallets w JOIN public.tenants t ON t.tenant_id=w.tenant_id WHERE t.is_sandbox=$1
+                    GROUP BY w.currency ORDER BY w.currency""",sandbox)
         # Preserve combined currency totals while publishing explicit cohort dimensions.
         from decimal import Decimal
         combined = {}
@@ -162,6 +184,11 @@ def build_router(authenticate):
             'label_count':r.get('label_count',0)} for r in totals]
         return {"active_tenants": tenants, "totals_by_currency": [{"currency": row["currency"], "revenue": money(row["revenue"]), "margin": money(row["margin"]), "package_count": row["package_count"]} for row in combined.values()],
                 "cohorts": {"shipping":cohort_shipping, "tickets":[dict(r) for r in cohort_tickets], "accounts":[dict(r) for r in cohort_accounts]},
+                "business_health":{
+                    "monthly":[{**dict(r),'month':r['month'].isoformat(),'gross_revenue':money(r['gross_revenue']),'gross_markup':money(r['gross_markup'])} for r in monthly],
+                    "top_clients":[{**dict(r),'tenant_id':str(r['tenant_id']),'gross_revenue':money(r['gross_revenue']),'gross_markup':money(r['gross_markup'])} for r in leaders],
+                    "booking_states":[dict(r) for r in funnel],
+                    "wallet_exposure":[{**dict(r),'wallet_balance':money(r['wallet_balance']),'reserved_balance':money(r['reserved_balance'])} for r in wallet_exposure]},
                 "carriers": [dict(row) for row in carriers], "margin_basis": "stored gross markup; net profit is unavailable",
                 'environment':environment,'start_date':start_date.isoformat(),'end_date':end_date.isoformat(),
                 'billing_pipeline':[dict(row) for row in billing],

@@ -21,9 +21,10 @@ def build_router(authenticate_platform_owner):
             ready = await connection.fetchval("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='whatsapp_bindings' AND column_name='alerts_paused')")
             rows = await connection.fetch('''SELECT b.id,b.tenant_id,t.company_name,t.is_sandbox,
                 right(b.sender_e164,4) AS number_suffix,b.is_active,b.notification_opt_in,
-                b.verified_at IS NOT NULL AS verified,
+                b.verified_at IS NOT NULL AS verified,u.full_name AS recipient_name,u.is_active AS user_active,
                 coalesce((to_jsonb(b)->>'alerts_paused')::boolean,false) AS alerts_paused
                 FROM public.whatsapp_bindings b JOIN public.tenants t ON t.tenant_id=b.tenant_id
+                LEFT JOIN public.users u ON u.tenant_id=b.tenant_id AND u.id=b.user_id
                 ORDER BY t.company_name,b.id LIMIT 500''')
         return {'configured': configured, 'controls_ready': ready,
                 'setup': 'Delivery requires a verified phone binding, recipient opt-in, Twilio sender, approved template or active messaging window, and public HTTPS callbacks. Internal processing failures never trigger merchant alerts.',

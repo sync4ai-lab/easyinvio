@@ -34,11 +34,33 @@ async def audit(connection, actor, tenant_id, action, target_id, snapshot):
 async def tenants(request: Request, owner=Depends(authenticate_platform_operator), limit: int=Query(200,ge=1,le=500)):
     async with request.app.state.finance.pool.acquire() as c:
         rows=await c.fetch('''SELECT tenant_id,company_name,workspace_type,seller_classification,workspace_slug,billing_email,billing_plan,
-            default_currency,workspace_status,billing_status,is_sandbox,created_at,
+            default_currency,workspace_status,billing_status,is_sandbox,t.created_at,
             company_profile->'hubspot'->>'company_id' AS hubspot_company_id,
-            company_profile->'hubspot'->>'portal_id' AS hubspot_portal_id
-            FROM public.tenants ORDER BY created_at DESC,tenant_id LIMIT $1''',limit)
-    return {'tenants':[public_record(r) for r in rows], 'limit':limit}
+            company_profile->'hubspot'->>'portal_id' AS hubspot_portal_id,
+            j.tenant_id IS NOT NULL AS crm_queued,j.blocked AS crm_blocked,j.last_error AS crm_error,
+            j.attempts AS crm_attempts,j.next_attempt_at AS crm_next_attempt_at
+            FROM public.tenants t LEFT JOIN public.hubspot_sync_jobs j USING(tenant_id) ORDER BY t.created_at DESC,tenant_id LIMIT $1''',limit)
+    service=getattr(request.app.state,'hubspot',None)
+    settings=getattr(getattr(service,'client',None),'settings',None)
+    return {'tenants':[public_record(r) for r in rows], 'limit':limit,
+        'crm':{'enabled':service is not None,'environment':getattr(settings,'hubspot_environment',None)}}
+
+@router.get('/marketplaces')
+async def marketplaces(request: Request, owner=Depends(authenticate_platform_operator),
+        environment: Literal['PRODUCTION','SANDBOX']='PRODUCTION', search: str=Query('',max_length=200),
+        limit: int=Query(200,ge=1,le=500)):
+    # Public connection metadata only. Saved credentials are not a connectivity test.
+    async with request.app.state.finance.pool.acquire() as c:
+        rows=await c.fetch("""SELECT s.id,s.tenant_id,t.company_name,t.is_sandbox,s.platform,s.display_name,s.is_active,
+            (w.store_id IS NOT NULL) AS credentials_saved,w.updated_at AS connection_updated_at,
+            (SELECT count(*) FROM public.shipments x WHERE x.tenant_id=s.tenant_id AND x.ecommerce_store_id=s.id) AS imported_orders,
+            (SELECT max(x.created_at) FROM public.shipments x WHERE x.tenant_id=s.tenant_id AND x.ecommerce_store_id=s.id) AS last_import_at
+            FROM public.ecommerce_stores s JOIN public.tenants t ON t.tenant_id=s.tenant_id
+            LEFT JOIN public.workspace_store_connections w ON w.tenant_id=s.tenant_id AND w.store_id=s.id
+            WHERE t.is_sandbox=$1 AND ($2='' OR strpos(lower(t.company_name||' '||s.display_name||' '||s.platform),lower($2))>0)
+            ORDER BY t.company_name,s.display_name,s.id LIMIT $3""",environment=='SANDBOX',search.strip(),limit)
+    return {'stores':[public_record(r) for r in rows],'environment':environment,'limit':limit}
+
 
 @router.get('/margins')
 async def margins(request: Request, owner=owner_dependency, tenant_id: UUID | None=None):
@@ -221,12 +243,14 @@ async def remove_carrier(account_id: UUID, request: Request, owner=owner_depende
     except asyncpg.PostgresError as e: raise database_error(e) from None
 
 @router.get('/transactions')
-async def transactions(request: Request, owner=Depends(authenticate_platform_operator), tenant_id: UUID | None=None):
+async def transactions(request: Request, owner=Depends(authenticate_platform_operator), tenant_id: UUID | None=None,
+        environment: Literal['PRODUCTION','SANDBOX'] | None=None):
     async with request.app.state.finance.pool.acquire() as c:
-        rows=await c.fetch('''SELECT l.id,l.tenant_id,t.company_name,l.entry_type,l.balance_delta,
-            l.reserved_delta,l.balance_after,l.currency,l.created_at FROM public.wallet_ledger l
+        rows=await c.fetch('''SELECT l.id,l.tenant_id,t.company_name,t.is_sandbox,l.entry_type,l.balance_delta,
+            l.reserved_delta,l.balance_after,l.reserved_after,l.currency,l.created_at FROM public.wallet_ledger l
             JOIN public.tenants t USING(tenant_id) WHERE ($1::uuid IS NULL OR l.tenant_id=$1)
-            ORDER BY l.created_at DESC,l.id DESC LIMIT 200''',tenant_id)
+            AND ($2::boolean IS NULL OR t.is_sandbox=$2)
+            ORDER BY l.created_at DESC,l.id DESC LIMIT 200''',tenant_id,None if environment is None else environment=='SANDBOX')
     return {'transactions':[public_record(r) for r in rows],'limit':200}
 
 

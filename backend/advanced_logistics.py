@@ -322,7 +322,7 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
         server_time = datetime.now(timezone.utc)
         try:
             async with request.app.state.finance.pool.acquire() as connection:
-                rows = await connection.fetch("""SELECT s.*,r.status AS reservation_status,t.billing_plan,
+                rows = await connection.fetch("""SELECT s.*,r.status AS reservation_status,t.billing_plan,t.company_name,t.is_sandbox,
                     j.state AS order_job_state FROM public.shipments s
                     JOIN public.tenants t ON t.tenant_id=s.tenant_id
                     LEFT JOIN public.wallet_reservations r ON r.tenant_id=s.tenant_id AND r.shipment_id=s.id
@@ -373,6 +373,8 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
                     entry['customs_declaration']['source']='RECONSTRUCTED_FROM_REVIEWED_SHIPMENT'
                 except (ValueError,TypeError,KeyError):
                     entry['customs_declaration']=None
+            if tenant_id is None:
+                entry.update(company_name=row.get('company_name'),is_sandbox=row.get('is_sandbox'))
             result.append(entry)
         return {"shipments": result, "limit": 200, "server_time": server_time.isoformat()}
 
