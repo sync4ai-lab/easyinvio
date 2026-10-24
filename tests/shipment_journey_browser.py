@@ -60,9 +60,14 @@ async def check(origin):
         assert '?' not in text and 'Leeds, LS1 2EJ' in text
         await page.locator('#catalog-directory-list button').first.click()
         await expect(page.locator('#origin-lookup')).to_be_visible()
-        await page.evaluate("document.querySelector('#destination-line1').value='99 Separate Street';document.querySelector('#destination-reuse-contact').click()")
-        await expect(page.locator('#destination-email')).to_have_value('sender@example.test')
+        await page.evaluate("document.querySelector('#destination-line1').value='99 Separate Street';document.querySelector('#destination-email').value='recipient@example.test';document.querySelector('#destination-reuse-contact').click()")
+        await expect(page.locator('#destination-email')).to_have_value('recipient@example.test')
         await expect(page.locator('#destination-line1')).to_have_value('99 Separate Street')
+        await expect(page.locator('#destination-contact-summary')).to_contain_text('99 Separate Street')
+        await page.locator('#origin-reuse-contact').click()
+        await expect(page.locator('#origin-email')).to_have_value('sender@example.test')
+        await expect(page.locator('#destination-email')).to_have_value('recipient@example.test')
+        await expect(page.locator('#origin-contact-summary')).to_contain_text('LS1 2EJ')
         await page.evaluate('rate=>{state.quotes=[rate];state.quoteRequest={origin:{country_code:"GB"},destination:{country_code:"GB"},currency:"GBP"};}',rate)
         # A transient preparation error is visible, never a dead Continue button.
         await page.evaluate("document.querySelector('#review-dialog').showModal();bookLive(0).catch(()=>{})")

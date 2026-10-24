@@ -2,9 +2,9 @@
 
 ## Address and contact selection
 
-Saved pickup/delivery addresses are displayed as readable lines. They fill only the selected side. Choose the correct country and click **Validate UK address / find building**, next to the country selector, then choose the exact PAF building or flat. The control remains visible if a saved address fills the country programmatically. UK PAF does not verify foreign addresses.
+Saved pickup/delivery addresses are displayed as readable lines. They fill only the selected side. Choose the correct country and click **Validate UK Address**, next to the country selector, then choose the exact PAF building or flat. The control remains visible if a saved address fills the country programmatically. UK PAF does not verify foreign addresses.
 
-Contact shortcuts copy name, company, phone and email between pickup and delivery; they do not replace the street, town, postcode or country. Sender email updates use the pickup/sender email, not the recipient email or the workspace billing email. WhatsApp updates require an international sender phone number and explicit permission on the shipment form.
+Use pickup details opens the sender contact section using the pickup name and postal address already entered above. Use delivery details does the same for the recipient using the delivery address. These shortcuts never copy between opposite sides. Matching saved addresses can supply missing company, address line 2, state, phone and email; manually entered contact values are preserved. A name/address summary shows the shared fields, so there is no need to enter them twice. PAF success appears in a dismissible notice for five seconds, while validation errors remain visible until corrected. Sender email updates use the pickup/sender email, not the recipient email or the workspace billing email. WhatsApp updates require an international sender phone number and explicit permission on the shipment form.
 
 ## Domestic checkout and quote expiry
 
@@ -64,3 +64,7 @@ SendGrid can be deliberately selected later with EMAIL_DELIVERY_PROVIDER=SENDGRI
 Use existing TWILIO_ENABLED/account credentials/sender settings. Set SHIPMENT_WHATSAPP_NOTIFICATIONS_ENABLED=true and SHIPMENT_WHATSAPP_CONTENT_SID to an approved utility template Content SID (HX...). The template must accept variables 1=booking reference, 2=milestone message, 3=tracking reference. Confirm sender WhatsApp permission on the shipment form. Template approval, sender access and Sandbox membership restrictions still apply; adding a phone number alone does not authorize messaging. UAT messages carry explicit test wording. Provider/WhatsApp recipient opt-out enforcement must remain enabled for the sender; do not bypass provider opt-out rejections.
 
 Credentials remain server-side. Senders cannot receive real carrier movement in test mode unless the provider emits test events or a controlled test webhook is submitted. The new worker runs in the dedicated logistics daemon or local combined runtime; the Vercel HTTP function does not run continuous notification loops.
+
+## Card payment and the hosted worker
+
+Vercel web requests use a small database pool. They create the durable card basket and Stripe payment session with sequential connection acquisition. Payment-return requests verify tenant-bound payment without holding the basket connection; after verified payment they report BOOKING while the dedicated logistics worker creates the label using the existing basket, shipment and financial locks. Only the worker performs label purchases for card baskets. Keep that worker enabled and allow at least four worker connections (the configured worker default is eight). The web pool does not need to be increased. Existing idempotent credit, expiry, carrier environment checks and uncertain-outcome reconciliation remain authoritative.

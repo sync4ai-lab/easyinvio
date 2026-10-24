@@ -78,6 +78,10 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 #secondary-chart .status-pills{gap:8px;margin-bottom:16px}
 #secondary-chart .transit-coverage{display:block;margin-top:6px;color:#94a3b8}
 @media(max-width:700px){#dashboard{padding-bottom:calc(180px + env(safe-area-inset-bottom))}.overview-tooltip{top:auto;bottom:calc(100% + 8px)}#report-refresh-status:empty{display:none}#dashboard > .pagehead{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}#dashboard > .period-control{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}#dashboard > .period-control label,#dashboard-refresh,#report-refresh-status{grid-column:1/-1}#dashboard > .period-control input{width:100%;max-width:none;min-width:0}#dashboard > .metric-grid,#dashboard .overview-charts{gap:16px}#dashboard > .period-control{margin-bottom:16px}#dashboard .overview-charts{grid-template-columns:minmax(0,1fr)}#dashboard .chart-head{min-height:0}}
+
+.uk-address-lookup{margin-top:8px}.uk-address-lookup>button{min-height:36px;padding:7px 10px;font-size:11px;line-height:1.25;width:auto;max-width:100%}.uk-address-lookup [role=status]:empty{display:none}
+.paf-match-notice{position:fixed;top:96px;right:16px;z-index:160;display:flex;align-items:flex-start;gap:12px;width:360px;max-width:calc(100vw - 32px);padding:16px;background:#102239;border:1px solid #34d399;border-radius:12px;box-shadow:0 12px 40px #0006;color:#e2e8f0;font-size:12px;line-height:1.6}.paf-match-notice button{flex-shrink:0;min-width:32px;min-height:32px;padding:0;border:0;background:transparent;color:#f1f5f9;font-size:22px}
+#package-guidance-dialog{position:fixed;inset:0;margin:auto;width:min(680px,calc(100vw - 40px));max-height:calc(100dvh - 40px);padding:26px}#package-guidance-dialog .close{float:none;position:absolute;right:18px;top:18px;width:36px;min-height:36px;padding:0}#package-guidance-dialog h2{margin:0 40px 18px 0;padding:0}#package-guidance-dialog .actions{margin-top:16px}.contact-address-summary{margin:8px 0 12px;white-space:pre-line;color:#bac7d9;font-size:11px;line-height:1.55}
 </style>
 <meta name="theme-color" content="#020617">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -1031,7 +1035,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div id="toast" class="toast" role="status" aria-live="polite" hidden>
 </div>
 <dialog id="package-guidance-dialog" aria-labelledby="package-guidance-title">
-<button class="close" id="package-guidance-close" aria-label="Close package guidance">?</button>
+<button class="close" id="package-guidance-close" aria-label="Close package guidance">&times;</button>
 <h2 id="package-guidance-title">Check your packaging before comparing rates</h2>
 <div id="package-guidance-dialog-body">
 </div>
@@ -1825,13 +1829,23 @@ const shippingCountries = [{
 $('#address-fields').innerHTML = addressNames.map((field, i) => ['origin', 'destination'].map(prefix => `<div><label for="${prefix}-${field}">${prefix==='origin'?'Pickup':'Delivery'} ${['name','street','city','postcode','country'][i]}</label>${i===4?`<select id="${prefix}-${field}" required><option value="">Choose country</option>${shippingCountries.map(c=>`<option value="${c.code}">${escapeHTML(c.name)} (${c.code})</option>`).join('')}</select>`:`<input id="${prefix}-${field}" placeholder="${addressDefaults[prefix][i]}" maxlength="${i===2?100:i===3?30:200}" required>`}</div>`).join('')).join('');
 
 // PAF selection changes only the corresponding end of the shipment.
+let pafMatchTimer;
+function showAddressMatchNotice() {
+  clearTimeout(pafMatchTimer);
+  document.querySelector('#paf-match-notice')?.remove();
+  const notice=document.createElement('div');notice.id='paf-match-notice';notice.className='paf-match-notice';notice.setAttribute('role','status');
+  const message=document.createElement('span');message.textContent='Address matched to Royal Mail PAF. Carrier service coverage is checked when requesting rates.';
+  const close=document.createElement('button');close.type='button';close.textContent='\u00d7';close.setAttribute('aria-label','Close address validation message');
+  const dismiss=()=>{clearTimeout(pafMatchTimer);notice.remove();};close.addEventListener('click',dismiss);
+  notice.append(message,close);document.body.append(notice);pafMatchTimer=setTimeout(dismiss,5000);
+}
 const ukAddressPanels = {};
 for (const prefix of ['origin', 'destination']) {
   const postcode = $('#' + prefix + '-postal_code');
   const country = $('#' + prefix + '-country_code');
   const panel = document.createElement('div');
   panel.className = 'uk-address-lookup';
-  panel.innerHTML = `<button type="button" class="secondary" id="${prefix}-lookup">Validate UK address / find building</button><label for="${prefix}-premises" hidden>Select building / flat<select id="${prefix}-premises"><option value="">Choose your address</option></select></label><p id="${prefix}-address-check" class="subtle" role="status" aria-live="polite"></p>`;
+  panel.innerHTML = `<button type="button" class="secondary" id="${prefix}-lookup">Validate UK Address</button><label for="${prefix}-premises" hidden>Select building / flat<select id="${prefix}-premises"><option value="">Choose your address</option></select></label><p id="${prefix}-address-check" class="subtle" role="status" aria-live="polite"></p>`;
   country.parentElement.append(panel);
   const button = panel.querySelector('button'), select = panel.querySelector('select');
   const status = panel.querySelector('[role=status]');
@@ -1888,7 +1902,8 @@ for (const prefix of ['origin', 'destination']) {
     $('#quote-form').dispatchEvent(new Event('input', {bubbles:true}));
     verified = fingerprint();
     select.parentElement.hidden = true;
-    status.textContent = 'Address matched to Royal Mail PAF. Carrier service coverage is checked when requesting rates.';
+    status.textContent = '';
+    showAddressMatchNotice();
   });
   $('#quote-form').addEventListener('input', update);
   $('#quote-form').addEventListener('change', update);
@@ -7978,6 +7993,7 @@ renderAccount = function() {
     if(prefix==='origin' && $('#sender-notify-whatsapp')?.checked && !phone) throw Error('Enter the sender international phone number before enabling WhatsApp updates.');
     return result;
   };
+  const savedContactAddresses={origin:null,destination:null};
   for(const prefix of ['origin','destination']) {
     const name=$('#'+prefix+'-name');
     name.insertAdjacentHTML('afterend',`<button type="button" class="secondary catalog-picker-button" data-catalog-directory="${prefix}" aria-label="Choose saved ${prefix==='origin'?'sender':'recipient'}">▤ Saved ${prefix==='origin'?'addresses':'contacts'}</button>`);
@@ -7993,15 +8009,25 @@ renderAccount = function() {
     phone.addEventListener('change',()=>validateShipmentPhone(prefix));
     phone.addEventListener('invalid',()=>{container.open=true;});
     const reuse=document.createElement('button'); reuse.type='button'; reuse.className='secondary';
-    reuse.id=prefix+'-reuse-contact'; reuse.textContent=prefix==='origin'?'Use delivery contact details':'Same as pickup contact details';
+    reuse.id=prefix+'-reuse-contact'; reuse.textContent=prefix==='origin'?'Use pickup details':'Use delivery details';
+    const summary=document.createElement('div');summary.className='contact-address-summary';summary.id=prefix+'-contact-summary';summary.hidden=true;container.querySelector('summary').after(summary);
+    function refreshContactSummary(){
+      if(summary.hidden)return;
+      const fields=['name','company','line1','line2','city','state','postal_code','country_code'];
+      summary.textContent=fields.map(field=>$('#'+prefix+'-'+field)?.value.trim()).filter(Boolean).join('\n')||'Complete the '+(prefix==='origin'?'pickup':'delivery')+' details above.';
+    }
     reuse.addEventListener('click',()=>{
-      const source=prefix==='origin'?'destination':'origin';
-      for(const field of ['name','company','phone','email']){
-        const input=$('#'+prefix+'-'+field), other=$('#'+source+'-'+field);
-        if(input&&other){input.value=other.value;input.dispatchEvent(new Event('input',{bubbles:true}));}
+      const saved=savedContactAddresses[prefix];
+      const matches=saved && saved.__session===state.session && saved.__scope===key() && ['name','line1','city','postal_code','country_code'].every(field=>($('#'+prefix+'-'+field)?.value.trim()||'')===(saved[field]||''));
+      if(matches)for(const field of ['company','line2','state','phone','email']){
+        const input=$('#'+prefix+'-'+field);
+        if(input && !input.value.trim() && saved[field]){input.value=saved[field];input.dispatchEvent(new Event('input',{bubbles:true}));}
       }
-      container.open=true; notify('Contact details copied. Pickup and delivery street addresses remain separate.');
+      summary.hidden=false;container.open=true;refreshContactSummary();
+      notify((prefix==='origin'?'Sender uses the pickup':'Recipient uses the delivery')+' name and address shown above. Add a phone or email if it was not supplied.');
     });
+    $('#quote-form').addEventListener('input',refreshContactSummary);
+    $('#quote-form').addEventListener('change',refreshContactSummary);
     const contactBlock=document.createElement('div'); contactBlock.append(container,reuse);
     $('#address-fields').append(contactBlock);
   }
@@ -8052,6 +8078,7 @@ renderAccount = function() {
             const element=$('#'+target+'-'+field);
             if(element){element.value=row.address[field]||'';inputs.push(element);}
           }
+          savedContactAddresses[target]={...row.address,__session:state.session,__scope:key()};
           selectedPrefixes.add(target);
           for(const element of inputs){
             element.dispatchEvent(new Event('input',{bubbles:true}));

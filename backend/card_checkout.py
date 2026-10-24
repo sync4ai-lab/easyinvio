@@ -1,5 +1,5 @@
 """Card-funded label baskets over the atomic wallet booking ledger."""
-import asyncio,json,logging
+import asyncio,json,logging,os
 from datetime import datetime,timezone,timedelta
 from uuid import UUID
 from decimal import Decimal
@@ -24,7 +24,13 @@ async def create_cart(service,context,body):
     if len(currencies)!=1 or not Decimal(1)<=total<=Decimal(10000):raise HTTPException(422,'Card baskets require one currency and a total between 1 and 10000. Split a larger basket or pay from wallet.')
     finance=service.finance
     require_payment_gateway(finance.settings)
-    if finance.settings.db_pool_max_size<4:raise HTTPException(503,'Card checkout requires a database pool of at least four connections')
+    # Web checkout creation acquires connections sequentially. Only the booking
+    # worker needs capacity for the basket, shipment and financial locks together.
+    from backend.runtime_hosting import resolve_role
+    role=resolve_role(getattr(finance.settings,'runtime_role','AUTO'),os.environ)
+    capacity=service.pool.get_max_size() if hasattr(service.pool,'get_max_size') else finance.settings.db_pool_max_size
+    if role!='WEB' and capacity<4:
+        raise HTTPException(503,'The booking worker needs at least four database connections; checkout was not started')
     from backend.automation_three_partners import create_adapter,EasyPostAdapter,ShippoAdapter,verify_quote_connection
     from main import ClientRate
     environment='LIVE' if finance.settings.stripe_livemode else 'TEST'
@@ -68,8 +74,32 @@ async def create_cart(service,context,body):
 
 async def complete_cart(service,context,cart_id):
     permitted(context)
+    from backend.runtime_hosting import resolve_role
+    if resolve_role(getattr(service.finance.settings,'runtime_role','AUTO'),os.environ)=='WEB':
+        return await web_cart_status(service,context,cart_id)
     async with service.card_limiter:
         return await _complete_cart(service,context,cart_id)
+
+async def web_cart_status(service,context,cart_id):
+    """Verify payment without holding a basket connection or purchasing a label.
+
+    The existing durable cart and dedicated worker own native booking. Keeping
+    this request free of the worker's nested session locks fits the web pool.
+    """
+    async with service.pool.acquire() as c:
+        row=await c.fetchrow('SELECT * FROM public.payment_carts WHERE tenant_id=$1 AND id=$2',context.tenant_id,cart_id)
+    if not row:raise HTTPException(404,'Basket not found')
+    if row['status'] in {'COMPLETED','REVIEW_REQUIRED'}:
+        return public_payload({'cart_id':str(cart_id),'status':row['status'],'amount':format(row['amount'],'.2f'),
+                               'currency':row['currency'],'outcome':decoded(row['results']),'replayed':True})
+    if row['status']=='BOOKING':return {'cart_id':str(cart_id),'status':'BOOKING'}
+    # Financial reconciliation uses its existing tenant-bound, idempotent credit
+    # ledger. No cart connection is held while it acquires a financial connection.
+    payment=await reconcile_topup(service.finance,context,cart_id)
+    return {'cart_id':str(cart_id),'status':'BOOKING' if payment['status']=='CREDITED' else 'AWAITING_PAYMENT',
+            'payment_status':payment.get('payment_status',payment['status']),
+            'notice':'Payment verified. Your shipping label is being prepared.' if payment['status']=='CREDITED'
+                     else 'Waiting for verified card payment. Do not pay again if your card was charged.'}
 
 async def _complete_cart(service,context,cart_id):
     permitted(context)
