@@ -613,6 +613,60 @@
       "default_expression": "Field(default_factory=dict)"
     },
     {
+      "file": "backend/email_delivery.py",
+      "line": 25,
+      "class": "EmailDeliverySettings",
+      "field": "email_delivery_provider",
+      "environment_name": "EMAIL_DELIVERY_PROVIDER",
+      "annotation": "Literal['HOSTINGER_SMTP', 'SENDGRID']",
+      "default_expression": "'HOSTINGER_SMTP'"
+    },
+    {
+      "file": "backend/email_delivery.py",
+      "line": 26,
+      "class": "EmailDeliverySettings",
+      "field": "smtp_host",
+      "environment_name": "SMTP_HOST",
+      "annotation": "str",
+      "default_expression": "'smtp.hostinger.com'"
+    },
+    {
+      "file": "backend/email_delivery.py",
+      "line": 27,
+      "class": "EmailDeliverySettings",
+      "field": "smtp_port",
+      "environment_name": "SMTP_PORT",
+      "annotation": "Literal[465, 587]",
+      "default_expression": "465"
+    },
+    {
+      "file": "backend/email_delivery.py",
+      "line": 28,
+      "class": "EmailDeliverySettings",
+      "field": "smtp_username",
+      "environment_name": "SMTP_USERNAME",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/email_delivery.py",
+      "line": 29,
+      "class": "EmailDeliverySettings",
+      "field": "smtp_password",
+      "environment_name": "SMTP_PASSWORD",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/email_delivery.py",
+      "line": 30,
+      "class": "EmailDeliverySettings",
+      "field": "smtp_timeout_seconds",
+      "environment_name": "SMTP_TIMEOUT_SECONDS",
+      "annotation": "int",
+      "default_expression": "Field(default=10, ge=1, le=15)"
+    },
+    {
       "file": "backend/hubspot_crm.py",
       "line": 32,
       "class": "HubSpotSettings",
@@ -776,7 +830,7 @@
     },
     {
       "file": "backend/return_delivery.py",
-      "line": 25,
+      "line": 26,
       "class": "ReturnDeliverySettings",
       "field": "return_email_enabled",
       "environment_name": "RETURN_EMAIL_ENABLED",
@@ -785,7 +839,7 @@
     },
     {
       "file": "backend/return_delivery.py",
-      "line": 26,
+      "line": 27,
       "class": "ReturnDeliverySettings",
       "field": "return_sendgrid_api_key",
       "environment_name": "RETURN_SENDGRID_API_KEY",
@@ -794,7 +848,7 @@
     },
     {
       "file": "backend/return_delivery.py",
-      "line": 27,
+      "line": 28,
       "class": "ReturnDeliverySettings",
       "field": "return_email_from",
       "environment_name": "RETURN_EMAIL_FROM",
@@ -803,7 +857,7 @@
     },
     {
       "file": "backend/return_delivery.py",
-      "line": 28,
+      "line": 29,
       "class": "ReturnDeliverySettings",
       "field": "return_whatsapp_enabled",
       "environment_name": "RETURN_WHATSAPP_ENABLED",
@@ -812,7 +866,7 @@
     },
     {
       "file": "backend/return_delivery.py",
-      "line": 29,
+      "line": 30,
       "class": "ReturnDeliverySettings",
       "field": "return_whatsapp_content_sid",
       "environment_name": "RETURN_WHATSAPP_CONTENT_SID",
@@ -821,7 +875,7 @@
     },
     {
       "file": "backend/return_delivery.py",
-      "line": 30,
+      "line": 31,
       "class": "ReturnDeliverySettings",
       "field": "return_whatsapp_messaging_service_sid",
       "environment_name": "RETURN_WHATSAPP_MESSAGING_SERVICE_SID",
@@ -830,7 +884,7 @@
     },
     {
       "file": "backend/shipment_notifications.py",
-      "line": 27,
+      "line": 28,
       "class": "ShipmentNotificationSettings",
       "field": "shipment_email_notifications_enabled",
       "environment_name": "SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED",
@@ -839,7 +893,7 @@
     },
     {
       "file": "backend/shipment_notifications.py",
-      "line": 28,
+      "line": 29,
       "class": "ShipmentNotificationSettings",
       "field": "shipment_sendgrid_api_key",
       "environment_name": "SHIPMENT_SENDGRID_API_KEY",
@@ -848,7 +902,7 @@
     },
     {
       "file": "backend/shipment_notifications.py",
-      "line": 29,
+      "line": 30,
       "class": "ShipmentNotificationSettings",
       "field": "shipment_email_from",
       "environment_name": "SHIPMENT_EMAIL_FROM",
@@ -857,7 +911,7 @@
     },
     {
       "file": "backend/shipment_notifications.py",
-      "line": 30,
+      "line": 31,
       "class": "ShipmentNotificationSettings",
       "field": "shipment_whatsapp_notifications_enabled",
       "environment_name": "SHIPMENT_WHATSAPP_NOTIFICATIONS_ENABLED",
@@ -866,7 +920,7 @@
     },
     {
       "file": "backend/shipment_notifications.py",
-      "line": 31,
+      "line": 32,
       "class": "ShipmentNotificationSettings",
       "field": "shipment_whatsapp_content_sid",
       "environment_name": "SHIPMENT_WHATSAPP_CONTENT_SID",
@@ -875,7 +929,7 @@
     },
     {
       "file": "backend/shipment_notifications.py",
-      "line": 32,
+      "line": 33,
       "class": "ShipmentNotificationSettings",
       "field": "shipment_notification_test_recipients",
       "environment_name": "SHIPMENT_NOTIFICATION_TEST_RECIPIENTS",
@@ -1214,6 +1268,12 @@
     "WHATSAPP_ONBOARDING_ENABLED",
     "WHATSAPP_ONBOARDING_DAILY_LIMIT",
     "COMPANIES_HOUSE_API_KEY",
+    "EMAIL_DELIVERY_PROVIDER",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USERNAME",
+    "SMTP_PASSWORD",
+    "SMTP_TIMEOUT_SECONDS",
     "RETURN_EMAIL_ENABLED",
     "RETURN_SENDGRID_API_KEY",
     "RETURN_EMAIL_FROM",
