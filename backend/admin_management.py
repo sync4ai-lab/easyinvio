@@ -10,7 +10,7 @@ import asyncpg
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import Field, SecretStr, model_validator
-from backend.admin_portal import InputModel, MarginCreate, authenticate_platform_owner, database_error
+from backend.admin_portal import InputModel, MarginCreate, authenticate_platform_owner, authenticate_platform_operator, database_error
 
 router = APIRouter(prefix='/api/v1/admin', tags=['Platform management'])
 owner_dependency = Depends(authenticate_platform_owner)
@@ -31,7 +31,7 @@ async def audit(connection, actor, tenant_id, action, target_id, snapshot):
         VALUES($1,$2,$3,$4,$5::jsonb)''', actor.user_id, tenant_id, action, target_id, json.dumps(snapshot))
 
 @router.get('/tenants')
-async def tenants(request: Request, owner=owner_dependency, limit: int=Query(200,ge=1,le=500)):
+async def tenants(request: Request, owner=Depends(authenticate_platform_operator), limit: int=Query(200,ge=1,le=500)):
     async with request.app.state.finance.pool.acquire() as c:
         rows=await c.fetch('''SELECT tenant_id,company_name,workspace_type,seller_classification,workspace_slug,billing_email,billing_plan,
             default_currency,workspace_status,billing_status,is_sandbox,created_at,
@@ -221,7 +221,7 @@ async def remove_carrier(account_id: UUID, request: Request, owner=owner_depende
     except asyncpg.PostgresError as e: raise database_error(e) from None
 
 @router.get('/transactions')
-async def transactions(request: Request, owner=owner_dependency, tenant_id: UUID | None=None):
+async def transactions(request: Request, owner=Depends(authenticate_platform_operator), tenant_id: UUID | None=None):
     async with request.app.state.finance.pool.acquire() as c:
         rows=await c.fetch('''SELECT l.id,l.tenant_id,t.company_name,l.entry_type,l.balance_delta,
             l.reserved_delta,l.balance_after,l.currency,l.created_at FROM public.wallet_ledger l

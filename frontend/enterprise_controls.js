@@ -57,13 +57,14 @@ const enterpriseNavItems = {
     customs: ['Customs Harmonizer', 'shield-check'], profile: ['User Profile', 'user-round'], stores: ['Store Integrations', 'store'], workspace: ['Marketplace Workspace', 'warehouse']
 };
 function allowedEnterpriseViews() {
-    if (state.session && !portal.profile) return [];
-    if (portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN'))
-        return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins', 'profile'];
-    if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest', 'profile'];
-    if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'dispatch', 'wallet', 'customs', 'stores', 'profile'];
-    if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard','profile'];
-    return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile', ...(['OWNER','ADMIN'].includes(portal.profile?.workspace_role)?['settings']:[])];
+  if (state.session && !portal.profile) return [];
+  if (state.session && portal.profile?.portal_role === 'AGENT') return ['dashboard','admin-clients','manifest','profile'];
+  if (portal.role === 'SUPER_ADMIN' && (!state.session || isPlatformStaff()))
+    return ['dashboard','admin-clients','admin-carriers','admin-margins','manifest','profile'];
+  if (portal.profile?.workspace_role === 'DISPATCHER') return ['dashboard','workspace','dispatch','boxes','manifest','stores','customs','settings','profile'];
+  if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard','wallet','manifest','settings','profile'];
+  if (state.session && isPlatformStaff()) return ['dashboard','profile'];
+  return ['dashboard','workspace','dispatch','manifest','boxes','wallet','customs','stores','profile', ...(['OWNER','ADMIN'].includes(portal.profile?.workspace_role)?['settings']:[])];
 }
 function enterpriseAdminGuard() {
     if (!allowedEnterpriseViews().includes('admin-clients')) throw Error('Platform-owner authorization is required.');
@@ -93,13 +94,15 @@ function refreshEnterpriseNavigation() {
     const warehouse = portal.profile?.workspace_role === 'DISPATCHER';
     const admin = portal.role === 'SUPER_ADMIN';
     if(!state.session&&admin)$('#mode-label').textContent='SAMPLE PLATFORM CONTROL PLANE · Sign in as an authorized owner to manage database configuration.';
-    $('#role-admin').hidden = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
-    $('#role-client').hidden = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
+    $('#role-admin').hidden = !!state.session && !isPlatformStaff();
+    $('#role-client').hidden = !!state.session && !isPlatformStaff();
+  $('#role-client').textContent = 'Assist a client';
+  $('#role-admin').textContent = state.assistance ? 'Return to platform' : 'Platform console';
     $('.sidebar-caption').textContent = admin ? 'Platform control plane' : warehouse ? 'Warehouse operations' : 'Client workspace';
     $('#dashboard .quick-grid').hidden = admin || warehouse;
     $('#dashboard .support-card').hidden = warehouse;
     $('#health-label').textContent = state.session ? 'SIGNED IN' : state.mode === 'local-preview' ? 'PREVIEW' : 'BACKEND ONLINE';
-    $('#tenant-new').innerHTML = '<i data-lucide="building-2"></i>' + (state.session ? 'Onboard New Tenant' : 'Sign in to onboard a tenant');
+  $('#tenant-new').innerHTML = '<i data-lucide="building-2"></i>' + (state.session ? 'Onboard New Tenant' : 'Sign in to onboard a tenant');
     $$('[data-admin-source]').forEach(node => node.textContent = state.session
         ? 'OWNER-AUTHORIZED DATABASE CONTROLS · All mutations are validated server-side.'
         : 'SAMPLE CONTROL PLANE · Changes affect this browser session only. Sign in as an authorized platform owner to modify the database.');

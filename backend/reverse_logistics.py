@@ -101,7 +101,7 @@ class ReverseLogisticsService:
     async def process(self, context, command: ReturnCommand, *, source='API', store_id=None):
         from backend.automation_three_partners import authorize, ReturnRequest, prepare_return_quote, BookingRequest
         authorize(context, context.tenant_id)
-        if command.charge_bearer == 'CUSTOMER_PAY' and context.role not in {'OWNER','ADMIN'}:
+        if command.charge_bearer == 'CUSTOMER_PAY' and context.role not in {'OWNER','ADMIN','DISPATCHER'}:
             raise HTTPException(403, 'An owner or administrator must create customer-paid return checkout')
         digest = hashlib.sha256(command.model_dump_json().encode()).hexdigest()
         async with self.pool.acquire() as connection:

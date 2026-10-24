@@ -30,6 +30,8 @@ async def setup(w, payer='RETAILER_PAY', notifications=False):
     ''', mode='exec')
     await w.db.command((ROOT/'migrations/042_headless_returns.sql').read_text(), mode='exec')
     await w.db.command((ROOT/'migrations/046_return_review_and_delivery.sql').read_text(), mode='exec')
+    await w.db.command((ROOT/'migrations/048_platform_agents.sql').read_text(), mode='exec')
+    await w.db.command('CREATE TABLE public.admin_client_assistance_sessions(id uuid,tenant_id uuid,actor_auth_user_id uuid,created_at timestamptz,expires_at timestamptz,revoked_at timestamptz)',mode='exec')
     address = dict(name='Synthetic customer',line1='10 Test Road',city='London',postal_code='SW1A 1AA',
         country_code='GB',phone='+447700900000',email='customer@example.test')
     cargo = dict(cargo_type='PARCEL',actual_weight_kg='1.500',length_cm='24',width_cm='16',height_cm='8',stackable=True)
@@ -269,3 +271,21 @@ async def test_hostinger_return_notices_keep_payment_and_document_gates(world,mo
         assert await worker.drain() and not await worker.drain()
     assert len(calls)==1
     assert await world.db.fetchval('SELECT state FROM public.return_customer_deliveries')=='ACCEPTED'
+
+
+@pytest.mark.asyncio
+async def test_agent_assisted_return_notice_keeps_verified_customer_delivery(world):
+    x=await setup(world,notifications=True)
+    with patch('backend.automation_three_partners.prepare_return_quote',side_effect=x.quote):
+        await x.service.prepare(x.context,x.body)
+    await x.service.select(x.context,x.body.request_id,SelectReturn(offer_id=x.offers[1]))
+    await world.db.execute('UPDATE public.users SET is_active=false WHERE auth_user_id=$1',x.context.user_id)
+    await world.db.execute('INSERT INTO public.platform_staff(auth_user_id,created_by) VALUES($1,$2)',x.context.user_id,world.actors[1])
+    await world.db.execute("INSERT INTO public.admin_client_assistance_sessions VALUES($1,$2,$3,now()-interval '1 minute',now()+interval '10 minutes',NULL)",uuid4(),x.context.tenant_id,x.context.user_id)
+    calls=[]
+    def accept(request):calls.append(request);return httpx.Response(202,headers={'x-message-id':'synthetic-assisted-mail'})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(accept)) as client:
+        x.lifecycle.client=client
+        assert await ReturnDeliveryWorker(x.lifecycle).drain()
+    assert len(calls)==1
+    assert await world.db.fetchval("SELECT count(*) FROM public.return_customer_deliveries WHERE state='ACCEPTED'")==1

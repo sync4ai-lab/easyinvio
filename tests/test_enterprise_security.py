@@ -62,4 +62,4 @@ class WarehouseBoundaryTests(unittest.TestCase):
         self.assertEqual(quote.rates[0].fee_breakdown['wholesale_total'],'20.00')
         manifest=client.get('/api/v1/shipments/manifest').json()['shipments'][0]
         self.assertEqual(manifest['metadata'],{'carrier':'DHL'})
-        self.assertEqual(client.get('/api/v1/dispatch/summary').json(),{'package_count':3})
+        self.assertEqual(client.get('/api/v1/dispatch/summary').json(),{'package_count':3,'order_count':0,'return_count':0,'status_counts':{}})

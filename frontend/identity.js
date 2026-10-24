@@ -46,7 +46,7 @@ async function loadIdentityProfile() {
   if (active !== state.session) return;
   identityProfile = profile;
   $('#identity-email-badge').textContent = profile.email;
-  $('#identity-role').textContent = profile.role === 'SUPER_ADMIN' ? '🛡️ Platform Super-Admin' : '📦 ' + profile.role.charAt(0) + profile.role.slice(1).toLowerCase();
+  $('#identity-role').textContent = profile.role === 'SUPER_ADMIN' ? '🛡️ EasyInvio Admin' : profile.role === 'AGENT' ? 'EasyInvio Agent' : '📦 ' + profile.role.charAt(0) + profile.role.slice(1).toLowerCase();
   const form = $('#identity-profile-form');
   form.elements.full_name.value = profile.full_name || '';
   form.elements.phone_e164.value = profile.phone_e164 || '';
@@ -61,10 +61,10 @@ async function process_user_login(email = $('#identity-email').value, password =
     state.session = session;
     renderAccount();
     portal.profile = await api('/api/v1/profile',{auth:true});
-    portal.role = portal.profile.portal_role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLIENT';
+    portal.role = isPlatformStaff() ? 'SUPER_ADMIN' : 'CLIENT';
     await loadIdentityProfile();
     localStorage.setItem(identityStorageKey, JSON.stringify(session));
-    armSessionExpiry();renderAccount();renderPortal();setView(portal.profile.workspace_role === 'DISPATCHER' && portal.profile.portal_role !== 'SUPER_ADMIN' ? 'workspace' : 'dashboard');window.dispatchEvent(new Event('easyinvio-session-ready'));
+    armSessionExpiry();renderAccount();renderPortal();setView(portal.profile.workspace_role === 'DISPATCHER' && !isPlatformStaff() ? 'workspace' : 'dashboard');window.dispatchEvent(new Event('easyinvio-session-ready'));
     $('#account-dialog').close();
     $('#identity-login-status').textContent = '';
   } catch(error) {
@@ -111,9 +111,9 @@ async function restoreIdentitySession() {
     state.session=saved;
     renderAccount();
     portal.profile=await api('/api/v1/profile',{auth:true});
-    portal.role=portal.profile.portal_role==='SUPER_ADMIN'?'SUPER_ADMIN':'CLIENT';
+    portal.role=isPlatformStaff()?'SUPER_ADMIN':'CLIENT';
     await loadIdentityProfile();armSessionExpiry();renderAccount();renderPortal();
-    setView(portal.profile.workspace_role==='DISPATCHER' && portal.profile.portal_role!=='SUPER_ADMIN'?'workspace':'dashboard');
+    setView(portal.profile.workspace_role==='DISPATCHER' && !isPlatformStaff()?'workspace':'dashboard');
     window.dispatchEvent(new Event('easyinvio-session-ready'));
   } catch(error) {if(!state.session)return;if(error.status===403){clearSession();return;}showIdentityGate();$('#identity-login-status').textContent='Unable to restore the workspace right now. Your saved session is retained. Reload to retry.';}
 }

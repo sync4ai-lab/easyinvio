@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
-from backend.admin_portal import authenticate_platform_owner
+from backend.admin_portal import authenticate_platform_operator
 from backend.dashboard_portal import build_router
 
 
@@ -52,19 +52,19 @@ class DashboardTests(unittest.TestCase):
     def tearDown(self):
         self.client.close()
     def test_client_profile_comes_from_verified_context(self):
-        with patch('backend.dashboard_portal.authenticate_platform_owner',AsyncMock(side_effect=HTTPException(403,'Not an owner'))):
+        with patch('backend.dashboard_portal.authenticate_platform_operator',AsyncMock(side_effect=HTTPException(403,'Not an owner'))):
             response=self.client.get('/api/v1/profile',headers={'Authorization':'Bearer fixture'})
         self.assertEqual(response.json()['portal_role'],'CLIENT')
         self.assertEqual(response.json()['tenant_id'],str(self.context.tenant_id))
     def test_owner_profile_needs_no_tenant(self):
-        with patch('backend.dashboard_portal.authenticate_platform_owner',AsyncMock(return_value=SimpleNamespace(user_id=self.context.user_id))):
+        with patch('backend.dashboard_portal.authenticate_platform_operator',AsyncMock(return_value=SimpleNamespace(user_id=self.context.user_id,role='SUPER_ADMIN'))):
             response=self.client.get('/api/v1/profile',headers={'Authorization':'Bearer fixture'})
         self.assertEqual(response.json()['portal_role'],'SUPER_ADMIN')
         self.assertIsNone(response.json()['tenant_id'])
     def test_macro_metrics_require_owner_and_use_decimal(self):
         async def owner():
             return SimpleNamespace(user_id=uuid4())
-        self.app.dependency_overrides[authenticate_platform_owner]=owner
+        self.app.dependency_overrides[authenticate_platform_operator]=owner
         response=self.client.get('/api/v1/admin/analytics/dashboard?start_date=2026-09-01&end_date=2026-09-30')
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.json()['totals_by_currency'][0]['revenue'],'1234.50')
@@ -74,7 +74,7 @@ class DashboardTests(unittest.TestCase):
     def test_unauthorized_owner_request_does_not_query_database(self):
         async def denied():
             raise HTTPException(403,'Owner required')
-        self.app.dependency_overrides[authenticate_platform_owner]=denied
+        self.app.dependency_overrides[authenticate_platform_operator]=denied
         response=self.client.get('/api/v1/admin/analytics/dashboard?start_date=2026-09-01&end_date=2026-09-30')
         self.assertEqual(response.status_code,403)
         self.assertFalse(self.db.calls)

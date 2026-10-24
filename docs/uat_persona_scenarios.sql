@@ -4,7 +4,7 @@
 BEGIN TRANSACTION READ ONLY;
 SELECT set_config('easyinvio.uat_workspace','mkr-enterprises-uat',true);
 
--- OWNER / ADMIN: workspace, actual roles, unique active membership and profiles.
+-- OWNER (or staff in audited assistance): workspace, actual roles, unique active membership and profiles.
 SELECT t.workspace_slug,t.company_name,t.is_sandbox,t.workspace_status,t.billing_status,
        u.full_name,u.role,u.is_active,p.phone_e164,
        (SELECT count(*) FROM public.users x WHERE x.auth_user_id=u.auth_user_id AND x.is_active) AS active_memberships
@@ -12,7 +12,7 @@ FROM public.tenants t JOIN public.users u USING(tenant_id)
 LEFT JOIN public.app_user_profiles p USING(auth_user_id)
 WHERE t.workspace_slug=current_setting('easyinvio.uat_workspace') AND t.is_sandbox;
 
--- OWNER / ADMIN: four address roles; two unreviewed, exact-decimal products.
+-- OWNER (or staff in audited assistance): four address roles; two unreviewed, exact-decimal products.
 SELECT a.label,a.address_role,a.is_default,a.address->>'city' AS city,a.address->>'postal_code' AS postcode
 FROM public.tenant_catalog_addresses a JOIN public.tenants t USING(tenant_id)
 WHERE t.workspace_slug=current_setting('easyinvio.uat_workspace') AND t.is_sandbox AND a.archived_at IS NULL;
@@ -50,7 +50,7 @@ JOIN public.tenants t ON t.tenant_id=e.tenant_id
 WHERE t.workspace_slug=current_setting('easyinvio.uat_workspace') AND t.is_sandbox
 ORDER BY e.occurred_at DESC LIMIT 30;
 
--- OWNER / ADMIN: returns keep original and child shipment identities separate.
+-- OWNER (or staff in audited assistance): returns keep original and child shipment identities separate.
 SELECT s.customer_reference,r.charge_bearer,r.state,r.return_shipment_id,r.expires_at
 FROM public.return_review_sessions r JOIN public.shipments s ON s.tenant_id=r.tenant_id AND s.id=r.original_shipment_id
 JOIN public.tenants t ON t.tenant_id=r.tenant_id

@@ -19,6 +19,8 @@ os.environ['PLAYWRIGHT_BROWSERS_PATH']=str(Path('.playwright').resolve())
 
 
 async def run(origin):
+    operator_role=os.environ.get('EASYINVIO_BROWSER_STAFF_ROLE','SUPER_ADMIN')
+    assert operator_role in {'SUPER_ADMIN','AGENT'}
     errors=[];calls=[];ended=[];active={};actor=str(uuid4())
     clients=[{'tenant_id':str(uuid4()),'company_name':name,'workspace_name':name,
         'billing_email':email,'workspace_status':'ACTIVE','is_sandbox':True}
@@ -60,10 +62,10 @@ async def run(origin):
                 await route.fulfill(json={'events':rows});return
             if path=='/api/v1/profile':
                 await route.fulfill(json={'portal_role':'CLIENT','workspace_role':'OWNER','tenant_id':active[aid]['tenant_id'],
-                    'company_name':active[aid]['company_name'],'user_id':actor} if aid else {'portal_role':'SUPER_ADMIN','tenant_id':None,'user_id':actor});return
+                    'company_name':active[aid]['company_name'],'user_id':actor} if aid else {'portal_role':operator_role,'tenant_id':None,'user_id':actor});return
             if path=='/api/v1/auth/me':
                 assert not aid
-                await route.fulfill(json={'role':'SUPER_ADMIN','email':'operator@example.invalid','full_name':'Support Operator','phone_e164':None});return
+                await route.fulfill(json={'role':operator_role,'email':'operator@example.invalid','full_name':'Support Operator','phone_e164':None});return
             if path.endswith('/analytics/reports') or path.endswith('/analytics/dashboard'):
                 await route.fulfill(json=report);return
             if path=='/api/v1/wallet':
@@ -77,7 +79,10 @@ async def run(origin):
         await page.route('**/health',lambda route:route.fulfill(json={'mode':'configured','status':'ok'}))
         await page.goto(origin+'/')
         await page.wait_for_function("typeof state !== 'undefined' && document.querySelector('#assistance-dialog')")
-        await page.evaluate('''actor=>{state.session={access_token:'synthetic-admin-token',expires_at:Math.floor(Date.now()/1000)+3600};state.mode='configured';identityProfile={email:'operator@example.invalid',role:'SUPER_ADMIN'};portal.profile={portal_role:'SUPER_ADMIN',tenant_id:null,user_id:actor};portal.role='SUPER_ADMIN';showIdentityGate();renderAccount();renderPortal();setView('dashboard');}''',actor)
+        await page.evaluate('''({actor,role})=>{state.session={access_token:'synthetic-admin-token',expires_at:Math.floor(Date.now()/1000)+3600};state.mode='configured';identityProfile={email:'operator@example.invalid',role};portal.profile={portal_role:role,tenant_id:null,user_id:actor};portal.role='SUPER_ADMIN';showIdentityGate();renderAccount();renderPortal();setView('dashboard');}''',{'actor':actor,'role':operator_role})
+        if operator_role=='AGENT':
+            assert not await page.locator('#tab-admin-carriers').count()
+            assert not await page.locator('#tab-admin-margins').count()
         await page.locator('#role-client').click()
         await expect(page.locator('#assistance-dialog')).to_be_visible()
         await page.locator('#assistance-search').fill('alpha@example.invalid')
@@ -109,8 +114,12 @@ async def run(origin):
         await expect(page.locator('#assistance-client-name')).to_contain_text('Harbor Retail')
         await page.set_viewport_size({'width':390,'height':844})
         await expect(page.locator('#assistance-return')).to_be_visible()
+        if not await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'):
+            Path('tmp/agent-browser').mkdir(parents=True,exist_ok=True)
+            await page.screenshot(path='tmp/agent-browser/overflow.png')
+            print(await page.evaluate("[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().width && e.getBoundingClientRect().right>innerWidth+1).map(e=>({tag:e.tagName,id:e.id,cls:e.className,right:e.getBoundingClientRect().right})).slice(0,12)"))
         assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
-        folder=Path('output/client-assistance');folder.mkdir(parents=True,exist_ok=True)
+        folder=Path('output/client-assistance')/operator_role.lower();folder.mkdir(parents=True,exist_ok=True)
         await page.screenshot(path=str(folder/'client-support-mobile.png'))
         await page.locator('#assistance-return').click()
         await page.set_viewport_size({'width':1440,'height':1000})
@@ -120,9 +129,12 @@ async def run(origin):
         await expect(page.locator('#assistance-audit pre')).to_contain_text('<script>untrusted catalog text</script>')
         await page.locator('#assistance-audit').scroll_into_view_if_needed()
         await page.screenshot(path=str(folder/'admin-assistance-audit.png'))
+        persona_views=await page.evaluate("()=>{const saved=portal.profile,mode=portal.role,result={};for(const role of ['OWNER','DISPATCHER','ACCOUNTANT']){portal.profile={portal_role:'CLIENT',workspace_role:role,tenant_id:'synthetic'};portal.role='CLIENT';result[role]=allowedEnterpriseViews();}portal.profile=saved;portal.role=mode;return result;}")
+        assert 'dispatch' not in persona_views['ACCOUNTANT'] and 'wallet' in persona_views['ACCOUNTANT']
+        assert 'stores' in persona_views['DISPATCHER'] and 'dashboard' in persona_views['DISPATCHER'] and 'wallet' not in persona_views['DISPATCHER']
         assert not errors,errors
         await browser.close()
-    print(json.dumps({'status':'PASS','checks':['Client search by email and UUID','Original admin identity retained',
+    print(json.dumps({'status':'PASS','operator_role':operator_role,'checks':['Client search by email and UUID','Original admin identity retained',
         'Tenant-scoped profile requests','Explicit return and server revocation','Stale offers and shipments cleared',
         'Second client switching','Mobile banner and no horizontal overflow','Admin-only audit panel'],
         'page_errors':errors,'provider_calls':0,'database_calls':0},indent=2))
@@ -132,6 +144,14 @@ if __name__=='__main__':
     app=FastAPI()
     @app.get('/')
     async def frontend():return FileResponse('index.html')
+    @app.get('/manifest-workflow.js')
+    async def manifest_js():return FileResponse('manifest-workflow.js')
+    @app.get('/form-feedback.js')
+    async def form_feedback_js():return FileResponse('form-feedback.js')
+    @app.get('/brand.css')
+    async def branding_css():return FileResponse('brand.css')
+    @app.get('/brand-mark.svg')
+    async def branding_mark():return FileResponse('brand-mark.svg')
     listener=socket.socket();listener.bind(('127.0.0.1',0));origin='http://127.0.0.1:'+str(listener.getsockname()[1])
     server=uvicorn.Server(uvicorn.Config(app,log_level='error',access_log=False))
     thread=threading.Thread(target=server.run,kwargs={'sockets':[listener]},daemon=True);thread.start()

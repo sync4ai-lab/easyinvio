@@ -539,7 +539,7 @@ def build_router(authenticate, authenticate_platform_owner):
     @router.put('/api/v1/tracking/preferences')
     async def put_preferences(body:Preferences,request:Request,context=Depends(authenticate)):
         current=scope(context,True);engine=service(request)
-        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Owner or admin permission required')
+        if context.role not in WRITE_ROLES:raise HTTPException(403,'Dispatch permission required')
         async with engine.pool.acquire() as connection:
             async with connection.transaction():
                 await connection.execute('''INSERT INTO public.tracking_preferences(tenant_id,in_app_enabled,categories,stale_hours,poll_interval_minutes,updated_by)

@@ -196,14 +196,15 @@ class MarginCreated(InputModel):
 @dataclass(frozen=True)
 class PlatformOwner:
     user_id: UUID
+    role: str = "SUPER_ADMIN"
 
 
 admin_bearer = HTTPBearer(auto_error=False)
 
 
-async def authenticate_platform_owner(
+async def verified_platform_identity(
     request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(admin_bearer),
-) -> PlatformOwner:
+) -> UUID:
     if getattr(request.app.state, "local_preview", False):
         raise HTTPException(503, "Platform administration requires configured database/authentication")
     unauthorized = HTTPException(401, "Invalid or expired authentication token", headers={"WWW-Authenticate": "Bearer"})
@@ -230,11 +231,31 @@ async def authenticate_platform_owner(
         raise
     except (jwt.PyJWTError, ValueError, TypeError, KeyError):
         raise unauthorized from None
-    if user_id not in set(getattr(settings, "platform_admin_user_ids", [])):
-        raise HTTPException(403, "Platform-owner permission required")
-    # No tenant membership is needed: the platform owner can create tenant #1.
     request.state.platform_auth_claims = claims
+    return user_id
+
+
+async def authenticate_platform_owner(request: Request, credentials=Depends(admin_bearer)) -> PlatformOwner:
+    user_id = await verified_platform_identity(request, credentials)
+    if user_id not in set(getattr(request.app.state.settings, 'platform_admin_user_ids', [])):
+        raise HTTPException(403, 'Platform-owner permission required')
     return PlatformOwner(user_id)
+
+
+async def authenticate_platform_operator(request: Request, credentials=Depends(admin_bearer)) -> PlatformOwner:
+    user_id = await verified_platform_identity(request, credentials)
+    settings = request.app.state.settings
+    if user_id in set(getattr(settings, 'platform_admin_user_ids', [])):
+        return PlatformOwner(user_id)
+    from backend.platform_staff import platform_role
+    finance = getattr(request.app.state, 'finance', None)
+    role = None
+    if finance is not None:
+        async with finance.pool.acquire() as connection:
+            role = await platform_role(connection, settings, user_id)
+    if role != 'AGENT':
+        raise HTTPException(403, 'EasyInvio platform staff permission required')
+    return PlatformOwner(user_id, role)
 
 
 def decode_json(value):
@@ -559,7 +580,16 @@ def database_error(exc: Exception) -> HTTPException:
 
 
 @router.post("/tenants", response_model=TenantCreated, status_code=status.HTTP_201_CREATED)
-async def create_tenant(body: TenantCreate, request: Request, actor: PlatformOwner = Depends(authenticate_platform_owner)):
+async def create_tenant(body: TenantCreate, request: Request, actor: PlatformOwner = Depends(authenticate_platform_operator)):
+    # Agents may onboard a new client, but cannot attach staff/root identities or
+    # move an existing customer's identity into another business.
+    if actor.role == 'AGENT' and body.owner_auth_user_id is not None:
+        from backend.platform_staff import platform_role
+        async with request.app.state.finance.pool.acquire() as connection:
+            staff = await platform_role(connection, request.app.state.settings, body.owner_auth_user_id)
+            enrolled = await connection.fetchval('SELECT EXISTS(SELECT 1 FROM public.users WHERE auth_user_id=$1)', body.owner_auth_user_id)
+        if staff or enrolled:
+            raise HTTPException(409, 'Use a new customer identity for onboarding; existing identities require platform-owner review')
     try:
         return await service_for(request).create_tenant(body, actor)
     except (asyncpg.PostgresError, OSError, TimeoutError) as exc:

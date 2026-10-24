@@ -3,9 +3,10 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Literal
 from uuid import UUID
 import asyncpg
+import json
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
-from backend.admin_portal import authenticate_platform_owner
+from backend.admin_portal import authenticate_platform_operator
 from backend.tracking_and_support import money
 from backend.support_workflow import add_internal_note,present_ticket
 
@@ -36,7 +37,7 @@ def build_router(authenticate):
 
     @router.get('/workspace/stores')
     async def stores(request: Request, context: Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Workspace financial or administrator role required')
+        if context.role not in {'OWNER','ADMIN','DISPATCHER','ACCOUNTANT'}:raise HTTPException(403,'Workspace financial or administrator role required')
         async with request.app.state.finance.pool.acquire() as c:
             rows=await c.fetch('''SELECT s.id,s.platform,s.display_name,s.is_active,(c.store_id IS NOT NULL) AS connection_saved
                 FROM public.ecommerce_stores s LEFT JOIN public.workspace_store_connections c
@@ -45,14 +46,14 @@ def build_router(authenticate):
 
     @router.post('/workspace/stores',status_code=201)
     async def create_store(body: StoreConfiguration, request: Request, context: Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace administrator permission required')
+        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
         async with request.app.state.finance.pool.acquire() as c:
             row=await c.fetchrow('INSERT INTO public.ecommerce_stores(tenant_id,platform,display_name) VALUES($1,$2,$3) RETURNING id',context.tenant_id,body.platform,body.display_name)
         return {'id':str(row['id']),'platform':body.platform,'display_name':body.display_name,'is_active':True}
 
     @router.patch('/workspace/stores/{store_id}')
     async def store_state(store_id: UUID, body: StoreState, request: Request, context: Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace administrator permission required')
+        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
         async with request.app.state.finance.pool.acquire() as c:
             row=await c.fetchrow('UPDATE public.ecommerce_stores SET is_active=$3 WHERE tenant_id=$1 AND id=$2 RETURNING id',context.tenant_id,store_id,body.is_active)
         if not row:raise HTTPException(404,'Workspace store not found')
@@ -62,12 +63,19 @@ def build_router(authenticate):
     async def dispatch_summary(request: Request, context: Any=Depends(authenticate)):
         if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
         async with request.app.state.finance.pool.acquire() as connection:
-            row=await connection.fetchrow("SELECT coalesce(sum(parcel_count),0) AS package_count FROM public.shipments WHERE tenant_id=$1 AND status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')",context.tenant_id)
-        return {'package_count':row['package_count']}
+            row=await connection.fetchrow("""SELECT coalesce(sum(parcel_count) FILTER (
+                WHERE status IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')),0) AS package_count,
+                count(*) AS order_count, count(*) FILTER (WHERE return_of_shipment_id IS NOT NULL) AS return_count,
+                (SELECT coalesce(jsonb_object_agg(status,total),'{}'::jsonb) FROM (
+                  SELECT status,count(*) AS total FROM public.shipments WHERE tenant_id=$1 GROUP BY status
+                ) states) AS status_counts FROM public.shipments WHERE tenant_id=$1""",context.tenant_id)
+        counts=row.get('status_counts') or {}
+        return {'package_count':row['package_count'],'order_count':row.get('order_count',0),
+            'return_count':row.get('return_count',0),'status_counts':json.loads(counts) if isinstance(counts,str) else counts}
 
     @router.post('/workspace/users',status_code=201)
     async def add_member(body: WorkspaceMember, request: Request, context: Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace administrator required')
+        if context.role != 'OWNER':raise HTTPException(403,'Workspace owner required')
         async with request.app.state.finance.pool.acquire() as connection:
             async with connection.transaction():
                 # Auth provisioning is separate. Server-owned app metadata must
@@ -93,8 +101,8 @@ def build_router(authenticate):
                 'assistance': {'session_id': str(assistance['id']), 'actor_user_id': str(context.user_id),
                     'expires_at': assistance['expires_at'].isoformat()}}
         try:
-            owner = await authenticate_platform_owner(request, credentials)
-            return {"portal_role": "SUPER_ADMIN", "user_id": str(owner.user_id), "tenant_id": None}
+            owner = await authenticate_platform_operator(request, credentials)
+            return {"portal_role": owner.role, "user_id": str(owner.user_id), "tenant_id": None}
         except HTTPException as exc:
             if exc.status_code != 403:
                 raise
@@ -107,7 +115,7 @@ def build_router(authenticate):
     @router.get("/admin/analytics/dashboard")
     async def platform_report(request: Request, start_date: date, end_date: date,
                               environment: Literal['PRODUCTION','SANDBOX']='PRODUCTION',
-                              owner: Any = Depends(authenticate_platform_owner)):
+                              owner: Any = Depends(authenticate_platform_operator)):
         if end_date > datetime.now(timezone.utc).date():raise HTTPException(422,'Reporting dates cannot be in the future (UTC)')
         if end_date < start_date or end_date == date.max or (end_date-start_date).days > 366:
             raise HTTPException(422, "Use an ordered date range of at most 367 days")
@@ -196,7 +204,7 @@ def build_router(authenticate):
         return await tickets_query(request, context.tenant_id)
 
     @router.get("/admin/support/tickets")
-    async def all_tickets(request: Request, environment: Literal['PRODUCTION','SANDBOX']='PRODUCTION',active_only:bool=False,owner: Any = Depends(authenticate_platform_owner)):
+    async def all_tickets(request: Request, environment: Literal['PRODUCTION','SANDBOX']='PRODUCTION',active_only:bool=False,owner: Any = Depends(authenticate_platform_operator)):
         return await tickets_query(request,sandbox=environment=='SANDBOX',active_only=active_only)
 
     @router.post("/support/tickets/{ticket_id}/intervene")
@@ -207,7 +215,7 @@ def build_router(authenticate):
             tenant_id=context.tenant_id,start_review=body.start_review)
 
     @router.post("/admin/support/tickets/{ticket_id}/intervene")
-    async def admin_intervene(ticket_id: UUID, body: Intervention, request: Request, owner: Any = Depends(authenticate_platform_owner)):
+    async def admin_intervene(ticket_id: UUID, body: Intervention, request: Request, owner: Any = Depends(authenticate_platform_operator)):
         return await add_internal_note(request.app.state.finance.pool,ticket_id,owner.user_id,body.note,start_review=body.start_review)
 
     @router.post('/support/tickets/{ticket_id}/resolve')
@@ -219,7 +227,7 @@ def build_router(authenticate):
             tenant_id=context.tenant_id,start_review=True,resolve=True)
 
     @router.post('/admin/support/tickets/{ticket_id}/resolve')
-    async def admin_resolve(ticket_id: UUID, request: Request, owner: Any = Depends(authenticate_platform_owner)):
+    async def admin_resolve(ticket_id: UUID, request: Request, owner: Any = Depends(authenticate_platform_operator)):
         return await add_internal_note(request.app.state.finance.pool,ticket_id,owner.user_id,
             'Internal support review closed. No carrier or merchant notification was sent.',start_review=True,resolve=True)
 

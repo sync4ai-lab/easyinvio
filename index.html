@@ -2765,8 +2765,9 @@ function portalDemo() {
   return !state.session
 }
 
+function isPlatformStaff(profile = portal.profile) { return ['SUPER_ADMIN','AGENT'].includes(profile?.portal_role); }
 function setPortalRole(role) {
-  if (role === 'SUPER_ADMIN' && state.session && portal.profile?.portal_role !== 'SUPER_ADMIN') {
+  if (role === 'SUPER_ADMIN' && state.session && !isPlatformStaff()) {
     notify('Platform-owner permission is required for live macro analytics.', true);
     return
   }
@@ -2788,7 +2789,7 @@ function renderPortal() {
     admin = portal.role === 'SUPER_ADMIN';
   $('#role-admin').setAttribute('aria-pressed', String(admin));
   $('#role-client').setAttribute('aria-pressed', String(!admin));
-  $('#role-admin').disabled = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
+  $('#role-admin').disabled = !!state.session && !isPlatformStaff();
   $('#dashboard-title').textContent = admin ? 'Platform overview' : (portal.profile?.company_name || 'Your shipping workspace');
   $('#dashboard-subtitle').textContent = admin ? 'The big picture, with every SME in focus.' : 'Smarter dispatches. Clearer costs. One connected workspace.';
   $('#dashboard-source').textContent = demo ? 'DEMO DATA' : portal.profile ? 'VERIFIED ACCOUNT' : 'LOADING PROFILE';
@@ -3000,8 +3001,8 @@ async function refreshPortal() {
         notify('Tenant parameter rejected. Using your authorized workspace.', true)
       }
     }
-    $('#workspace-team').hidden = !['OWNER', 'ADMIN'].includes(profile.workspace_role);
-    if (profile.portal_role !== 'SUPER_ADMIN') portal.role = 'CLIENT';
+    $('#workspace-team').hidden = profile.workspace_role !== 'OWNER';
+    if (!isPlatformStaff(profile)) portal.role = 'CLIENT';
     renderPortal();
     const query = `start_date=${encodeURIComponent($('#report-start').value)}&end_date=${encodeURIComponent($('#report-end').value)}`;
     if (profile.workspace_role === 'DISPATCHER') {
@@ -3016,7 +3017,7 @@ async function refreshPortal() {
       portal.report = summary;
       portal.tickets = tickets.tickets;
       state.manifest = manifest.shipments;
-      $('#dashboard-metrics').innerHTML = metric('Confirmed packages', String(summary.package_count), 'Your warehouse shipments', 'list');
+      $('#dashboard-metrics').innerHTML = metric('Orders', String(summary.order_count || 0), 'Your company records', 'list') + metric('Confirmed packages', String(summary.package_count), 'Your warehouse shipments', 'list') + metric('Quoted orders', String(summary.status_counts?.QUOTED || 0), 'Awaiting booking', 'list') + metric('Delivered', String(summary.status_counts?.DELIVERED || 0), 'Carrier-reported status', 'list') + metric('Return shipments', String(summary.return_count || 0), 'Linked return labels', 'list');
       renderCharts(false);
       renderTickets();
       return
@@ -3183,7 +3184,7 @@ renderAccount = function() {
     loadBoxes();
     if (state.session) {
       refreshPortal().then(() => {
-        if (portal.profile?.portal_role === 'SUPER_ADMIN' && portal.role === 'CLIENT') {
+        if (isPlatformStaff() && portal.role === 'CLIENT') {
           setPortalRole('SUPER_ADMIN')
         }
         loadBoxes()
@@ -3505,7 +3506,7 @@ renderManifest = function() {
     rows = all.filter(r => (filter === 'all' || displayedStatus(r) === filter) && [r.reference, r.id, r.tracking_number, r.carrier_code, r.service_code, r.metadata?.carrier, r.metadata?.destination, r.destination_country].join(' ').toLowerCase().includes(query));
   $('#manifest-count').textContent = rows.length;
   $('#manifest-ready').textContent = rows.filter(r => ['BOOKED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(displayedStatus(r))).length;
-  $('#manifest-source').textContent = state.session ? portal.role === 'SUPER_ADMIN' ? 'Platform manifest · owner-authorized client records. Intermediate milestones appear when reported.' : 'Workspace manifest · your authorized records. Intermediate milestones appear when reported.' : 'SAMPLE MANIFEST · These three examples are not real bookings or delivery evidence. Sign in and refresh for your workspace.';
+  $('#manifest-source').textContent = state.session ? portal.role === 'SUPER_ADMIN' ? 'Platform manifest · authorized client records. Intermediate milestones appear when reported.' : 'Workspace manifest · your authorized records. Intermediate milestones appear when reported.' : 'SAMPLE MANIFEST · These three examples are not real bookings or delivery evidence. Sign in and refresh for your workspace.';
   $('#manifest-body').innerHTML = rows.length ? rows.map(row => {
     const status = displayedStatus(row),
       carrier = row.metadata?.carrier || row.carrier_code || 'Not recorded',
@@ -3668,7 +3669,7 @@ $('#quick-audit-form').addEventListener('submit', event => {
 });
 const modernSetViewBase = setView;
 setView = function(view) {
-  if (view === 'wallet' && state.session && portal.profile?.portal_role === 'SUPER_ADMIN' && !portal.profile.tenant_id) {
+  if (view === 'wallet' && state.session && isPlatformStaff() && !portal.profile.tenant_id) {
     notify('Open a client workspace for wallet operations.', true);
     return
   }
@@ -3715,7 +3716,7 @@ renderAccount = function() {
     $('#wallet-tag').textContent = 'SAMPLE CREDIT'
   } else if (state.session) {
     $('#quote-btn').textContent = 'Fetch Parallel Live Rates';
-    if (portal.profile?.portal_role === 'SUPER_ADMIN' && !portal.profile.tenant_id) {
+    if (isPlatformStaff() && !portal.profile.tenant_id) {
       $('#quote-btn').disabled = true;
       $('#quote-mode-note').textContent = 'Platform tools support cargo calculations and document drafts. A client workspace session is required for live client quotes.'
     }
@@ -3829,14 +3830,14 @@ const enterpriseNavItems = {
 
 function allowedEnterpriseViews() {
   if (state.session && !portal.profile) return [];
-  if (portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN'))
-    return ['dashboard', 'admin-clients', 'admin-carriers', 'admin-margins', 'profile'];
-  if (portal.profile?.workspace_role === 'DISPATCHER') return ['workspace', 'dispatch', 'boxes', 'manifest', 'settings', 'profile'];
-  if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard', 'dispatch', 'manifest', 'wallet', 'customs', 'stores', 'settings', 'profile'];
-  if (state.session && portal.profile?.portal_role === 'SUPER_ADMIN') return ['dashboard', 'profile'];
-  return ['dashboard', 'workspace', 'dispatch', 'manifest', 'boxes', 'wallet', 'customs', 'stores', 'profile', ...(['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role) ? ['settings'] : [])];
+  if (state.session && portal.profile?.portal_role === 'AGENT') return ['dashboard','admin-clients','manifest','profile'];
+  if (portal.role === 'SUPER_ADMIN' && (!state.session || isPlatformStaff()))
+    return ['dashboard','admin-clients','admin-carriers','admin-margins','manifest','profile'];
+  if (portal.profile?.workspace_role === 'DISPATCHER') return ['dashboard','workspace','dispatch','boxes','manifest','stores','customs','settings','profile'];
+  if (portal.profile?.workspace_role === 'ACCOUNTANT') return ['dashboard','wallet','manifest','settings','profile'];
+  if (state.session && isPlatformStaff()) return ['dashboard','profile'];
+  return ['dashboard','workspace','dispatch','manifest','boxes','wallet','customs','stores','profile', ...(['OWNER','ADMIN'].includes(portal.profile?.workspace_role)?['settings']:[])];
 }
-
 function enterpriseAdminGuard() {
   if (!allowedEnterpriseViews().includes('admin-clients')) throw Error('Platform-owner authorization is required.');
 }
@@ -3880,8 +3881,10 @@ function refreshEnterpriseNavigation() {
   const warehouse = portal.profile?.workspace_role === 'DISPATCHER';
   const admin = portal.role === 'SUPER_ADMIN';
   if (!state.session && admin) $('#mode-label').textContent = 'SAMPLE PLATFORM CONTROL PLANE · Sign in as an authorized owner to manage database configuration.';
-  $('#role-admin').hidden = !!state.session && !state.assistance && portal.profile?.portal_role !== 'SUPER_ADMIN';
-  $('#role-client').hidden = !!state.session && portal.profile?.portal_role !== 'SUPER_ADMIN';
+  $('#role-admin').hidden = !!state.session && !state.assistance && !isPlatformStaff();
+  $('#role-client').hidden = !!state.session && !isPlatformStaff();
+  $('#role-client').textContent = 'Assist a client';
+  $('#role-admin').textContent = state.assistance ? 'Return to platform' : 'Platform console';
   $('.sidebar-caption').hidden = true;
   $('#modebar').hidden = !!state.session && !state.assistance;
   $('#dashboard .support-card').hidden = warehouse;
@@ -5290,14 +5293,14 @@ function ownerActiveSupportOnly() {
 }
 
 function renderOwnerMonitoring() {
-  const owner = portal.role === 'SUPER_ADMIN' && (!state.session || portal.profile?.portal_role === 'SUPER_ADMIN');
+  const owner = portal.role === 'SUPER_ADMIN' && (!state.session || isPlatformStaff());
   $('#owner-command-center').hidden = !owner;
   $('#support-tickets').closest('.support-card').hidden = !owner;
   if (!owner) {
     for (const id of ['owner-currency-rows', 'owner-billing-pipeline', 'owner-payment-pipeline', 'owner-active-threads']) $('#' + id).replaceChildren();
     return;
   }
-  $('#dashboard-title').textContent = 'Super-Admin Command Center';
+  $('#dashboard-title').textContent = portal.profile?.portal_role === 'AGENT' ? 'Support Agent Overview' : 'EasyInvio Admin Overview';
   const report = state.session ? portal.report : null;
   $('#owner-monitoring-source').textContent = report?.environment ? `${report.environment} DATA · ${report.start_date} to ${report.end_date} UTC. Billing status is current; payments and shipment totals use the selected period.` : 'Sign in as the verified platform owner to load database billing pipelines and cross-tenant support threads. Demo overview metrics remain illustrative.';
   $('#owner-currency-rows').innerHTML = (report?.totals_by_currency || []).map(r => `<tr><td>${escapeHTML(r.currency)}</td><td class="money">${money(r.revenue,r.currency)}</td><td>${money(r.margin,r.currency)}</td><td>${escapeHTML(r.package_count)}</td></tr>`).join('') || '<tr><td colspan="4">No booked shipping totals for this environment and period.</td></tr>';
@@ -5653,7 +5656,7 @@ async function loadIdentityProfile() {
   if (active !== state.session) return;
   identityProfile = profile;
   $('#identity-email-badge').textContent = profile.email;
-  $('#identity-role').textContent = profile.role === 'SUPER_ADMIN' ? '🛡️ Platform Super-Admin' : '📦 ' + profile.role.charAt(0) + profile.role.slice(1).toLowerCase();
+  $('#identity-role').textContent = profile.role === 'SUPER_ADMIN' ? '🛡️ EasyInvio Admin' : profile.role === 'AGENT' ? 'EasyInvio Agent' : '📦 ' + profile.role.charAt(0) + profile.role.slice(1).toLowerCase();
   const form = $('#identity-profile-form');
   form.elements.full_name.value = profile.full_name || '';
   form.elements.phone_e164.value = profile.phone_e164 || '';
@@ -5677,13 +5680,13 @@ async function process_user_login(email = $('#identity-email').value, password =
     portal.profile = await api('/api/v1/profile', {
       auth: true
     });
-    portal.role = portal.profile.portal_role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLIENT';
+    portal.role = isPlatformStaff() ? 'SUPER_ADMIN' : 'CLIENT';
     await loadIdentityProfile();
     lastIdentityActivity = Date.now();
     armSessionExpiry();
     renderAccount();
     renderPortal();
-    setView(portal.profile.workspace_role === 'DISPATCHER' && portal.profile.portal_role !== 'SUPER_ADMIN' ? 'workspace' : 'dashboard');
+    setView(portal.profile.workspace_role === 'DISPATCHER' && !isPlatformStaff() ? 'workspace' : 'dashboard');
     window.dispatchEvent(new Event('easyinvio-session-ready'));
     $('#account-dialog').close();
     $('#identity-login-status').textContent = '';
@@ -6288,7 +6291,7 @@ $('#shipment-doc-print').addEventListener('click', event => {
 <script>
 // Workspace company and team settings; all mutations are server-authorized.
 async function loadWorkspaceSettings() {
-  if (!state.session || !['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) throw Error('Sign in as your workspace owner.');
+  if (!state.session || portal.profile?.workspace_role !== 'OWNER') throw Error('Sign in as your workspace owner.');
   const session = state.session,
     tenant = portal.profile.tenant_id;
   const result = await api('/api/v1/workspace/settings', {
@@ -6697,7 +6700,7 @@ async function refreshBookingWallet() {
   renderWallet();
 }
 async function startLabelCardPayment(offers) {
-  if (!state.session || !['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) throw Error('Workspace owner or administrator permission required for card checkout.');
+  if (!state.session || !['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role)) throw Error('Dispatch permission required for card checkout.');
   const paymentSession = state.session;
   const paymentWindow = window.open('about:blank', '_blank', 'popup,width=520,height=760');
   if (paymentWindow) {
@@ -6790,7 +6793,7 @@ async function verifyLabelCardPayment(id, session) {
   }
 }
 async function resumeLabelCardPayment() {
-  if (!state.session || !['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) return;
+  if (!state.session || !['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role)) return;
   let saved;
   try {
     saved = JSON.parse(localStorage.getItem(labelCardStorageKey()) || 'null');
@@ -6811,7 +6814,7 @@ prepareCustomerCheckout = async function(...args) {
   const prepared = customerCheckout.prepared;
   if (!prepared || !$('#checkout-purchase')) return result;
   $('#checkout-purchase').textContent = 'Pay from wallet & create label';
-  if (['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) {
+  if (['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role)) {
     const b = document.createElement('button');
     b.id = 'checkout-pay-card';
     b.className = 'secondary full';
@@ -6831,7 +6834,7 @@ const cardBulkRenderBase = renderBulkCheckout;
 renderBulkCheckout = function() {
   cardBulkRenderBase();
   $('#bulk-checkout-buy').textContent = 'Pay from wallet & create selected labels';
-  if (['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role)) {
+  if (['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role)) {
     const b = document.createElement('button');
     b.id = 'bulk-pay-card';
     b.className = 'secondary full';
@@ -6970,7 +6973,7 @@ renderStoreCatalogue();
 let storeConnectionId = null;
 
 function storeCanManage() {
-  return !state.session || ['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role);
+  return !state.session || ['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role);
 }
 renderEnterpriseStores = function() {
   $('#store-new').hidden = !storeCanManage();
@@ -7833,7 +7836,7 @@ renderAccount = function() {
     const company=tab==='company';
     $('#catalog-company-panel').hidden=!company;
     panel.hidden=company;
-    const admin=['OWNER','ADMIN'].includes(portal.profile?.workspace_role);
+    const admin=portal.profile?.workspace_role==='OWNER';
     $('#catalog-tab-company').hidden=!admin;
     if (company && !admin) { setTab('addresses'); return; }
     $$('[data-catalog-tab]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.catalogTab===tab)));
@@ -8140,7 +8143,7 @@ renderAccount = function() {
   resetQuoteForm=function(){resetBase();extra.replaceChildren();$('#shipment-sku').value='';$('#shipment-hs-code').value='';$('#shipment-catalog-status').textContent='';selectedPrimary=false;};
   document.addEventListener('input',event=>{if(event.target.matches('#shipment-description,#shipment-goods-origin')){$('#shipment-hs-code').value='';$('#shipment-catalog-status').textContent='';}const row=event.target.closest('.catalog-extra-item');if(row&&['description','origin_country'].includes(event.target.dataset.goodsField))row.querySelector('[data-goods-field=hs_code]').value='';});
   const viewBase=setView;
-  setView=function(view){viewBase(view);resetScope();if(view==='settings'&&!$('#settings').hidden)setTab(active==='company'&&!['OWNER','ADMIN'].includes(portal.profile?.workspace_role)?'addresses':active);};
+  setView=function(view){viewBase(view);resetScope();if(view==='settings'&&!$('#settings').hidden)setTab(active==='company'&&portal.profile?.workspace_role!=='OWNER'?'addresses':active);};
   const accountBase=renderAccount;
   renderAccount=function(){accountBase();resetScope();};
   $('#catalog-company-panel').hidden=true;
@@ -8151,7 +8154,7 @@ renderAccount = function() {
 #assistance-banner{position:sticky;top:0;z-index:70;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 24px;background:#312e16;border-bottom:1px solid #a16207;color:#fef3c7}#assistance-banner[hidden]{display:none}#assistance-banner small{display:block;color:#fde68a}#assistance-dialog{width:min(760px,94vw);max-height:90vh;padding:24px;border:1px solid #334155;border-radius:20px;background:#0b1222;color:#f1f5f9}#assistance-dialog::backdrop{background:#020617b8;backdrop-filter:blur(5px)}.assistance-results{display:grid;gap:8px;max-height:310px;overflow:auto;margin:14px 0}.assistance-choice{display:block;width:100%;text-align:left;padding:12px;border:1px solid #334155;border-radius:10px;background:#0f172a;color:#f1f5f9}.assistance-choice[aria-pressed=true]{border-color:#34d399;background:#063b35}.assistance-choice small{display:block;color:#94a3b8;overflow-wrap:anywhere}#assistance-audit{margin-top:24px;padding:20px;border:1px solid #334155;border-radius:16px;background:#020617}#assistance-audit .table-wrap{max-height:420px;overflow:auto}#assistance-dialog textarea{width:100%;min-height:76px}#assistance-start{margin-top:16px}@media(max-width:600px){#assistance-banner{flex-wrap:wrap;padding:12px}#assistance-dialog{padding:16px}}
 </style>
 <style>#assistance-return,#assistance-close,#assistance-audit-refresh{background:#17243b;color:#e2e8f0;border:1px solid #475569;border-radius:9px;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}#assistance-return:hover,#assistance-close:hover,#assistance-audit-refresh:hover{background:#243653;border-color:#94a3b8}</style>
-<div id="assistance-banner" hidden role="status"><div><strong id="assistance-client-name"></strong><small id="assistance-session-note"></small></div><button id="assistance-return" type="button">Return to Super Admin</button></div>
+<div id="assistance-banner" hidden role="status"><div><strong id="assistance-client-name"></strong><small id="assistance-session-note"></small></div><button id="assistance-return" type="button">Return to platform console</button></div>
 <dialog id="assistance-dialog" aria-labelledby="assistance-title"><div style="display:flex;justify-content:space-between;gap:12px"><h2 id="assistance-title">Assist a client</h2><button id="assistance-close" type="button" aria-label="Close client picker">Close</button></div><p class="subtle">Open the client's workspace with owner access. Transactions use their balance and settings, and actions are recorded under your admin identity.</p><label>Find a client<input id="assistance-search" type="search" maxlength="200" placeholder="Company, Client ID, workspace name or billing email" autocomplete="off"></label><div id="assistance-results" class="assistance-results" aria-live="polite"></div><label>Reason for access<textarea id="assistance-reason" minlength="10" maxlength="500" placeholder="For example: investigate the label error reported in support case 123"></textarea></label><p id="assistance-picker-status" role="status"></p><button id="assistance-start" class="primary" type="button" disabled>Open client workspace</button></dialog>
 <script>
 // Assistance keeps the operator's own token; no customer password or token is issued.
@@ -8235,7 +8238,7 @@ async function returnFromAssistance() {
   } finally {
     if (session && state.session === session) {
       resetAssistanceWorkspace(session, identity);
-      portal.profile = assistanceAdminProfile || {portal_role:'SUPER_ADMIN',tenant_id:null};
+      portal.profile = assistanceAdminProfile || {portal_role:identity?.role || 'AGENT',tenant_id:null};
       portal.role = 'SUPER_ADMIN';
       assistanceAdminProfile = null;
       setView('dashboard');
@@ -8264,7 +8267,7 @@ async function startClientAssistance() {
     portal.role = 'CLIENT';
     $('#assistance-banner').hidden = false;
     $('#assistance-client-name').textContent = 'Assisting ' + support.company_name;
-    $('#assistance-session-note').textContent = (support.is_sandbox ? 'Sandbox' : 'Production') + ' · Owner access · Actions attributed to your admin account · Expires ' + new Date(support.expires_at).toLocaleTimeString();
+    $('#assistance-session-note').textContent = (support.is_sandbox ? 'Sandbox' : 'Production') + ' · Owner access · Actions attributed to your support account · Expires ' + new Date(support.expires_at).toLocaleTimeString();
     assistanceTimer = setTimeout(() => {void returnFromAssistance();}, Math.max(0,Date.parse(support.expires_at)-Date.now()));
     setView('dashboard');
     renderPortal();
@@ -8274,7 +8277,7 @@ async function startClientAssistance() {
   finally { assistanceChanging = false; validateAssistanceChoice(); }
 }
 async function loadAssistanceAudit() {
-  if (!state.session || state.assistance || portal.profile?.portal_role !== 'SUPER_ADMIN') return;
+  if (!state.session || state.assistance || !isPlatformStaff()) return;
   const session = state.session;
   try {
     const data = await api('/api/v1/admin/client-assistance/events', {auth:true});
@@ -8289,15 +8292,15 @@ async function loadAssistanceAudit() {
 }
 const assistanceRoleBase = setPortalRole;
 setPortalRole = function(role) {
-  if (state.session && role === 'CLIENT' && (state.assistance || portal.profile?.portal_role === 'SUPER_ADMIN')) return openAssistancePicker();
+  if (state.session && role === 'CLIENT' && (state.assistance || isPlatformStaff())) return openAssistancePicker();
   if (state.assistance && role === 'SUPER_ADMIN') return void returnFromAssistance();
   return assistanceRoleBase(role);
 };
 const assistanceRenderBase = renderPortal;
 renderPortal = function() {
   assistanceRenderBase();
-  if (state.session && (state.assistance || portal.profile?.portal_role === 'SUPER_ADMIN')) {
-    $('#mode-label').textContent = state.assistance ? 'CLIENT ASSISTANCE · ' + state.assistance.company_name + ' · Requests use this client workspace and are audited under your admin identity.' : 'CONNECTED BACKEND · Super Admin workspace. Select a client to assist with their operations.';
+  if (state.session && (state.assistance || isPlatformStaff())) {
+    $('#mode-label').textContent = state.assistance ? 'CLIENT ASSISTANCE · ' + state.assistance.company_name + ' · Requests use this client workspace and are audited under your admin identity.' : 'CONNECTED BACKEND · Platform support console. Select a client to assist with their operations.';
     $('#health-label').textContent = 'SIGNED IN';
     $('#modebar').classList.add('live');
     $('#topup-btn').textContent = 'Create Stripe Checkout';
@@ -8421,7 +8424,7 @@ async function renewIdentitySession() {
         state.assistance.expires_at=assisted.expires_at;
         clearTimeout(assistanceTimer);
         assistanceTimer=setTimeout(()=>void returnFromAssistance(),Math.max(0,Date.parse(assisted.expires_at)-Date.now()));
-        $('#assistance-session-note').textContent=(state.assistance.is_sandbox?'Sandbox':'Production')+' · Owner access · Actions attributed to your admin account · Expires '+new Date(assisted.expires_at).toLocaleTimeString();
+        $('#assistance-session-note').textContent=(state.assistance.is_sandbox?'Sandbox':'Production')+' · Owner access · Actions attributed to your support account · Expires '+new Date(assisted.expires_at).toLocaleTimeString();
       }
     }
     armSessionExpiry();
@@ -8784,7 +8787,7 @@ $('#tenant-admin-form').elements.workspace_type.addEventListener('change', event
 $('#admin-margins').insertAdjacentHTML('beforeend', `<article class="card" style="margin-top:18px"><h2>Personal account pricing</h2><form id="individual-pricing-form"><label>Global individual markup (%)<input name="percent" inputmode="decimal" type="number" min="0" max="999.99" step="0.01" required></label><button class="primary" type="submit">Save pricing</button><button class="secondary" type="button" id="individual-pricing-refresh">Refresh</button><p class="subtle" role="status"></p></form></article>`);
 let individualPricingVersion = null;
 async function loadIndividualPricing() {
-  if (!state.session || portal.profile?.portal_role !== 'SUPER_ADMIN') return;
+  if (!state.session || !isPlatformStaff()) return;
   const session = state.session;
   try {
     const data = await api('/api/v1/admin/individual-pricing', {auth:true});

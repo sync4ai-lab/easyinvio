@@ -82,4 +82,11 @@ class SettingsTests(unittest.TestCase):
   self.ctx.role='ACCOUNTANT'
   self.assertEqual(self.client.get('/api/v1/workspace/settings').status_code,403)
   self.assertFalse(self.db.calls)
+ def test_legacy_admin_and_agent_cannot_manage_customer_team_directly(self):
+  for role in ('ADMIN','AGENT','DISPATCHER','ACCOUNTANT'):
+   self.ctx.role=role
+   self.assertEqual(self.client.get('/api/v1/workspace/settings').status_code,403)
+   result=self.client.post('/api/v1/workspace/users',json={'auth_user_id':str(uuid4()),'full_name':'Test Person','role':'DISPATCHER'})
+   self.assertEqual(result.status_code,403)
+  self.assertFalse(self.db.calls)
 if __name__=='__main__':unittest.main()

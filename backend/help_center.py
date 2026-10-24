@@ -44,26 +44,17 @@ GUIDES = {
         <li>If you received an invitation, use the link in that email to complete account setup. Use the email address the invitation was sent to.</li>
         <li>Check the company shown in your workspace before creating shipments or making a payment.</li></ol>
         <h2 id="access-problems">If you cannot get in</h2>
-        <p>Use the password reset option on the sign-in screen. Check your spam folder if the email does not arrive. An expired invitation can be resent by your workspace owner or administrator.</p>
+        <p>Use the password reset option on the sign-in screen. Check your spam folder if the email does not arrive. An expired invitation can be resent by your workspace owner.</p>
         <p>If you can sign in but have no workspace access, ask your company administrator to check your membership. A new sign-in does not automatically create a shipping account or connect carrier contracts.</p>
         <h2 id="test-mode">Check whether you are practising</h2>
         <p>Example prices and demonstration records are not live bookings. A TEST label, when supported by the connection, is for practice and must not be used to send a real parcel. Ask EasyInvio support to confirm live readiness before dispatching goods.</p>
         <p><a href="/help/team-and-security">Learn about team access</a> or <a href="/help/contact">contact support for account help</a>.</p>""",
         'login log in sign in password reset invitation invite activation workspace sandbox test account'),
     'team-and-security': Guide(
-        'Invite your team and protect access', 'Start with confidence',
-        'Give colleagues the access they need without sharing passwords or carrier keys.',
-        """<h2 id="invite">Add a colleague</h2>
-        <ol><li>Ask your workspace owner or administrator to open Workspace Settings.</li>
-        <li>Enter the colleague's name and work email, then select Dispatcher or Accountant.</li>
-        <li>Send the invitation. The colleague completes setup through their email link.</li></ol>
-        <p>A Dispatcher prepares and books shipments. An Accountant uses the financial tools. Workspace owners and administrators manage company settings and team access. If a menu is missing, check your role with your administrator.</p>
-        <h2 id="manage">When access changes</h2>
-        <p>Your administrator can update supported team roles, disable a member, resend an invitation or send a password reset link from Workspace Settings. Cancelling an invitation stops that invitation from being used.</p>
-        <h2 id="security">Keep credentials private</h2>
-        <p>Use your own account and a strong password. Do not send passwords, carrier credentials, access tokens or card details to support. Carrier connection credentials are managed through authorised platform administration; ordinary shipment users do not need to set up personal developer keys.</p>
-        <p><a href="/help/contact">Ask for help with team permissions</a>.</p>""",
-        'roles permissions dispatcher accountant owner admin security keys invite colleagues team'),
+        'Understand roles and invite your team', 'Start with confidence',
+        'Understand EasyInvio Admin, support Agent, business Owner, Dispatcher and Accountant permissions.',
+        '', 'roles permissions dispatcher accountant owner admin agent support assistance security keys invite colleagues team wallet topup',
+        source_file='docs_team_roles.md', section_chunks=True),
     'first-shipment': Guide(
         'Compare prices and create a label', 'Start with confidence',
         'Prepare accurate shipment details, compare eligible services and confirm a booking.',

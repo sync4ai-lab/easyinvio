@@ -139,7 +139,7 @@ class ReturnReviewService:
         from backend.automation_three_partners import ReturnRequest, prepare_return_quote
         from backend.return_delivery import validate_delivery
         facts = await self.context(context, body.shipment_id)
-        if body.charge_bearer == 'CUSTOMER_PAY' and context.role not in {'OWNER', 'ADMIN'}:
+        if body.charge_bearer == 'CUSTOMER_PAY' and context.role not in {'OWNER', 'ADMIN', 'DISPATCHER'}:
             raise HTTPException(403, 'An owner or administrator must create customer-paid checkout')
         validate_delivery(self.lifecycle, body.delivery, facts['origin'])
         digest = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
@@ -207,7 +207,7 @@ class ReturnReviewService:
                 rate = next((r for r in decoded(row['response'])['rates'] if r['offer_id'] == str(body.offer_id)), None)
                 if not rate:
                     raise HTTPException(409, 'Choose a service from this return quote')
-                if row['charge_bearer'] == 'CUSTOMER_PAY' and context.role not in {'OWNER', 'ADMIN'}:
+                if row['charge_bearer'] == 'CUSTOMER_PAY' and context.role not in {'OWNER', 'ADMIN', 'DISPATCHER'}:
                     raise HTTPException(403, 'An owner or administrator must create customer-paid checkout')
                 valid = await c.fetchval('''SELECT EXISTS(SELECT 1 FROM public.partner_shipping_offers
                     WHERE tenant_id=$1 AND offer_id=$2 AND shipment_id=$3 AND expires_at>now())''',

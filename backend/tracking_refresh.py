@@ -172,7 +172,8 @@ class TrackingRefreshWorker:
                 member=await connection.fetchrow('''SELECT u.role FROM public.users u JOIN public.tenants t ON t.tenant_id=u.tenant_id
                     WHERE u.tenant_id=$1 AND u.auth_user_id=$2 AND u.is_active AND t.workspace_status='ACTIVE' ''',job['tenant_id'],job['requested_by'])
                 active=await connection.fetchval('SELECT is_active FROM public.carrier_accounts WHERE tenant_id=$1 AND id=$2',job['tenant_id'],job['carrier_account_id'])
-                if member is None and job['requested_by'] in set(getattr(engine.settings,'platform_admin_user_ids',[])):
+                from backend.platform_staff import platform_role
+                if member is None and await platform_role(connection,engine.settings,job['requested_by']):
                     if await connection.fetchval("SELECT workspace_status='ACTIVE' FROM public.tenants WHERE tenant_id=$1",job['tenant_id']):
                         member={'role':'ADMIN'}  # Current server allowlist, not a fabricated tenant membership.
                 pref=await engine.preferences(connection,job['tenant_id']);interval=pref.poll_interval_minutes

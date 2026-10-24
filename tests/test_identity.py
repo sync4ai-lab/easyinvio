@@ -15,7 +15,7 @@ import main
 class IdentityTests(unittest.TestCase):
     def setUp(self):
         self.user,self.tenant=uuid4(),uuid4();self.sessions={};self.profile={'full_name':'Test User','phone_e164':None}
-        self.no_membership=False
+        self.no_membership=False;self.agent=False
         self.refresh_calls=0;self.identity_unavailable=False;self.refresh_wrong_user=False
         self.assisted=[];self.assistance_events=[]
         self.email='satyakishore.mavuri@gmail.com';self.invalid_password=False
@@ -27,7 +27,9 @@ class IdentityTests(unittest.TestCase):
         class C:
             @asynccontextmanager
             async def transaction(self):yield
-            async def fetchval(self,sql,*args):return 1
+            async def fetchval(self,sql,*args):
+                if 'public.platform_staff' in sql:return test.agent
+                return 1
             async def fetch(self,sql,*args):
                 if 'UPDATE public.admin_client_assistance_sessions' in sql:
                     for row in test.assisted:
@@ -174,5 +176,17 @@ class IdentityTests(unittest.TestCase):
         self.assertLessEqual(self.assisted[0]['expires_at'],self.assisted[0]['created_at']+timedelta(minutes=30))
         self.assertEqual(result.json()['assistance_sessions'][0]['session_id'],str(self.assisted[0]['id']))
         self.assertEqual(len(self.assistance_events),2)
+
+
+    def test_agent_login_has_no_customer_workspace_and_revocation_blocks_renewal(self):
+        self.agent=True;self.no_membership=True
+        response=self.login();self.assertEqual(response.status_code,200,response.text)
+        claims=jwt.decode(response.json()['access_token'],'h'*48,algorithms=['HS256'],issuer='easyinvio-auth',audience='easyinvio-api')
+        self.assertEqual(claims['role'],'AGENT');self.assertIsNone(claims['tenant_id'])
+        headers={'Authorization':'Bearer '+response.json()['access_token']}
+        self.assertEqual(self.client.get('/api/v1/auth/me',headers=headers).json()['role'],'AGENT')
+        self.assertEqual(self.client.get('/api/v1/profile',headers=headers).json()['portal_role'],'AGENT')
+        self.agent=False
+        self.assertEqual(self.client.post('/api/v1/auth/renew',headers=headers).status_code,403)
 
 if __name__=='__main__':unittest.main()

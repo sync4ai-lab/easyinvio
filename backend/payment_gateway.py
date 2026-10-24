@@ -311,7 +311,7 @@ def require_test_gateway(settings):
         raise HTTPException(403, 'Test payments require a sandbox database')
 
 
-async def ensure_customer(finance, context):
+async def ensure_customer(finance, context, *, shipping_cart_id=None):
     """Create a tenant-scoped Stripe customer outside all financial transactions.
 
     A session lock and Stripe idempotency key recover an ambiguous remote create
@@ -322,7 +322,9 @@ async def ensure_customer(finance, context):
         await c.execute('SELECT pg_advisory_lock(hashtextextended($1,0))', key)
         try:
             async with c.transaction():
-                tenant = await finance.lock_tenant(c, context.tenant_id, context, FINANCE_ROLES)
+                from backend.platform_staff import checkout_roles
+                roles = await checkout_roles(c, context, shipping_cart_id)
+                tenant = await finance.lock_tenant(c, context.tenant_id, context, roles)
                 finance.check_payment_environment(tenant)
                 if tenant['billing_plan'] != 'PREPAID_WALLET':
                     raise HTTPException(409, 'Workspace does not use a prepaid wallet')
@@ -339,7 +341,8 @@ async def ensure_customer(finance, context):
             if not customer.id or not str(customer.id).startswith('cus_') or customer.livemode is not finance.settings.stripe_livemode:
                 raise HTTPException(503, 'Invalid Stripe customer response')
             async with c.transaction():
-                tenant = await finance.lock_tenant(c,context.tenant_id,context,FINANCE_ROLES)
+                roles = await checkout_roles(c, context, shipping_cart_id)
+                tenant = await finance.lock_tenant(c,context.tenant_id,context,roles)
                 finance.check_payment_environment(tenant)
                 if tenant['stripe_customer_id'] not in {None, customer.id}:
                     raise HTTPException(409, 'Stripe customer mapping changed; reconciliation required')

@@ -10,11 +10,11 @@ $('#dashboard-metrics').insertAdjacentHTML('afterend', `<div id="owner-command-c
 function ownerReportEnvironment(){return $('#owner-environment')?.value || 'PRODUCTION';}
 function ownerActiveSupportOnly(){return $('#owner-support-scope')?.value !== 'ALL';}
 function renderOwnerMonitoring(){
-  const owner=portal.role==='SUPER_ADMIN' && (!state.session || portal.profile?.portal_role==='SUPER_ADMIN');
+  const owner=portal.role==='SUPER_ADMIN' && (!state.session || isPlatformStaff());
   $('#owner-command-center').hidden=!owner;
   $('#support-tickets').closest('.support-card').hidden=!owner;
   if(!owner){for(const id of ['owner-currency-rows','owner-billing-pipeline','owner-payment-pipeline','owner-active-threads'])$('#'+id).replaceChildren();return;}
-  $('#dashboard-title').textContent='Super-Admin Command Center';
+  $('#dashboard-title').textContent=portal.profile?.portal_role==='AGENT'?'Support Agent Overview':'EasyInvio Admin Overview';
   const report=state.session?portal.report:null;
   $('#owner-monitoring-source').textContent=report?.environment ? `${report.environment} DATA · ${report.start_date} to ${report.end_date} UTC. Billing status is current; payments and shipment totals use the selected period.` : 'Sign in as the verified platform owner to load database billing pipelines and cross-tenant support threads. Demo overview metrics remain illustrative.';
   $('#owner-currency-rows').innerHTML=(report?.totals_by_currency||[]).map(r=>`<tr><td>${escapeHTML(r.currency)}</td><td class="money">${money(r.revenue,r.currency)}</td><td>${money(r.margin,r.currency)}</td><td>${escapeHTML(r.package_count)}</td></tr>`).join('')||'<tr><td colspan="4">No booked shipping totals for this environment and period.</td></tr>';

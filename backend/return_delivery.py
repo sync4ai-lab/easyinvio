@@ -150,9 +150,16 @@ class ReturnDeliveryWorker:
                 notice = await c.fetchrow('''SELECT d.* FROM public.return_customer_deliveries d
                     JOIN public.return_review_sessions r ON r.tenant_id=d.tenant_id AND r.id=d.review_id
                     JOIN public.tenants t ON t.tenant_id=r.tenant_id AND t.workspace_status='ACTIVE'
-                    JOIN public.users u ON u.tenant_id=r.tenant_id AND u.auth_user_id=r.requested_by
+                    LEFT JOIN public.users u ON u.tenant_id=r.tenant_id AND u.auth_user_id=r.requested_by
                       AND u.is_active AND u.role IN ('OWNER','ADMIN','DISPATCHER')
-                    WHERE d.state='READY' ORDER BY d.id LIMIT 1 FOR UPDATE OF d SKIP LOCKED''')
+                    WHERE d.state='READY' AND (u.id IS NOT NULL OR (
+                      (r.requested_by=ANY($1::uuid[]) OR EXISTS(SELECT 1 FROM public.platform_staff f
+                        WHERE f.auth_user_id=r.requested_by AND f.is_active))
+                      AND EXISTS(SELECT 1 FROM public.admin_client_assistance_sessions a
+                        WHERE a.tenant_id=r.tenant_id AND a.actor_auth_user_id=r.requested_by
+                        AND a.created_at<=r.created_at AND a.expires_at>=r.created_at
+                        AND (a.revoked_at IS NULL OR a.revoked_at>r.created_at))))
+                    ORDER BY d.id LIMIT 1 FOR UPDATE OF d SKIP LOCKED''',list(getattr(service.automation.settings,'platform_admin_user_ids',[])))
                 if not notice:
                     return False
                 row = await c.fetchrow('SELECT * FROM public.return_review_sessions WHERE tenant_id=$1 AND id=$2', notice['tenant_id'], notice['review_id'])

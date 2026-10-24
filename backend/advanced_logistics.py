@@ -403,9 +403,9 @@ def build_router(authenticate: Callable, rating_model: Any) -> APIRouter:
         validate_tenant_query(request, context.tenant_id)
         return await read_manifest(request,context.tenant_id,financial_details=context.role!='DISPATCHER')
 
-    from backend.admin_portal import authenticate_platform_owner
+    from backend.admin_portal import authenticate_platform_operator
     @router.get('/admin/shipments/manifest')
-    async def owner_manifest(request: Request,owner: Any=Depends(authenticate_platform_owner)):
+    async def owner_manifest(request: Request,owner: Any=Depends(authenticate_platform_operator)):
         return await read_manifest(request,None)
 
     @router.get('/countries')

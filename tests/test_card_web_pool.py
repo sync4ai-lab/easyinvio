@@ -41,7 +41,7 @@ async def test_web_can_create_stripe_cart_with_two_connections(monkeypatch):
     body=CardCart(request_id=uuid4(),offers=[dict(shipment_id=uuid4(),offer_id=uuid4(),expected_price='12.50',currency='GBP')])
     monkeypatch.setattr('backend.card_checkout.validate_checkout',AsyncMock(return_value=([],Decimal('12.50'),{'GBP'})))
     monkeypatch.setattr('backend.card_checkout.checkout_return_base',lambda *args:'https://app.example.test/')
-    async def customer(*args):assert svc.pool.active==0
+    async def customer(*args,**kwargs):assert svc.pool.active==0
     monkeypatch.setattr('backend.card_checkout.ensure_customer',customer)
     async def checkout(*args,**kwargs):
         assert svc.pool.active==0

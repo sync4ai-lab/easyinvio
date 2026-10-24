@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 import httpx
 import jwt
 import asyncpg
+from backend.platform_staff import platform_role
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
@@ -104,10 +105,11 @@ async def token(body: Login, request: Request):
     async with request.app.state.finance.pool.acquire() as c:
         members=await c.fetch('''SELECT u.tenant_id,u.role FROM public.users u JOIN public.tenants t USING(tenant_id)
             WHERE u.auth_user_id=$1 AND u.is_active AND t.workspace_status='ACTIVE' LIMIT 2''',user_id)
-        admin=user_id in settings.platform_admin_user_ids
+        staff_role=await platform_role(c,settings,user_id)
+        admin=bool(staff_role)
         if len(members)>1 or (not admin and len(members)!=1):raise HTTPException(403,'An active workspace registration is required')
-        tenant_id=members[0]['tenant_id'] if members else None
-        role='SUPER_ADMIN' if admin else members[0]['role']
+        tenant_id=None if admin else members[0]['tenant_id']
+        role=staff_role if admin else members[0]['role']
         now=int(time.time());provider_expires=int(data.get('expires_at',now+int(data.get('expires_in',3600))))
         expires=min(now+SESSION_WINDOW_SECONDS,provider_expires)
         if expires<=now:raise HTTPException(401,'Authentication session expired')
@@ -154,11 +156,12 @@ async def renew(request: Request):
                 raise HTTPException(401,'Sign in again to renew your session') from None
             members=await connection.fetch('''SELECT u.tenant_id,u.role FROM public.users u JOIN public.tenants t USING(tenant_id)
                 WHERE u.auth_user_id=$1 AND u.is_active AND t.workspace_status='ACTIVE' LIMIT 2''',user_id)
-            admin=user_id in settings.platform_admin_user_ids
+            staff_role=await platform_role(connection,settings,user_id)
+            admin=bool(staff_role)
             if len(members)>1 or (not admin and len(members)!=1):raise HTTPException(403,'Active workspace access is required')
-            tenant_id=members[0]['tenant_id'] if members else None
+            tenant_id=None if admin else members[0]['tenant_id']
             if tenant_id!=row['tenant_id']:raise HTTPException(401,'Workspace access changed. Sign in again')
-            role='SUPER_ADMIN' if admin else members[0]['role']
+            role=staff_role if admin else members[0]['role']
             try:
                 async with httpx.AsyncClient(trust_env=False,timeout=15) as client:
                     identity=await client.get(settings.supabase_url+'/auth/v1/user',headers={
@@ -208,11 +211,11 @@ async def renew(request: Request):
 
 async def current_identity(request):
     from fastapi.security import HTTPBearer
-    from backend.admin_portal import authenticate_platform_owner
+    from backend.admin_portal import authenticate_platform_operator
     credentials=await HTTPBearer(auto_error=False)(request)
     try:
-        actor=await authenticate_platform_owner(request,credentials)
-        return actor.user_id,'SUPER_ADMIN'
+        actor=await authenticate_platform_operator(request,credentials)
+        return actor.user_id,actor.role
     except HTTPException as exc:
         if exc.status_code!=403:raise
     from main import authenticate

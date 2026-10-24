@@ -1,6 +1,6 @@
 // Workspace company and team settings; all mutations are server-authorized.
 async function loadWorkspaceSettings(){
- if(!state.session||!['OWNER','ADMIN'].includes(portal.profile?.workspace_role))throw Error('Sign in as your workspace owner.');
+ if(!state.session||portal.profile?.workspace_role!=='OWNER')throw Error('Sign in as your workspace owner.');
  const session=state.session,tenant=portal.profile.tenant_id;
  const result=await api('/api/v1/workspace/settings',{auth:true});
  if(state.session!==session||portal.profile?.tenant_id!==tenant)return;

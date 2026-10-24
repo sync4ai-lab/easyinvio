@@ -1318,11 +1318,21 @@ class FinanceEngine:
         if context is not None:
             if context.tenant_id != tenant_id:
                 raise HTTPException(403, "Workspace mismatch")
-            member = await connection.fetchrow(
-                """SELECT role FROM public.users
-                   WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active FOR SHARE""",
-                tenant_id, context.user_id,
-            )
+            assistance_id = getattr(context, 'assistance_session_id', None)
+            if assistance_id:
+                from backend.platform_staff import platform_role
+                staff = await platform_role(connection, self.settings, context.user_id)
+                session = await connection.fetchrow("""SELECT id FROM public.admin_client_assistance_sessions
+                    WHERE id=$1 AND tenant_id=$2 AND actor_auth_user_id=$3
+                    AND revoked_at IS NULL AND expires_at>now() FOR SHARE""",
+                    assistance_id, tenant_id, context.user_id)
+                member = {'role':'OWNER'} if staff and session else None
+            else:
+                member = await connection.fetchrow(
+                    """SELECT role FROM public.users
+                       WHERE tenant_id=$1 AND auth_user_id=$2 AND is_active FOR SHARE""",
+                    tenant_id, context.user_id,
+                )
             if member is None or (roles and member["role"] not in roles):
                 raise HTTPException(403, "Workspace permission denied")
             if tenant["workspace_status"] != "ACTIVE":
@@ -1588,12 +1598,16 @@ class FinanceEngine:
                 return {"shipment_id": str(shipment_id), "zpl": zpl, "simulated": True,
                         "charged": False, "printer_broadcast": False}
 
-    async def create_checkout(self, context: TenantContext, body: TopupRequest, *, return_urls: tuple[str,str] | None = None, payment_label: str = 'EasyInvio.com wallet top-up') -> TopupResponse:
+    async def create_checkout(self, context: TenantContext, body: TopupRequest, *, return_urls: tuple[str,str] | None = None, payment_label: str = 'EasyInvio.com wallet top-up', shipping_cart_id: UUID | None = None) -> TopupResponse:
         if self.stripe is None:
             raise HTTPException(503, "Stripe integration is disabled")
         async with self.pool.acquire() as connection:
             async with connection.transaction():
-                tenant = await self.lock_tenant(connection, context.tenant_id, context, FINANCE_ROLES)
+                from backend.platform_staff import checkout_roles
+                if shipping_cart_id is not None and shipping_cart_id != body.request_id:
+                    raise HTTPException(403, 'Shipping basket identity mismatch')
+                roles = await checkout_roles(connection, context, shipping_cart_id, body.amount)
+                tenant = await self.lock_tenant(connection, context.tenant_id, context, roles)
                 self.check_payment_environment(tenant)
                 if tenant["billing_plan"] != "PREPAID_WALLET":
                     raise HTTPException(409, "Workspace does not use a wallet")
@@ -2233,6 +2247,8 @@ async def authenticate(
             raise unauthorized
         bound_session = getattr(request.state, 'app_session_claims', None)
         if bound_session and bound_session['user_id'] != claims['sub']: raise unauthorized
+        if UUID(claims['sub']) in set(getattr(settings, 'platform_admin_user_ids', [])):
+            raise HTTPException(403, 'Select a client through audited client assistance before operating a workspace')
         app_metadata = claims.get('app_metadata')
         metadata_tenant = app_metadata.get('tenant_id') if isinstance(app_metadata, dict) else None
         app_session = getattr(request.state, 'app_session_claims', None)
@@ -2600,7 +2616,8 @@ app.include_router(hubspot_router(authenticate))
 app.include_router(tracking_router(authenticate))
 from backend.tracking_workspace import build_router as tracking_workspace_router
 from backend.admin_portal import authenticate_platform_owner
-app.include_router(tracking_workspace_router(authenticate,authenticate_platform_owner))
+from backend.admin_portal import authenticate_platform_operator
+app.include_router(tracking_workspace_router(authenticate,authenticate_platform_operator))
 app.include_router(support_delivery_router(authenticate))
 from backend.support_alert_controls import build_router as support_alert_controls_router
 from backend.admin_portal import authenticate_platform_owner

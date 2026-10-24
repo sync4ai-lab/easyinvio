@@ -16,7 +16,7 @@ class CardCart(CheckoutSelection):
     return_origin:str|None=Field(default=None,max_length=200)
 
 def permitted(context):
-    if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace owner or administrator permission required for card-funded bookings')
+    if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required for card-funded bookings')
 
 async def create_cart(service,context,body):
     permitted(context)
@@ -60,13 +60,13 @@ async def create_cart(service,context,body):
             else:
                 await c.execute('''INSERT INTO public.payment_carts(id,tenant_id,requested_by,offers,amount,currency)
                     VALUES($1,$2,$3,$4::jsonb,$5,$6)''',body.request_id,context.tenant_id,context.user_id,json.dumps(selection),total,currency)
-    await ensure_customer(finance,context)
+    await ensure_customer(finance,context,shipping_cart_id=body.request_id)
     from main import TopupRequest
     from urllib.parse import urlsplit,parse_qsl,urlencode,urlunsplit
     def returning(base,outcome):
         parts=urlsplit(checkout_redirect(base,outcome,body.request_id));q=dict(parse_qsl(parts.query));q['cart_id']=str(body.request_id)
         return urlunsplit((parts.scheme,parts.netloc,parts.path,urlencode(q),''))
-    checkout=await finance.create_checkout(context,TopupRequest(request_id=body.request_id,amount=total),return_urls=(returning(origin,'success'),returning(cancel,'cancel')),payment_label='EasyInvio.com shipping labels - '+str(len(selection))+' selected orders')
+    checkout=await finance.create_checkout(context,TopupRequest(request_id=body.request_id,amount=total),return_urls=(returning(origin,'success'),returning(cancel,'cancel')),payment_label='EasyInvio.com shipping labels - '+str(len(selection))+' selected orders',shipping_cart_id=body.request_id)
     async with service.pool.acquire() as c:
         await c.execute("UPDATE public.payment_carts SET status='AWAITING_PAYMENT',updated_at=now() WHERE tenant_id=$1 AND id=$2 AND status='CREATING'",context.tenant_id,body.request_id)
     return {'cart_id':str(body.request_id),'topup_id':str(checkout.topup_id),'url':safe_checkout_url(checkout.checkout_url),'amount':format(total,'.2f'),'currency':currency,
@@ -151,13 +151,24 @@ async def cart_worker(service):
     while True:
         try:
             async with service.pool.acquire() as c:
-                rows=await c.fetch('''SELECT p.id,p.tenant_id,p.requested_by,u.role FROM public.payment_carts p JOIN public.users u
-                    ON u.tenant_id=p.tenant_id AND u.auth_user_id=p.requested_by AND u.is_active AND u.role IN ('OWNER','ADMIN')
+                rows=await c.fetch('''SELECT p.id,p.tenant_id,p.requested_by,coalesce(u.role,'OWNER') AS role,
+                    a.id AS assistance_session_id FROM public.payment_carts p LEFT JOIN public.users u
+                    ON u.tenant_id=p.tenant_id AND u.auth_user_id=p.requested_by AND u.is_active AND u.role IN ('OWNER','ADMIN','DISPATCHER')
+                    LEFT JOIN LATERAL (SELECT s.id FROM public.admin_client_assistance_sessions s
+                      WHERE s.tenant_id=p.tenant_id AND s.actor_auth_user_id=p.requested_by
+                      AND s.created_at<=p.created_at AND s.revoked_at IS NULL AND s.expires_at>now()
+                      ORDER BY s.created_at DESC LIMIT 1) a ON true
                     JOIN public.wallet_topups w ON w.tenant_id=p.tenant_id AND w.id=p.id
                     WHERE p.status IN ('CREATING','AWAITING_PAYMENT','BOOKING') AND p.created_at>now()-interval '24 hours'
-                    AND p.updated_at<now()-interval '15 seconds' ORDER BY p.updated_at LIMIT 5''')
+                    AND p.updated_at<now()-interval '15 seconds'
+                    AND (u.role IS NOT NULL OR (a.id IS NOT NULL AND (p.requested_by=ANY($1::uuid[])
+                     OR EXISTS(SELECT 1 FROM public.platform_staff f WHERE f.auth_user_id=p.requested_by AND f.is_active))))
+                    ORDER BY p.updated_at LIMIT 5''',list(getattr(service.finance.settings,'platform_admin_user_ids',[])))
             for r in rows:
-                try:await complete_cart(service,SimpleNamespace(tenant_id=r['tenant_id'],user_id=r['requested_by'],role=r['role']),r['id'])
+                try:
+                    from main import TenantContext
+                    context=TenantContext(r['tenant_id'],r['requested_by'],r['role'],'',r['assistance_session_id'])
+                    await complete_cart(service,context,r['id'])
                 except Exception:logging.getLogger(__name__).warning('Card basket verification deferred; durable basket retained')
         except Exception:logging.getLogger(__name__).warning('Card basket worker deferred; check payment schema and settings')
         await asyncio.sleep(15)

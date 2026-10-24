@@ -81,7 +81,7 @@ class HelpCentreTests(unittest.TestCase):
             self.assertEqual(download.status_code, 200)
             self.assertIn('text/markdown', download.headers['content-type'])
             self.assertIn(Path(guide.source_file).name, download.headers['content-disposition'])
-            expected = (Path(__file__).resolve().parents[1] / guide.source_file).read_text(encoding='utf-8')
+            expected = (Path(__file__).resolve().parents[1] / guide.source_file).read_bytes().decode('utf-8')
             self.assertEqual(download.text, expected)
         self.assertEqual(self.client.get('/help/source/account-access').status_code, 404)
         self.assertEqual(self.client.get('/help/source/unknown').status_code, 404)

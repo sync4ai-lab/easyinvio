@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from backend.admin_portal import (AdminService, IndividualPricingUpdate, PlatformOwner, TenantCreate,
-    calibrated_pricing_scope, get_client_calibrated_rate, router, authenticate_platform_owner,
+    calibrated_pricing_scope, get_client_calibrated_rate, router, authenticate_platform_owner, authenticate_platform_operator,
     update_individual_pricing)
 from backend.web_registration import RegistrationStart, RegistrationVerify, start_registration, verify_registration
 from test_admin_portal import Connection, Acquire
@@ -143,7 +143,7 @@ def test_admin_cohort_report_keeps_currency_totals_and_persona_groups_separate()
     app = FastAPI()
     app.state.finance = SimpleNamespace(pool=db)
     app.include_router(build_router(AsyncMock()))
-    app.dependency_overrides[authenticate_platform_owner] = lambda: PlatformOwner(uuid4())
+    app.dependency_overrides[authenticate_platform_operator] = lambda: PlatformOwner(uuid4())
     with TestClient(app) as client:
         result = client.get('/api/v1/admin/analytics/dashboard?start_date=2026-09-01&end_date=2026-09-30').json()
     assert result['totals_by_currency'][0]['revenue'] == '30.00'

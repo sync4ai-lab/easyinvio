@@ -61,13 +61,19 @@ class StoreConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(config.access_token.get_secret_value(), 'private-test-token')
 
     async def test_role_and_tenant_boundaries(self):
-        for role in ('ACCOUNTANT', 'DISPATCHER'):
+        for role in ('ACCOUNTANT', 'AGENT', 'SUPER_ADMIN'):
             self.context.role = role
             self.assertEqual((await self.client.put(self.url, json=self.body)).status_code, 403)
             self.assertEqual((await self.client.get(self.url)).status_code, 403)
         self.context.role = 'OWNER'; self.context.tenant_id = uuid4()
         self.assertEqual((await self.client.put(self.url, json=self.body)).status_code, 404)
         self.assertFalse(self.rows)
+
+    async def test_dispatcher_manages_only_their_own_store(self):
+        self.context.role='DISPATCHER'
+        self.assertEqual((await self.client.put(self.url,json=self.body)).status_code,200)
+        self.context.tenant_id=uuid4()
+        self.assertEqual((await self.client.get(self.url)).status_code,404)
 
     async def test_invalid_domain_weights_credentials_never_saved(self):
         for change in ({'shop_domain': '127.0.0.1'}, {'shop_domain': 'test-shop.myshopify.com/evil'},

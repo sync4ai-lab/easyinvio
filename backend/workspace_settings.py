@@ -31,7 +31,7 @@ class Draft(BaseModel):
     content:str=Field(min_length=10,max_length=12000)
 
 def owner(context):
-    if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace owner permission required')
+    if context.role != 'OWNER':raise HTTPException(403,'Workspace owner permission required')
 async def invitation_limit(pool,tenant_id):
     bucket=hashlib.sha256(('workspace-invitations:'+str(tenant_id)).encode()).hexdigest()
     async with pool.acquire() as c:
@@ -73,7 +73,11 @@ def build_router(authenticate):
         owner(context)
         async with request.app.state.finance.pool.acquire() as c:
             company=await c.fetchrow('SELECT company_name,workspace_name,billing_email FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
-            members=await c.fetch("SELECT u.id,u.full_name,u.role,u.is_active,a.email FROM public.users u JOIN auth.users a ON a.id=u.auth_user_id WHERE u.tenant_id=$1 ORDER BY u.created_at",context.tenant_id)
+            members=await c.fetch("""SELECT u.id,u.full_name,u.role,u.is_active,a.email FROM public.users u
+                JOIN auth.users a ON a.id=u.auth_user_id WHERE u.tenant_id=$1
+                AND u.auth_user_id<>ALL($2::uuid[])
+                AND NOT EXISTS(SELECT 1 FROM public.platform_staff f WHERE f.auth_user_id=u.auth_user_id)
+                ORDER BY u.created_at""",context.tenant_id,list(getattr(request.app.state.settings,'platform_admin_user_ids',[])))
             invites=await c.fetch("SELECT id,first_name,last_name,email,role,status,expires_at FROM public.workspace_invitations WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 100",context.tenant_id)
         return {'company':dict(company),'members':[dict(m) for m in members],'invitations':[dict(i) for i in invites]}
     @router.patch('/workspace/settings')

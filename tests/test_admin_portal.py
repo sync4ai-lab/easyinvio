@@ -50,6 +50,7 @@ class Connection:
     def __init__(self):
         self.store = {"tenants": {}, "wallets": [], "users": [], "margins": [], "events": {}}
         self.calls, self.transactions = [], []
+        self.staff_calls = []
         self.rollbacks = 0
         self.owner_exists = True
         self.account_exists = True
@@ -70,6 +71,8 @@ class Connection:
             return self.rule
         raise AssertionError(sql)
     async def fetchval(self, sql, *args):
+        if "public.platform_staff" in sql:
+            self.staff_calls.append((sql,args)); return False
         self.calls.append((sql, args))
         return self.owner_exists if "auth.users" in sql else self.account_exists
     async def execute(self, sql, *args):
@@ -105,6 +108,7 @@ class AdminHTTPTests(unittest.TestCase):
         main.app.state.settings = SimpleNamespace(platform_admin_user_ids=[self.owner], jwt_algorithm="ES256", jwt_audience="authenticated", supabase_url="https://fixture.supabase.co")
         main.app.state.jwks = SimpleNamespace(get_signing_key_from_jwt=lambda token: SimpleNamespace(key=self.key.public_key()))
         main.app.state.admin_portal = AdminService(pool(self.connection))
+        main.app.state.finance = SimpleNamespace(pool=pool(self.connection))
         self.client = TestClient(main.app)
     def tearDown(self): main.app.dependency_overrides.clear()
     def token(self, user_id, **extra):

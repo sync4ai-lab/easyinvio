@@ -41,7 +41,7 @@ class AssistanceTests(unittest.IsolatedAsyncioTestCase):
             return {'tenant_id': str(context.tenant_id), 'actor': str(context.user_id),
                 'role': context.role, 'assistance': str(context.assistance_session_id), 'payload': payload}
 
-        self.owner = patch.object(support, 'authenticate_platform_owner', AsyncMock(return_value=SimpleNamespace(user_id=self.actor)))
+        self.owner = patch.object(support, 'authenticate_platform_operator', AsyncMock(return_value=SimpleNamespace(user_id=self.actor)))
         self.owner.start()
         self.addCleanup(self.owner.stop)
 
@@ -72,7 +72,7 @@ class AssistanceTests(unittest.IsolatedAsyncioTestCase):
         self.connection.execute.assert_not_awaited()
 
     async def test_non_platform_admin_cannot_use_a_session_identifier(self):
-        with patch.object(support, 'authenticate_platform_owner', AsyncMock(side_effect=HTTPException(403, 'Platform-owner permission required'))):
+        with patch.object(support, 'authenticate_platform_operator', AsyncMock(side_effect=HTTPException(403, 'Platform-owner permission required'))):
             self.assertEqual((await self.request()).status_code, 403)
         self.assertEqual(self.executions, 0)
 

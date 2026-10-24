@@ -13,7 +13,7 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.responses import JSONResponse
 
-from backend.admin_portal import authenticate_platform_owner
+from backend.admin_portal import authenticate_platform_operator
 
 HEADER = 'X-EasyInvio-Assistance'
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class AssistanceRoute(APIRoute):
 
 
 router = APIRouter(prefix='/api/v1/admin/client-assistance', tags=['Client assistance'], route_class=AssistanceRoute)
-owner_dependency = Depends(authenticate_platform_owner)
+owner_dependency = Depends(authenticate_platform_operator)
 
 
 def redact_change(value, depth=0):
@@ -84,7 +84,7 @@ async def resolve_assistance(request, credentials=None):
         raise HTTPException(401, 'Invalid client assistance session') from None
     if credentials is None:
         credentials = await HTTPBearer(auto_error=False)(request)
-    actor = await authenticate_platform_owner(request, credentials)
+    actor = await authenticate_platform_operator(request, credentials)
     async with request.app.state.finance.pool.acquire() as connection:
         session = await connection.fetchrow('''SELECT s.*,t.company_name,t.workspace_type,t.workspace_status,t.is_sandbox
             FROM public.admin_client_assistance_sessions s JOIN public.tenants t USING(tenant_id)
@@ -92,7 +92,7 @@ async def resolve_assistance(request, credentials=None):
             AND s.revoked_at IS NULL AND s.expires_at>now()''', identifier, actor.user_id,
             [token_fingerprint(request),hashlib.sha256(request.headers.get('authorization','').encode()).hexdigest()])
     if not session:
-        raise HTTPException(401, 'Client assistance ended or expired. Return to Super Admin and select the client again.')
+        raise HTTPException(401, 'Client assistance ended or expired. Return to the platform console and select the client again.')
     request.state.client_assistance = dict(session)
     return request.state.client_assistance
 
@@ -189,7 +189,7 @@ class ClientAssistanceMiddleware:
         path = scope['path']
         try:
             if path.startswith('/api/v1/admin/') or path.startswith('/api/v1/auth/') or path.startswith('/webhooks/'):
-                raise HTTPException(403, 'Return to Super Admin for platform or identity operations')
+                raise HTTPException(403, 'Return to the platform console for platform or identity operations')
             session = await resolve_assistance(request)
             request_id = uuid4()
             async with request.app.state.finance.pool.acquire() as connection:

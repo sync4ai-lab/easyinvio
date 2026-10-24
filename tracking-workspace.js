@@ -8,7 +8,7 @@
   const badge = value => `<span class="tracking-badge" data-status="${escape(value)}">${escape(human(value))}</span>`;
   let generation = 0, detailGeneration = 0, preferenceGeneration = 0, page = 1, activeView = 'all', current = null;
   const contextKey = () => JSON.stringify([portal.profile?.tenant_id, state.assistance?.tenant_id, state.assistance?.session_id || state.assistance?.id, portal.role, portal.profile?.workspace_role]);
-  const admin = () => portal.role === 'SUPER_ADMIN' && portal.profile?.portal_role === 'SUPER_ADMIN';
+  const admin = () => portal.role === 'SUPER_ADMIN' && isPlatformStaff();
   const writable = () => !admin() && ['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role);
   const prefix = () => admin() ? '/api/v1/admin/tracking' : '/api/v1/tracking';
   const section = document.createElement('section'); section.id = 'tracking'; section.hidden = true;
