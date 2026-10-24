@@ -17,7 +17,7 @@ def settings():
 
 
 def config(**changes):
-    return ShipmentNotificationSettings(_env_file=None, **dict(shipment_email_notifications_enabled=True,
+    return ShipmentNotificationSettings(_env_file=None, **dict(email_delivery_provider='SENDGRID', shipment_email_notifications_enabled=True,
         shipment_sendgrid_api_key='synthetic',shipment_whatsapp_notifications_enabled=True,
         shipment_whatsapp_content_sid='HX'+'2'*32,
         shipment_notification_test_recipients=['sender@example.test','+447700900111'], **changes))
@@ -145,3 +145,32 @@ async def test_explicit_rate_limit_retries_are_bounded_and_backed_off(world):
     assert len(calls)==3
     row=await w.db.fetchrow("SELECT state,attempts FROM public.shipment_sender_notifications WHERE channel='EMAIL'")
     assert row['state']=='FAILED' and row['attempts']==3
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('outcome',['accepted','temporary','uncertain'])
+async def test_hostinger_worker_commits_before_send_and_preserves_retry_fences(world,monkeypatch,outcome):
+    from backend.email_delivery import EmailReceipt
+    w=world;await migrate(w)
+    await w.db.execute("UPDATE public.shipment_sender_notifications SET state='SKIPPED' WHERE channel='WHATSAPP'")
+    cfg=config();cfg.email_delivery_provider='HOSTINGER_SMTP'
+    cfg.smtp_username='operations@easyinvio.com';cfg.smtp_password=SecretStr('synthetic')
+    calls=[]
+    async def smtp(client,config,**message):
+        assert await w.db.fetchval("SELECT state FROM public.shipment_sender_notifications WHERE channel='EMAIL'")=='SENDING'
+        assert message['sender']=='operations@easyinvio.com' and message['recipient']=='sender@example.test'
+        calls.append(message)
+        return {'accepted':EmailReceipt('ACCEPTED','synthetic-smtp-id'),
+                'temporary':EmailReceipt('RETRYABLE',error_code='SMTP_TEMPORARY_REFUSAL'),
+                'uncertain':EmailReceipt('REVIEW_REQUIRED',error_code='SMTP_SEND_OUTCOME_UNCERTAIN')}[outcome]
+    monkeypatch.setattr('backend.shipment_notifications.send_notification_email',smtp)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request:pytest.fail('SMTP must not call an HTTP email provider'))) as client:
+        worker=ShipmentNotificationWorker(SimpleNamespace(pool=w.db,client=client,automation=SimpleNamespace(settings=settings())),cfg)
+        for attempt in range(3 if outcome=='temporary' else 1):
+            assert await worker.drain()
+            assert not await worker.drain()
+            if outcome=='temporary' and attempt<2:
+                await w.db.execute("UPDATE public.shipment_sender_notifications SET next_attempt_at=now()-interval '1 second' WHERE channel='EMAIL'")
+        row=await w.db.fetchrow("SELECT state,attempts FROM public.shipment_sender_notifications WHERE channel='EMAIL'")
+    assert row['state']=={'accepted':'ACCEPTED','temporary':'FAILED','uncertain':'REVIEW_REQUIRED'}[outcome]
+    assert row['attempts']==len(calls)==(3 if outcome=='temporary' else 1)
+    assert len({call['message_key'] for call in calls})==1

@@ -37,7 +37,7 @@ async def setup(w, payer='RETAILER_PAY', notifications=False):
     order = dict(idempotency_key=str(uuid4()),order_reference='SYNTHETIC-ORDER',origin=address|{'name':'Merchant'},destination=address,cargo=cargo,items=goods)
     await w.db.execute("UPDATE public.shipments SET status='DELIVERED',logistics_metadata=$2::jsonb WHERE id=$1", w.shipments[0], json.dumps({'automation_order':order}))
     await w.db.execute("INSERT INTO public.tenant_catalog_addresses VALUES($1,$2,'RETURN',true,NULL,$3::jsonb,1)",uuid4(),w.tenants[0],json.dumps(address|{'name':'Return warehouse'}))
-    config = ReturnDeliverySettings(_env_file=None,return_email_enabled=notifications,
+    config = ReturnDeliverySettings(_env_file=None,email_delivery_provider='SENDGRID',return_email_enabled=notifications,
         return_sendgrid_api_key=SecretStr('SYNTHETIC-NOT-A-REAL-KEY'))
     settings = SimpleNamespace(booking_page_url='https://app.example.test',quote_link_secret=SecretStr('synthetic-secret-for-return-documents-12345'),twilio_enabled=False)
     lifecycle = SimpleNamespace(pool=w.db,automation=SimpleNamespace(settings=settings),return_delivery_settings=config,
@@ -239,3 +239,33 @@ async def test_return_tables_are_private_and_tenant_foreign_keys_reject_cross_wo
         await world.db.execute('''INSERT INTO public.return_review_sessions
             (tenant_id,id,original_shipment_id,requested_by,input_sha256,charge_bearer,state)
             VALUES($1,$2,$3,$4,$5,'RETAILER_PAY','PREPARING')''',world.tenants[0],uuid4(),world.shipments[1],world.actors[0],'0'*64)
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('payer',['RETAILER_PAY','CUSTOMER_PAY'])
+async def test_hostinger_return_notices_keep_payment_and_document_gates(world,monkeypatch,payer):
+    from backend.email_delivery import EmailReceipt
+    x=await setup(world,payer,True)
+    cfg=x.lifecycle.return_delivery_settings;cfg.email_delivery_provider='HOSTINGER_SMTP'
+    cfg.smtp_username='operations@easyinvio.com';cfg.smtp_password=SecretStr('synthetic')
+    with patch('backend.automation_three_partners.prepare_return_quote',side_effect=x.quote):
+        await x.service.prepare(x.context,x.body)
+    with patch('backend.card_checkout.create_cart',AsyncMock(return_value={'url':'https://checkout.stripe.com/c/pay/synthetic','cart_id':str(x.body.request_id)})):
+        await x.service.select(x.context,x.body.request_id,SelectReturn(offer_id=x.offers[1]))
+    calls=[]
+    async def smtp(client,config,**message):
+        assert await world.db.fetchval('SELECT state FROM public.return_customer_deliveries')=='SENDING'
+        assert message['sender']=='operations@easyinvio.com' and message['recipient']=='customer@example.test'
+        if payer=='CUSTOMER_PAY':
+            assert 'https://checkout.stripe.com/c/pay/synthetic' in message['text']
+            assert 'customer-document' not in message['text']+message['html_body']
+            assert not x.lifecycle.confirm.called
+        else:
+            assert 'customer-document' in message['text'] and 'Document links expire in 24 hours.' in message['text']
+        calls.append(message)
+        return EmailReceipt('ACCEPTED','synthetic-smtp-id')
+    monkeypatch.setattr('backend.return_delivery.send_notification_email',smtp)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request:pytest.fail('SMTP must not call SendGrid'))) as client:
+        x.lifecycle.client=client;worker=ReturnDeliveryWorker(x.lifecycle)
+        assert await worker.drain() and not await worker.drain()
+    assert len(calls)==1
+    assert await world.db.fetchval('SELECT state FROM public.return_customer_deliveries')=='ACCEPTED'

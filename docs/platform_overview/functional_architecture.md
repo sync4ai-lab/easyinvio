@@ -106,7 +106,7 @@ Paperless documents are advertised only when supplied/confirmed by the provider.
 
 Returns do not imply merchant refund, restocking, product exchange, insurer cover or universal native marketplace RMA handling. Store tracking retains a separate return lifecycle; Shopify reverse-delivery updates need a verified native return reference.
 
-Optional customer notices use migration 046 private review/delivery tables and separately enabled SendGrid Mail Send and approved Twilio utility templates. Customer permission and original customer contacts are required. Customer-pay notices contain a payment link first; label notices require verified payment plus confirmed postage for the selected offer. Signed 24-hour document links recheck these conditions on every download. Durable delivery receipts distinguish queued, sending, provider-accepted, failed and uncertain outcomes; ambiguous sends never automatically repeat. Supabase Auth SMTP is not reused as application mail credentials.
+Optional customer notices use migration 046 private review/delivery tables and separately enabled Hostinger SMTP from operations@easyinvio.com and approved Twilio utility templates (SendGrid is an explicit optional transport, never an automatic fallback). Customer permission and original customer contacts are required. Customer-pay notices contain a payment link first; label notices require verified payment plus confirmed postage for the selected offer. Signed 24-hour document links recheck these conditions on every download. Durable delivery receipts distinguish queued, sending, provider-accepted, failed and uncertain outcomes; ambiguous sends never automatically repeat. Supabase Auth SMTP is not reused as application mail credentials.
 
 ## Conversations and public help
 

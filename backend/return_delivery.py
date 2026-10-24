@@ -15,12 +15,13 @@ import httpx
 import jwt
 from fastapi import HTTPException
 from pydantic import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+from backend.email_delivery import EmailDeliverySettings, email_configured, send_notification_email
 
 from backend.dispatch_workspace import decoded
 
 
-class ReturnDeliverySettings(BaseSettings):
+class ReturnDeliverySettings(EmailDeliverySettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore', hide_input_in_errors=True)
     return_email_enabled: bool = False
     return_sendgrid_api_key: SecretStr = SecretStr('')
@@ -52,12 +53,12 @@ def delivery_capabilities(lifecycle) -> dict:
         documents = True
     except HTTPException:
         documents = False
-    return {'email': documents and config.return_email_enabled and bool(config.return_sendgrid_api_key.get_secret_value())
+    return {'email': documents and config.return_email_enabled and email_configured(config,config.return_email_from,config.return_sendgrid_api_key)
             and bool(re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', config.return_email_from)),
             'whatsapp': documents and config.return_whatsapp_enabled and bool(getattr(settings, 'twilio_enabled', False))
             and bool(re.fullmatch(r'HX[0-9a-fA-F]{32}', config.return_whatsapp_content_sid))
             and bool(re.fullmatch(r'MG[0-9a-fA-F]{32}', config.return_whatsapp_messaging_service_sid)),
-            'notice': 'Customer notifications use separately enabled SendGrid and approved Twilio templates. Provider acceptance is not proof of delivery.'}
+            'notice': 'Customer notifications use the configured email server and approved Twilio templates. Provider acceptance is not proof of delivery.'}
 
 
 def validate_delivery(lifecycle, preferences, customer: dict) -> None:
@@ -200,15 +201,13 @@ class ReturnDeliveryWorker:
             text = details + ' ' + text
             content = heading + '. ' + text + '\n' + link
             if notice['channel'] == 'EMAIL':
-                response = await service.client.post('https://api.sendgrid.com/v3/mail/send',
-                    headers={'Authorization': 'Bearer ' + config.return_sendgrid_api_key.get_secret_value()},
-                    json={'personalizations': [{'to': [{'email': customer['email']}]}],
-                          'from': {'email': config.return_email_from, 'name': 'EasyInvio'}, 'subject': heading,
-                          'content': [{'type': 'text/plain', 'value': content},
-                            {'type': 'text/html', 'value': '<!doctype html><html><body><main style="max-width:600px;margin:auto;font:16px/1.6 sans-serif;padding:24px"><h1>' + html.escape(heading) + '</h1><p>' + html.escape(text) + '</p><p><a href="' + html.escape(link, quote=True) + '">' + html.escape(heading) + '</a></p><p>EasyInvio Operations</p></main></body></html>'}],
-                          'tracking_settings': {'click_tracking': {'enable': False, 'enable_text': False}}}, timeout=15, follow_redirects=False)
-                accepted = response.status_code == 202
-                reference = response.headers.get('x-message-id') if accepted else None
+                html_body = '<!doctype html><html><body><main style="max-width:600px;margin:auto;font:16px/1.6 sans-serif;padding:24px"><h1>' + html.escape(heading) + '</h1><p>' + html.escape(text) + '</p><p><a href="' + html.escape(link, quote=True) + '">' + html.escape(heading) + '</a></p><p>EasyInvio Operations</p></main></body></html>'
+                receipt = await send_notification_email(service.client,config,
+                    sender=config.return_email_from,recipient=customer['email'],subject=heading,text=content,
+                    html_body=html_body,message_key='return:'+str(notice['tenant_id'])+':'+str(notice['id']),
+                    api_key=config.return_sendgrid_api_key)
+                state = 'FAILED' if receipt.state=='RETRYABLE' else receipt.state
+                reference, error_code = receipt.reference, receipt.error_code
             else:
                 settings = service.automation.settings
                 response = await service.client.post(f'https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json',
@@ -221,11 +220,12 @@ class ReturnDeliveryWorker:
                 reference = response.json().get('sid') if accepted else None
                 if accepted and not re.fullmatch(r'SM[0-9a-fA-F]{32}', reference or ''):
                     raise ValueError('Invalid provider receipt')
-            state = 'ACCEPTED' if accepted else 'FAILED' if 400 <= response.status_code < 500 else 'REVIEW_REQUIRED'
+                state = 'ACCEPTED' if accepted else 'FAILED' if 400 <= response.status_code < 500 else 'REVIEW_REQUIRED'
+                error_code = None if accepted else 'PROVIDER_REJECTED' if state == 'FAILED' else 'PROVIDER_OUTCOME_UNCERTAIN'
             async with service.pool.acquire() as c:
                 await c.execute('''UPDATE public.return_customer_deliveries SET state=$2,provider_reference=$3,
                     error_code=$4,updated_at=now() WHERE id=$1 AND state='SENDING' ''', notice['id'], state, reference,
-                    None if accepted else 'PROVIDER_REJECTED' if state == 'FAILED' else 'PROVIDER_OUTCOME_UNCERTAIN')
+                    error_code)
         except Exception:
             async with service.pool.acquire() as c:
                 await c.execute("UPDATE public.return_customer_deliveries SET state='REVIEW_REQUIRED',error_code='SEND_OUTCOME_UNCERTAIN',updated_at=now() WHERE id=$1 AND state='SENDING'", notice['id'])

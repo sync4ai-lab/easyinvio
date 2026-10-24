@@ -24,17 +24,40 @@ Migration 047 adds the private shipment_sender_notifications outbox. Triggers en
 
 A message is queued once per shipment/category/channel, within the same database transaction as the event. Replayed scans, stale unapplied events and incomplete multi-piece delivery do not create duplicate or premature delivered notices. There is no backfill of shipments that existed before migration 047. Tracking visibility/in-app preferences remain separate from these sender delivery preferences.
 
-The background worker sends email via SendGrid and WhatsApp via an approved Twilio utility template. It commits SENDING before external I/O. ACCEPTED is provider acceptance, not inbox/handset delivery proof. HTTP 429 refusals retry up to three attempts with a one-minute delay. Timeouts, interrupted sends and unclear provider outcomes enter REVIEW_REQUIRED without automatic resend. Definitive rejection is FAILED; disabled channels, missing consent, missing contact, mismatched environments or unapproved test recipients are SKIPPED with a reason.
+The background worker sends email through Hostinger SMTP from operations@easyinvio.com and WhatsApp via an approved Twilio utility template. The shared backend/email_delivery.py transport uses certificate-verified SSL on port 465, or mandatory STARTTLS on port 587, and runs blocking SMTP work off the asynchronous event loop. SendGrid is available only when explicitly selected; there is no automatic failover or SendGrid charge from a Hostinger SMTP send. It commits SENDING before external I/O. ACCEPTED is provider acceptance, not inbox/handset delivery proof. Explicit SMTP temporary refusals (4xx), connection failures before submitting a message, and HTTP 429 refusals retry up to three attempts with a one-minute delay in the sender outbox. Permanent SMTP rejection fails without retry. A lost connection during message submission is uncertain and is never automatically retried. A failed SMTP QUIT after message acceptance does not resend the accepted message. Timeouts, interrupted sends and unclear provider outcomes enter REVIEW_REQUIRED without automatic resend. Definitive rejection is FAILED; disabled channels, missing consent, missing contact, mismatched environments or unapproved test recipients are SKIPPED with a reason.
 
 The authenticated GET /api/v1/shipping/{shipment_id}/sender-notifications endpoint returns only the caller workspace's status records and no recipient addresses. Booking confirmation shows these outcomes. A messaging failure does not cancel a paid shipping label or cause another carrier purchase.
 
 ## Enable sender email updates in UAT
 
 1. Apply the complete migrations/047_sender_shipment_notifications.sql to the same isolated test database, after 046.
-2. Create/use a SendGrid API key with Mail Send permission and a verified sender. Supabase Auth SMTP alone does not enable these separate shipment emails.
-3. Save SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED=true, SHIPMENT_SENDGRID_API_KEY and SHIPMENT_EMAIL_FROM in Vercel and local configuration.
-4. Save SHIPMENT_NOTIFICATION_TEST_RECIPIENTS as a JSON list of your own test email addresses and phone numbers, such as ["tester@example.com","+447700900111"]. No TEST message goes to a recipient outside this list.
-5. Redeploy. Enter that test email in sender contact details, leave email updates enabled, and book a test shipment. Check the confirmation status and SendGrid activity.
+2. In Hostinger hPanel, open Emails, choose easyinvio.com, and create or confirm the operations@easyinvio.com mailbox. Use its mailbox password, not your Hostinger account password. Confirm domain email DNS is configured in Hostinger.
+3. Save these values in local .env and Vercel Environment Variables for the deployed environment. Do not put passwords in Git or chat:
+
+   ```dotenv
+   EMAIL_DELIVERY_PROVIDER=HOSTINGER_SMTP
+   SMTP_HOST=smtp.hostinger.com
+   SMTP_PORT=465
+   SMTP_USERNAME=operations@easyinvio.com
+   SMTP_PASSWORD=your-private-mailbox-password
+   SMTP_TIMEOUT_SECONDS=10
+   SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED=true
+   SHIPMENT_EMAIL_FROM=operations@easyinvio.com
+   RETURN_EMAIL_ENABLED=true
+   RETURN_EMAIL_FROM=operations@easyinvio.com
+   ```
+
+   The SMTP login and From address must match. Port 587 is an alternative with mandatory STARTTLS; plaintext SMTP is not supported. Legacy SendGrid API keys are not required and are ignored while Hostinger is selected. Each email channel remains disabled until its enable flag is true and valid credentials exist.
+4. Save SHIPMENT_NOTIFICATION_TEST_RECIPIENTS as a JSON list of your own test email addresses and phone numbers, such as ["tester@example.com","+447700900111"]. No TEST sender milestone message goes to a recipient outside this list. Return notices use their existing customer permission and contact checks; use only your own test customer contacts in UAT.
+5. Redeploy the web application and logistics worker. Enter your allowed test email in sender contact details, leave email updates enabled, and book a test shipment. Check the notification receipt on confirmation and verify the actual inbox. Test a paid return separately with customer delivery permission enabled. ACCEPTED means the SMTP server accepted the message, not that the recipient inbox delivered it.
+
+## Return emails and other communications
+
+Shipment and return workers share the Hostinger transport but retain separate enable flags, consent and outboxes. Customer-paid returns send a payment link first; signed label links are released only after verified payment and carrier booking. The existing return outbox does not automatically retry refusals: definitive refusal is FAILED and an uncertain submission is REVIEW_REQUIRED. No new database migration is required for the SMTP transport; migrations 046 and 047 remain required for their respective queues.
+
+Supabase Auth login, OTP and password-reset mail uses its own SMTP configuration in the Supabase dashboard. Changing this application transport does not change Supabase Auth or cancel any SendGrid subscription. Carrier events arrive through configured tracking webhooks or supported polling, independently of outbound email. This worker does not read the Hostinger inbox or ingest email bounce/delivery notifications. WhatsApp remains on Twilio.
+
+SendGrid can be deliberately selected later with EMAIL_DELIVERY_PROVIDER=SENDGRID and the corresponding SHIPMENT_SENDGRID_API_KEY / RETURN_SENDGRID_API_KEY plus a verified From address. A missing Hostinger password never silently switches providers.
 
 ## Enable WhatsApp updates
 

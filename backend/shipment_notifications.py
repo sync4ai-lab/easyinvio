@@ -8,7 +8,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+from backend.email_delivery import EmailDeliverySettings, email_configured, send_notification_email
 
 class SenderNotifications(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
@@ -22,7 +23,7 @@ class SenderNotifications(BaseModel):
             raise ValueError('Confirm sender permission for WhatsApp shipment updates')
         return self
 
-class ShipmentNotificationSettings(BaseSettings):
+class ShipmentNotificationSettings(EmailDeliverySettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore', hide_input_in_errors=True)
     shipment_email_notifications_enabled: bool = False
     shipment_sendgrid_api_key: SecretStr = SecretStr('')
@@ -70,7 +71,7 @@ def target_for(row, config, settings) -> tuple[str | None, str | None]:
         if preferences.get('email') is False:
             return None, 'SENDER_OPTED_OUT'
         target = sender.get('email')
-        if not config.shipment_email_notifications_enabled or not config.shipment_sendgrid_api_key.get_secret_value():
+        if not config.shipment_email_notifications_enabled or not email_configured(config,config.shipment_email_from,config.shipment_sendgrid_api_key):
             return None, 'EMAIL_NOT_CONFIGURED'
         if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', target or ''):
             return None, 'SENDER_EMAIL_MISSING'
@@ -117,13 +118,12 @@ class ShipmentNotificationWorker:
         heading, text = notice_content(row, service.automation.settings)
         try:
             if row['channel'] == 'EMAIL':
-                response = await service.client.post('https://api.sendgrid.com/v3/mail/send',
-                    headers={'Authorization':'Bearer '+config.shipment_sendgrid_api_key.get_secret_value()},
-                    json={'personalizations':[{'to':[{'email':target}]}], 'from':{'email':config.shipment_email_from,'name':'EasyInvio'},
-                          'subject':heading,'content':[{'type':'text/plain','value':text}],
-                          'tracking_settings':{'click_tracking':{'enable':False,'enable_text':False}}}, timeout=15, follow_redirects=False)
-                accepted = response.status_code == 202
-                reference = response.headers.get('x-message-id', '')[:200] or None if accepted else None
+                receipt = await send_notification_email(service.client,config,
+                    sender=config.shipment_email_from,recipient=target,subject=heading,text=text,
+                    message_key='shipment:'+str(row['tenant_id'])+':'+str(row['id']),api_key=config.shipment_sendgrid_api_key)
+                state, reference, reason = receipt.state, receipt.reference, receipt.error_code
+                if state=='RETRYABLE':
+                    state='READY' if row['attempts']+1<3 else 'FAILED'
             else:
                 settings = service.automation.settings
                 response = await service.client.post(f'https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json',
@@ -137,10 +137,10 @@ class ShipmentNotificationWorker:
                 reference = response.json().get('sid') if accepted else None
                 if accepted and not re.fullmatch(r'SM[0-9a-fA-F]{32}', reference or ''):
                     raise ValueError('Invalid provider receipt')
-            state = 'ACCEPTED' if accepted else 'FAILED' if 400 <= response.status_code < 500 else 'REVIEW_REQUIRED'
-            reason = None if accepted else 'PROVIDER_REJECTED' if state == 'FAILED' else 'PROVIDER_OUTCOME_UNCERTAIN'
-            if response.status_code == 429 and row['attempts'] + 1 < 3:
-                state, reason = 'READY', 'PROVIDER_RATE_LIMITED'
+                state = 'ACCEPTED' if accepted else 'FAILED' if 400 <= response.status_code < 500 else 'REVIEW_REQUIRED'
+                reason = None if accepted else 'PROVIDER_REJECTED' if state == 'FAILED' else 'PROVIDER_OUTCOME_UNCERTAIN'
+                if response.status_code == 429 and row['attempts'] + 1 < 3:
+                    state, reason = 'READY', 'PROVIDER_RATE_LIMITED'
             async with service.pool.acquire() as c:
                 await c.execute("""UPDATE public.shipment_sender_notifications SET state=$2,provider_reference=$3,error_code=$4,updated_at=now(),
                     next_attempt_at=CASE WHEN $2='READY' THEN now()+interval '1 minute' ELSE next_attempt_at END

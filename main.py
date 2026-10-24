@@ -2067,7 +2067,11 @@ async def deterministic_lifespan(application: FastAPI):
                 from backend.card_checkout import cart_worker
                 jobs.start('card-checkout', lambda: cart_worker(application.state.partner_lifecycle), enabled=settings.stripe_enabled)
                 from backend.return_delivery import ReturnDeliverySettings, ReturnDeliveryWorker
-                application.state.partner_lifecycle.return_delivery_settings = ReturnDeliverySettings()
+                try:
+                    application.state.partner_lifecycle.return_delivery_settings = ReturnDeliverySettings()
+                except (ValueError, ValidationError):
+                    application.state.partner_lifecycle.return_delivery_settings = ReturnDeliverySettings.model_construct()
+                    logger.warning('Return notification configuration is invalid; outbound channels disabled')
                 from backend.shipment_notifications import ShipmentNotificationSettings, ShipmentNotificationWorker
                 try:
                     sender_delivery_config = ShipmentNotificationSettings()
