@@ -70,6 +70,7 @@ async def run(origin):
     if view=='admin-carriers':
      tops=await page.locator('#provider-catalogue article').evaluate_all('nodes=>nodes.map(e=>e.getBoundingClientRect().top)')
      if width>=1440:assert max(tops)-min(tops)<2,tops
+    if view=='manifest':assert await page.locator('[data-manifest-create]').count()==0
     if view=='admin-clients':
      assert await page.locator('#tenant-rows .tag').first.evaluate('e=>getComputedStyle(e).whiteSpace')=='nowrap'
     await page.evaluate("scrollTo(0,0);document.getElementById('toast').hidden=true")
