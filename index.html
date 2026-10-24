@@ -1827,15 +1827,15 @@ for (const prefix of ['origin', 'destination']) {
   const country = $('#' + prefix + '-country_code');
   const panel = document.createElement('div');
   panel.className = 'uk-address-lookup';
-  panel.innerHTML = `<button type="button" class="secondary" id="${prefix}-lookup">Find UK address</button><label for="${prefix}-premises" hidden>Select building / flat<select id="${prefix}-premises"><option value="">Choose your address</option></select></label><p id="${prefix}-address-check" class="subtle" role="status" aria-live="polite"></p>`;
-  postcode.parentElement.append(panel);
+  panel.innerHTML = `<button type="button" class="secondary" id="${prefix}-lookup">Validate UK address / find building</button><label for="${prefix}-premises" hidden>Select building / flat<select id="${prefix}-premises"><option value="">Choose your address</option></select></label><p id="${prefix}-address-check" class="subtle" role="status" aria-live="polite"></p>`;
+  country.parentElement.append(panel);
   const button = panel.querySelector('button'), select = panel.querySelector('select');
   const status = panel.querySelector('[role=status]');
   let options = [], generation = 0, verified = null, observed = null;
   const fingerprint = () => JSON.stringify(['country_code','postal_code','line1','line2','city'].map(field => $('#' + prefix + '-' + field)?.value.trim() || ''));
   function update() {
     const uk = country.value === 'GB';
-    button.hidden = !uk;
+    button.hidden = false;
     const current = fingerprint();
     if (observed !== current) {
       observed = current;
@@ -1853,12 +1853,12 @@ for (const prefix of ['origin', 'destination']) {
   }
   button.addEventListener('click', () => busy(button, async () => {
     update();
-    if (country.value !== 'GB') return;
+    if (country.value !== 'GB') { status.textContent='Choose United Kingdom for this address to use UK PAF lookup. International addresses need their own postal authority checks.'; notify(status.textContent, true); country.focus(); return; }
     if (!postcode.value.trim()) { postcode.reportValidity(); return; }
     if (!postcode.reportValidity()) return;
     options = []; select.parentElement.hidden = true; verified = null;
     const requestGeneration = ++generation, session = state.session, before = fingerprint();
-    status.textContent = 'Looking up Royal Mail PAF addresses?';
+    status.textContent = 'Looking up Royal Mail PAF addresses...';
     try {
       const result = await api('/api/v1/addresses/uk/lookup', {method:'POST', auth:true, body:{postcode:postcode.value.trim()}});
       if (generation !== requestGeneration || session !== state.session || before !== fingerprint()) return;
@@ -6051,6 +6051,8 @@ async function prepareCustomerCheckout(customs = null) {
   const protectionInput = $('#checkout-protection input');
   if (protectionInput) protectionInput.disabled = true;
   const rate = state.quotes[customerCheckout.index];
+  if (!rate || rate.offer_id !== customerCheckout.offerId) throw Error('The selected quote changed. Close this window and choose a fresh shipping option.');
+  if (state.lastRateResult?.expires_at && Date.parse(state.lastRateResult.expires_at) <= Date.now()) throw Error('Quote expired. Close this window and compare fresh rates; your shipment details are preserved.');
   const prepared = await api('/api/v1/checkout/prepare', {
     method: 'POST',
     auth: true,
@@ -6112,9 +6114,10 @@ async function prepareCustomerCheckout(customs = null) {
 
 function showCustomerBooking(result, prepared) {
   const pending = result.status === 'SYNC_PENDING';
-  $('#review-content').innerHTML = `<h2>${pending?'Your label is being prepared':'Shipment booked successfully'}</h2><p class="notice">${pending?'Your carrier has accepted the request. Credit remains reserved while the label is prepared. Do not place a second booking.':'Tracking: '+escapeHTML(result.label.tracking_number)}</p><p class="subtle">Booking / invoice reference: ${escapeHTML(prepared.invoice_reference)}</p><div id="checkout-downloads" class="actions"></div><button class="secondary" id="checkout-open-manifest">Open Manifest &amp; Labels</button><button class="secondary" id="checkout-new-shipment">Start a new shipment</button>`;
+  $('#review-content').innerHTML = `<h2>${pending?'Your label is being prepared':'Shipment booked successfully'}</h2><p class="notice">${pending?'Your carrier has accepted the request. Credit remains reserved while the label is prepared. Do not place a second booking.':(result.environment==='TEST'?'Test tracking reference: ':'Tracking: ')+escapeHTML(result.label.tracking_number)}</p><p class="subtle">Booking / invoice reference: ${escapeHTML(prepared.invoice_reference)}</p><div id="checkout-downloads" class="actions"></div><button class="secondary" id="checkout-open-manifest">Open Manifest &amp; Labels</button><button class="secondary" id="checkout-new-shipment">Start a new shipment</button>`;
   if (result.insurance) $('#checkout-downloads').insertAdjacentHTML('beforebegin', `<p class="notice">${result.insurance.insured?'XCover protection confirmed. Policy: '+escapeHTML(result.insurance.policy_id)+' · Captured premium including tax: '+escapeHTML(money(result.insurance.premium_charged,'GBP')):'Protection is not confirmed. '+escapeHTML(result.insurance.notice||result.insurance.status)+' Do not assume this parcel is insured.'}</p>`);
   if (!pending) {
+    if (result.environment==='TEST') $('#checkout-downloads').insertAdjacentHTML('beforebegin','<p class="notice">TEST booking: carrier test references may be placeholders and do not represent a moving parcel. Do not dispatch using a test label.</p>');
     const documents = [{
       document_type: 'Booking receipt PDF',
       url: '/api/v1/checkout/' + result.shipment_id + '/receipt.pdf'
@@ -6134,8 +6137,23 @@ function showCustomerBooking(result, prepared) {
       button.addEventListener('click', () => busy(button, () => downloadPartnerDocument(shippingDocument.url)));
       $('#checkout-downloads').append(button);
     }
+    if (result.paperless_available && result.return_dropoff_qr_code_url) {
+      const qr=document.createElement('button'); qr.type='button'; qr.className='secondary'; qr.textContent='View carrier drop-off QR code';
+      qr.addEventListener('click',()=>busy(qr,()=>downloadPartnerDocument(result.return_dropoff_qr_code_url)));
+      $('#checkout-downloads').append(qr);
+    } else {
+      $('#checkout-downloads').insertAdjacentHTML('afterend','<p class="subtle">This service did not provide a paperless drop-off QR code. Use the carrier PDF label.</p>');
+    }
     state.quotes[customerCheckout.index].booked = true;
   }
+  const noticeStatus=document.createElement('p'); noticeStatus.className='subtle'; noticeStatus.id='sender-notification-status';
+  noticeStatus.textContent='Checking sender notification status...'; $('#checkout-downloads').after(noticeStatus);
+  void api('/api/v1/shipping/'+encodeURIComponent(result.shipment_id)+'/sender-notifications',{auth:true}).then(report=>{
+    if (!noticeStatus.isConnected) return;
+    const rows=report.items||[];
+    noticeStatus.textContent=rows.length ? 'Sender updates: '+rows.map(row=>row.channel.toLowerCase()+' '+row.state.toLowerCase()+(row.error_code?' ('+row.error_code.replaceAll('_',' ').toLowerCase()+')':'')).join('; ')
+      : report.available ? 'No sender messages queued. Check the sender email/phone and update preferences.' : report.notice;
+  }).catch(()=>{if(noticeStatus.isConnected)noticeStatus.textContent='Booking confirmed. Sender notification status is temporarily unavailable.';});
   $('#checkout-open-manifest').addEventListener('click', () => {
     $('#review-dialog').close();
     setView('manifest');
@@ -6153,6 +6171,7 @@ bookLive = async function(index) {
   if (state.quotes[index]?.label_purchase_available === false) throw Error(state.quotes[index].label_purchase_notice);
   if (!state.session || !portal.profile?.tenant_id) throw Error('Sign in to a client workspace before booking.');
   customerCheckout.index = index;
+  customerCheckout.offerId = state.quotes[index].offer_id;
   customerCheckout.prepared = null;
   const generation = ++customerCheckout.generation;
   try {
@@ -6161,9 +6180,15 @@ bookLive = async function(index) {
     });
     if (generation !== customerCheckout.generation) return;
     customerCheckout.context = context;
+    const expiry = context.quote_expires_at || state.lastRateResult?.expires_at;
     $('#review-dialog').classList.add('checkout-wide');
-    $('#review-content').innerHTML = `<div class="checkout-layout"><div><span class="tag green">YOUR SELECTED SERVICE</span><h2>${escapeHTML(carrierDisplay(state.quotes[index].carrier_code))} ${escapeHTML(carrierDisplay(state.quotes[index].service_code))}</h2><p>${escapeHTML(context.origin.country_code)} &rarr; ${escapeHTML(context.destination.country_code)}</p><div id="checkout-price">${feeRows(state.quotes[index])}</div><div id="checkout-booking-error" class="checkout-error" role="alert" hidden></div></div><aside id="checkout-next"><h2>Do you need customs documentation?</h2><p class="subtle">${context.customs_required?'International goods need reviewed customs details before a label can be created. You can prepare an invoice here, or supply the goods details from your existing invoice.':'This route does not require an export customs declaration.'}</p><div class="checkout-choices"><button id="checkout-customs-yes" class="primary">${context.customs_required?'Yes, prepare my customs documents':'Continue without export documents'}</button>${context.customs_required?'<button id="checkout-customs-own" class="secondary">I have my own invoice - enter carrier customs details</button>':''}</div></aside></div>`;
-    $('#checkout-customs-yes').addEventListener('click', () => context.customs_required ? renderCheckoutCustoms() : busy($('#checkout-customs-yes'), () => prepareCustomerCheckout()));
+    $('#review-content').innerHTML = `<div class="checkout-layout"><div><span class="tag green">YOUR SELECTED SERVICE</span><h2>${escapeHTML(carrierDisplay(state.quotes[index].carrier_code))} ${escapeHTML(carrierDisplay(state.quotes[index].service_code))}</h2><p>${escapeHTML(context.origin.country_code)} &rarr; ${escapeHTML(context.destination.country_code)}</p><div id="checkout-price">${feeRows(state.quotes[index])}</div>${expiry?`<p class="subtle">Quote valid until ${escapeHTML(new Date(expiry).toLocaleTimeString())}. Selecting a service does not extend its expiry.</p>`:''}<div id="checkout-booking-error" class="checkout-error" role="alert" hidden></div></div><aside id="checkout-next"><h2>Do you need customs documentation?</h2><p class="subtle">${context.customs_required?'International goods need reviewed customs details before a label can be created. You can prepare an invoice here, or supply the goods details from your existing invoice.':'This route does not require an export customs declaration.'}</p><div class="checkout-choices"><button id="checkout-customs-yes" class="primary">${context.customs_required?'Yes, prepare my customs documents':'Continue without export documents'}</button>${context.customs_required?'<button id="checkout-customs-own" class="secondary">I have my own invoice - enter carrier customs details</button>':''}</div></aside></div>`;
+    if (!context.customs_required) {
+      $('#checkout-next').innerHTML = '<h2>Preparing booking review</h2><p role="status">Checking your selected service...</p>';
+      await prepareCustomerCheckout();
+    } else {
+      $('#checkout-customs-yes').addEventListener('click', renderCheckoutCustoms);
+    }
     $('#checkout-customs-own')?.addEventListener('click', renderCheckoutCustoms);
   } catch (error) {
     $('#review-content').insertAdjacentHTML('beforeend', `<div class="checkout-error" role="alert">${escapeHTML(error.message)}</div>`);
@@ -7343,8 +7368,18 @@ bookLive = async function(index) {
   if (generation !== customerCheckout.generation || session !== state.session || !$('#review-dialog').open) return;
   const panel = $('#checkout-price');
   if (panel) panel.insertAdjacentHTML('afterend', `<section class="notice" id="checkout-protection"><label class="check"><input type="checkbox" ${protection.selection_available?'':'disabled'}> Optional shipment protection${protection.selection_available?'':': unavailable'}</label><p>${escapeHTML(protection.notice)}</p>${protection.premium_estimate!=null?`<p>Proposed customer premium: ${escapeHTML(money(protection.premium_estimate,'GBP'))}, before any applicable protection tax. This is an estimate, not purchased cover.</p>`:''}<a href="mailto:support@easyinvio.com?subject=Shipment%20protection%20availability">Contact EasyInvio support</a></section>`);
-  $('#checkout-protection input')?.addEventListener('change', event => {
-    customerCheckout.insuranceRequested = event.target.checked;
+  $('#checkout-protection input')?.addEventListener('change', async event => {
+    const input=event.target, previous=customerCheckout.prepared;
+    customerCheckout.insuranceRequested = input.checked;
+    if (!previous || customerCheckout.context?.customs_required) return;
+    input.disabled=true;
+    for(const id of ['checkout-purchase','checkout-pay-card'])if($('#'+id))$('#'+id).disabled=true;
+    try { await prepareCustomerCheckout(); }
+    catch(error){
+      customerCheckout.insuranceRequested=Boolean(previous.protection); input.checked=customerCheckout.insuranceRequested;
+      checkoutError(error); notify(error.message,true);
+      for(const id of ['checkout-purchase','checkout-pay-card'])if($('#'+id))$('#'+id).disabled=false;
+    } finally {if(input.isConnected)input.disabled=false;}
   });
 };
 </script>
@@ -7936,6 +7971,7 @@ renderAccount = function() {
     if(input && !input.validity.valid){input.closest('details').open=true;input.reportValidity();throw Error(input.validationMessage);}
     for(const field of ['company','line2','state','email']){const element=$('#'+prefix+'-'+field);if(element?.value.trim())result[field]=element.value.trim();}
     if(phone)result.phone=phone;
+    if(prefix==='origin' && $('#sender-notify-whatsapp')?.checked && !phone) throw Error('Enter the sender international phone number before enabling WhatsApp updates.');
     return result;
   };
   for(const prefix of ['origin','destination']) {
@@ -7952,8 +7988,26 @@ renderAccount = function() {
     phone.addEventListener('input',()=>validateShipmentPhone(prefix));
     phone.addEventListener('change',()=>validateShipmentPhone(prefix));
     phone.addEventListener('invalid',()=>{container.open=true;});
-    $('#address-fields').append(container);
+    const reuse=document.createElement('button'); reuse.type='button'; reuse.className='secondary';
+    reuse.id=prefix+'-reuse-contact'; reuse.textContent=prefix==='origin'?'Use delivery contact details':'Same as pickup contact details';
+    reuse.addEventListener('click',()=>{
+      const source=prefix==='origin'?'destination':'origin';
+      for(const field of ['name','company','phone','email']){
+        const input=$('#'+prefix+'-'+field), other=$('#'+source+'-'+field);
+        if(input&&other){input.value=other.value;input.dispatchEvent(new Event('input',{bubbles:true}));}
+      }
+      container.open=true; notify('Contact details copied. Pickup and delivery street addresses remain separate.');
+    });
+    const contactBlock=document.createElement('div'); contactBlock.append(container,reuse);
+    $('#address-fields').append(contactBlock);
   }
+  // Optional sender delivery channels are captured with the quote snapshot.
+  const senderDelivery = document.createElement('div'); senderDelivery.className='notice'; senderDelivery.style.gridColumn='1 / -1';
+  senderDelivery.innerHTML='<strong>Sender shipment updates</strong><label class="check"><input id="sender-notify-email" type="checkbox" checked>Email booking and journey updates if a sender email is provided</label><label class="check"><input id="sender-notify-whatsapp" type="checkbox">The sender agrees to receive WhatsApp shipment updates at the phone above</label><p class="subtle">Requires enabled email/WhatsApp delivery. UAT messages are sent only to approved test recipients.</p>';
+  $('#address-fields').append(senderDelivery);
+  const notificationQuotePayloadBase=quotePayload;
+  quotePayload=function(){return {...notificationQuotePayloadBase(), sender_notifications:{email:$('#sender-notify-email').checked,
+      whatsapp:$('#sender-notify-whatsapp').checked, whatsapp_permission_confirmed:$('#sender-notify-whatsapp').checked}};};
   function clearDirectory() {
     directoryVersion++;
     $('#catalog-directory-list').replaceChildren();
@@ -7981,9 +8035,10 @@ renderAccount = function() {
       for(const row of items){
         const button=document.createElement('button');
         button.type='button';button.className='secondary';
-        button.textContent=row.label+' ? '+(row.address_role?row.address_role.toLowerCase():'contact')+(row.is_default?' ? Default':'');
+        button.textContent=row.label+' - '+(row.address_role?row.address_role.toLowerCase():'contact')+(row.is_default?' - Default':'');
         const detail=document.createElement('small');
-        detail.textContent=[row.address.name,row.address.company,row.address.line1,row.address.city,row.address.postal_code,row.address.country_code].filter(Boolean).join(' ? ');
+        detail.style.whiteSpace='pre-line';
+        detail.textContent=[row.address.name,row.address.company,row.address.line1,row.address.line2,[row.address.city,row.address.postal_code].filter(Boolean).join(', '),row.address.country_code].filter(Boolean).join('\n');
         button.append(detail);
         button.addEventListener('click',()=>{
           if(!current())return;

@@ -54,7 +54,7 @@ async def check(origin):
             await page.locator('#destination-city').fill('PARIS')
             await expect(page.locator('#destination-address-check')).to_contain_text('Address not verified')
         await page.locator('#destination-country_code').select_option('FR')
-        await expect(page.locator('#destination-lookup')).to_be_hidden()
+        await expect(page.locator('#destination-lookup')).to_be_visible()
         await expect(page.locator('#destination-address-check')).to_contain_text('does not verify international')
         await page.set_viewport_size({'width':390,'height':844})
         assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')

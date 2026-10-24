@@ -130,10 +130,11 @@ def build_router(authenticate):
     @router.get('/context')
     async def context(offer_id:UUID,request:Request,user=Depends(authenticate)):
         service=request.app.state.partner_lifecycle
-        row,quote,_,rate,reference,required=await offer_context(service,user,offer_id)
+        row,quote,quoted,rate,reference,required=await offer_context(service,user,offer_id)
         from backend.automation_three_partners import EasyPostAdapter
         currency=quote.goods_currency or ('USD' if rate.execution_details.get('account_endpoint')==EasyPostAdapter.endpoint else quote.currency)
         return {'invoice_reference':reference,'customs_required':required,'goods_value_currency':currency,
+                'quote_expires_at':quoted.expires_at.isoformat(),
                 'shipping_currency':rate.currency,'shipping_cost':str(rate.client_price_ex_tax),
                 'origin':quote.origin.model_dump(mode='json'),'destination':quote.destination.model_dump(mode='json'),
                 'gross_weight_kg':str(quote.weights_kg[0]),'total_goods_net_weight_kg':str(sum((Decimal(str(i['unit_weight_kg']))*int(i['quantity']) for i in quoted_goods(quote)),Decimal(0))),'items':quoted_goods(quote),
@@ -164,6 +165,7 @@ def build_router(authenticate):
         order={'idempotency_key':str(uuid5(NAMESPACE_URL,'checkout:'+str(user.tenant_id)+':'+str(row['request_id']))),
             'order_reference':reference,'invoice_reference':reference,'currency':quote.currency,
             'origin':quote.origin.model_dump(mode='json'),'destination':quote.destination.model_dump(mode='json'),
+            'sender_notifications':quote.sender_notifications.model_dump(),
             'cargo':{'cargo_type':quote.cargo_type,'actual_weight_kg':str(quote.weights_kg[0]),'stackable':quote.stackable,**dimensions}}
         if quoted_goods(quote):
             order.update(items=quoted_goods(quote),customs_currency=quote.goods_currency or quote.currency)

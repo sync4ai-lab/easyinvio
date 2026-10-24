@@ -1,6 +1,6 @@
 # Find and verify pickup and delivery addresses
 
-In Speed Quote Matrix / Create shipment, select the pickup country and delivery country. For either UK address, enter a full postcode and click **Find UK address** under that postcode. Select the exact building or flat. EasyInvio fills the street, address line 2, post town and postcode for that side only. Your contact name, phone and email remain yours to enter. The message changes to **Address matched to Royal Mail PAF**. Changing the address clears that confirmation; look it up again. A saved address is not automatically a verified address.
+In Speed Quote Matrix / Create shipment, select the pickup country and delivery country. For either UK address, enter a full postcode and click **Validate UK address / find building** beside the country selector. Select the exact building or flat. EasyInvio fills the street, address line 2, post town and postcode for that side only. Your contact name, phone and email remain yours to enter. The message changes to **Address matched to Royal Mail PAF**. Changing the address clears that confirmation; look it up again. A saved address is not automatically a verified address.
 
 ## What the checks mean
 

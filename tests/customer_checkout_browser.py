@@ -10,8 +10,8 @@ from playwright.async_api import async_playwright,expect
 os.environ['PLAYWRIGHT_BROWSERS_PATH']=str(Path('.playwright').resolve())
 
 
-async def run():
-    output=Path('docs/customer_checkout');output.mkdir(parents=True,exist_ok=True)
+async def run(origin="http://127.0.0.1:8000/"):
+    output=Path(os.getenv('EASYINVIO_BROWSER_OUTPUT','docs/customer_checkout'));output.mkdir(parents=True,exist_ok=True)
     errors=[];calls=[];tenant=str(uuid4());offer=str(uuid4());sid=str(uuid4());invoice='EINVIO-00000001'
     rate={'offer_id':offer,'carrier_code':'DHL','service_code':'Express','currency':'GBP','client_price_ex_tax':'62.70',
           'delivery_days':2,'fee_breakdown':{'wholesale_total':'55.49','platform_markup':'7.21','fuel_surcharge':None}}
@@ -39,7 +39,7 @@ async def run():
             else:data={'shipments':[],'tickets':[],'orders':[],'stores':[],'balance':'1000.00','reserved_balance':'0.00','currency':'GBP'}
             await route.fulfill(json=data)
         await page.route('**/api/v1/**',route_handler)
-        await page.goto('http://127.0.0.1:8000/',wait_until='domcontentloaded')
+        await page.goto(origin,wait_until='domcontentloaded')
         await page.wait_for_function("state.mode!=='checking'")
         assert await page.locator('#item-description').input_value()==''
         assert await page.locator('#length_cm').input_value()==''

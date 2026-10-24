@@ -344,7 +344,10 @@ class Address(StrictModel):
 
 from backend.package_sets import PackageInput, package_charge, validate_goods_allocation
 
+from backend.shipment_notifications import SenderNotifications
+
 class RatingRequest(StrictModel):
+    sender_notifications: SenderNotifications = Field(default_factory=SenderNotifications)
     multi_parcel_dimensions: list[PackageInput] = Field(default_factory=list, max_length=100)
     origin: Address
     destination: Address
@@ -1486,6 +1489,8 @@ class FinanceEngine:
             or not label_storage_path or not label_storage_path.strip()
         ):
             raise ValueError("Confirmed purchase requires tracking and label location")
+        if outcome == 'SUCCESS' and self.settings.provider_environment == 'LIVE' and re.fullmatch(r'0+', re.sub(r'[\s-]', '', str(tracking_number))):
+            raise ValueError('Carrier returned a placeholder tracking reference; reconcile before settlement')
         imported_order_id = None
         async with self.pool.acquire() as connection:
             async with connection.transaction():
@@ -2063,6 +2068,16 @@ async def deterministic_lifespan(application: FastAPI):
                 jobs.start('card-checkout', lambda: cart_worker(application.state.partner_lifecycle), enabled=settings.stripe_enabled)
                 from backend.return_delivery import ReturnDeliverySettings, ReturnDeliveryWorker
                 application.state.partner_lifecycle.return_delivery_settings = ReturnDeliverySettings()
+                from backend.shipment_notifications import ShipmentNotificationSettings, ShipmentNotificationWorker
+                try:
+                    sender_delivery_config = ShipmentNotificationSettings()
+                except (ValueError, ValidationError):
+                    sender_delivery_config = ShipmentNotificationSettings.model_construct()
+                    logger.warning('Sender notification configuration is invalid; outbound channels disabled')
+                async with pool.acquire() as sender_connection:
+                    sender_delivery_ready = await sender_connection.fetchval("SELECT to_regclass('public.shipment_sender_notifications') IS NOT NULL")
+                jobs.start('sender-notifications', lambda: ShipmentNotificationWorker(application.state.partner_lifecycle, sender_delivery_config).worker(),
+                           enabled=bool(sender_delivery_ready))
                 async with pool.acquire() as return_connection:
                     return_delivery_ready = await return_connection.fetchval("SELECT to_regclass('public.return_customer_deliveries') IS NOT NULL")
                 jobs.start('return-delivery', lambda: ReturnDeliveryWorker(application.state.partner_lifecycle).worker(),
@@ -2269,6 +2284,9 @@ async def wallet_risk_interceptor(
         logger.error("Wallet reservation DB failure tenant=%s shipment=%s", context.tenant_id, shipment_id)
         raise HTTPException(503, "Financial controls temporarily unavailable") from None
 
+
+from backend.shipment_notifications import build_router as sender_notification_router
+app.include_router(sender_notification_router(authenticate))
 
 @app.get("/health")
 async def health(request: Request) -> dict[str, str]:

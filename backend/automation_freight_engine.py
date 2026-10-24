@@ -110,7 +110,10 @@ class Goods(StrictInput):
     def origin(cls,value): return country_code(value)
 
 
+from backend.shipment_notifications import SenderNotifications
+
 class Order(StrictInput):
+    sender_notifications: SenderNotifications = Field(default_factory=SenderNotifications)
     idempotency_key: UUID
     order_reference: str = Field(min_length=1,max_length=100)
     platform: Literal['SHOPIFY','WOOCOMMERCE','AMAZON','MANUAL'] = 'MANUAL'
@@ -360,7 +363,7 @@ class AutomationService:
         failure_key=uuid5(NAMESPACE_URL,str(context.tenant_id)+':'+hashlib.sha256(json.dumps(raw,sort_keys=True,default=str).encode()).hexdigest())
         try:
             order=Order.model_validate(raw);failure_key=order.idempotency_key
-            request=self.rating_model.model_validate({'origin':order.origin,'destination':order.destination,'currency':order.currency,
+            request=self.rating_model.model_validate({'sender_notifications':order.sender_notifications.model_dump(), 'origin':order.origin,'destination':order.destination,'currency':order.currency,
                 'cargo_type':order.cargo.cargo_type,'stackable':order.cargo.stackable,'weights_kg':[str(box.actual_weight_kg) for box in order.packages or [order.cargo]],
                 'dimensions':[] if order.cargo.cargo_type=='LETTER' else [{key:str(getattr(box,key)) for key in ('length_cm','width_cm','height_cm')} for box in order.packages or [order.cargo]],
                 'is_return':order.is_return})

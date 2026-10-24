@@ -141,3 +141,12 @@ Manifest & Labels separates imported preparation, current quote, expired quote, 
 ## Customer status reference
 
 The Help Centre includes a searchable and downloadable status guide with headings for orders/quotes, booking/labels, tracking, funds, cancellations/refunds, returns, protection/claims, support, sync, identity and message/refresh operations. Every entry explains the recorded meaning and a safe recovery step. The manifest status header links to this guide. It separates parcel delivery, message delivery, warehouse receipt, insurer payment reports and confirmed financial credits. General guidance never asserts a live customer outcome.
+
+
+## Sender journey updates and checkout review (migration 047)
+
+Saved address choices show readable postal lines. UK PAF lookup remains visible beside the country selector, including after saved-address population. Contact reuse copies name/company/phone/email between the two sides without replacing either postal address. Domestic routes for which the backend does not require customs go directly to booking review; required export declarations cannot be skipped. Actual quote expiry is shown in checkout (QUOTE_TTL_SECONDS defaults to 300).
+
+Confirmed booking displays TEST references explicitly and exposes paperless carrier QR assets only when returned by the purchased service. An all-zero live tracking reference cannot settle financial capture. The carrier response remains the source of the stored reference.
+
+Migration 047 queues sender email and explicitly permitted WhatsApp milestones within the booking/tracking transaction, once per shipment/category/channel. The dedicated worker commits SENDING before external I/O. Definitive rate limits have bounded retries; ambiguous sends are reviewed without replay. Separate channel credentials and an explicit UAT recipient allowlist are required. Notification failure never repeats or cancels a carrier purchase. The new /help/shipment-updates guide contains operational setup and status meanings.

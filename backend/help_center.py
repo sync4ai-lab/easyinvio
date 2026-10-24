@@ -26,6 +26,11 @@ class Guide:
 
 
 GUIDES = {
+    'shipment-updates': Guide(
+        'Sender shipment updates and checkout', 'Create and manage shipments',
+        'Understand sender emails, WhatsApp updates, quote expiry, test tracking references and carrier QR labels.',
+        '', 'sender email whatsapp notifications milestone shipment updates checkout quote expiry domestic customs QR test tracking zeros',
+        source_file='docs_shipment_updates.md', section_chunks=True),
     'address-validation': Guide(
         'Find and verify pickup and delivery addresses', 'Create and manage shipments',
         'Use Royal Mail PAF postcode lookup, select the exact building or flat, and resolve address mismatches.',

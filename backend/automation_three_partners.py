@@ -1609,6 +1609,7 @@ class PartnerLifecycleService:
         has_qr=any(label.get(key) for key in ('return_dropoff_qr_code_url','return_dropoff_qr_code_svg','return_dropoff_qr_code_base64'))
         root = '/api/v1/shipping/' + str(shipment_id) + '/documents/'
         return {'shipment_id': str(shipment_id), 'status': 'BOOKED', 'label_status': 'LABEL_CREATED', 'replayed': replayed,
+                'environment': self.automation.settings.provider_environment,
                 'label': {'tracking_number': label['tracking_number'], 'tracking_url': '/?view=manifest&shipment_id=' + str(shipment_id), 'label_url': root + 'label',
                           'package_labels':[{'tracking_number':piece['tracking_number'],'label_url':root+('label' if index==0 else str(next(i for i,form in enumerate(label.get('carrier_forms',[])) if form['url']==piece['label_url'])))} for index,piece in enumerate(label.get('package_labels',[]))],
                           'carrier_forms': [{'document_type': f['document_type'], 'url': root + str(i)}
@@ -1634,6 +1635,7 @@ class PartnerLifecycleService:
         document = request.customs_document or {}
         order = {'idempotency_key':str(row['request_id']), 'order_reference':'QUOTE-'+str(row['request_id']),
             'origin':request.origin.model_dump(mode='json'),'destination':request.destination.model_dump(mode='json'),
+            'sender_notifications':request.sender_notifications.model_dump(),
             'currency':request.currency,'cargo':{'cargo_type':request.cargo_type,'actual_weight_kg':str(request.weights_kg[0]),
                                              'stackable':request.stackable,**dimensions},
             'items':[{field:item[field] for field in ('description','quantity','unit_value','unit_weight_kg','origin_country','hs_code','sku','package_index') if field in item}
