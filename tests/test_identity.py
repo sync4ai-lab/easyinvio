@@ -85,6 +85,22 @@ class IdentityTests(unittest.TestCase):
         response=self.login();self.assertEqual(response.status_code,200)
         headers={'Authorization':'Bearer '+response.json()['access_token']}
         self.assertEqual(self.client.get('/api/v1/auth/me',headers=headers).json()['role'],'SUPER_ADMIN')
+    def test_login_bootstrap_matches_verified_role_and_workspace(self):
+        for role in ('OWNER','SUPER_ADMIN','AGENT'):
+            with self.subTest(role=role):
+                self.settings.platform_admin_user_ids=[self.user] if role=='SUPER_ADMIN' else []
+                self.agent=role=='AGENT'
+                response=self.login()
+                self.assertEqual(response.status_code,200,response.text)
+                bootstrap=response.json()['bootstrap']
+                self.assertEqual(bootstrap['identity']['role'],role)
+                self.assertEqual(bootstrap['identity']['user_id'],str(self.user))
+                profile=bootstrap['profile']
+                self.assertEqual(profile['tenant_id'],str(self.tenant) if role=='OWNER' else None)
+                self.assertEqual(profile['portal_role'],'CLIENT' if role=='OWNER' else role)
+                self.assertNotIn('provider_token',str(bootstrap))
+                self.assertNotIn('refresh_token',str(bootstrap))
+
     def test_invalid_password_creates_no_session(self):
         self.invalid_password=True
         self.assertEqual(self.login().status_code,401);self.assertEqual(self.sessions,{})

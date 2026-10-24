@@ -2336,6 +2336,8 @@ async def public_tracking_page():
 @app.get('/return-workspace.js',include_in_schema=False)
 @app.get('/form-feedback.js',include_in_schema=False)
 @app.get('/form-feedback.css',include_in_schema=False)
+@app.get('/workspace-ui.css',include_in_schema=False)
+@app.get('/workspace-ui.js',include_in_schema=False)
 async def tracking_asset(request:Request):
     tracking_asset=request.url.path.removeprefix('/')
     return FileResponse(Path(__file__).with_name(tracking_asset),media_type='text/css' if tracking_asset.endswith('.css') else 'text/javascript',headers={'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'})

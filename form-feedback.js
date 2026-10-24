@@ -76,7 +76,8 @@
       node.id = 'form-field-error-' + (++sequence);
       record = {node, previousInvalid: field.getAttribute('aria-invalid')};
       tracked.set(field, record);
-      field.after(node);
+      const control = field.closest('.identity-input') || field;
+      control.after(node);
       field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'), node.id].filter(Boolean).join(' '));
     }
     record.node.textContent = message(field);

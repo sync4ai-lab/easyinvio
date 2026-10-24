@@ -103,13 +103,19 @@ async def token(body: Login, request: Request):
     except (httpx.HTTPError,ValueError,KeyError,TypeError):
         raise HTTPException(503,'Authentication provider is unavailable') from None
     async with request.app.state.finance.pool.acquire() as c:
-        members=await c.fetch('''SELECT u.tenant_id,u.role FROM public.users u JOIN public.tenants t USING(tenant_id)
+        members=await c.fetch('''SELECT u.tenant_id,u.role,t.company_name,t.workspace_type FROM public.users u JOIN public.tenants t USING(tenant_id)
             WHERE u.auth_user_id=$1 AND u.is_active AND t.workspace_status='ACTIVE' LIMIT 2''',user_id)
         staff_role=await platform_role(c,settings,user_id)
         admin=bool(staff_role)
         if len(members)>1 or (not admin and len(members)!=1):raise HTTPException(403,'An active workspace registration is required')
         tenant_id=None if admin else members[0]['tenant_id']
         role=staff_role if admin else members[0]['role']
+        identity_profile=await public_identity(c,user_id,role)
+        workspace_profile={'portal_role':role if admin else 'CLIENT','user_id':str(user_id),
+            'tenant_id':str(tenant_id) if tenant_id else None}
+        if not admin:
+            workspace_profile.update(workspace_role=role,company_name=members[0].get('company_name') or '',
+                workspace_type=members[0].get('workspace_type') or 'BUSINESS')
         now=int(time.time());provider_expires=int(data.get('expires_at',now+int(data.get('expires_in',3600))))
         expires=min(now+SESSION_WINDOW_SECONDS,provider_expires)
         if expires<=now:raise HTTPException(401,'Authentication session expired')
@@ -125,7 +131,8 @@ async def token(body: Login, request: Request):
         'iat':now,'exp':expires,'jti':str(identifier)}
     return {'access_token':jwt.encode(claims,settings.auth_jwt_secret.get_secret_value(),algorithm='HS256'),
             'token_type':'bearer','expires_at':expires,'absolute_expires_at':now+SESSION_MAX_SECONDS,
-            'user':{'id':str(user_id),'email':email}}
+            'user':{'id':str(user_id),'email':email},
+            'bootstrap':{'identity':identity_profile,'profile':workspace_profile}}
 
 
 @router.post('/renew')
@@ -223,14 +230,18 @@ async def current_identity(request):
     return context.user_id,context.role
 
 
+async def public_identity(connection,user_id,role):
+    row=await connection.fetchrow("""SELECT a.email,coalesce(p.full_name,(SELECT u.full_name FROM public.users u WHERE u.auth_user_id=a.id LIMIT 1),'') AS full_name,p.phone_e164
+        FROM auth.users a LEFT JOIN public.app_user_profiles p ON p.auth_user_id=a.id WHERE a.id=$1""",user_id)
+    if not row:raise HTTPException(401,'Identity unavailable')
+    return {'user_id':str(user_id),'role':role,**dict(row)}
+
+
 @router.get('/me')
 async def me(request: Request):
     user_id,role=await current_identity(request)
     async with request.app.state.finance.pool.acquire() as c:
-        row=await c.fetchrow('''SELECT a.email,coalesce(p.full_name,(SELECT u.full_name FROM public.users u WHERE u.auth_user_id=a.id LIMIT 1),'') AS full_name,p.phone_e164
-            FROM auth.users a LEFT JOIN public.app_user_profiles p ON p.auth_user_id=a.id WHERE a.id=$1''',user_id)
-    if not row:raise HTTPException(401,'Identity unavailable')
-    return {'user_id':str(user_id),'role':role,**dict(row)}
+        return await public_identity(c,user_id,role)
 
 
 @router.patch('/me')

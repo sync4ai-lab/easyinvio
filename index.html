@@ -16,6 +16,9 @@ let pendingConversationQuote = (() => {
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<style id="identity-first-paint">body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-nav,body.auth-locked>#customs-backdrop,body.auth-locked>#box-backdrop{display:none!important}</style>
+<link rel="stylesheet" href="/workspace-ui.css">
+<script src="/workspace-ui.js" defer></script>
 <meta name="color-scheme" content="dark">
 <link rel="stylesheet" href="/form-feedback.css">
 <script src="/form-feedback.js" defer></script>
@@ -90,7 +93,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/brand.css">
 </head>
-<body class="bg-slate-900 text-slate-100">
+<body class="auth-locked bg-slate-900 text-slate-100">
 <svg aria-hidden="true" style="display:none">
 <symbol id="i-grid" viewBox="0 0 24 24">
 <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -722,7 +725,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 </div>
 </section>
 <section id="customs" role="tabpanel" aria-labelledby="tab-customs" hidden>
-<button id="customs-close" class="secondary drawer-close" aria-label="Close customs drawer">Close drawer ×</button>
+<button id="customs-close" class="secondary drawer-close" aria-label="Close">Close</button>
 <div class="pagehead">
 <div>
 <div class="eyebrow">Intelligence / Customs Tools</div>
@@ -2987,9 +2990,7 @@ async function refreshPortal() {
   $('#dashboard-error').hidden = true;
   try {
     $('#report-refresh-status').textContent = 'Loading report...';
-    const profile = await api('/api/v1/profile', {
-      auth: true
-    });
+    const profile = portal.profile || await api('/api/v1/profile', {auth:true});
     if (generation !== portal.epoch || active !== state.session) return;
     portal.profile = profile;
     if (typeof location.href === 'string') {
@@ -3674,7 +3675,7 @@ setView = function(view) {
     return
   }
   modernSetViewBase(view);
-  if (view === 'manifest' && state.session) busy($('#manifest-refresh'), refreshManifestRecords);
+  if (view === 'manifest' && state.session) void refreshManifestRecords().catch(error => notify(error.message, true));
   const mobile = typeof matchMedia === 'function' && matchMedia('(max-width:767px)').matches;
   $('#customs-backdrop').hidden = !(mobile && view === 'customs' && !$('#customs').hidden);
   refreshIcons()
@@ -3807,7 +3808,7 @@ document.body.insertAdjacentHTML('beforeend', `
 </form></dialog>
 <dialog id="store-admin-dialog"><button class="close" data-enterprise-close="store-admin-dialog" aria-label="Close store form">×</button><h2>Register a workspace store</h2><form id="store-admin-form"><label>Display name<input name="display_name" required maxlength="200"></label><label>Platform<select name="platform"><option>SHOPIFY</option><option>WOOCOMMERCE</option><option>AMAZON</option></select></label><button class="primary full">Register store</button></form></dialog>
 <dialog id="retire-admin-dialog"><button class="close" data-enterprise-close="retire-admin-dialog" aria-label="Close retirement review">×</button><h2>Review configuration removal</h2><p id="retire-context" class="subtle"></p><p class="notice">This removes the configuration from active selection and preserves historical shipment references.</p><button id="retire-confirm" class="primary full">Retire configuration</button></dialog>
-<dialog id="exception-sheet" class="exception-sheet"><button class="close" data-enterprise-close="exception-sheet" aria-label="Close exception drawer">×</button><div class="eyebrow">Proactive exception support</div><h2 id="exception-title"></h2><div class="notice" id="exception-summary"></div><div class="actions"><button class="secondary" id="exception-pod">View POD Token</button><button class="primary" id="exception-dispute">Auto-Draft Surcharge Dispute Ticket</button></div><p class="footnote">Review drafts before submission. No WhatsApp message or dispute is sent.</p></dialog>
+<dialog id="exception-sheet" class="exception-sheet"><button class="close" data-enterprise-close="exception-sheet" aria-label="Close">×</button><div class="eyebrow">Proactive exception support</div><h2 id="exception-title"></h2><div class="notice" id="exception-summary"></div><div class="actions"><button class="secondary" id="exception-pod">View POD Token</button><button class="primary" id="exception-dispute">Auto-Draft Surcharge Dispute Ticket</button></div><p class="footnote">Review drafts before submission. No WhatsApp message or dispute is sent.</p></dialog>
 `);
 const personaControls = $('#role-admin').parentElement;
 personaControls.classList.add('header-personas');
@@ -5649,19 +5650,20 @@ function showIdentityGate() {
   refreshIcons();
 }
 
-async function loadIdentityProfile() {
-  const active = state.session;
-  const profile = await api('/api/v1/auth/me', {
-    auth: true
-  });
-  if (active !== state.session) return;
-  identityProfile = profile;
-  $('#identity-email-badge').textContent = profile.email;
-  $('#identity-role').textContent = profile.role === 'SUPER_ADMIN' ? '🛡️ EasyInvio Admin' : profile.role === 'AGENT' ? 'EasyInvio Agent' : '📦 ' + profile.role.charAt(0) + profile.role.slice(1).toLowerCase();
-  const form = $('#identity-profile-form');
-  form.elements.full_name.value = profile.full_name || '';
-  form.elements.phone_e164.value = profile.phone_e164 || '';
+function renderIdentityProfile(profile) {
+  identityProfile=profile;
+  $('#identity-email-badge').textContent=profile.email;
+  $('#identity-role').textContent=profile.role==='SUPER_ADMIN'?'EasyInvio Admin':profile.role==='AGENT'?'EasyInvio Agent':profile.role.charAt(0)+profile.role.slice(1).toLowerCase();
+  const form=$('#identity-profile-form');
+  form.elements.full_name.value=profile.full_name||'';
+  form.elements.phone_e164.value=profile.phone_e164||'';
   showIdentityGate();
+}
+async function loadIdentityProfile() {
+  const active=state.session;
+  const profile=await api('/api/v1/auth/me',{auth:true});
+  if(active!==state.session)return;
+  renderIdentityProfile(profile);
 }
 
 async function process_user_login(email = $('#identity-email').value, password = $('#identity-password').value) {
@@ -5676,19 +5678,25 @@ async function process_user_login(email = $('#identity-email').value, password =
         password
       }
     });
-    state.session = session;
-    renderAccount();
-    portal.profile = await api('/api/v1/profile', {
-      auth: true
-    });
-    portal.role = isPlatformStaff() ? 'SUPER_ADMIN' : 'CLIENT';
-    await loadIdentityProfile();
+    const bootstrap=session.bootstrap;
+    delete session.bootstrap;
+    state.session=session;
+    // Prevent renderAccount's legacy session hook from starting duplicate loads.
+    portal.session=session;
+    const [profile,identity]=bootstrap?.profile && bootstrap?.identity
+      ? [bootstrap.profile,bootstrap.identity]
+      : await Promise.all([api('/api/v1/profile',{auth:true}),api('/api/v1/auth/me',{auth:true})]);
+    if(state.session!==session)return;
+    portal.profile=profile;
+    portal.role=isPlatformStaff()?'SUPER_ADMIN':'CLIENT';
+    renderIdentityProfile(identity);
     lastIdentityActivity = Date.now();
     armSessionExpiry();
     renderAccount();
     renderPortal();
     setView(portal.profile.workspace_role === 'DISPATCHER' && !isPlatformStaff() ? 'workspace' : 'dashboard');
     window.dispatchEvent(new Event('easyinvio-session-ready'));
+    void refreshPortal().catch(error=>notify(error.message,true));
     $('#account-dialog').close();
     $('#identity-login-status').textContent = '';
   } catch (error) {
@@ -5696,6 +5704,7 @@ async function process_user_login(email = $('#identity-email').value, password =
     $('#identity-login-status').textContent = error.message || 'Sign-in failed.';
     throw error;
   } finally {
+    window.easyinvioIdentityUI?.maskPasswords();
     $('#identity-password').value = '';
     $('#login-password').value = '';
     $('#identity-login-submit').disabled = false;
@@ -5705,6 +5714,7 @@ async function process_user_login(email = $('#identity-email').value, password =
 const identityClearBase = clearSession;
 clearSession = function() {
   identityProfile = null;
+  window.easyinvioIdentityUI?.maskPasswords();
   localStorage.removeItem(identityStorageKey);
   identityClearBase();
   $('#identity-profile-form').reset();
@@ -5828,7 +5838,7 @@ $('#identity-recovery-form').addEventListener('submit', async event => {
   const button = form.querySelector('[type=submit]');
   const status = form.querySelector('[role=status]');
   button.disabled = true;
-  status.textContent = 'Sending your request?';
+  status.textContent = 'Sending your request…';
   try {
     const result = await api('/api/v1/auth/forgot-password', {
       method: 'POST',
@@ -5836,7 +5846,8 @@ $('#identity-recovery-form').addEventListener('submit', async event => {
         email: $('#identity-recovery-email').value.trim()
       }
     });
-    status.textContent = result.message;
+    status.textContent = '';
+    if (!form.hidden) window.easyinvioIdentityUI.showRecoveryNotice();
   } catch (error) {
     status.textContent = error.message || 'Unable to request recovery. Try again later.';
   } finally {
@@ -6636,19 +6647,6 @@ clearSession = function() {
   $('#bulk-checkout-error').replaceChildren();
   return bulkClearBase.apply(this, arguments);
 };
-
-let manifestAutoRefreshing = false;
-setInterval(async () => {
-  if (!state.session || document.hidden || $('#manifest').hidden || manifestAutoRefreshing) return;
-  manifestAutoRefreshing = true;
-  try {
-    await refreshManifestRecords();
-  } catch {
-    /* Keep the last confirmed view during a transient network failure. */
-  } finally {
-    manifestAutoRefreshing = false;
-  }
-}, 15000);
 
 document.addEventListener('click', event => {
   const button = event.target.closest('[data-bulk-order]');
@@ -8001,7 +7999,7 @@ renderAccount = function() {
   for(const prefix of ['origin','destination']) {
     const name=$('#'+prefix+'-name');
     name.insertAdjacentHTML('afterend',`<button type="button" class="secondary catalog-picker-button" data-catalog-directory="${prefix}" aria-label="Choose saved ${prefix==='origin'?'sender':'recipient'}">▤ Saved ${prefix==='origin'?'addresses':'contacts'}</button>`);
-    const container=document.createElement('details');container.innerHTML=`<summary>${prefix==='origin'?'Sender':'Recipient'} contact details · optional</summary>${['company','line2','state','phone','email'].map(field=>`<label>${({company:'Company',line2:'Address line 2',state:'State / province',phone:'International phone',email:'Email'})[field]}<input id="${prefix}-${field}" maxlength="${field==='email'?254:200}" ${field==='email'?'type="email"':''}></label>`).join('')}`;
+    const container=document.createElement('details');container.className='contact-details';container.innerHTML=`<summary>${prefix==='origin'?'Sender':'Recipient'} contact details · optional</summary>${['company','line2','state','phone','email'].map(field=>`<label>${({company:'Company',line2:'Address line 2',state:'State / province',phone:'International phone',email:'Email'})[field]}<input id="${prefix}-${field}" maxlength="${field==='email'?254:200}" ${field==='email'?'type="email"':''}></label>`).join('')}`;
     const phone=container.querySelector('#'+prefix+'-phone');
     phone.type='tel';phone.inputMode='tel';phone.autocomplete=prefix==='origin'?'shipping tel':'tel';
     phone.maxLength=40;phone.placeholder='+447700900123';
@@ -8032,7 +8030,7 @@ renderAccount = function() {
     });
     $('#quote-form').addEventListener('input',refreshContactSummary);
     $('#quote-form').addEventListener('change',refreshContactSummary);
-    const contactBlock=document.createElement('div'); contactBlock.append(container,reuse);
+    const contactBlock=document.createElement('div'); contactBlock.className='contact-block';contactBlock.append(container,reuse);
     $('#address-fields').append(contactBlock);
   }
   // Optional sender delivery channels are captured with the quote snapshot.

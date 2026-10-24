@@ -54,7 +54,7 @@
   "backend/help_center.py": "96941b2e847b97bd2ce46d2846700422bb64885c1f0b7251c5549a09f93a56a3",
   "backend/hubspot_crm.py": "e3292be4b0cfaafe6f15b71059cf5743d93fdf122812f1c284c12cd0abe40ef6",
   "backend/hubspot_provisioning.py": "ad916e81c5e14c19ee53f905b09381ffc9b3add3bbddd9831a7a6ce32a3242b4",
-  "backend/identity.py": "fd16d5f61a993f0997b9e33411ae85228756d6f72b00735913a29e7c0fdb3b18",
+  "backend/identity.py": "fc563ff419b62595613b86e27a0695c20f507596a24cdd40713b53fcd86173d4",
   "backend/inspect_seed_schema.py": "bebc8a2b5a092cd0d91460e02c0f2319f348894c4702472a08968015a90ddc90",
   "backend/integration_policy.py": "011d87975cdf5b3f18267aa3ba6db1bd02c855f82d918f73166e55337da5d134",
   "backend/invoice_upload.py": "29e9a94c1571f403831ae5df9062505d2423c7131afa8c7ece3461275c44320a",
@@ -124,7 +124,7 @@
   "frontend/components/SupportHub.html": "37821c371e788148474b2bf0fecb116986604b45fa57d395b3669b0759119613",
   "frontend/components/support.css": "cac06eec53a50e4d5facb393cf6a52d7c5b10b2b78ca6f399d58b5af926bc1b2",
   "frontend/components/support.js": "427975ec86ccf700da07782b98763c2e10d522b0805d0a7a34bdf152aa4b8577",
-  "main.py": "fc4998e2275911602e20041a0040341e842dee4d9cf85c61890f4df7f5138f19",
+  "main.py": "cc08704a8808709959b2c3f40580514201936065d2b6e76d4b453dd9950c8962",
   "requirements.lock.txt": "300c619fdf9efa94a8e96f8360187988d6bedb8adc8dc5cb09d749f38c60be45",
   "requirements.txt": "f847e7ee5ea0a909408135db9d2cb7feea94441d8d639a927b03088b61f0611e"
 }

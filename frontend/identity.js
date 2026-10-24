@@ -41,38 +41,64 @@ function showIdentityGate() {
   refreshIcons();
 }
 
-async function loadIdentityProfile() {
-  const active = state.session;
-  const profile = await api('/api/v1/auth/me', {auth:true});
-  if (active !== state.session) return;
-  identityProfile = profile;
-  $('#identity-email-badge').textContent = profile.email;
-  $('#identity-role').textContent = profile.role === 'SUPER_ADMIN' ? '🛡️ EasyInvio Admin' : profile.role === 'AGENT' ? 'EasyInvio Agent' : '📦 ' + profile.role.charAt(0) + profile.role.slice(1).toLowerCase();
-  const form = $('#identity-profile-form');
-  form.elements.full_name.value = profile.full_name || '';
-  form.elements.phone_e164.value = profile.phone_e164 || '';
+function renderIdentityProfile(profile) {
+  identityProfile=profile;
+  $('#identity-email-badge').textContent=profile.email;
+  $('#identity-role').textContent=profile.role==='SUPER_ADMIN'?'EasyInvio Admin':profile.role==='AGENT'?'EasyInvio Agent':profile.role.charAt(0)+profile.role.slice(1).toLowerCase();
+  const form=$('#identity-profile-form');
+  form.elements.full_name.value=profile.full_name||'';
+  form.elements.phone_e164.value=profile.phone_e164||'';
   showIdentityGate();
+}
+async function loadIdentityProfile() {
+  const active=state.session;
+  const profile=await api('/api/v1/auth/me',{auth:true});
+  if(active!==state.session)return;
+  renderIdentityProfile(profile);
 }
 
 async function process_user_login(email = $('#identity-email').value, password = $('#identity-password').value) {
+  clearSession();
   $('#identity-login-submit').disabled = true;
   $('#identity-login-status').textContent = 'Verifying your identity…';
   try {
-    const session = await api('/api/v1/auth/token', {method:'POST',body:{email:email.trim(),password}});
-    state.session = session;
+    const session = await api('/api/v1/auth/token', {
+      method: 'POST',
+      body: {
+        email: email.trim(),
+        password
+      }
+    });
+    const bootstrap=session.bootstrap;
+    delete session.bootstrap;
+    state.session=session;
+    // Prevent renderAccount's legacy session hook from starting duplicate loads.
+    portal.session=session;
+    const [profile,identity]=bootstrap?.profile && bootstrap?.identity
+      ? [bootstrap.profile,bootstrap.identity]
+      : await Promise.all([api('/api/v1/profile',{auth:true}),api('/api/v1/auth/me',{auth:true})]);
+    if(state.session!==session)return;
+    portal.profile=profile;
+    portal.role=isPlatformStaff()?'SUPER_ADMIN':'CLIENT';
+    renderIdentityProfile(identity);
+    lastIdentityActivity = Date.now();
+    armSessionExpiry();
     renderAccount();
-    portal.profile = await api('/api/v1/profile',{auth:true});
-    portal.role = isPlatformStaff() ? 'SUPER_ADMIN' : 'CLIENT';
-    await loadIdentityProfile();
-    localStorage.setItem(identityStorageKey, JSON.stringify(session));
-    armSessionExpiry();renderAccount();renderPortal();setView(portal.profile.workspace_role === 'DISPATCHER' && !isPlatformStaff() ? 'workspace' : 'dashboard');window.dispatchEvent(new Event('easyinvio-session-ready'));
+    renderPortal();
+    setView(portal.profile.workspace_role === 'DISPATCHER' && !isPlatformStaff() ? 'workspace' : 'dashboard');
+    window.dispatchEvent(new Event('easyinvio-session-ready'));
+    void refreshPortal().catch(error=>notify(error.message,true));
     $('#account-dialog').close();
     $('#identity-login-status').textContent = '';
-  } catch(error) {
-    clearSession();$('#identity-login-status').textContent = error.message || 'Sign-in failed.';
+  } catch (error) {
+    clearSession();
+    $('#identity-login-status').textContent = error.message || 'Sign-in failed.';
     throw error;
   } finally {
-    $('#identity-password').value = '';$('#login-password').value = '';$('#identity-login-submit').disabled = false;
+    window.easyinvioIdentityUI?.maskPasswords();
+    $('#identity-password').value = '';
+    $('#login-password').value = '';
+    $('#identity-login-submit').disabled = false;
   }
 }
 
@@ -164,8 +190,8 @@ $$('[data-identity-back]').forEach(button => button.addEventListener('click', ()
 }));
 $('#identity-recovery-form').addEventListener('submit', async event => {
   event.preventDefault();const form=event.target;const button=form.querySelector('[type=submit]');const status=form.querySelector('[role=status]');
-  button.disabled=true;status.textContent='Sending your request?';
-  try { const result=await api('/api/v1/auth/forgot-password',{method:'POST',body:{email:$('#identity-recovery-email').value.trim()}});status.textContent=result.message; }
+  button.disabled=true;status.textContent='Sending your request…';
+  try { const result=await api('/api/v1/auth/forgot-password',{method:'POST',body:{email:$('#identity-recovery-email').value.trim()}});status.textContent='';if(!form.hidden)window.easyinvioIdentityUI.showRecoveryNotice(); }
   catch(error) {status.textContent=error.message || 'Unable to request recovery. Try again later.';}
   finally {button.disabled=false;}
 });
