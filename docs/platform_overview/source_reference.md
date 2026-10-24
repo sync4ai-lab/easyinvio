@@ -4,7 +4,7 @@ Repository module/class/function locations are listed below. Source links refere
 
 ## main.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/main.py#L1)
 
 EasyInvio.com: combined rating, financial controls and WhatsApp service.
 
@@ -75,13 +75,13 @@ Public SQL object references: `carrier_manifests`, `js`, `margin_rules`, `partne
 
 ## backend/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/__init__.py#L1)
 
 EasyInvio logistics extensions.
 
 ## backend/adapters/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/adapters/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/adapters/__init__.py#L1)
 
 Direct carrier extension points. No unverified carrier endpoint is registered.
 
@@ -91,7 +91,7 @@ Top-level functions: `direct_registration` (line 18).
 
 ## backend/adapters/direct_contract.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/adapters/direct_contract.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/adapters/direct_contract.py#L1)
 
 Typed internal contract for certified direct transports, not a carrier wire schema.
 
@@ -103,7 +103,7 @@ Typed internal contract for certified direct transports, not a carrier wire sche
 - `DirectCarrierContract` (line 76): `quote`, `purchase_label`, `create_manifest`.
 ## backend/adapters/evri_adapter.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/adapters/evri_adapter.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/adapters/evri_adapter.py#L1)
 
 Evri direct provision; no guessed enterprise endpoint, signing or QR generation.
 
@@ -111,14 +111,14 @@ Evri direct provision; no guessed enterprise endpoint, signing or QR generation.
 - `EvriStrategy` (line 17): `postable_height_candidate`, `extract_dropoff_barcode`.
 ## backend/adapters/royal_mail_adapter.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/adapters/royal_mail_adapter.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/adapters/royal_mail_adapter.py#L1)
 
 Royal Mail direct provision. An issued, certified API contract is mandatory.
 
 - `RoyalMailStrategy` (line 14): `__init__`, `verified_contract`, `rates`, `purchase_label`, `create_manifest`.
 ## backend/address_validation.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/address_validation.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/address_validation.py#L1)
 
 Server-owned UK delivery-point checks shared by quotes and label purchases.
 
@@ -127,7 +127,7 @@ Top-level functions: `configured` (line 16), `comparable` (line 21), `verify_shi
 
 ## backend/admin_management.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/admin_management.py#L1)
 
 Owner-only, audited management of existing tenant-scoped configuration.
 
@@ -141,7 +141,7 @@ Public SQL object references: `admin_management_events`, `carrier_accounts`, `ma
 
 ## backend/admin_portal.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/admin_portal.py#L1)
 
 Platform-owner administration and database-backed tenant pricing.
 
@@ -166,7 +166,7 @@ Public SQL object references: `admin_configuration_events`, `carrier_accounts`, 
 
 ## backend/advanced_logistics.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/advanced_logistics.py#L1)
 
 Decimal dimensional pricing, declaration metadata and bounded CSV order imports.
 
@@ -181,18 +181,18 @@ Public SQL object references: `partner_order_jobs`, `shipments`, `tenants`, `wal
 
 ## backend/agents/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/__init__.py#L1)
 
 Bounded AI assistance around EasyInvio's existing authorised services.
 
 ## backend/agents/config.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/config.py#L1)
 
 - `AgentSettings` (line 5): `available`.
 ## backend/agents/conversation_context.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/conversation_context.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/conversation_context.py#L1)
 
 Bounded typed conversation drafts and deterministic location extraction.
 
@@ -202,7 +202,7 @@ Top-level functions: `explicit_country` (line 14), `location` (line 45), `explic
 
 ## backend/agents/conversational_gateway.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/conversational_gateway.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/conversational_gateway.py#L1)
 
 One authenticated action dispatcher for signed WhatsApp and session-bound web chat.
 
@@ -219,7 +219,7 @@ Public SQL object references: `admin_client_assistance_sessions`, `carrier_manif
 
 ## backend/agents/margin_optimizer.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/margin_optimizer.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/margin_optimizer.py#L1)
 
 Optional strategic advice over immutable, already-priced top-ten offers.
 
@@ -232,7 +232,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `tenants
 
 ## backend/agents/models.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/models.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/models.py#L1)
 
 - `StrictOutput` (line 9): .
 - `QuoteIntent` (line 13): .
@@ -247,7 +247,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `tenants
 - `HelpQuestion` (line 104): .
 ## backend/agents/rag_support.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/rag_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/rag_support.py#L1)
 
 Versioned local documentation retrieval; customer queries are never written to disk.
 
@@ -259,7 +259,7 @@ Top-level functions: `words` (line 77), `complete_excerpts` (line 88), `document
 
 ## backend/agents/routes.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/routes.py#L1)
 
 Authenticated AI preparation and documentation; no general-purpose action tools.
 
@@ -270,7 +270,7 @@ Top-level functions: `build_router` (line 17).
 
 ## backend/agents/runtime.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/runtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/runtime.py#L1)
 
 No durable customer prompts, no model retries, bounded SDK runs and measured usage.
 
@@ -279,7 +279,7 @@ No durable customer prompts, no model retries, bounded SDK runs and measured usa
 - `AgentRuntime` (line 47): `__init__`, `available`, `key`, `reserve`, `record`, `run`, `embed`, `close`.
 ## backend/agents/status_guidance.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/status_guidance.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/status_guidance.py#L1)
 
 Recognize explanatory status questions without authorizing any action.
 
@@ -288,7 +288,7 @@ Top-level functions: `normalized` (line 8), `status_question` (line 12), `needs_
 
 ## backend/agents/supervisor.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/supervisor.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/supervisor.py#L1)
 
 Bounded orchestration around existing, authoritative logistics services.
 
@@ -298,7 +298,7 @@ Top-level functions: `supervisor` (line 119).
 
 ## backend/agents/web_help.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/web_help.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/web_help.py#L1)
 
 Read-only public web guidance. No tenant records, tools for actions or page fetching.
 
@@ -307,7 +307,7 @@ Top-level functions: `public_search_query` (line 15), `safe_source_url` (line 38
 
 ## backend/agents/workers.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/workers.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/agents/workers.py#L1)
 
 Specialists have narrow capabilities; no worker can buy labels or alter a wallet.
 
@@ -317,13 +317,13 @@ Specialists have narrow capabilities; no worker can buy labels or alter a wallet
 - `ProactiveClaimsSupportAgent` (line 269): `__init__`, `receive_tracking`, `stage`.
 ## backend/aggregator_lifecycle.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/aggregator_lifecycle.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/aggregator_lifecycle.py#L1)
 
 Backward-compatible imports for the explicit three-provider engine.
 
 ## backend/aggregator_registry.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/aggregator_registry.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/aggregator_registry.py#L1)
 
 Explicit aggregator capabilities: shared interface, provider-specific wire contracts.
 
@@ -333,7 +333,7 @@ Top-level functions: `identify_aggregator` (line 23), `public_capabilities` (lin
 
 ## backend/ai_engine.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/ai_engine.py#L1)
 
 Explainable mock ML and tenant-scoped invoice auditing.
 
@@ -352,7 +352,7 @@ Public SQL object references: `shipments`, `tenants`.
 
 ## backend/apply_automation_migration.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/apply_automation_migration.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/apply_automation_migration.py#L1)
 
 Apply the additive freight/support compatibility migration in sandbox.
 
@@ -361,7 +361,7 @@ Top-level functions: `run` (line 9).
 
 ## backend/apply_partner_lifecycle.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/apply_partner_lifecycle.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/apply_partner_lifecycle.py#L1)
 
 Explicit sandbox-only migration runner; contains no credentials or seed data.
 
@@ -370,7 +370,7 @@ Top-level functions: `run` (line 12).
 
 ## backend/apply_tracking_migration.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/apply_tracking_migration.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/apply_tracking_migration.py#L1)
 
 Apply only the additive tracking/support migration to configured Supabase.
 
@@ -379,7 +379,7 @@ Top-level functions: `run` (line 9).
 
 ## backend/automation_freight_engine.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/automation_freight_engine.py#L1)
 
 Cargo-aware bulk rating, confirmed EasyPost purchase and customs bundles.
 
@@ -401,7 +401,7 @@ Public SQL object references: `automation_failures`, `ecommerce_stores`, `partne
 
 ## backend/automation_three_partners.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/automation_three_partners.py#L1)
 
 Native partner lifecycle contracts behind EasyInvio's private account boundary.
 
@@ -431,7 +431,7 @@ Public SQL object references: `carrier_accounts`, `partner_cancellations`, `part
 
 ## backend/booking_receipt.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/booking_receipt.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/booking_receipt.py#L1)
 
 Printable booking receipt from confirmed, tenant-owned shipment records.
 
@@ -440,7 +440,7 @@ Top-level functions: `receipt_pdf` (line 11).
 
 ## backend/build_rigorous_seed.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/build_rigorous_seed.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/build_rigorous_seed.py#L1)
 
 Generate complete SQL fixture scripts without embedding usable credentials.
 
@@ -451,7 +451,7 @@ Public SQL object references: `carrier_accounts`, `ecommerce_stores`, `fixture_s
 
 ## backend/bulk_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/bulk_checkout.py#L1)
 
 Review persisted rates and explicitly buy selected offers for CSV or store orders.
 
@@ -465,7 +465,7 @@ Public SQL object references: `partner_shipping_offers`, `shipments`, `tenants`,
 
 ## backend/card_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/card_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/card_checkout.py#L1)
 
 Card-funded label baskets over the atomic wallet booking ledger.
 
@@ -477,7 +477,7 @@ Public SQL object references: `partner_shipping_offers`, `payment_carts`, `shipm
 
 ## backend/carrier_access.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/carrier_access.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/carrier_access.py#L1)
 
 Historical carrier access is limited to a verified shipment lifecycle.
 
@@ -488,7 +488,7 @@ Public SQL object references: `shipments`, `tenant_catalog_addresses`.
 
 ## backend/carrier_consolidation.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/carrier_consolidation.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/carrier_consolidation.py#L1)
 
 Private carrier consolidation, tenant-local history and branded public payloads.
 
@@ -499,7 +499,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tracking_events`
 
 ## backend/check_hubspot.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/check_hubspot.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/check_hubspot.py#L1)
 
 Read-only deployment preflight. Never enables a worker or creates records.
 
@@ -511,13 +511,13 @@ Top-level functions: `check` (line 13).
 
 ## backend/check_setup.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/check_setup.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/check_setup.py#L1)
 
 Report invalid environment variable names without exposing their values.
 
 ## backend/client_assistance.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/client_assistance.py#L1)
 
 Verified platform operators acting in a tenant, with durable request audit events.
 
@@ -531,7 +531,7 @@ Public SQL object references: `admin_client_assistance_events`, `admin_client_as
 
 ## backend/conversational_claims.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/conversational_claims.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/conversational_claims.py#L1)
 
 One-time completion of an authenticated, unsubmitted chat claim draft.
 
@@ -542,7 +542,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 
 ## backend/credential_rotation.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/credential_rotation.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/credential_rotation.py#L1)
 
 Fresh-admin replacement of sealed, tenant-bound credentials; never unlock.
 
@@ -554,7 +554,7 @@ Public SQL object references: `carrier_accounts`.
 
 ## backend/customer_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/customer_checkout.py#L1)
 
 Tenant-authorized checkout of private offers and confirmed invoice PDFs.
 
@@ -568,7 +568,7 @@ Public SQL object references: `booking_references`, `easyinvio_booking_reference
 
 ## backend/dashboard_portal.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/dashboard_portal.py#L1)
 
 Server-verified portal roles, owner analytics and support dashboard actions.
 
@@ -583,7 +583,7 @@ Public SQL object references: `app_user_profiles`, `automation_failures`, `ecomm
 
 ## backend/database_tls.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/database_tls.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/database_tls.py#L1)
 
 Verified PostgreSQL TLS with explicit legacy-CA compatibility.
 
@@ -592,7 +592,7 @@ Top-level functions: `database_tls_context` (line 5).
 
 ## backend/delivery_quality.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/delivery_quality.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/delivery_quality.py#L1)
 
 Tenant-bound tracking readiness; status transport and quality are separate.
 
@@ -603,7 +603,7 @@ Public SQL object references: `carrier_accounts`, `partner_provider_options`, `s
 
 ## backend/dispatch_pdf.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_pdf.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/dispatch_pdf.py#L1)
 
 Bounded, tenant-authorized print bundles of confirmed carrier PDFs.
 
@@ -616,7 +616,7 @@ Top-level functions: `invoice_pdf` (line 48), `fetch_pdf` (line 99), `merge_pdfs
 
 ## backend/dispatch_realtime.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_realtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/dispatch_realtime.py#L1)
 
 Commit-time Postgres notifications fan out to authenticated tenant sockets.
 
@@ -626,7 +626,7 @@ Top-level functions: `build_router` (line 53).
 
 ## backend/dispatch_workspace.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/dispatch_workspace.py#L1)
 
 Operational marketplace inbox. No credentials or financial ledger are exposed.
 
@@ -641,7 +641,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/ecommerce_connectors.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_connectors.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/ecommerce_connectors.py#L1)
 
 Native signed intake and opt-in Shopify fulfillment delivery.
 
@@ -656,7 +656,7 @@ Top-level functions: `single_header` (line 88), `receive_store_webhook` (line 95
 
 ## backend/ecommerce_inbound.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_inbound.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/ecommerce_inbound.py#L1)
 
 Authenticated Shopify intake and Amazon AWS API-destination order notifications.
 
@@ -668,7 +668,7 @@ Public SQL object references: `amazon_order_notifications`, `ecommerce_stores`.
 
 ## backend/ecommerce_sync.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/ecommerce_sync.py#L1)
 
 Tenant-scoped imports and durable fulfillment delivery.
 
@@ -690,7 +690,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/email_delivery.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/email_delivery.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/email_delivery.py#L1)
 
 Selectable notification email delivery; Hostinger SMTP is the default.
 
@@ -704,7 +704,7 @@ Top-level functions: `mailbox` (line 41), `email_configured` (line 45), `refusal
 
 ## backend/help_center.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/help_center.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/help_center.py#L1)
 
 Public, authored customer guidance with no account access or external actions.
 
@@ -714,7 +714,7 @@ Top-level functions: `guide_source` (line 269), `rendered_guide` (line 279), `re
 
 ## backend/hubspot_crm.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/hubspot_crm.py#L1)
 
 Optional HubSpot CRM synchronization with durable PostgreSQL jobs.
 
@@ -733,7 +733,7 @@ Public SQL object references: `hubspot_sync_jobs`, `hubspot_tenant_links`, `ship
 
 ## backend/hubspot_provisioning.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_provisioning.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/hubspot_provisioning.py#L1)
 
 Signed HubSpot deal events and durable, idempotent workspace provisioning.
 
@@ -748,7 +748,7 @@ Public SQL object references: `hubspot_activation_jobs`, `hubspot_tenant_links`,
 
 ## backend/identity.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/identity.py#L1)
 
 Password-verified, revocable HS256 app sessions around Supabase Auth identity.
 
@@ -764,7 +764,7 @@ Public SQL object references: `admin_client_assistance_sessions`, `app_auth_sess
 
 ## backend/inspect_seed_schema.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/inspect_seed_schema.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/inspect_seed_schema.py#L1)
 
 Export only schema metadata needed for relational sandbox fixtures.
 
@@ -773,7 +773,7 @@ Top-level functions: `run` (line 10).
 
 ## backend/integration_policy.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/integration_policy.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/integration_policy.py#L1)
 
 Server-owned switches for new provider work; historical reads remain available.
 
@@ -783,7 +783,7 @@ Top-level functions: `integration_code` (line 21), `integration_enabled` (line 3
 
 ## backend/invoice_upload.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/invoice_upload.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/invoice_upload.py#L1)
 
 Bounded statement parsing and reproducible comparisons against server snapshots.
 
@@ -795,7 +795,7 @@ Public SQL object references: `billing_disputes`, `shipments`.
 
 ## backend/label_availability.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/label_availability.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/label_availability.py#L1)
 
 Known purchase gates checked before payment; live carrier acceptance is separate.
 
@@ -804,7 +804,7 @@ Top-level functions: `label_availability` (line 5), `require_label_purchase` (li
 
 ## backend/logistics_media.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/logistics_media.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/logistics_media.py#L1)
 
 Normalize real carrier assets and publish read-only, tenant-scoped signed images.
 
@@ -817,7 +817,7 @@ Public SQL object references: `logistics_media_assets`.
 
 ## backend/manifest_service.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/manifest_service.py#L1)
 
 Fenced carrier close-out and explicit internal driver handover documents.
 
@@ -834,7 +834,7 @@ Public SQL object references: `admin_client_assistance_sessions`, `carrier_accou
 
 ## backend/manifest_workflow.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_workflow.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/manifest_workflow.py#L1)
 
 Read-only shipment action policy; never infer a booking or mutate a quote.
 
@@ -843,7 +843,7 @@ Top-level functions: `decoded` (line 35), `https_asset` (line 44), `workflow` (l
 
 ## backend/multi_label.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/multi_label.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/multi_label.py#L1)
 
 A group is confirmed only when every native package label is confirmed.
 
@@ -852,7 +852,7 @@ Top-level functions: `bundle_labels` (line 5).
 
 ## backend/order_csv.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/order_csv.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/order_csv.py#L1)
 
 Versioned CSV orders, tenant-scoped persistence and customs review.
 
@@ -868,7 +868,7 @@ Public SQL object references: `ecommerce_stores`, `shipments`, `tenants`, `users
 
 ## backend/package_guidance.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_guidance.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/package_guidance.py#L1)
 
 Route-scoped package guidance; reference limits never certify carrier eligibility.
 
@@ -880,7 +880,7 @@ Top-level functions: `evaluate_package` (line 66), `build_router` (line 134).
 
 ## backend/package_sets.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_sets.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/package_sets.py#L1)
 
 Exact physical package snapshots; carrier APIs receive individual boxes.
 
@@ -892,7 +892,7 @@ Public SQL object references: `shipment_goods_items`, `shipments`.
 
 ## backend/paf_lookup.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/paf_lookup.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/paf_lookup.py#L1)
 
 Asynchronous licensed PAF lookup boundary. Postcode syntax is not delivery proof.
 
@@ -905,7 +905,7 @@ Top-level functions: `uk_postcode` (line 19).
 
 ## backend/payment_gateway.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/payment_gateway.py#L1)
 
 Environment-validated Checkout gateway over the shared, atomic wallet ledger service.
 
@@ -919,7 +919,7 @@ Public SQL object references: `shipments`, `stripe_charge_refunds`, `stripe_webh
 
 ## backend/platform_carriers.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/platform_carriers.py#L1)
 
 Owner-managed shared provider connections; tenant shipments retain isolated FKs.
 
@@ -931,7 +931,7 @@ Public SQL object references: `carrier_accounts`, `platform_carrier_connections`
 
 ## backend/provider_routing.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/provider_routing.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/provider_routing.py#L1)
 
 Bounded direct-first routing without sacrificing uncovered carrier options.
 
@@ -940,7 +940,7 @@ Top-level functions: `service_key` (line 11), `run_tiered_providers` (line 15).
 
 ## backend/rate_diagnostics.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/rate_diagnostics.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/rate_diagnostics.py#L1)
 
 Safe rate diagnostics; never expose upstream response bodies or credentials.
 
@@ -953,7 +953,7 @@ Public SQL object references: `automation_failures`, `support_tickets`.
 
 ## backend/repair_local_config.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/repair_local_config.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/repair_local_config.py#L1)
 
 Repair identifiable dotenv formatting without printing credential values.
 
@@ -962,7 +962,7 @@ Top-level functions: `run` (line 12).
 
 ## backend/return_delivery.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_delivery.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/return_delivery.py#L1)
 
 Payment-gated customer return documents and durable transactional notices.
 
@@ -975,7 +975,7 @@ Public SQL object references: `return_customer_deliveries`, `return_review_sessi
 
 ## backend/return_documents.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_documents.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/return_documents.py#L1)
 
 Optional carrier drop-off documents; never a second label purchase.
 
@@ -986,7 +986,7 @@ Public SQL object references: `shipments`.
 
 ## backend/return_ingress.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_ingress.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/return_ingress.py#L1)
 
 Signed normalized return commands from merchant and marketplace gateways.
 
@@ -1000,7 +1000,7 @@ Public SQL object references: `ecommerce_stores`, `tenants`, `users`.
 
 ## backend/return_review.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/return_review.py#L1)
 
 Two-phase, tenant-bound return preparation and explicit service selection.
 
@@ -1019,7 +1019,7 @@ Public SQL object references: `partner_shipping_offers`, `payment_carts`, `retur
 
 ## backend/reverse_logistics.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/reverse_logistics.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/reverse_logistics.py#L1)
 
 Authenticated, durable full-parcel returns over the existing booking ledger.
 
@@ -1035,7 +1035,7 @@ Public SQL object references: `reverse_logistics_requests`, `shipments`, `tenant
 
 ## backend/runtime_hosting.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/runtime_hosting.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/runtime_hosting.py#L1)
 
 Process roles and supervised continuous jobs, independent of provider logic.
 
@@ -1045,7 +1045,7 @@ Top-level functions: `resolve_role` (line 11), `pool_options` (line 17).
 
 ## backend/sandbox_hooks.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sandbox_hooks.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/sandbox_hooks.py#L1)
 
 Real Stripe test-mode hooks and strict signed Twilio Sandbox requests.
 
@@ -1060,7 +1060,7 @@ Public SQL object references: `tenants`, `users`, `wallet_topups`, `wallets`, `w
 
 ## backend/seed_rigorous_data.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/seed_rigorous_data.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/seed_rigorous_data.py#L1)
 
 Apply or rollback-verify the complete relational seed in one transaction.
 
@@ -1071,7 +1071,7 @@ Public SQL object references: `carrier_accounts`, `fixture_seed_runs`, `shipment
 
 ## backend/sendcloud_adapter.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sendcloud_adapter.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/sendcloud_adapter.py#L1)
 
 Read-only Sendcloud v2 rates for explicitly configured contract methods.
 
@@ -1086,7 +1086,7 @@ Public SQL object references: `strip`.
 
 ## backend/shipment_notifications.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/shipment_notifications.py#L1)
 
 Durable sender milestone delivery. No carrier actions or financial mutations.
 
@@ -1100,7 +1100,7 @@ Public SQL object references: `shipment_sender_notifications`, `shipments`.
 
 ## backend/shipment_protection.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/shipment_protection.py#L1)
 
 XCover premium arithmetic and explicit integration readiness.
 
@@ -1126,7 +1126,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 
 ## backend/store_connections.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/store_connections.py#L1)
 
 Write-only merchant setup; encrypted envelopes are bound to tenant and store.
 
@@ -1138,7 +1138,7 @@ Public SQL object references: `amazon_order_notifications`, `ecommerce_stores`, 
 
 ## backend/store_returns.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_returns.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/store_returns.py#L1)
 
 Native return tracking without forward fulfillment, refunds or restocking.
 
@@ -1150,7 +1150,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/support_alert_controls.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_alert_controls.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/support_alert_controls.py#L1)
 
 Platform delivery controls separate from the recipient's verified consent.
 
@@ -1162,7 +1162,7 @@ Public SQL object references: `tenants`, `whatsapp_bindings`.
 
 ## backend/support_delivery.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/support_delivery.py#L1)
 
 Opt-in WhatsApp notification delivery with a durable uncertain-send fence.
 
@@ -1179,7 +1179,7 @@ Public SQL object references: `shipments`, `support_message_outbox`, `support_ti
 
 ## backend/support_workflow.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_workflow.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/support_workflow.py#L1)
 
 Explicit internal review ownership and tenant-scoped append-only activity.
 
@@ -1190,7 +1190,7 @@ Public SQL object references: `app_user_profiles`, `support_ticket_activity`, `s
 
 ## backend/tenant_catalogs.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/tenant_catalogs.py#L1)
 
 Private, versioned tenant registries. No bookings, wallet changes or AI calls.
 
@@ -1205,7 +1205,7 @@ Public SQL object references: `tenant_catalog_addresses`, `tenant_catalog_produc
 
 ## backend/test_supabase_transaction.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/test_supabase_transaction.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/test_supabase_transaction.py#L1)
 
 Explicit, persisted sandbox connectivity test. Creates no payments or labels.
 
@@ -1216,13 +1216,13 @@ Public SQL object references: `margin_rules`, `tenants`, `wallets`.
 
 ## backend/tools/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tools/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/tools/__init__.py#L1)
 
 Explicitly invoked operational utilities; never run as application startup jobs.
 
 ## backend/tools/sme_lead_scraper.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tools/sme_lead_scraper.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/tools/sme_lead_scraper.py#L1)
 
 Company-level UK logistics prospect discovery and unsent outreach drafts.
 
@@ -1236,7 +1236,7 @@ Top-level functions: `district` (line 39), `company_number` (line 46), `public_u
 
 ## backend/tracking_and_support.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_and_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/tracking_and_support.py#L1)
 
 Signed, tenant/account-scoped tracking and durable support staging.
 
@@ -1255,7 +1255,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `support_message_
 
 ## backend/tracking_refresh.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_refresh.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/tracking_refresh.py#L1)
 
 Bounded read-only reconciliation. Never create a tracker or retry a purchase.
 
@@ -1267,7 +1267,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tenants`, `track
 
 ## backend/tracking_workspace.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/tracking_workspace.py#L1)
 
 Shared, tenant-bound tracking projections and revocable customer capabilities.
 
@@ -1288,7 +1288,7 @@ Public SQL object references: `carrier_accounts`, `ecommerce_tracking_outbox`, `
 
 ## backend/verify_automation_sandbox.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/verify_automation_sandbox.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/verify_automation_sandbox.py#L1)
 
 Persist one clearly identified invalid-order support test; no carrier calls.
 
@@ -1299,7 +1299,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `wallets
 
 ## backend/verify_automation_writepath.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/verify_automation_writepath.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/verify_automation_writepath.py#L1)
 
 Real PostgreSQL write-path probe with controlled rates and final rollback.
 
@@ -1315,7 +1315,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tenants`, `users
 
 ## backend/verify_supabase.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/verify_supabase.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/verify_supabase.py#L1)
 
 Read-only connection/schema probe. Never log credentials or raw server errors.
 
@@ -1326,7 +1326,7 @@ Public SQL object references: `status_code`.
 
 ## backend/verify_tracking_support.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/verify_tracking_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/verify_tracking_support.py#L1)
 
 Real sandbox schema, tenant-scoped report and durable ticket-worker verification.
 
@@ -1337,7 +1337,7 @@ Public SQL object references: `shipments`.
 
 ## backend/web_registration.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/web_registration.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/web_registration.py#L1)
 
 Email-verified public account creation; passwords and OTPs are never stored locally.
 
@@ -1350,7 +1350,7 @@ Public SQL object references: `app_user_profiles`, `tenants`, `users`, `wallets`
 
 ## backend/webhook_security.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/webhook_security.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/webhook_security.py#L1)
 
 Query-secret redaction and optional trusted-proxy-aware webhook IP policy.
 
@@ -1360,7 +1360,7 @@ Top-level functions: `redact_query_secrets` (line 11), `install_webhook_log_reda
 
 ## backend/whatsapp_bot.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_bot.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/whatsapp_bot.py#L1)
 
 Signed WhatsApp ingress into the shared authenticated conversational gateway.
 
@@ -1373,7 +1373,7 @@ Top-level functions: `initialize_whatsapp` (line 28), `xml_message` (line 41), `
 
 ## backend/whatsapp_ingress.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_ingress.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/whatsapp_ingress.py#L1)
 
 Local ingress for tunneling only signed Twilio callbacks, never the app UI/API.
 
@@ -1382,7 +1382,7 @@ Top-level functions: `lifespan` (line 11), `identify_gateway` (line 23), `forwar
 
 ## backend/whatsapp_onboarding.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_onboarding.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/whatsapp_onboarding.py#L1)
 
 Signed-phone registration with separate email proof and native Auth identities.
 
@@ -1398,7 +1398,7 @@ Public SQL object references: `app_user_profiles`, `tenants`, `users`, `wallets`
 
 ## backend/whatsapp_queue.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_queue.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/whatsapp_queue.py#L1)
 
 Durable WhatsApp ingress and REST delivery; no carrier work in the HTTP ack.
 
@@ -1411,7 +1411,7 @@ Public SQL object references: `whatsapp_inbound_queue`, `whatsapp_reply_outbox`.
 
 ## backend/worker_runtime.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/worker_runtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/worker_runtime.py#L1)
 
 Dedicated queue consumer. Run with python -m backend.worker_runtime.
 
@@ -1420,7 +1420,7 @@ Top-level functions: `serve` (line 11), `main` (line 49).
 
 ## backend/workspace_personas.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_personas.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/workspace_personas.py#L1)
 
 Shared account profiles and exact consumer pricing; no parallel wallets.
 
@@ -1432,7 +1432,7 @@ Public SQL object references: `individual_pricing_settings`.
 
 ## backend/workspace_settings.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/workspace_settings.py#L1)
 
 Tenant-owned settings, verified email invitations and durable dispute drafts.
 
@@ -1448,7 +1448,7 @@ Public SQL object references: `app_auth_sessions`, `app_login_limits`, `carrier_
 
 ## backend/xcover_claims.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/xcover_claims.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/9028cea8183f1f73c9d88efd7a0307be5a714953/backend/xcover_claims.py#L1)
 
 Native XClaim JWT, FNOL, evidence, async claims and signed status events.
 
