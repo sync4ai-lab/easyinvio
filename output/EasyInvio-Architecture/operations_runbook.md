@@ -217,3 +217,7 @@ No database migration or carrier/payment enablement is needed for these fixes.
 ## Hostinger shipment email activation
 
 Use the same SMTP settings above with SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED=true and SHIPMENT_EMAIL_FROM=support@easyinvio.com. Add only controlled UAT addresses to SHIPMENT_NOTIFICATION_TEST_RECIPIENTS before booking TEST shipments. Redeploy both web and worker after secret changes. Missing credentials disable mail, and SMTP delivery never automatically falls back to SendGrid. Sender temporary refusals retry at most three times, one minute apart; return refusals remain FAILED under the existing return queue policy. Uncertain DATA submissions remain REVIEW_REQUIRED, never automatically replayed. ACCEPTED is SMTP acceptance, not inbox evidence. See [Sender shipment setup](../../docs_shipment_updates.md) for the complete checklist. No new migration is needed for this transport change.
+
+## Card checkout with a small hosted web pool
+
+The WEB role creates card baskets with sequential database acquisition and returns payment status without running nested label-booking operations. The WORKER role owns durable cart completion and requires capacity for basket, shipment and financial locks (at least four connections; default eight). Keep the logistics worker running for paid labels to progress beyond BOOKING. Do not increase every Vercel web instance pool to solve the former card-creation guard error. Reconciliation remains tenant scoped and idempotent, with no unpaid label released.
