@@ -1,6 +1,6 @@
 # EasyInvio complete application manual
 
-Source revision: `3425e4e9f51efee699fd5c368b1c82c4006ac4c8`. Read README.md for scope and generation rules.
+Source revision: `89248cb0f3aa908c0b73bb5e4b56d66656835495`. Read README.md for scope and generation rules.
 
 # EasyInvio application manual
 
@@ -161,7 +161,7 @@ Paperless documents are advertised only when supplied/confirmed by the provider.
 
 Returns do not imply merchant refund, restocking, product exchange, insurer cover or universal native marketplace RMA handling. Store tracking retains a separate return lifecycle; Shopify reverse-delivery updates need a verified native return reference.
 
-Optional customer notices use migration 046 private review/delivery tables and separately enabled Hostinger SMTP from operations@easyinvio.com and approved Twilio utility templates (SendGrid is an explicit optional transport, never an automatic fallback). Customer permission and original customer contacts are required. Customer-pay notices contain a payment link first; label notices require verified payment plus confirmed postage for the selected offer. Signed 24-hour document links recheck these conditions on every download. Durable delivery receipts distinguish queued, sending, provider-accepted, failed and uncertain outcomes; ambiguous sends never automatically repeat. Supabase Auth SMTP is not reused as application mail credentials.
+Optional customer notices use migration 046 private review/delivery tables and separately enabled Hostinger SMTP from support@easyinvio.com and approved Twilio utility templates (SendGrid is an explicit optional transport, never an automatic fallback). Customer permission and original customer contacts are required. Customer-pay notices contain a payment link first; label notices require verified payment plus confirmed postage for the selected offer. Signed 24-hour document links recheck these conditions on every download. Durable delivery receipts distinguish queued, sending, provider-accepted, failed and uncertain outcomes; ambiguous sends never automatically repeat. Supabase Auth SMTP is not reused as application mail credentials.
 
 ## Conversations and public help
 
@@ -205,6 +205,10 @@ Saved address choices show readable postal lines. UK PAF lookup remains visible 
 Confirmed booking displays TEST references explicitly and exposes paperless carrier QR assets only when returned by the purchased service. An all-zero live tracking reference cannot settle financial capture. The carrier response remains the source of the stored reference.
 
 Migration 047 queues sender email and explicitly permitted WhatsApp milestones within the booking/tracking transaction, once per shipment/category/channel. The dedicated worker commits SENDING before external I/O. Definitive rate limits have bounded retries; ambiguous sends are reviewed without replay. Separate channel credentials and an explicit UAT recipient allowlist are required. Notification failure never repeats or cancels a carrier purchase. The new /help/shipment-updates guide contains operational setup and status meanings.
+
+## Brand identity across shipment channels
+
+The application header, sign-in view and public tracking page share an icon-only vector mark based on a parcel, shield and connected nodes. Fixed header sizing is 38px desktop and 30px mobile, with accessible EasyInvio.com image text and reserved clear space. Emerald marks appear on navy surfaces; explicit light surfaces use a darker CSS variant. The browser favicon adapts to colour scheme; transparent PNG variants support platform icons via site.webmanifest. Branding assets are explicitly allowlisted for public deployment and locally served without authentication. No offline service worker is introduced. See docs/branding.md for exact files, asset regeneration and local preview steps.
 
 
 # Technical architecture
@@ -340,6 +344,10 @@ Each phone/receiving-number thread is serialized using ordered eligible heads an
 `backend/return_review.py` implements the manual two-phase reverse workflow: tenant-scoped restoration, typed parcel/goods/customs edits, quote-only preparation, expiry checks and explicit offer selection. `return-workspace.js` mounts the return form inside Create shipment, fences session/workspace changes and never exposes an unpaid label. Selection atomically claims the existing original-parent return receipt before delegating to PartnerLifecycleService or the exact-price Stripe basket. `backend/return_delivery.py` stages payment notices and, only after verified payment and carrier confirmation for the selected offer, label notices. Its optional Hostinger SMTP/Twilio worker (with SendGrid only as an explicitly selected legacy email transport) commits SENDING before network I/O and never retries ambiguous sends. Private migration 046 tables own preparation/outbound receipts; signed customer document downloads recheck the payment and shipment state. Existing rating, booking and financial owners remain unchanged.
 
 `backend/manifest_workflow.py` owns the read-only action policy and allowlisted requote projection. `advanced_logistics.py` returns carrier/service identity, quote expiry, server time and evidence flags; its tenant-bound GET requote-context route never books or mutates rows. `manifest-workflow.js` renders context-appropriate actions and a customer-readable drawer, restores complex shipment facts and drops expired batch selections. SQL uses a bounded lateral lookup for unresolved historical provider jobs. Existing native confirmation, financial locks and document host validation remain authoritative.
+
+## Public brand assets
+
+The eight explicit brand asset routes in main.py serve SVG, PNG, CSS and the web manifest with correct media types and nosniff headers. scripts/build_vercel.py includes exactly these files in the public CDN allowlist; application secrets and exports remain excluded. Public tracking CSP permits only same-origin images and manifests, with its existing script, frame and form restrictions preserved. Header dimensions are reserved before SVG loading; explicit light/dark surface classes control monochrome contrast. scripts/generate_brand_icons.py renders the checked-in SVG into transparent platform sizes using the existing development browser, without network requests.
 
 
 # Agent reference
@@ -622,7 +630,7 @@ Outbound support WhatsApp delivery is independently gated by SUPPORT_WHATSAPP_EN
 
 ## Supabase Auth and SendGrid
 
-The application calls Supabase Auth’s OTP, verify, password/session and recovery endpoints. The project’s Auth SMTP configuration relays email through SendGrid with the approved sender (the configured operational setup uses operations@easyinvio.com). SMTP server credentials and sender/template configuration belong in Supabase Auth/secret management, not in a second local OTP generator or browser script.
+The application calls Supabase Auth’s OTP, verify, password/session and recovery endpoints. The project’s Auth SMTP configuration relays email through SendGrid with its separately configured approved sender. SMTP server credentials and sender/template configuration belong in Supabase Auth/secret management, not in a second local OTP generator or browser script.
 
 Use the maintained verification and reset templates in `docs/identity/email_templates`. Email OTP length is accepted from six to ten digits; the separate application WhatsApp code is six digits. Email delivery acceptance is not proof of inbox delivery. Unverified identities can exist temporarily in Auth while the workspace remains unprovisioned; email collision/reuse handling must preserve identity ownership, not delete/claim an arbitrary Auth account.
 
@@ -671,7 +679,7 @@ EasyPost supports installed signed webhooks and optional GET-only retrieval of e
 
 ### Sender transactional milestone channels
 
-`backend/shipment_notifications.py` owns `SenderNotifications`, `ShipmentNotificationSettings` and `ShipmentNotificationWorker`. The shared `backend/email_delivery.py` defaults to Hostinger SMTP (`EMAIL_DELIVERY_PROVIDER=HOSTINGER_SMTP`, `smtp.hostinger.com`, verified SSL port 465 or mandatory STARTTLS port 587). `SMTP_USERNAME` and `SHIPMENT_EMAIL_FROM` must both be `operations@easyinvio.com`, with the mailbox password in `SMTP_PASSWORD`. SMTP runs off the event loop. SendGrid Mail Send remains available only with explicit `EMAIL_DELIVERY_PROVIDER=SENDGRID` and the separate API key; there is no automatic failover. Return emails use the same transport and their own enable flag. Supabase Auth SMTP is separately configured. Twilio uses existing account/sender credentials plus an approved `SHIPMENT_WHATSAPP_CONTENT_SID` (utility variables: booking reference, milestone text, tracking reference). There is no free-form out-of-window fallback. `SHIPMENT_NOTIFICATION_TEST_RECIPIENTS` restricts TEST sends; outbox environment and runtime environment must match. Both delivery flags default false. These settings do not activate return-customer notifications or change in-app tracking preferences.
+`backend/shipment_notifications.py` owns `SenderNotifications`, `ShipmentNotificationSettings` and `ShipmentNotificationWorker`. The shared `backend/email_delivery.py` defaults to Hostinger SMTP (`EMAIL_DELIVERY_PROVIDER=HOSTINGER_SMTP`, `smtp.hostinger.com`, verified SSL port 465 or mandatory STARTTLS port 587). `SMTP_USERNAME` and `SHIPMENT_EMAIL_FROM` must both be `support@easyinvio.com`, with the mailbox password in `SMTP_PASSWORD`. SMTP runs off the event loop. SendGrid Mail Send remains available only with explicit `EMAIL_DELIVERY_PROVIDER=SENDGRID` and the separate API key; there is no automatic failover. Return emails use the same transport and their own enable flag. Supabase Auth SMTP is separately configured. Twilio uses existing account/sender credentials plus an approved `SHIPMENT_WHATSAPP_CONTENT_SID` (utility variables: booking reference, milestone text, tracking reference). There is no free-form out-of-window fallback. `SHIPMENT_NOTIFICATION_TEST_RECIPIENTS` restricts TEST sends; outbox environment and runtime environment must match. Both delivery flags default false. These settings do not activate return-customer notifications or change in-app tracking preferences.
 
 `047_sender_shipment_notifications.sql` adds the private status-only outbox and transactional triggers. It stores no recipient addresses or message bodies. The authenticated `GET /api/v1/shipping/{shipment_id}/sender-notifications` reports only the current workspace's outcomes. ACCEPTED is provider acceptance, not proof of delivery. Missing/disabled configuration is SKIPPED, explicit refusal is FAILED, and ambiguous outcomes require review. See `docs_shipment_updates.md` for setup and limitations.
 
@@ -954,7 +962,7 @@ See [the workflow audit and operating guide](https://github.com/sync4ai-lab/easy
 
 Apply migration 046 after the complete 045, then restart and refresh. See [the return integration guide](https://github.com/sync4ai-lab/easyinvio/blob/main/docs/headless_returns.html) for typed endpoints and exact delivery settings. Returns unlock only after recorded delivery, not label creation or manifest submission. The manual form compares services before selection; it has no mandatory price cap. Original customer and versioned RETURN warehouse addresses stay server-owned; packing, goods and customs can be reviewed in the shipment workspace. Grouped multi-piece return purchase remains unsupported.
 
-Customer delivery defaults off. Supabase Auth SMTP is separate from the application email transport. For Hostinger configure EMAIL_DELIVERY_PROVIDER=HOSTINGER_SMTP, SMTP_HOST=smtp.hostinger.com, SMTP_PORT=465 (verified SSL; alternatively 587 with mandatory STARTTLS), SMTP_USERNAME=operations@easyinvio.com and SMTP_PASSWORD as the private mailbox password. Configure RETURN_EMAIL_ENABLED/RETURN_EMAIL_FROM (operations@easyinvio.com) and RETURN_WHATSAPP_ENABLED/RETURN_WHATSAPP_CONTENT_SID/RETURN_WHATSAPP_MESSAGING_SERVICE_SID, plus existing Twilio credentials, a public HTTPS BOOKING_PAGE_URL and QUOTE_LINK_SECRET (32+ characters). The approved utility template uses variables 1=heading, 2=instructions, 3=full secure link. Confirm customer permission; recipients come from the original outbound shipment. Sandbox/approved-sender restrictions remain provider requirements.
+Customer delivery defaults off. Supabase Auth SMTP is separate from the application email transport. For Hostinger configure EMAIL_DELIVERY_PROVIDER=HOSTINGER_SMTP, SMTP_HOST=smtp.hostinger.com, SMTP_PORT=465 (verified SSL; alternatively 587 with mandatory STARTTLS), SMTP_USERNAME=support@easyinvio.com and SMTP_PASSWORD as the private mailbox password. Configure RETURN_EMAIL_ENABLED/RETURN_EMAIL_FROM (support@easyinvio.com) and RETURN_WHATSAPP_ENABLED/RETURN_WHATSAPP_CONTENT_SID/RETURN_WHATSAPP_MESSAGING_SERVICE_SID, plus existing Twilio credentials, a public HTTPS BOOKING_PAGE_URL and QUOTE_LINK_SECRET (32+ characters). The approved utility template uses variables 1=heading, 2=instructions, 3=full secure link. Confirm customer permission; recipients come from the original outbound shipment. Sandbox/approved-sender restrictions remain provider requirements.
 
 Monitor return_customer_deliveries: READY is queued, ACCEPTED is provider acceptance, FAILED means rejected/disabled, and REVIEW_REQUIRED means an uncertain send requiring reconciliation. Never reset SENDING/REVIEW_REQUIRED to replay a message blindly. Payment notices carry no postage; label notices require verified payment plus the selected carrier label. Documents are signed for 24 hours and rechecked at access. No test sends, paid labels or live schema mutations are part of the implementation verification.
 
@@ -986,7 +994,7 @@ No database migration or carrier/payment enablement is needed for these fixes.
 
 ## Hostinger shipment email activation
 
-Use the same SMTP settings above with SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED=true and SHIPMENT_EMAIL_FROM=operations@easyinvio.com. Add only controlled UAT addresses to SHIPMENT_NOTIFICATION_TEST_RECIPIENTS before booking TEST shipments. Redeploy both web and worker after secret changes. Missing credentials disable mail, and SMTP delivery never automatically falls back to SendGrid. Sender temporary refusals retry at most three times, one minute apart; return refusals remain FAILED under the existing return queue policy. Uncertain DATA submissions remain REVIEW_REQUIRED, never automatically replayed. ACCEPTED is SMTP acceptance, not inbox evidence. See [Sender shipment setup](../../docs_shipment_updates.md) for the complete checklist. No new migration is needed for this transport change.
+Use the same SMTP settings above with SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED=true and SHIPMENT_EMAIL_FROM=support@easyinvio.com. Add only controlled UAT addresses to SHIPMENT_NOTIFICATION_TEST_RECIPIENTS before booking TEST shipments. Redeploy both web and worker after secret changes. Missing credentials disable mail, and SMTP delivery never automatically falls back to SendGrid. Sender temporary refusals retry at most three times, one minute apart; return refusals remain FAILED under the existing return queue policy. Uncertain DATA submissions remain REVIEW_REQUIRED, never automatically replayed. ACCEPTED is SMTP acceptance, not inbox evidence. See [Sender shipment setup](../../docs_shipment_updates.md) for the complete checklist. No new migration is needed for this transport change.
 
 
 # Testing and release evidence
@@ -1397,7 +1405,7 @@ Workspace Bearer authentication, platform-owner allowlisting, callback signature
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2356](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2356), `lookup_uk_address`.
+Implementation: [main.py:2371](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2371), `lookup_uk_address`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1451,7 +1459,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/agents/routes.py:60](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L60), `build_router.<locals>.metrics`.
+Implementation: [backend/agents/routes.py:60](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L60), `build_router.<locals>.metrics`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1482,7 +1490,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:107](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L107), `build_router.<locals>.platform_report`.
+Implementation: [backend/dashboard_portal.py:107](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L107), `build_router.<locals>.platform_report`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1564,7 +1572,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/ai_engine.py:282](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L282), `build_router.<locals>.owner_audit`.
+Implementation: [backend/ai_engine.py:282](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L282), `build_router.<locals>.owner_audit`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1631,7 +1639,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:127](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L127), `carriers`.
+Implementation: [backend/admin_management.py:127](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L127), `carriers`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1662,7 +1670,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:138](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L138), `add_carrier`.
+Implementation: [backend/admin_management.py:138](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L138), `add_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1712,7 +1720,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L210), `remove_carrier`.
+Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L210), `remove_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1770,7 +1778,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:183](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L183), `change_carrier`.
+Implementation: [backend/admin_management.py:183](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L183), `change_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1837,7 +1845,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L210), `remove_carrier`.
+Implementation: [backend/admin_management.py:210](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L210), `remove_carrier`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -1895,7 +1903,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/credential_rotation.py:32](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/credential_rotation.py#L32), `replace_credentials`.
+Implementation: [backend/credential_rotation.py:32](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/credential_rotation.py#L32), `replace_credentials`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `require_recent_admin_auth`.
@@ -1962,7 +1970,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:111](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L111), `clients`.
+Implementation: [backend/client_assistance.py:111](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L111), `clients`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2021,7 +2029,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:164](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L164), `events`.
+Implementation: [backend/client_assistance.py:164](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L164), `events`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2096,7 +2104,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:122](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L122), `start`.
+Implementation: [backend/client_assistance.py:122](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L122), `start`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2146,7 +2154,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/client_assistance.py:151](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L151), `stop`.
+Implementation: [backend/client_assistance.py:151](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L151), `stop`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2204,7 +2212,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:588](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L588), `read_individual_pricing`.
+Implementation: [backend/admin_portal.py:588](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L588), `read_individual_pricing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2235,7 +2243,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:595](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L595), `update_individual_pricing`.
+Implementation: [backend/admin_portal.py:595](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L595), `update_individual_pricing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2285,7 +2293,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/shipment_protection.py:2177](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L2177), `build_router.<locals>.platform_settlement`.
+Implementation: [backend/shipment_protection.py:2177](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L2177), `build_router.<locals>.platform_settlement`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2335,7 +2343,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/hubspot_crm.py:472](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L472), `build_router.<locals>.integration_alerts`.
+Implementation: [backend/hubspot_crm.py:472](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L472), `build_router.<locals>.integration_alerts`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2366,7 +2374,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:43](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L43), `margins`.
+Implementation: [backend/admin_management.py:43](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L43), `margins`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2431,7 +2439,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:569](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L569), `create_margin`.
+Implementation: [backend/admin_portal.py:569](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L569), `create_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2483,7 +2491,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:80](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L80), `retire_margin`.
+Implementation: [backend/admin_management.py:80](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L80), `retire_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2541,7 +2549,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:54](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L54), `update_margin`.
+Implementation: [backend/admin_management.py:54](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L54), `update_margin`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2608,7 +2616,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:107](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L107), `list_connections`.
+Implementation: [backend/platform_carriers.py:107](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L107), `list_connections`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2639,7 +2647,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:114](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L114), `create`.
+Implementation: [backend/platform_carriers.py:114](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L114), `create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2689,7 +2697,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:134](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L134), `capabilities`.
+Implementation: [backend/platform_carriers.py:134](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L134), `capabilities`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2720,7 +2728,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L124), `retire`.
+Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L124), `retire`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2778,7 +2786,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:119](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L119), `update`.
+Implementation: [backend/platform_carriers.py:119](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L119), `update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2845,7 +2853,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L124), `retire`.
+Implementation: [backend/platform_carriers.py:124](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L124), `retire`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2903,7 +2911,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:481](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L481), `build_native_router.<locals>.reconcile_order`.
+Implementation: [backend/automation_three_partners.py:481](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L481), `build_native_router.<locals>.reconcile_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -2970,7 +2978,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:547](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L547), `build_native_router.<locals>.read_configuration`.
+Implementation: [backend/automation_three_partners.py:547](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L547), `build_native_router.<locals>.read_configuration`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3028,7 +3036,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/automation_three_partners.py:507](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L507), `build_native_router.<locals>.configure`.
+Implementation: [backend/automation_three_partners.py:507](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L507), `build_native_router.<locals>.configure`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3095,7 +3103,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:178](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L178), `build_router.<locals>.diagnostics`.
+Implementation: [backend/workspace_settings.py:178](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L178), `build_router.<locals>.diagnostics`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3153,7 +3161,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:141](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L141), `upgrade_sendcloud`.
+Implementation: [backend/platform_carriers.py:141](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L141), `upgrade_sendcloud`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3211,7 +3219,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/platform_carriers.py:206](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L206), `verify_connection`.
+Implementation: [backend/platform_carriers.py:206](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L206), `verify_connection`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `ShippoAdapter(None, secret, environment=row['environment']).authentication`, `httpx.BasicAuth`.
@@ -3269,7 +3277,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/sandbox_hooks.py:301](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/sandbox_hooks.py#L301), `build_router.<locals>.setup_whatsapp`.
+Implementation: [backend/sandbox_hooks.py:301](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sandbox_hooks.py#L301), `build_router.<locals>.setup_whatsapp`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: `require_sandbox_environment`.
@@ -3319,7 +3327,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/advanced_logistics.py:407](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L407), `build_router.<locals>.owner_manifest`.
+Implementation: [backend/advanced_logistics.py:407](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L407), `build_router.<locals>.owner_manifest`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3350,7 +3358,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:204](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L204), `build_router.<locals>.admin_get_draft`.
+Implementation: [backend/workspace_settings.py:204](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L204), `build_router.<locals>.admin_get_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3418,7 +3426,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/workspace_settings.py:207](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L207), `build_router.<locals>.admin_save_draft`.
+Implementation: [backend/workspace_settings.py:207](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L207), `build_router.<locals>.admin_save_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3495,7 +3503,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:198](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L198), `build_router.<locals>.all_tickets`.
+Implementation: [backend/dashboard_portal.py:198](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L198), `build_router.<locals>.all_tickets`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3567,7 +3575,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:209](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L209), `build_router.<locals>.admin_intervene`.
+Implementation: [backend/dashboard_portal.py:209](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L209), `build_router.<locals>.admin_intervene`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3634,7 +3642,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/dashboard_portal.py:221](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L221), `build_router.<locals>.admin_resolve`.
+Implementation: [backend/dashboard_portal.py:221](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L221), `build_router.<locals>.admin_resolve`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3692,7 +3700,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/support_alert_controls.py:16](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_alert_controls.py#L16), `build_router.<locals>.bindings`.
+Implementation: [backend/support_alert_controls.py:16](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_alert_controls.py#L16), `build_router.<locals>.bindings`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3723,7 +3731,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/support_alert_controls.py:32](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_alert_controls.py#L32), `build_router.<locals>.pause`.
+Implementation: [backend/support_alert_controls.py:32](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_alert_controls.py#L32), `build_router.<locals>.pause`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3790,7 +3798,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:33](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L33), `tenants`.
+Implementation: [backend/admin_management.py:33](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L33), `tenants`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3850,7 +3858,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_portal.py:561](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L561), `create_tenant`.
+Implementation: [backend/admin_portal.py:561](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L561), `create_tenant`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3902,7 +3910,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:237](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L237), `update_seller_classification`.
+Implementation: [backend/admin_management.py:237](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L237), `update_seller_classification`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -3969,7 +3977,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/tracking_workspace.py:596](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L596), `build_router.<locals>.health`.
+Implementation: [backend/tracking_workspace.py:596](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L596), `build_router.<locals>.health`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4000,7 +4008,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/tracking_workspace.py:469](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L469), `build_router.<locals>.global_shipments`.
+Implementation: [backend/tracking_workspace.py:469](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L469), `build_router.<locals>.global_shipments`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4153,7 +4161,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/tracking_workspace.py:479](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L479), `build_router.<locals>.admin_detail`.
+Implementation: [backend/tracking_workspace.py:479](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L479), `build_router.<locals>.admin_detail`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4211,7 +4219,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/tracking_workspace.py:586](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L586), `build_router.<locals>.global_refresh`.
+Implementation: [backend/tracking_workspace.py:586](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L586), `build_router.<locals>.global_refresh`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4269,7 +4277,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/tracking_workspace.py:591](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L591), `build_router.<locals>.global_retry`.
+Implementation: [backend/tracking_workspace.py:591](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L591), `build_router.<locals>.global_retry`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4327,7 +4335,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/tracking_workspace.py:577](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L577), `build_router.<locals>.global_review`.
+Implementation: [backend/tracking_workspace.py:577](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L577), `build_router.<locals>.global_review`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4394,7 +4402,7 @@ Documented responses:
 
 Platform owner dependency; additional source/helper guards apply.
 
-Implementation: [backend/admin_management.py:223](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L223), `transactions`.
+Implementation: [backend/admin_management.py:223](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L223), `transactions`.
 
 Declared dependencies: `HTTPBearer`, `authenticate_platform_owner`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4459,7 +4467,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:46](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L46), `build_router.<locals>.information`.
+Implementation: [backend/agents/routes.py:46](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L46), `build_router.<locals>.information`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `engine.dispatch_permission`.
@@ -4509,7 +4517,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:29](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L29), `build_router.<locals>.customs`.
+Implementation: [backend/agents/routes.py:29](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L29), `build_router.<locals>.customs`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `engine.dispatch_permission`.
@@ -4559,7 +4567,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:20](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L20), `build_router.<locals>.interpret`.
+Implementation: [backend/agents/routes.py:20](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L20), `build_router.<locals>.interpret`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4609,7 +4617,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:24](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L24), `build_router.<locals>.quote`.
+Implementation: [backend/agents/routes.py:24](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L24), `build_router.<locals>.quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4659,7 +4667,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2436](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2436), `carrier_performance`.
+Implementation: [main.py:2451](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2451), `carrier_performance`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4716,7 +4724,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_and_support.py:386](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_and_support.py#L386), `build_router.<locals>.reports`.
+Implementation: [backend/tracking_and_support.py:386](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_and_support.py#L386), `build_router.<locals>.reports`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4808,7 +4816,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/delivery_quality.py:45](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/delivery_quality.py#L45), `build_router.<locals>.readiness`.
+Implementation: [backend/delivery_quality.py:45](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/delivery_quality.py#L45), `build_router.<locals>.readiness`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -4876,7 +4884,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ai_engine.py:262](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L262), `build_router.<locals>.audit`.
+Implementation: [backend/ai_engine.py:262](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L262), `build_router.<locals>.audit`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4928,7 +4936,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/ai_engine.py:290](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L290), `build_router.<locals>.audit_preview`.
+Implementation: [backend/ai_engine.py:290](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L290), `build_router.<locals>.audit_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -4978,7 +4986,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/workspace_settings.py:130](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L130), `build_router.<locals>.accept`.
+Implementation: [backend/workspace_settings.py:130](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L130), `build_router.<locals>.accept`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5028,7 +5036,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:280](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L280), `forgot_password`.
+Implementation: [backend/identity.py:280](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L280), `forgot_password`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5078,7 +5086,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:245](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L245), `logout`.
+Implementation: [backend/identity.py:245](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L245), `logout`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5109,7 +5117,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:223](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L223), `me`.
+Implementation: [backend/identity.py:223](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L223), `me`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5140,7 +5148,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:233](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L233), `update_me`.
+Implementation: [backend/identity.py:233](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L233), `update_me`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5190,7 +5198,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:344](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L344), `register_account`.
+Implementation: [backend/identity.py:344](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L344), `register_account`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5240,7 +5248,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:348](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L348), `verify_account`.
+Implementation: [backend/identity.py:348](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L348), `verify_account`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5290,7 +5298,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:129](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L129), `renew`.
+Implementation: [backend/identity.py:129](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L129), `renew`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `hashlib.sha256(request.headers.get('authorization', '').encode()).hexdigest`, `request.headers.get('authorization', '').encode`, `settings.auth_jwt_secret.get_secret_value`.
@@ -5321,7 +5329,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:309](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L309), `reset_password`.
+Implementation: [backend/identity.py:309](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L309), `reset_password`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5371,7 +5379,7 @@ Documented responses:
 
 Identity/registration/recovery-specific validation and limits.
 
-Implementation: [backend/identity.py:74](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L74), `token`.
+Implementation: [backend/identity.py:74](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L74), `token`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `settings.auth_jwt_secret.get_secret_value`, `settings.auth_jwt_secret.get_secret_value().encode`.
@@ -5421,7 +5429,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:598](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L598), `build_router.<locals>.bulk`.
+Implementation: [backend/automation_freight_engine.py:598](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L598), `build_router.<locals>.bulk`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5454,7 +5462,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:587](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L587), `build_router.<locals>.cargo_weight`.
+Implementation: [backend/automation_freight_engine.py:587](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L587), `build_router.<locals>.cargo_weight`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5504,7 +5512,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:591](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L591), `build_router.<locals>.customs`.
+Implementation: [backend/automation_freight_engine.py:591](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L591), `build_router.<locals>.customs`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5562,7 +5570,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_freight_engine.py:595](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L595), `build_router.<locals>.reconcile`.
+Implementation: [backend/automation_freight_engine.py:595](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L595), `build_router.<locals>.reconcile`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5620,7 +5628,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/card_checkout.py:137](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/card_checkout.py#L137), `build_router.<locals>.create`.
+Implementation: [backend/card_checkout.py:137](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/card_checkout.py#L137), `build_router.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5670,7 +5678,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/card_checkout.py:140](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/card_checkout.py#L140), `build_router.<locals>.complete`.
+Implementation: [backend/card_checkout.py:140](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/card_checkout.py#L140), `build_router.<locals>.complete`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5728,7 +5736,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:354](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L354), `build_router.<locals>.create_checkout`.
+Implementation: [backend/payment_gateway.py:354](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L354), `build_router.<locals>.create_checkout`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_payment_gateway`.
@@ -5780,7 +5788,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/sandbox_hooks.py:284](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/sandbox_hooks.py#L284), `build_router.<locals>.test_topup`.
+Implementation: [backend/sandbox_hooks.py:284](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sandbox_hooks.py#L284), `build_router.<locals>.test_topup`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5830,7 +5838,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:391](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L391), `build_router.<locals>.topup_status`.
+Implementation: [backend/payment_gateway.py:391](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L391), `build_router.<locals>.topup_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5890,7 +5898,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:387](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L387), `build_router.<locals>.reconcile`.
+Implementation: [backend/payment_gateway.py:387](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L387), `build_router.<locals>.reconcile`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5948,7 +5956,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/payment_gateway.py:375](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L375), `build_router.<locals>.activity`.
+Implementation: [backend/payment_gateway.py:375](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L375), `build_router.<locals>.activity`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -5981,7 +5989,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/payment_gateway.py:189](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L189), `snapshot_webhook`.
+Implementation: [backend/payment_gateway.py:189](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L189), `snapshot_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6012,7 +6020,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6117,7 +6125,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6167,7 +6175,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6234,7 +6242,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6301,7 +6309,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6406,7 +6414,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6456,7 +6464,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6523,7 +6531,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6590,7 +6598,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
+Implementation: [backend/tenant_catalogs.py:184](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L184), `build_router.<locals>.routes.<locals>.listing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6695,7 +6703,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
+Implementation: [backend/tenant_catalogs.py:193](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L193), `build_router.<locals>.routes.<locals>.create`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6745,7 +6753,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:225](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L225), `build_router.<locals>.by_sku`.
+Implementation: [backend/tenant_catalogs.py:225](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L225), `build_router.<locals>.by_sku`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6802,7 +6810,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
+Implementation: [backend/tenant_catalogs.py:207](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L207), `build_router.<locals>.routes.<locals>.archive`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6869,7 +6877,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
+Implementation: [backend/tenant_catalogs.py:200](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L200), `build_router.<locals>.routes.<locals>.update`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permission`.
@@ -6936,7 +6944,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:130](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L130), `build_router.<locals>.context`.
+Implementation: [backend/customer_checkout.py:130](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L130), `build_router.<locals>.context`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -6994,7 +7002,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:118](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L118), `build_router.<locals>.hs_search`.
+Implementation: [backend/customer_checkout.py:118](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L118), `build_router.<locals>.hs_search`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7044,7 +7052,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:143](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L143), `build_router.<locals>.prepare`.
+Implementation: [backend/customer_checkout.py:143](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L143), `build_router.<locals>.prepare`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7096,7 +7104,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:220](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L220), `build_router.<locals>.invoice`.
+Implementation: [backend/customer_checkout.py:220](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L220), `build_router.<locals>.invoice`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7154,7 +7162,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/customer_checkout.py:203](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L203), `build_router.<locals>.receipt`.
+Implementation: [backend/customer_checkout.py:203](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L203), `build_router.<locals>.receipt`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7214,7 +7222,7 @@ Documented responses:
 
 Public UI/help/health/config surface; inspect projection.
 
-Implementation: [main.py:2328](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2328), `public_config`.
+Implementation: [main.py:2343](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2343), `public_config`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7245,7 +7253,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/conversational_gateway.py:673](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/conversational_gateway.py#L673), `build_router.<locals>.process_message`.
+Implementation: [backend/agents/conversational_gateway.py:673](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/conversational_gateway.py#L673), `build_router.<locals>.process_message`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -7295,7 +7303,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:411](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L411), `build_router.<locals>.countries`.
+Implementation: [backend/advanced_logistics.py:411](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L411), `build_router.<locals>.countries`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7326,7 +7334,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/hubspot_crm.py:454](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L454), `build_router.<locals>.sync_tenant`.
+Implementation: [backend/hubspot_crm.py:454](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L454), `build_router.<locals>.sync_tenant`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7378,7 +7386,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:186](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L186), `build_router.<locals>.declaration`.
+Implementation: [backend/advanced_logistics.py:186](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L186), `build_router.<locals>.declaration`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7428,7 +7436,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/ai_engine.py:240](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L240), `build_router.<locals>.harmonize`.
+Implementation: [backend/ai_engine.py:240](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L240), `build_router.<locals>.harmonize`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7478,7 +7486,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:157](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L157), `build_router.<locals>.inbox`.
+Implementation: [backend/dispatch_workspace.py:157](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L157), `build_router.<locals>.inbox`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -7536,7 +7544,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:195](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L195), `build_router.<locals>.prepare`.
+Implementation: [backend/dispatch_workspace.py:195](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L195), `build_router.<locals>.prepare`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -7594,7 +7602,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:202](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L202), `build_router.<locals>.save_preparation`.
+Implementation: [backend/dispatch_workspace.py:202](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L202), `build_router.<locals>.save_preparation`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -7661,7 +7669,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:230](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L230), `build_router.<locals>.print_bundle`.
+Implementation: [backend/dispatch_workspace.py:230](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L230), `build_router.<locals>.print_bundle`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -7711,7 +7719,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:215](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L215), `build_router.<locals>.process`.
+Implementation: [backend/dispatch_workspace.py:215](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L215), `build_router.<locals>.process`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -7761,7 +7769,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dispatch_workspace.py:176](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L176), `build_router.<locals>.sync`.
+Implementation: [backend/dispatch_workspace.py:176](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L176), `build_router.<locals>.sync`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -7835,7 +7843,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/manifest_service.py:396](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L396), `build_router.<locals>.close`.
+Implementation: [backend/manifest_service.py:396](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L396), `build_router.<locals>.close`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7887,7 +7895,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/manifest_service.py:392](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L392), `build_router.<locals>.preview`.
+Implementation: [backend/manifest_service.py:392](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L392), `build_router.<locals>.preview`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -7943,7 +7951,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/manifest_service.py:401](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L401), `build_router.<locals>.status`.
+Implementation: [backend/manifest_service.py:401](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L401), `build_router.<locals>.status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8003,7 +8011,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/manifest_service.py:404](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L404), `build_router.<locals>.document`.
+Implementation: [backend/manifest_service.py:404](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L404), `build_router.<locals>.document`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8061,7 +8069,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/manifest_service.py:407](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L407), `build_router.<locals>.download`.
+Implementation: [backend/manifest_service.py:407](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L407), `build_router.<locals>.download`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8128,7 +8136,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:61](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L61), `build_router.<locals>.dispatch_summary`.
+Implementation: [backend/dashboard_portal.py:61](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L61), `build_router.<locals>.dispatch_summary`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8161,7 +8169,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/invoice_upload.py:162](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/invoice_upload.py#L162), `build_router.<locals>.upload`.
+Implementation: [backend/invoice_upload.py:162](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/invoice_upload.py#L162), `build_router.<locals>.upload`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8213,7 +8221,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/invoice_upload.py:225](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/invoice_upload.py#L225), `build_router.<locals>.disputes`.
+Implementation: [backend/invoice_upload.py:225](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/invoice_upload.py#L225), `build_router.<locals>.disputes`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8246,7 +8254,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/agents/routes.py:56](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L56), `build_router.<locals>.search`.
+Implementation: [backend/agents/routes.py:56](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L56), `build_router.<locals>.search`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8296,7 +8304,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:444](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L444), `build_router.<locals>.pull_orders`.
+Implementation: [backend/ecommerce_sync.py:444](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L444), `build_router.<locals>.pull_orders`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8327,7 +8335,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/ecommerce_sync.py:371](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L371), `build_router.<locals>.return_webhook`.
+Implementation: [backend/ecommerce_sync.py:371](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L371), `build_router.<locals>.return_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8385,7 +8393,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:384](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L384), `build_router.<locals>.tracking_events`.
+Implementation: [backend/ecommerce_sync.py:384](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L384), `build_router.<locals>.tracking_events`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8418,7 +8426,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:394](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L394), `build_router.<locals>.reconcile_tracking`.
+Implementation: [backend/ecommerce_sync.py:394](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L394), `build_router.<locals>.reconcile_tracking`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8478,7 +8486,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ecommerce_sync.py:424](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L424), `build_router.<locals>.link_return`.
+Implementation: [backend/ecommerce_sync.py:424](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L424), `build_router.<locals>.link_return`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8547,7 +8555,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/ecommerce_sync.py:376](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L376), `build_router.<locals>.native_webhook`.
+Implementation: [backend/ecommerce_sync.py:376](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L376), `build_router.<locals>.native_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8605,7 +8613,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/ecommerce_inbound.py:182](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_inbound.py#L182), `build_router.<locals>.orders`.
+Implementation: [backend/ecommerce_inbound.py:182](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_inbound.py#L182), `build_router.<locals>.orders`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8663,7 +8671,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/hubspot_provisioning.py:49](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_provisioning.py#L49), `webhook`.
+Implementation: [backend/hubspot_provisioning.py:49](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_provisioning.py#L49), `webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `verify_signature`.
@@ -8694,7 +8702,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/whatsapp_queue.py:314](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_queue.py#L314), `build_media_status_router.<locals>.status`.
+Implementation: [backend/whatsapp_queue.py:314](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_queue.py#L314), `build_media_status_router.<locals>.status`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8751,7 +8759,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/whatsapp_bot.py:86](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_bot.py#L86), `whatsapp_webhook`.
+Implementation: [backend/whatsapp_bot.py:86](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_bot.py#L86), `whatsapp_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8782,7 +8790,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:178](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L178), `build_router.<locals>.cargo_weight`.
+Implementation: [backend/advanced_logistics.py:178](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L178), `build_router.<locals>.cargo_weight`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8832,7 +8840,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/package_guidance.py:159](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/package_guidance.py#L159), `build_router.<locals>.public_guidance`.
+Implementation: [backend/package_guidance.py:159](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_guidance.py#L159), `build_router.<locals>.public_guidance`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8882,7 +8890,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:174](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L174), `build_router.<locals>.weight`.
+Implementation: [backend/advanced_logistics.py:174](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L174), `build_router.<locals>.weight`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -8932,7 +8940,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/dashboard_portal.py:84](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L84), `build_router.<locals>.profile`.
+Implementation: [backend/dashboard_portal.py:84](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L84), `build_router.<locals>.profile`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: `authenticate`, `authenticate_platform_owner`.
@@ -8963,7 +8971,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/tracking_workspace.py:519](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L519), `build_router.<locals>.public_help`.
+Implementation: [backend/tracking_workspace.py:519](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L519), `build_router.<locals>.public_help`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9028,7 +9036,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/tracking_workspace.py:506](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L506), `build_router.<locals>.public_tracking`.
+Implementation: [backend/tracking_workspace.py:506](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L506), `build_router.<locals>.public_tracking`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9080,7 +9088,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:190](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L190), `build_router.<locals>.rates_preview`.
+Implementation: [backend/advanced_logistics.py:190](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L190), `build_router.<locals>.rates_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9132,7 +9140,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:199](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L199), `build_router.<locals>.sample_rates`.
+Implementation: [backend/advanced_logistics.py:199](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L199), `build_router.<locals>.sample_rates`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9184,7 +9192,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/ai_engine.py:247](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L247), `build_router.<locals>.routing`.
+Implementation: [backend/ai_engine.py:247](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L247), `build_router.<locals>.routing`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9250,7 +9258,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:211](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L211), `build_router.<locals>.routing_preview`.
+Implementation: [backend/advanced_logistics.py:211](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L211), `build_router.<locals>.routing_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9316,7 +9324,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:205](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L205), `build_router.<locals>.sample_routing`.
+Implementation: [backend/advanced_logistics.py:205](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L205), `build_router.<locals>.sample_routing`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9382,7 +9390,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:221](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L221), `build_router.<locals>.batch`.
+Implementation: [backend/advanced_logistics.py:221](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L221), `build_router.<locals>.batch`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9415,7 +9423,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:252](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L252), `build_router.<locals>.batch_preview`.
+Implementation: [backend/advanced_logistics.py:252](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L252), `build_router.<locals>.batch_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9446,7 +9454,7 @@ Documented responses:
 
 Preview/configuration guard; not live integration evidence.
 
-Implementation: [backend/advanced_logistics.py:289](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L289), `build_router.<locals>.review_preview`.
+Implementation: [backend/advanced_logistics.py:289](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L289), `build_router.<locals>.review_preview`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9496,7 +9504,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/advanced_logistics.py:285](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L285), `build_router.<locals>.batch_template`.
+Implementation: [backend/advanced_logistics.py:285](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L285), `build_router.<locals>.batch_template`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9554,7 +9562,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:302](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L302), `build_router.<locals>.uploaded_order`.
+Implementation: [backend/advanced_logistics.py:302](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L302), `build_router.<locals>.uploaded_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9614,7 +9622,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:312](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L312), `build_router.<locals>.review_order`.
+Implementation: [backend/advanced_logistics.py:312](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L312), `build_router.<locals>.review_order`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9683,7 +9691,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:141](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L141), `build_router.<locals>.checkout`.
+Implementation: [backend/bulk_checkout.py:141](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L141), `build_router.<locals>.checkout`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -9733,7 +9741,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:145](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L145), `build_router.<locals>.print_bundle`.
+Implementation: [backend/bulk_checkout.py:145](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L145), `build_router.<locals>.print_bundle`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -9783,7 +9791,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:129](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L129), `build_router.<locals>.quote`.
+Implementation: [backend/bulk_checkout.py:129](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L129), `build_router.<locals>.quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -9835,7 +9843,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/bulk_checkout.py:125](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L125), `build_router.<locals>.review`.
+Implementation: [backend/bulk_checkout.py:125](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L125), `build_router.<locals>.review`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `permitted`.
@@ -9885,7 +9893,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:400](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L400), `build_router.<locals>.manifest`.
+Implementation: [backend/advanced_logistics.py:400](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L400), `build_router.<locals>.manifest`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -9918,7 +9926,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:161](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L161), `build_router.<locals>.get_draft`.
+Implementation: [backend/workspace_settings.py:161](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L161), `build_router.<locals>.get_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -9978,7 +9986,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:167](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L167), `build_router.<locals>.save_draft`.
+Implementation: [backend/workspace_settings.py:167](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L167), `build_router.<locals>.save_draft`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10047,7 +10055,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/sandbox_hooks.py:294](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/sandbox_hooks.py#L294), `build_router.<locals>.print_preview`.
+Implementation: [backend/sandbox_hooks.py:294](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sandbox_hooks.py#L294), `build_router.<locals>.print_preview`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `request.app.state.finance.authorize_label_preview`.
@@ -10105,7 +10113,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:379](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L379), `build_router.<locals>.restore_quote`.
+Implementation: [backend/advanced_logistics.py:379](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L379), `build_router.<locals>.restore_quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -10165,7 +10173,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1987](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1987), `build_router.<locals>.claim_status`.
+Implementation: [backend/shipment_protection.py:1987](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1987), `build_router.<locals>.claim_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -10223,7 +10231,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:2039](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L2039), `build_router.<locals>.evidence_download`.
+Implementation: [backend/shipment_protection.py:2039](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L2039), `build_router.<locals>.evidence_download`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -10291,7 +10299,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2132](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2132), `build_router.<locals>.confirm`.
+Implementation: [backend/automation_three_partners.py:2132](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2132), `build_router.<locals>.confirm`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10341,7 +10349,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/shipment_protection.py:2069](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L2069), `build_router.<locals>.insurance_updates`.
+Implementation: [backend/shipment_protection.py:2069](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L2069), `build_router.<locals>.insurance_updates`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10372,7 +10380,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1695](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1695), `build_router.<locals>.insured_list`.
+Implementation: [backend/shipment_protection.py:1695](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1695), `build_router.<locals>.insured_list`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`, `validate_tenant_query`.
@@ -10403,7 +10411,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:591](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L591), `build_native_router.<locals>.native_order_statuses`.
+Implementation: [backend/automation_three_partners.py:591](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L591), `build_native_router.<locals>.native_order_statuses`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `authorize`.
@@ -10434,7 +10442,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:562](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L562), `build_native_router.<locals>.synchronize`.
+Implementation: [backend/automation_three_partners.py:562](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L562), `build_native_router.<locals>.synchronize`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `authorize`.
@@ -10484,7 +10492,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/package_guidance.py:163](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/package_guidance.py#L163), `build_router.<locals>.workspace_check`.
+Implementation: [backend/package_guidance.py:163](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_guidance.py#L163), `build_router.<locals>.workspace_check`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10536,7 +10544,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2149](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2149), `build_router.<locals>.prepare_return`.
+Implementation: [backend/automation_three_partners.py:2149](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2149), `build_router.<locals>.prepare_return`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -10597,7 +10605,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1614](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1614), `build_router.<locals>.protection_quote`.
+Implementation: [backend/shipment_protection.py:1614](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1614), `build_router.<locals>.protection_quote`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10655,7 +10663,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1681](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1681), `build_router.<locals>.prepare_protection`.
+Implementation: [backend/shipment_protection.py:1681](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1681), `build_router.<locals>.prepare_protection`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10709,7 +10717,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/package_guidance.py:137](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/package_guidance.py#L137), `build_router.<locals>.quote_support`.
+Implementation: [backend/package_guidance.py:137](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_guidance.py#L137), `build_router.<locals>.quote_support`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10761,7 +10769,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2145](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2145), `build_router.<locals>.void`.
+Implementation: [backend/automation_three_partners.py:2145](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2145), `build_router.<locals>.void`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10811,7 +10819,7 @@ Documented responses:
 
 Scoped signed return-document capability token.
 
-Implementation: [backend/automation_three_partners.py:2165](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2165), `build_router.<locals>.return_dropoff`.
+Implementation: [backend/automation_three_partners.py:2165](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2165), `build_router.<locals>.return_dropoff`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10868,7 +10876,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2158](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2158), `build_router.<locals>.return_status`.
+Implementation: [backend/automation_three_partners.py:2158](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2158), `build_router.<locals>.return_status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `validate_tenant_query`.
@@ -10926,7 +10934,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/return_review.py:325](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L325), `build_router.<locals>.document`.
+Implementation: [backend/return_review.py:325](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L325), `build_router.<locals>.document`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -10983,7 +10991,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/return_review.py:313](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L313), `build_router.<locals>.review`.
+Implementation: [backend/return_review.py:313](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L313), `build_router.<locals>.review`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11033,7 +11041,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/return_review.py:321](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L321), `build_router.<locals>.status`.
+Implementation: [backend/return_review.py:321](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L321), `build_router.<locals>.status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11091,7 +11099,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/return_review.py:317](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L317), `build_router.<locals>.select`.
+Implementation: [backend/return_review.py:317](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L317), `build_router.<locals>.select`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11158,7 +11166,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/return_review.py:309](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L309), `build_router.<locals>.context`.
+Implementation: [backend/return_review.py:309](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L309), `build_router.<locals>.context`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11216,7 +11224,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_protection.py:1738](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1738), `build_router.<locals>.submit_claim`.
+Implementation: [backend/shipment_protection.py:1738](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1738), `build_router.<locals>.submit_claim`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: `require_claim_role`.
@@ -11247,7 +11255,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/automation_three_partners.py:492](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L492), `build_native_router.<locals>.tracking_webhooks`.
+Implementation: [backend/automation_three_partners.py:492](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L492), `build_native_router.<locals>.tracking_webhooks`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11278,7 +11286,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/automation_three_partners.py:2174](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2174), `build_router.<locals>.document`.
+Implementation: [backend/automation_three_partners.py:2174](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2174), `build_router.<locals>.document`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11345,7 +11353,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/shipment_notifications.py:166](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L166), `build_router.<locals>.status`.
+Implementation: [backend/shipment_notifications.py:166](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L166), `build_router.<locals>.status`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11403,7 +11411,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:194](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L194), `build_router.<locals>.client_tickets`.
+Implementation: [backend/dashboard_portal.py:194](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L194), `build_router.<locals>.client_tickets`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11434,7 +11442,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:202](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L202), `build_router.<locals>.intervene`.
+Implementation: [backend/dashboard_portal.py:202](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L202), `build_router.<locals>.intervene`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11503,7 +11511,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:213](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L213), `build_router.<locals>.resolve`.
+Implementation: [backend/dashboard_portal.py:213](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L213), `build_router.<locals>.resolve`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11563,7 +11571,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/support_delivery.py:151](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_delivery.py#L151), `build_router.<locals>.consent`.
+Implementation: [backend/support_delivery.py:151](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L151), `build_router.<locals>.consent`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11615,7 +11623,7 @@ Documented responses:
 
 Handler/service validation; declared dependencies are not the full security policy.
 
-Implementation: [backend/support_delivery.py:148](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_delivery.py#L148), `build_router.<locals>.status`.
+Implementation: [backend/support_delivery.py:148](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L148), `build_router.<locals>.status`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11673,7 +11681,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:610](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L610), `build_router.<locals>.capabilities`.
+Implementation: [backend/tracking_workspace.py:610](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L610), `build_router.<locals>.capabilities`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11704,7 +11712,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:551](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L551), `build_router.<locals>.notifications`.
+Implementation: [backend/tracking_workspace.py:551](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L551), `build_router.<locals>.notifications`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11735,7 +11743,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:531](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L531), `build_router.<locals>.get_preferences`.
+Implementation: [backend/tracking_workspace.py:531](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L531), `build_router.<locals>.get_preferences`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11766,7 +11774,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:539](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L539), `build_router.<locals>.put_preferences`.
+Implementation: [backend/tracking_workspace.py:539](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L539), `build_router.<locals>.put_preferences`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11818,7 +11826,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:487](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L487), `build_router.<locals>.revoke`.
+Implementation: [backend/tracking_workspace.py:487](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L487), `build_router.<locals>.revoke`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -11876,7 +11884,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:464](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L464), `build_router.<locals>.shipments`.
+Implementation: [backend/tracking_workspace.py:464](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L464), `build_router.<locals>.shipments`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12012,7 +12020,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:475](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L475), `build_router.<locals>.detail`.
+Implementation: [backend/tracking_workspace.py:475](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L475), `build_router.<locals>.detail`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12070,7 +12078,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:581](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L581), `build_router.<locals>.refresh`.
+Implementation: [backend/tracking_workspace.py:581](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L581), `build_router.<locals>.refresh`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12128,7 +12136,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:573](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L573), `build_router.<locals>.review`.
+Implementation: [backend/tracking_workspace.py:573](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L573), `build_router.<locals>.review`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12195,7 +12203,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:483](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L483), `build_router.<locals>.share`.
+Implementation: [backend/tracking_workspace.py:483](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L483), `build_router.<locals>.share`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12262,7 +12270,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/tracking_workspace.py:498](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L498), `build_router.<locals>.shares`.
+Implementation: [backend/tracking_workspace.py:498](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L498), `build_router.<locals>.shares`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12320,7 +12328,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [backend/tracking_and_support.py:352](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_and_support.py#L352), `build_router.<locals>.webhook`.
+Implementation: [backend/tracking_and_support.py:352](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_and_support.py#L352), `build_router.<locals>.webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12351,7 +12359,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/advanced_logistics.py:416](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L416), `build_router.<locals>.wallet`.
+Implementation: [backend/advanced_logistics.py:416](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L416), `build_router.<locals>.wallet`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12384,7 +12392,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:95](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L95), `build_router.<locals>.invite`.
+Implementation: [backend/workspace_settings.py:95](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L95), `build_router.<locals>.invite`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12434,7 +12442,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:123](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L123), `build_router.<locals>.cancel`.
+Implementation: [backend/workspace_settings.py:123](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L123), `build_router.<locals>.cancel`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12492,7 +12500,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:112](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L112), `build_router.<locals>.resend`.
+Implementation: [backend/workspace_settings.py:112](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L112), `build_router.<locals>.resend`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12550,7 +12558,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:71](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L71), `build_router.<locals>.settings`.
+Implementation: [backend/workspace_settings.py:71](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L71), `build_router.<locals>.settings`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12581,7 +12589,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:79](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L79), `build_router.<locals>.company`.
+Implementation: [backend/workspace_settings.py:79](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L79), `build_router.<locals>.company`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12631,7 +12639,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:37](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L37), `build_router.<locals>.stores`.
+Implementation: [backend/dashboard_portal.py:37](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L37), `build_router.<locals>.stores`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12664,7 +12672,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:46](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L46), `build_router.<locals>.create_store`.
+Implementation: [backend/dashboard_portal.py:46](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L46), `build_router.<locals>.create_store`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12716,7 +12724,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:53](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L53), `build_router.<locals>.store_state`.
+Implementation: [backend/dashboard_portal.py:53](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L53), `build_router.<locals>.store_state`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12785,7 +12793,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:79](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L79), `build_router.<locals>.read`.
+Implementation: [backend/store_connections.py:79](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L79), `build_router.<locals>.read`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12843,7 +12851,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:87](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L87), `build_router.<locals>.save`.
+Implementation: [backend/store_connections.py:87](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L87), `build_router.<locals>.save`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12910,7 +12918,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:152](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L152), `build_router.<locals>.notifications`.
+Implementation: [backend/store_connections.py:152](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L152), `build_router.<locals>.notifications`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -12968,7 +12976,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/store_connections.py:161](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L161), `build_router.<locals>.retry`.
+Implementation: [backend/store_connections.py:161](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L161), `build_router.<locals>.retry`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13036,7 +13044,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/dashboard_portal.py:68](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L68), `build_router.<locals>.add_member`.
+Implementation: [backend/dashboard_portal.py:68](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L68), `build_router.<locals>.add_member`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13088,7 +13096,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [backend/workspace_settings.py:85](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L85), `build_router.<locals>.member`.
+Implementation: [backend/workspace_settings.py:85](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L85), `build_router.<locals>.member`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13155,7 +13163,7 @@ Documented responses:
 
 Public UI/help/health/config surface; inspect projection.
 
-Implementation: [main.py:2295](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2295), `health`.
+Implementation: [main.py:2295](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2295), `health`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13192,7 +13200,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2376](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2376), `get_rates`.
+Implementation: [main.py:2391](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2391), `get_rates`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13246,7 +13254,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2454](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2454), `create_wallet_topup`.
+Implementation: [main.py:2469](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2469), `create_wallet_topup`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13300,7 +13308,7 @@ Documented responses:
 
 Authenticated workspace dependency; endpoint/helper role and tenant guards apply.
 
-Implementation: [main.py:2527](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2527), `resolve_quote_choice`.
+Implementation: [main.py:2542](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2542), `resolve_quote_choice`.
 
 Declared dependencies: `HTTPBearer`, `authenticate`.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13363,7 +13371,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [main.py:2475](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2475), `stripe_webhook`.
+Implementation: [main.py:2490](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2490), `stripe_webhook`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13400,7 +13408,7 @@ Documented responses:
 
 Callback-specific signature/identity/tenant checks in handler and service.
 
-Implementation: [main.py:2521](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2521), `inbound_whatsapp`.
+Implementation: [main.py:2536](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2536), `inbound_whatsapp`.
 
 Declared dependencies: none.
 Guard/helper calls in handler: follow linked implementation and service.
@@ -13430,7 +13438,7 @@ Documented responses:
 
 `/api/v1/dispatch-workspace/live` requires an approved Origin, rejects URL query tokens, and expects the first JSON message within ten seconds to contain access_token. Assistance adds assistance_session_id when applicable. It applies normal authentication and revalidates membership while sending events. Messages include refresh_required, shipment_changed and heartbeat. A bounded queue overflow or listener reconnect requires HTTP refresh. The broker enforces a maximum of 100 sockets; these are notifications, not booking or wallet commands.
 
-- `/api/v1/dispatch-workspace/live` — [backend/dispatch_realtime.py:56](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_realtime.py#L56).
+- `/api/v1/dispatch-workspace/live` — [backend/dispatch_realtime.py:56](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_realtime.py#L56).
 
 ## Routes excluded from OpenAPI
 
@@ -13457,6 +13465,14 @@ Documented responses:
 | GET | `/tracking-ui.css` | `tracking_asset` |
 | GET | `/tracking-public.js` | `tracking_asset` |
 | GET | `/tracking-workspace.js` | `tracking_asset` |
+| GET | `/site.webmanifest` | `brand_asset` |
+| GET | `/app-icon-512.png` | `brand_asset` |
+| GET | `/app-icon-192.png` | `brand_asset` |
+| GET | `/apple-touch-icon.png` | `brand_asset` |
+| GET | `/favicon-32.png` | `brand_asset` |
+| GET | `/favicon.svg` | `brand_asset` |
+| GET | `/brand.css` | `brand_asset` |
+| GET | `/brand-mark.svg` | `brand_asset` |
 | GET | `/help/` | `support_hub` |
 | GET | `/help` | `support_hub` |
 | GET | `/help/assets/{asset}` | `support_asset` |
@@ -19534,135 +19550,135 @@ Source declarations below are not private environment values or active settings.
 
 | Environment name | Owner/field | Type | Source default or constraints | Source |
 | --- | --- | --- | --- | --- |
-| `SENDCLOUD_METHODS` | `Settings.sendcloud_methods` | `dict[UUID, list[SendcloudMethod]]` | `Field(default_factory=dict)` | [main.py:127](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L127) |
-| `SUPABASE_URL` | `Settings.supabase_url` | `str` | `required` | [main.py:132](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L132) |
-| `SUPABASE_PUBLISHABLE_KEY` | `Settings.supabase_publishable_key` | `SecretStr` | `required` | [main.py:133](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L133) |
-| `SUPABASE_SERVICE_ROLE_KEY` | `Settings.supabase_service_role_key` | `SecretStr` | `required` | [main.py:134](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L134) |
-| `DATABASE_URL` | `Settings.database_url` | `SecretStr` | `required` | [main.py:135](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L135) |
-| `DATABASE_CA_FILE` | `Settings.database_ca_file` | `str &#124; None` | `None` | [main.py:136](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L136) |
-| `DATABASE_TLS_STRICT` | `Settings.database_tls_strict` | `bool` | `True` | [main.py:137](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L137) |
-| `RUNTIME_ROLE` | `Settings.runtime_role` | `RuntimeRole` | `'AUTO'` | [main.py:138](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L138) |
-| `WORKER_DB_POOL_MAX_SIZE` | `Settings.worker_db_pool_max_size` | `int` | `Field(default=8, ge=4, le=20)` | [main.py:139](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L139) |
-| `AUTOMATION_PURCHASE_ENABLED` | `Settings.automation_purchase_enabled` | `bool` | `False` | [main.py:140](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L140) |
-| `PARTNER_DOCUMENT_ALLOWED_HOSTS` | `Settings.partner_document_allowed_hosts` | `list[str]` | `['easypost-files.s3.amazonaws.com', 'easypost-files.s3.us-west-2.amazonaws.com', 'deliver.goshippo.com', 'shippo-delivery.s3.amazonaws.com', 'panel.sendcloud.sc']` | [main.py:141](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L141) |
-| `FREIGHT_KG_PER_M3` | `Settings.freight_kg_per_m3` | `Decimal` | `Field(default=Decimal('333'), gt=0, le=10000)` | [main.py:143](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L143) |
-| `FREIGHT_KG_PER_LOADING_METRE` | `Settings.freight_kg_per_loading_metre` | `Decimal` | `Field(default=Decimal('1750'), gt=0, le=30000)` | [main.py:144](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L144) |
-| `FREIGHT_DECK_WIDTH_M` | `Settings.freight_deck_width_m` | `Decimal` | `Field(default=Decimal('2.4'), gt=0, le=5)` | [main.py:145](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L145) |
-| `JWT_ALGORITHM` | `Settings.jwt_algorithm` | `Literal['ES256', 'RS256']` | `'ES256'` | [main.py:146](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L146) |
-| `JWT_AUDIENCE` | `Settings.jwt_audience` | `str` | `'authenticated'` | [main.py:147](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L147) |
-| `CREDENTIAL_KEYS` | `Settings.credential_keys` | `dict[str, SecretStr]` | `Field(default_factory=dict)` | [main.py:148](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L148) |
-| `REGIONAL_ALLOWED_ORIGINS` | `Settings.regional_allowed_origins` | `list[str]` | `Field(min_length=1)` | [main.py:149](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L149) |
-| `PROVIDER_ENVIRONMENT` | `Settings.provider_environment` | `Literal['TEST', 'LIVE']` | `'TEST'` | [main.py:150](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L150) |
-| `PROVIDER_DEADLINE_SECONDS` | `Settings.provider_deadline_seconds` | `int` | `Field(default=35, ge=5, le=120)` | [main.py:151](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L151) |
-| `MAX_PARALLEL_PROVIDER_REQUESTS` | `Settings.max_parallel_provider_requests` | `int` | `Field(default=20, ge=1, le=100)` | [main.py:152](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L152) |
-| `MAX_ACCOUNTS_PER_TENANT` | `Settings.max_accounts_per_tenant` | `int` | `Field(default=8, ge=2, le=30)` | [main.py:153](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L153) |
-| `QUOTE_TTL_SECONDS` | `Settings.quote_ttl_seconds` | `int` | `Field(default=300, ge=30, le=900)` | [main.py:154](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L154) |
-| `DB_POOL_MAX_SIZE` | `Settings.db_pool_max_size` | `int` | `Field(default=10, ge=2, le=50)` | [main.py:155](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L155) |
-| `PLATFORM_ADMIN_USER_IDS` | `Settings.platform_admin_user_ids` | `list[UUID]` | `Field(default_factory=list)` | [main.py:156](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L156) |
-| `DATABASE_ENVIRONMENT` | `Settings.database_environment` | `Literal['SANDBOX', 'LIVE']` | `'LIVE'` | [main.py:157](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L157) |
-| `SANDBOX_HOOKS_ENABLED` | `Settings.sandbox_hooks_enabled` | `bool` | `False` | [main.py:158](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L158) |
-| `AUTH_JWT_SECRET` | `Settings.auth_jwt_secret` | `SecretStr` | `SecretStr('')` | [main.py:160](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L160) |
-| `AUTH_RECOVERY_REDIRECT_URL` | `Settings.auth_recovery_redirect_url` | `str` | `'http://127.0.0.1:8000/'` | [main.py:161](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L161) |
-| `STRIPE_ENABLED` | `Settings.stripe_enabled` | `bool` | `False` | [main.py:162](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L162) |
-| `STRIPE_SECRET_KEY` | `Settings.stripe_secret_key` | `SecretStr` | `SecretStr('')` | [main.py:163](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L163) |
-| `STRIPE_WEBHOOK_SECRET` | `Settings.stripe_webhook_secret` | `SecretStr` | `SecretStr('')` | [main.py:164](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L164) |
-| `STRIPE_LIVEMODE` | `Settings.stripe_livemode` | `bool` | `False` | [main.py:165](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L165) |
-| `CHECKOUT_SUCCESS_URL` | `Settings.checkout_success_url` | `str` | `''` | [main.py:166](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L166) |
-| `CHECKOUT_CANCEL_URL` | `Settings.checkout_cancel_url` | `str` | `''` | [main.py:167](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L167) |
-| `WHATSAPP_BRAND_NAME` | `Settings.whatsapp_brand_name` | `str` | `Field(default='EasyInvio.com', min_length=1, max_length=80)` | [main.py:169](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L169) |
-| `TWILIO_ENABLED` | `Settings.twilio_enabled` | `bool` | `False` | [main.py:170](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L170) |
-| `WHATSAPP_ONBOARDING_ENABLED` | `Settings.whatsapp_onboarding_enabled` | `bool` | `False` | [main.py:171](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L171) |
-| `WHATSAPP_ONBOARDING_DAILY_LIMIT` | `Settings.whatsapp_onboarding_daily_limit` | `int` | `Field(default=100, ge=1, le=10000)` | [main.py:172](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L172) |
-| `TWILIO_ACCOUNT_SID` | `Settings.twilio_account_sid` | `str` | `''` | [main.py:173](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L173) |
-| `TWILIO_AUTH_TOKEN` | `Settings.twilio_auth_token` | `SecretStr` | `SecretStr('')` | [main.py:174](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L174) |
-| `TWILIO_WHATSAPP_NUMBER` | `Settings.twilio_whatsapp_number` | `str` | `''` | [main.py:175](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L175) |
-| `TWILIO_WHATSAPP_SANDBOX_ENABLED` | `Settings.twilio_whatsapp_sandbox_enabled` | `bool` | `False` | [main.py:176](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L176) |
-| `TWILIO_WEBHOOK_URL` | `Settings.twilio_webhook_url` | `str` | `''` | [main.py:177](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L177) |
-| `WHATSAPP_QUEUE_WORKERS` | `Settings.whatsapp_queue_workers` | `int` | `Field(default=2, ge=1, le=8)` | [main.py:178](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L178) |
-| `IDEAL_POSTCODES_API_KEY` | `Settings.ideal_postcodes_api_key` | `SecretStr` | `SecretStr('')` | [main.py:179](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L179) |
-| `LOGISTICS_MEDIA_BUCKET` | `Settings.logistics_media_bucket` | `str` | `'easyinvio-logistics'` | [main.py:180](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L180) |
-| `TRACKING_POLLING_ENABLED` | `Settings.tracking_polling_enabled` | `bool` | `False` | [main.py:181](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L181) |
-| `BOOKING_PAGE_URL` | `Settings.booking_page_url` | `str` | `''` | [main.py:182](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L182) |
-| `QUOTE_LINK_SECRET` | `Settings.quote_link_secret` | `SecretStr` | `SecretStr('')` | [main.py:183](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L183) |
-| `WHATSAPP_DEADLINE_SECONDS` | `Settings.whatsapp_deadline_seconds` | `int` | `Field(default=12, ge=5, le=12)` | [main.py:184](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L184) |
-| `WHATSAPP_PROVIDER_SECONDS` | `Settings.whatsapp_provider_seconds` | `int` | `Field(default=7, ge=1, le=8)` | [main.py:185](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L185) |
-| `LOGISTICS_AGENTS_ENABLED` | `AgentSettings.logistics_agents_enabled` | `bool` | `False` | [backend/agents/config.py:7](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L7) |
-| `OPENAI_API_KEY` | `AgentSettings.openai_api_key` | `SecretStr` | `SecretStr('')` | [backend/agents/config.py:8](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L8) |
-| `LOGISTICS_AGENT_MODEL` | `AgentSettings.logistics_agent_model` | `str` | `'gpt-4o-mini'` | [backend/agents/config.py:9](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L9) |
-| `LOGISTICS_EMBEDDING_MODEL` | `AgentSettings.logistics_embedding_model` | `str` | `'text-embedding-3-small'` | [backend/agents/config.py:10](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L10) |
-| `LOGISTICS_HELP_TIMEOUT_SECONDS` | `AgentSettings.logistics_help_timeout_seconds` | `float` | `Field(default=15, ge=3, le=30)` | [backend/agents/config.py:11](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L11) |
-| `LOGISTICS_HELP_OUTPUT_TOKENS` | `AgentSettings.logistics_help_output_tokens` | `int` | `Field(default=1600, ge=600, le=3000)` | [backend/agents/config.py:12](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L12) |
-| `LOGISTICS_HELP_WEB_SEARCH_ENABLED` | `AgentSettings.logistics_help_web_search_enabled` | `bool` | `True` | [backend/agents/config.py:13](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L13) |
-| `LOGISTICS_WEB_SEARCH_MODEL` | `AgentSettings.logistics_web_search_model` | `str` | `'gpt-4.1-mini'` | [backend/agents/config.py:14](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L14) |
-| `LOGISTICS_AGENT_TIMEOUT_SECONDS` | `AgentSettings.logistics_agent_timeout_seconds` | `float` | `Field(default=6, ge=1, le=20)` | [backend/agents/config.py:15](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L15) |
-| `LOGISTICS_AGENT_CONCURRENCY` | `AgentSettings.logistics_agent_concurrency` | `int` | `Field(default=4, ge=1, le=16)` | [backend/agents/config.py:16](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L16) |
-| `LOGISTICS_AGENT_OUTPUT_TOKENS` | `AgentSettings.logistics_agent_output_tokens` | `int` | `Field(default=600, ge=128, le=1200)` | [backend/agents/config.py:17](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L17) |
-| `LOGISTICS_AGENT_TOKENS_PER_MINUTE` | `AgentSettings.logistics_agent_tokens_per_minute` | `int` | `Field(default=100000, ge=10000, le=1000000)` | [backend/agents/config.py:18](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L18) |
-| `LOGISTICS_AGENT_REQUESTS_PER_MINUTE` | `AgentSettings.logistics_agent_requests_per_minute` | `int` | `Field(default=20, ge=1, le=100)` | [backend/agents/config.py:19](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L19) |
-| `LOGISTICS_AGENT_CACHE_ENTRIES` | `AgentSettings.logistics_agent_cache_entries` | `int` | `Field(default=256, ge=16, le=2000)` | [backend/agents/config.py:20](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L20) |
-| `CARRIER_PDF_HOSTS` | `PrintSettings.carrier_pdf_hosts` | `list[str]` | `Field(default_factory=list)` | [backend/dispatch_pdf.py:28](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_pdf.py#L28) |
-| `ECOMMERCE_CONNECTORS` | `StoreConnectorSettings.ecommerce_connectors` | `dict[UUID, StoreConnector]` | `Field(default_factory=dict)` | [backend/ecommerce_connectors.py:85](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_connectors.py#L85) |
-| `EMAIL_DELIVERY_PROVIDER` | `EmailDeliverySettings.email_delivery_provider` | `Literal['HOSTINGER_SMTP', 'SENDGRID']` | `'HOSTINGER_SMTP'` | [backend/email_delivery.py:25](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/email_delivery.py#L25) |
-| `SMTP_HOST` | `EmailDeliverySettings.smtp_host` | `str` | `'smtp.hostinger.com'` | [backend/email_delivery.py:26](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/email_delivery.py#L26) |
-| `SMTP_PORT` | `EmailDeliverySettings.smtp_port` | `Literal[465, 587]` | `465` | [backend/email_delivery.py:27](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/email_delivery.py#L27) |
-| `SMTP_USERNAME` | `EmailDeliverySettings.smtp_username` | `str` | `''` | [backend/email_delivery.py:28](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/email_delivery.py#L28) |
-| `SMTP_PASSWORD` | `EmailDeliverySettings.smtp_password` | `SecretStr` | `SecretStr('')` | [backend/email_delivery.py:29](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/email_delivery.py#L29) |
-| `SMTP_TIMEOUT_SECONDS` | `EmailDeliverySettings.smtp_timeout_seconds` | `int` | `Field(default=10, ge=1, le=15)` | [backend/email_delivery.py:30](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/email_delivery.py#L30) |
-| `HUBSPOT_ENABLED` | `HubSpotSettings.hubspot_enabled` | `bool` | `False` | [backend/hubspot_crm.py:32](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L32) |
-| `HUBSPOT_ACCESS_TOKEN` | `HubSpotSettings.hubspot_access_token` | `SecretStr &#124; None` | `None` | [backend/hubspot_crm.py:33](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L33) |
-| `HUBSPOT_EXPECTED_PORTAL_ID` | `HubSpotSettings.hubspot_expected_portal_id` | `int &#124; None` | `Field(default=None, ge=1)` | [backend/hubspot_crm.py:34](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L34) |
-| `HUBSPOT_ENVIRONMENT` | `HubSpotSettings.hubspot_environment` | `str` | `Field(default='SANDBOX', pattern='^(SANDBOX&#124;PRODUCTION)$')` | [backend/hubspot_crm.py:35](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L35) |
-| `HUBSPOT_PROVISIONING_ENABLED` | `HubSpotSettings.hubspot_provisioning_enabled` | `bool` | `False` | [backend/hubspot_crm.py:36](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L36) |
-| `HUBSPOT_WEBHOOK_CLIENT_SECRET` | `HubSpotSettings.hubspot_webhook_client_secret` | `SecretStr &#124; None` | `None` | [backend/hubspot_crm.py:37](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L37) |
-| `HUBSPOT_WEBHOOK_URL` | `HubSpotSettings.hubspot_webhook_url` | `str` | `''` | [backend/hubspot_crm.py:38](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L38) |
-| `HUBSPOT_WEBHOOK_APP_ID` | `HubSpotSettings.hubspot_webhook_app_id` | `int &#124; None` | `Field(default=None, ge=1)` | [backend/hubspot_crm.py:39](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L39) |
-| `HUBSPOT_CLOSED_WON_STAGE_IDS` | `HubSpotSettings.hubspot_closed_won_stage_ids` | `list[str]` | `Field(default_factory=lambda: ['closedwon'])` | [backend/hubspot_crm.py:40](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L40) |
-| `HUBSPOT_UPSELL_ENABLED` | `HubSpotSettings.hubspot_upsell_enabled` | `bool` | `False` | [backend/hubspot_crm.py:41](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L41) |
-| `HUBSPOT_UPSELL_PIPELINE_ID` | `HubSpotSettings.hubspot_upsell_pipeline_id` | `str` | `''` | [backend/hubspot_crm.py:42](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L42) |
-| `HUBSPOT_UPSELL_STAGE_ID` | `HubSpotSettings.hubspot_upsell_stage_id` | `str` | `''` | [backend/hubspot_crm.py:43](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L43) |
-| `INTEGRATION_EASYPOST_ENABLED` | `IntegrationSettings.integration_easypost_enabled` | `bool` | `True` | [backend/integration_policy.py:13](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/integration_policy.py#L13) |
-| `INTEGRATION_SENDCLOUD_ENABLED` | `IntegrationSettings.integration_sendcloud_enabled` | `bool` | `True` | [backend/integration_policy.py:14](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/integration_policy.py#L14) |
-| `INTEGRATION_SHIPPO_ENABLED` | `IntegrationSettings.integration_shippo_enabled` | `bool` | `True` | [backend/integration_policy.py:15](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/integration_policy.py#L15) |
-| `INTEGRATION_REGIONAL_ENABLED` | `IntegrationSettings.integration_regional_enabled` | `bool` | `True` | [backend/integration_policy.py:16](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/integration_policy.py#L16) |
-| `INTEGRATION_ROYAL_MAIL_ENABLED` | `IntegrationSettings.integration_royal_mail_enabled` | `bool` | `False` | [backend/integration_policy.py:17](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/integration_policy.py#L17) |
-| `INTEGRATION_EVRI_ENABLED` | `IntegrationSettings.integration_evri_enabled` | `bool` | `False` | [backend/integration_policy.py:18](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/integration_policy.py#L18) |
-| `RETURN_EMAIL_ENABLED` | `ReturnDeliverySettings.return_email_enabled` | `bool` | `False` | [backend/return_delivery.py:26](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_delivery.py#L26) |
-| `RETURN_SENDGRID_API_KEY` | `ReturnDeliverySettings.return_sendgrid_api_key` | `SecretStr` | `SecretStr('')` | [backend/return_delivery.py:27](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_delivery.py#L27) |
-| `RETURN_EMAIL_FROM` | `ReturnDeliverySettings.return_email_from` | `str` | `'operations@easyinvio.com'` | [backend/return_delivery.py:28](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_delivery.py#L28) |
-| `RETURN_WHATSAPP_ENABLED` | `ReturnDeliverySettings.return_whatsapp_enabled` | `bool` | `False` | [backend/return_delivery.py:29](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_delivery.py#L29) |
-| `RETURN_WHATSAPP_CONTENT_SID` | `ReturnDeliverySettings.return_whatsapp_content_sid` | `str` | `''` | [backend/return_delivery.py:30](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_delivery.py#L30) |
-| `RETURN_WHATSAPP_MESSAGING_SERVICE_SID` | `ReturnDeliverySettings.return_whatsapp_messaging_service_sid` | `str` | `''` | [backend/return_delivery.py:31](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_delivery.py#L31) |
-| `SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED` | `ShipmentNotificationSettings.shipment_email_notifications_enabled` | `bool` | `False` | [backend/shipment_notifications.py:28](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L28) |
-| `SHIPMENT_SENDGRID_API_KEY` | `ShipmentNotificationSettings.shipment_sendgrid_api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_notifications.py:29](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L29) |
-| `SHIPMENT_EMAIL_FROM` | `ShipmentNotificationSettings.shipment_email_from` | `str` | `'operations@easyinvio.com'` | [backend/shipment_notifications.py:30](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L30) |
-| `SHIPMENT_WHATSAPP_NOTIFICATIONS_ENABLED` | `ShipmentNotificationSettings.shipment_whatsapp_notifications_enabled` | `bool` | `False` | [backend/shipment_notifications.py:31](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L31) |
-| `SHIPMENT_WHATSAPP_CONTENT_SID` | `ShipmentNotificationSettings.shipment_whatsapp_content_sid` | `str` | `''` | [backend/shipment_notifications.py:32](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L32) |
-| `SHIPMENT_NOTIFICATION_TEST_RECIPIENTS` | `ShipmentNotificationSettings.shipment_notification_test_recipients` | `list[str]` | `Field(default_factory=list, max_length=100)` | [backend/shipment_notifications.py:33](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L33) |
-| `XCOVER_ENABLED` | `XCoverSettings.enabled` | `bool` | `False` | [backend/shipment_protection.py:91](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L91) |
-| `XCOVER_ENVIRONMENT` | `XCoverSettings.environment` | `Literal['TEST', 'LIVE']` | `'TEST'` | [backend/shipment_protection.py:92](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L92) |
-| `XCOVER_PARTNER_ID` | `XCoverSettings.partner_id` | `str` | `''` | [backend/shipment_protection.py:93](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L93) |
-| `XCOVER_API_KEY` | `XCoverSettings.api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:94](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L94) |
-| `XCOVER_SIGNING_SECRET` | `XCoverSettings.signing_secret` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:95](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L95) |
-| `XCOVER_PARCEL_CONTRACT_VERIFIED` | `XCoverSettings.parcel_contract_verified` | `bool` | `False` | [backend/shipment_protection.py:96](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L96) |
-| `XCOVER_RETAIL_PRICING_VERIFIED` | `XCoverSettings.retail_pricing_verified` | `bool` | `False` | [backend/shipment_protection.py:97](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L97) |
-| `XCOVER_CLAIMS_ENABLED` | `XCoverSettings.claims_enabled` | `bool` | `False` | [backend/shipment_protection.py:98](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L98) |
-| `XCOVER_CLAIMS_PARTNER_CODE` | `XCoverSettings.claims_partner_code` | `str` | `''` | [backend/shipment_protection.py:99](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L99) |
-| `XCOVER_CLAIMS_API_KEY` | `XCoverSettings.claims_api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:100](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L100) |
-| `XCOVER_CLAIMS_API_PASSWORD` | `XCoverSettings.claims_api_password` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:101](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L101) |
-| `XCOVER_CLAIMS_WEBHOOK_SECRET` | `XCoverSettings.claims_webhook_secret` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:102](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L102) |
-| `XCOVER_CLAIMS_WEBHOOK_URL` | `XCoverSettings.claims_webhook_url` | `str` | `''` | [backend/shipment_protection.py:103](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L103) |
-| `XCOVER_CLAIMS_LIVE_API_ORIGIN` | `XCoverSettings.claims_live_api_origin` | `str` | `''` | [backend/shipment_protection.py:104](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L104) |
-| `XCOVER_CLAIMS_FNOL_BINDINGS` | `XCoverSettings.claims_fnol_bindings` | `dict[str, dict[str, str]]` | `Field(default_factory=dict)` | [backend/shipment_protection.py:105](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L105) |
-| `XCOVER_CLAIMS_SETTLEMENT_MAPPING` | `XCoverSettings.claims_settlement_mapping` | `dict[str, str]` | `Field(default_factory=dict)` | [backend/shipment_protection.py:106](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L106) |
-| `XCOVER_CLAIMS_MASTER_PAYEE_ID` | `XCoverSettings.claims_master_payee_id` | `str` | `''` | [backend/shipment_protection.py:107](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L107) |
-| `SUPPORT_WHATSAPP_ENABLED` | `DeliverySettings.support_whatsapp_enabled` | `bool` | `False` | [backend/support_delivery.py:26](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_delivery.py#L26) |
-| `SUPPORT_WHATSAPP_CONTENT_SID` | `DeliverySettings.support_whatsapp_content_sid` | `str` | `''` | [backend/support_delivery.py:27](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_delivery.py#L27) |
-| `SUPPORT_WHATSAPP_STATUS_URL` | `DeliverySettings.support_whatsapp_status_url` | `str` | `''` | [backend/support_delivery.py:29](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_delivery.py#L29) |
-| `TRACKING_WEBHOOK_KEYS` | `TrackingSettings.tracking_webhook_keys` | `dict[str, TrackingKey]` | `Field(default_factory=dict)` | [backend/tracking_and_support.py:53](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_and_support.py#L53) |
-| `TWILIO_ACCOUNT_SID` | `WhatsAppConfiguration.twilio_account_sid` | `str` | `''` | [backend/whatsapp_bot.py:22](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_bot.py#L22) |
-| `TWILIO_AUTH_TOKEN` | `WhatsAppConfiguration.twilio_auth_token` | `SecretStr` | `SecretStr('')` | [backend/whatsapp_bot.py:23](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_bot.py#L23) |
-| `TWILIO_WHATSAPP_NUMBER` | `WhatsAppConfiguration.twilio_whatsapp_number` | `str` | `''` | [backend/whatsapp_bot.py:24](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_bot.py#L24) |
-| `WHATSAPP_BRAND_NAME` | `WhatsAppConfiguration.whatsapp_brand_name` | `str` | `'EasyInvio.com'` | [backend/whatsapp_bot.py:25](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_bot.py#L25) |
+| `SENDCLOUD_METHODS` | `Settings.sendcloud_methods` | `dict[UUID, list[SendcloudMethod]]` | `Field(default_factory=dict)` | [main.py:127](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L127) |
+| `SUPABASE_URL` | `Settings.supabase_url` | `str` | `required` | [main.py:132](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L132) |
+| `SUPABASE_PUBLISHABLE_KEY` | `Settings.supabase_publishable_key` | `SecretStr` | `required` | [main.py:133](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L133) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `Settings.supabase_service_role_key` | `SecretStr` | `required` | [main.py:134](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L134) |
+| `DATABASE_URL` | `Settings.database_url` | `SecretStr` | `required` | [main.py:135](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L135) |
+| `DATABASE_CA_FILE` | `Settings.database_ca_file` | `str &#124; None` | `None` | [main.py:136](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L136) |
+| `DATABASE_TLS_STRICT` | `Settings.database_tls_strict` | `bool` | `True` | [main.py:137](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L137) |
+| `RUNTIME_ROLE` | `Settings.runtime_role` | `RuntimeRole` | `'AUTO'` | [main.py:138](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L138) |
+| `WORKER_DB_POOL_MAX_SIZE` | `Settings.worker_db_pool_max_size` | `int` | `Field(default=8, ge=4, le=20)` | [main.py:139](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L139) |
+| `AUTOMATION_PURCHASE_ENABLED` | `Settings.automation_purchase_enabled` | `bool` | `False` | [main.py:140](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L140) |
+| `PARTNER_DOCUMENT_ALLOWED_HOSTS` | `Settings.partner_document_allowed_hosts` | `list[str]` | `['easypost-files.s3.amazonaws.com', 'easypost-files.s3.us-west-2.amazonaws.com', 'deliver.goshippo.com', 'shippo-delivery.s3.amazonaws.com', 'panel.sendcloud.sc']` | [main.py:141](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L141) |
+| `FREIGHT_KG_PER_M3` | `Settings.freight_kg_per_m3` | `Decimal` | `Field(default=Decimal('333'), gt=0, le=10000)` | [main.py:143](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L143) |
+| `FREIGHT_KG_PER_LOADING_METRE` | `Settings.freight_kg_per_loading_metre` | `Decimal` | `Field(default=Decimal('1750'), gt=0, le=30000)` | [main.py:144](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L144) |
+| `FREIGHT_DECK_WIDTH_M` | `Settings.freight_deck_width_m` | `Decimal` | `Field(default=Decimal('2.4'), gt=0, le=5)` | [main.py:145](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L145) |
+| `JWT_ALGORITHM` | `Settings.jwt_algorithm` | `Literal['ES256', 'RS256']` | `'ES256'` | [main.py:146](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L146) |
+| `JWT_AUDIENCE` | `Settings.jwt_audience` | `str` | `'authenticated'` | [main.py:147](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L147) |
+| `CREDENTIAL_KEYS` | `Settings.credential_keys` | `dict[str, SecretStr]` | `Field(default_factory=dict)` | [main.py:148](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L148) |
+| `REGIONAL_ALLOWED_ORIGINS` | `Settings.regional_allowed_origins` | `list[str]` | `Field(min_length=1)` | [main.py:149](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L149) |
+| `PROVIDER_ENVIRONMENT` | `Settings.provider_environment` | `Literal['TEST', 'LIVE']` | `'TEST'` | [main.py:150](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L150) |
+| `PROVIDER_DEADLINE_SECONDS` | `Settings.provider_deadline_seconds` | `int` | `Field(default=35, ge=5, le=120)` | [main.py:151](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L151) |
+| `MAX_PARALLEL_PROVIDER_REQUESTS` | `Settings.max_parallel_provider_requests` | `int` | `Field(default=20, ge=1, le=100)` | [main.py:152](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L152) |
+| `MAX_ACCOUNTS_PER_TENANT` | `Settings.max_accounts_per_tenant` | `int` | `Field(default=8, ge=2, le=30)` | [main.py:153](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L153) |
+| `QUOTE_TTL_SECONDS` | `Settings.quote_ttl_seconds` | `int` | `Field(default=300, ge=30, le=900)` | [main.py:154](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L154) |
+| `DB_POOL_MAX_SIZE` | `Settings.db_pool_max_size` | `int` | `Field(default=10, ge=2, le=50)` | [main.py:155](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L155) |
+| `PLATFORM_ADMIN_USER_IDS` | `Settings.platform_admin_user_ids` | `list[UUID]` | `Field(default_factory=list)` | [main.py:156](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L156) |
+| `DATABASE_ENVIRONMENT` | `Settings.database_environment` | `Literal['SANDBOX', 'LIVE']` | `'LIVE'` | [main.py:157](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L157) |
+| `SANDBOX_HOOKS_ENABLED` | `Settings.sandbox_hooks_enabled` | `bool` | `False` | [main.py:158](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L158) |
+| `AUTH_JWT_SECRET` | `Settings.auth_jwt_secret` | `SecretStr` | `SecretStr('')` | [main.py:160](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L160) |
+| `AUTH_RECOVERY_REDIRECT_URL` | `Settings.auth_recovery_redirect_url` | `str` | `'http://127.0.0.1:8000/'` | [main.py:161](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L161) |
+| `STRIPE_ENABLED` | `Settings.stripe_enabled` | `bool` | `False` | [main.py:162](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L162) |
+| `STRIPE_SECRET_KEY` | `Settings.stripe_secret_key` | `SecretStr` | `SecretStr('')` | [main.py:163](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L163) |
+| `STRIPE_WEBHOOK_SECRET` | `Settings.stripe_webhook_secret` | `SecretStr` | `SecretStr('')` | [main.py:164](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L164) |
+| `STRIPE_LIVEMODE` | `Settings.stripe_livemode` | `bool` | `False` | [main.py:165](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L165) |
+| `CHECKOUT_SUCCESS_URL` | `Settings.checkout_success_url` | `str` | `''` | [main.py:166](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L166) |
+| `CHECKOUT_CANCEL_URL` | `Settings.checkout_cancel_url` | `str` | `''` | [main.py:167](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L167) |
+| `WHATSAPP_BRAND_NAME` | `Settings.whatsapp_brand_name` | `str` | `Field(default='EasyInvio.com', min_length=1, max_length=80)` | [main.py:169](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L169) |
+| `TWILIO_ENABLED` | `Settings.twilio_enabled` | `bool` | `False` | [main.py:170](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L170) |
+| `WHATSAPP_ONBOARDING_ENABLED` | `Settings.whatsapp_onboarding_enabled` | `bool` | `False` | [main.py:171](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L171) |
+| `WHATSAPP_ONBOARDING_DAILY_LIMIT` | `Settings.whatsapp_onboarding_daily_limit` | `int` | `Field(default=100, ge=1, le=10000)` | [main.py:172](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L172) |
+| `TWILIO_ACCOUNT_SID` | `Settings.twilio_account_sid` | `str` | `''` | [main.py:173](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L173) |
+| `TWILIO_AUTH_TOKEN` | `Settings.twilio_auth_token` | `SecretStr` | `SecretStr('')` | [main.py:174](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L174) |
+| `TWILIO_WHATSAPP_NUMBER` | `Settings.twilio_whatsapp_number` | `str` | `''` | [main.py:175](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L175) |
+| `TWILIO_WHATSAPP_SANDBOX_ENABLED` | `Settings.twilio_whatsapp_sandbox_enabled` | `bool` | `False` | [main.py:176](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L176) |
+| `TWILIO_WEBHOOK_URL` | `Settings.twilio_webhook_url` | `str` | `''` | [main.py:177](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L177) |
+| `WHATSAPP_QUEUE_WORKERS` | `Settings.whatsapp_queue_workers` | `int` | `Field(default=2, ge=1, le=8)` | [main.py:178](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L178) |
+| `IDEAL_POSTCODES_API_KEY` | `Settings.ideal_postcodes_api_key` | `SecretStr` | `SecretStr('')` | [main.py:179](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L179) |
+| `LOGISTICS_MEDIA_BUCKET` | `Settings.logistics_media_bucket` | `str` | `'easyinvio-logistics'` | [main.py:180](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L180) |
+| `TRACKING_POLLING_ENABLED` | `Settings.tracking_polling_enabled` | `bool` | `False` | [main.py:181](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L181) |
+| `BOOKING_PAGE_URL` | `Settings.booking_page_url` | `str` | `''` | [main.py:182](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L182) |
+| `QUOTE_LINK_SECRET` | `Settings.quote_link_secret` | `SecretStr` | `SecretStr('')` | [main.py:183](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L183) |
+| `WHATSAPP_DEADLINE_SECONDS` | `Settings.whatsapp_deadline_seconds` | `int` | `Field(default=12, ge=5, le=12)` | [main.py:184](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L184) |
+| `WHATSAPP_PROVIDER_SECONDS` | `Settings.whatsapp_provider_seconds` | `int` | `Field(default=7, ge=1, le=8)` | [main.py:185](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L185) |
+| `LOGISTICS_AGENTS_ENABLED` | `AgentSettings.logistics_agents_enabled` | `bool` | `False` | [backend/agents/config.py:7](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L7) |
+| `OPENAI_API_KEY` | `AgentSettings.openai_api_key` | `SecretStr` | `SecretStr('')` | [backend/agents/config.py:8](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L8) |
+| `LOGISTICS_AGENT_MODEL` | `AgentSettings.logistics_agent_model` | `str` | `'gpt-4o-mini'` | [backend/agents/config.py:9](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L9) |
+| `LOGISTICS_EMBEDDING_MODEL` | `AgentSettings.logistics_embedding_model` | `str` | `'text-embedding-3-small'` | [backend/agents/config.py:10](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L10) |
+| `LOGISTICS_HELP_TIMEOUT_SECONDS` | `AgentSettings.logistics_help_timeout_seconds` | `float` | `Field(default=15, ge=3, le=30)` | [backend/agents/config.py:11](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L11) |
+| `LOGISTICS_HELP_OUTPUT_TOKENS` | `AgentSettings.logistics_help_output_tokens` | `int` | `Field(default=1600, ge=600, le=3000)` | [backend/agents/config.py:12](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L12) |
+| `LOGISTICS_HELP_WEB_SEARCH_ENABLED` | `AgentSettings.logistics_help_web_search_enabled` | `bool` | `True` | [backend/agents/config.py:13](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L13) |
+| `LOGISTICS_WEB_SEARCH_MODEL` | `AgentSettings.logistics_web_search_model` | `str` | `'gpt-4.1-mini'` | [backend/agents/config.py:14](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L14) |
+| `LOGISTICS_AGENT_TIMEOUT_SECONDS` | `AgentSettings.logistics_agent_timeout_seconds` | `float` | `Field(default=6, ge=1, le=20)` | [backend/agents/config.py:15](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L15) |
+| `LOGISTICS_AGENT_CONCURRENCY` | `AgentSettings.logistics_agent_concurrency` | `int` | `Field(default=4, ge=1, le=16)` | [backend/agents/config.py:16](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L16) |
+| `LOGISTICS_AGENT_OUTPUT_TOKENS` | `AgentSettings.logistics_agent_output_tokens` | `int` | `Field(default=600, ge=128, le=1200)` | [backend/agents/config.py:17](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L17) |
+| `LOGISTICS_AGENT_TOKENS_PER_MINUTE` | `AgentSettings.logistics_agent_tokens_per_minute` | `int` | `Field(default=100000, ge=10000, le=1000000)` | [backend/agents/config.py:18](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L18) |
+| `LOGISTICS_AGENT_REQUESTS_PER_MINUTE` | `AgentSettings.logistics_agent_requests_per_minute` | `int` | `Field(default=20, ge=1, le=100)` | [backend/agents/config.py:19](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L19) |
+| `LOGISTICS_AGENT_CACHE_ENTRIES` | `AgentSettings.logistics_agent_cache_entries` | `int` | `Field(default=256, ge=16, le=2000)` | [backend/agents/config.py:20](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L20) |
+| `CARRIER_PDF_HOSTS` | `PrintSettings.carrier_pdf_hosts` | `list[str]` | `Field(default_factory=list)` | [backend/dispatch_pdf.py:28](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_pdf.py#L28) |
+| `ECOMMERCE_CONNECTORS` | `StoreConnectorSettings.ecommerce_connectors` | `dict[UUID, StoreConnector]` | `Field(default_factory=dict)` | [backend/ecommerce_connectors.py:85](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_connectors.py#L85) |
+| `EMAIL_DELIVERY_PROVIDER` | `EmailDeliverySettings.email_delivery_provider` | `Literal['HOSTINGER_SMTP', 'SENDGRID']` | `'HOSTINGER_SMTP'` | [backend/email_delivery.py:25](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/email_delivery.py#L25) |
+| `SMTP_HOST` | `EmailDeliverySettings.smtp_host` | `str` | `'smtp.hostinger.com'` | [backend/email_delivery.py:26](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/email_delivery.py#L26) |
+| `SMTP_PORT` | `EmailDeliverySettings.smtp_port` | `Literal[465, 587]` | `465` | [backend/email_delivery.py:27](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/email_delivery.py#L27) |
+| `SMTP_USERNAME` | `EmailDeliverySettings.smtp_username` | `str` | `''` | [backend/email_delivery.py:28](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/email_delivery.py#L28) |
+| `SMTP_PASSWORD` | `EmailDeliverySettings.smtp_password` | `SecretStr` | `SecretStr('')` | [backend/email_delivery.py:29](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/email_delivery.py#L29) |
+| `SMTP_TIMEOUT_SECONDS` | `EmailDeliverySettings.smtp_timeout_seconds` | `int` | `Field(default=10, ge=1, le=15)` | [backend/email_delivery.py:30](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/email_delivery.py#L30) |
+| `HUBSPOT_ENABLED` | `HubSpotSettings.hubspot_enabled` | `bool` | `False` | [backend/hubspot_crm.py:32](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L32) |
+| `HUBSPOT_ACCESS_TOKEN` | `HubSpotSettings.hubspot_access_token` | `SecretStr &#124; None` | `None` | [backend/hubspot_crm.py:33](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L33) |
+| `HUBSPOT_EXPECTED_PORTAL_ID` | `HubSpotSettings.hubspot_expected_portal_id` | `int &#124; None` | `Field(default=None, ge=1)` | [backend/hubspot_crm.py:34](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L34) |
+| `HUBSPOT_ENVIRONMENT` | `HubSpotSettings.hubspot_environment` | `str` | `Field(default='SANDBOX', pattern='^(SANDBOX&#124;PRODUCTION)$')` | [backend/hubspot_crm.py:35](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L35) |
+| `HUBSPOT_PROVISIONING_ENABLED` | `HubSpotSettings.hubspot_provisioning_enabled` | `bool` | `False` | [backend/hubspot_crm.py:36](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L36) |
+| `HUBSPOT_WEBHOOK_CLIENT_SECRET` | `HubSpotSettings.hubspot_webhook_client_secret` | `SecretStr &#124; None` | `None` | [backend/hubspot_crm.py:37](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L37) |
+| `HUBSPOT_WEBHOOK_URL` | `HubSpotSettings.hubspot_webhook_url` | `str` | `''` | [backend/hubspot_crm.py:38](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L38) |
+| `HUBSPOT_WEBHOOK_APP_ID` | `HubSpotSettings.hubspot_webhook_app_id` | `int &#124; None` | `Field(default=None, ge=1)` | [backend/hubspot_crm.py:39](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L39) |
+| `HUBSPOT_CLOSED_WON_STAGE_IDS` | `HubSpotSettings.hubspot_closed_won_stage_ids` | `list[str]` | `Field(default_factory=lambda: ['closedwon'])` | [backend/hubspot_crm.py:40](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L40) |
+| `HUBSPOT_UPSELL_ENABLED` | `HubSpotSettings.hubspot_upsell_enabled` | `bool` | `False` | [backend/hubspot_crm.py:41](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L41) |
+| `HUBSPOT_UPSELL_PIPELINE_ID` | `HubSpotSettings.hubspot_upsell_pipeline_id` | `str` | `''` | [backend/hubspot_crm.py:42](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L42) |
+| `HUBSPOT_UPSELL_STAGE_ID` | `HubSpotSettings.hubspot_upsell_stage_id` | `str` | `''` | [backend/hubspot_crm.py:43](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L43) |
+| `INTEGRATION_EASYPOST_ENABLED` | `IntegrationSettings.integration_easypost_enabled` | `bool` | `True` | [backend/integration_policy.py:13](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/integration_policy.py#L13) |
+| `INTEGRATION_SENDCLOUD_ENABLED` | `IntegrationSettings.integration_sendcloud_enabled` | `bool` | `True` | [backend/integration_policy.py:14](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/integration_policy.py#L14) |
+| `INTEGRATION_SHIPPO_ENABLED` | `IntegrationSettings.integration_shippo_enabled` | `bool` | `True` | [backend/integration_policy.py:15](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/integration_policy.py#L15) |
+| `INTEGRATION_REGIONAL_ENABLED` | `IntegrationSettings.integration_regional_enabled` | `bool` | `True` | [backend/integration_policy.py:16](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/integration_policy.py#L16) |
+| `INTEGRATION_ROYAL_MAIL_ENABLED` | `IntegrationSettings.integration_royal_mail_enabled` | `bool` | `False` | [backend/integration_policy.py:17](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/integration_policy.py#L17) |
+| `INTEGRATION_EVRI_ENABLED` | `IntegrationSettings.integration_evri_enabled` | `bool` | `False` | [backend/integration_policy.py:18](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/integration_policy.py#L18) |
+| `RETURN_EMAIL_ENABLED` | `ReturnDeliverySettings.return_email_enabled` | `bool` | `False` | [backend/return_delivery.py:26](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_delivery.py#L26) |
+| `RETURN_SENDGRID_API_KEY` | `ReturnDeliverySettings.return_sendgrid_api_key` | `SecretStr` | `SecretStr('')` | [backend/return_delivery.py:27](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_delivery.py#L27) |
+| `RETURN_EMAIL_FROM` | `ReturnDeliverySettings.return_email_from` | `str` | `'support@easyinvio.com'` | [backend/return_delivery.py:28](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_delivery.py#L28) |
+| `RETURN_WHATSAPP_ENABLED` | `ReturnDeliverySettings.return_whatsapp_enabled` | `bool` | `False` | [backend/return_delivery.py:29](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_delivery.py#L29) |
+| `RETURN_WHATSAPP_CONTENT_SID` | `ReturnDeliverySettings.return_whatsapp_content_sid` | `str` | `''` | [backend/return_delivery.py:30](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_delivery.py#L30) |
+| `RETURN_WHATSAPP_MESSAGING_SERVICE_SID` | `ReturnDeliverySettings.return_whatsapp_messaging_service_sid` | `str` | `''` | [backend/return_delivery.py:31](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_delivery.py#L31) |
+| `SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED` | `ShipmentNotificationSettings.shipment_email_notifications_enabled` | `bool` | `False` | [backend/shipment_notifications.py:28](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L28) |
+| `SHIPMENT_SENDGRID_API_KEY` | `ShipmentNotificationSettings.shipment_sendgrid_api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_notifications.py:29](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L29) |
+| `SHIPMENT_EMAIL_FROM` | `ShipmentNotificationSettings.shipment_email_from` | `str` | `'support@easyinvio.com'` | [backend/shipment_notifications.py:30](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L30) |
+| `SHIPMENT_WHATSAPP_NOTIFICATIONS_ENABLED` | `ShipmentNotificationSettings.shipment_whatsapp_notifications_enabled` | `bool` | `False` | [backend/shipment_notifications.py:31](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L31) |
+| `SHIPMENT_WHATSAPP_CONTENT_SID` | `ShipmentNotificationSettings.shipment_whatsapp_content_sid` | `str` | `''` | [backend/shipment_notifications.py:32](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L32) |
+| `SHIPMENT_NOTIFICATION_TEST_RECIPIENTS` | `ShipmentNotificationSettings.shipment_notification_test_recipients` | `list[str]` | `Field(default_factory=list, max_length=100)` | [backend/shipment_notifications.py:33](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L33) |
+| `XCOVER_ENABLED` | `XCoverSettings.enabled` | `bool` | `False` | [backend/shipment_protection.py:91](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L91) |
+| `XCOVER_ENVIRONMENT` | `XCoverSettings.environment` | `Literal['TEST', 'LIVE']` | `'TEST'` | [backend/shipment_protection.py:92](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L92) |
+| `XCOVER_PARTNER_ID` | `XCoverSettings.partner_id` | `str` | `''` | [backend/shipment_protection.py:93](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L93) |
+| `XCOVER_API_KEY` | `XCoverSettings.api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:94](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L94) |
+| `XCOVER_SIGNING_SECRET` | `XCoverSettings.signing_secret` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:95](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L95) |
+| `XCOVER_PARCEL_CONTRACT_VERIFIED` | `XCoverSettings.parcel_contract_verified` | `bool` | `False` | [backend/shipment_protection.py:96](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L96) |
+| `XCOVER_RETAIL_PRICING_VERIFIED` | `XCoverSettings.retail_pricing_verified` | `bool` | `False` | [backend/shipment_protection.py:97](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L97) |
+| `XCOVER_CLAIMS_ENABLED` | `XCoverSettings.claims_enabled` | `bool` | `False` | [backend/shipment_protection.py:98](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L98) |
+| `XCOVER_CLAIMS_PARTNER_CODE` | `XCoverSettings.claims_partner_code` | `str` | `''` | [backend/shipment_protection.py:99](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L99) |
+| `XCOVER_CLAIMS_API_KEY` | `XCoverSettings.claims_api_key` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:100](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L100) |
+| `XCOVER_CLAIMS_API_PASSWORD` | `XCoverSettings.claims_api_password` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:101](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L101) |
+| `XCOVER_CLAIMS_WEBHOOK_SECRET` | `XCoverSettings.claims_webhook_secret` | `SecretStr` | `SecretStr('')` | [backend/shipment_protection.py:102](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L102) |
+| `XCOVER_CLAIMS_WEBHOOK_URL` | `XCoverSettings.claims_webhook_url` | `str` | `''` | [backend/shipment_protection.py:103](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L103) |
+| `XCOVER_CLAIMS_LIVE_API_ORIGIN` | `XCoverSettings.claims_live_api_origin` | `str` | `''` | [backend/shipment_protection.py:104](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L104) |
+| `XCOVER_CLAIMS_FNOL_BINDINGS` | `XCoverSettings.claims_fnol_bindings` | `dict[str, dict[str, str]]` | `Field(default_factory=dict)` | [backend/shipment_protection.py:105](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L105) |
+| `XCOVER_CLAIMS_SETTLEMENT_MAPPING` | `XCoverSettings.claims_settlement_mapping` | `dict[str, str]` | `Field(default_factory=dict)` | [backend/shipment_protection.py:106](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L106) |
+| `XCOVER_CLAIMS_MASTER_PAYEE_ID` | `XCoverSettings.claims_master_payee_id` | `str` | `''` | [backend/shipment_protection.py:107](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L107) |
+| `SUPPORT_WHATSAPP_ENABLED` | `DeliverySettings.support_whatsapp_enabled` | `bool` | `False` | [backend/support_delivery.py:26](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L26) |
+| `SUPPORT_WHATSAPP_CONTENT_SID` | `DeliverySettings.support_whatsapp_content_sid` | `str` | `''` | [backend/support_delivery.py:27](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L27) |
+| `SUPPORT_WHATSAPP_STATUS_URL` | `DeliverySettings.support_whatsapp_status_url` | `str` | `''` | [backend/support_delivery.py:29](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L29) |
+| `TRACKING_WEBHOOK_KEYS` | `TrackingSettings.tracking_webhook_keys` | `dict[str, TrackingKey]` | `Field(default_factory=dict)` | [backend/tracking_and_support.py:53](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_and_support.py#L53) |
+| `TWILIO_ACCOUNT_SID` | `WhatsAppConfiguration.twilio_account_sid` | `str` | `''` | [backend/whatsapp_bot.py:22](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_bot.py#L22) |
+| `TWILIO_AUTH_TOKEN` | `WhatsAppConfiguration.twilio_auth_token` | `SecretStr` | `SecretStr('')` | [backend/whatsapp_bot.py:23](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_bot.py#L23) |
+| `TWILIO_WHATSAPP_NUMBER` | `WhatsAppConfiguration.twilio_whatsapp_number` | `str` | `''` | [backend/whatsapp_bot.py:24](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_bot.py#L24) |
+| `WHATSAPP_BRAND_NAME` | `WhatsAppConfiguration.whatsapp_brand_name` | `str` | `'EasyInvio.com'` | [backend/whatsapp_bot.py:25](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_bot.py#L25) |
 
 ## Environment example variable names
 
@@ -19677,54 +19693,54 @@ The initial core schema is not fully checked in. Obtain an authorized baseline b
 
 | File | Tables introduced | Tables altered | Functions introduced or replaced |
 | --- | --- | --- | --- |
-| [migrations/006_logistics_metadata.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/006_logistics_metadata.sql#L1) |  | shipments | guard_logistics_metadata |
-| [migrations/007_admin_configuration.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/007_admin_configuration.sql#L1) | admin_configuration_events | admin_configuration_events, margin_rules, tenants | guard_platform_configuration |
-| [migrations/008_sandbox_hooks.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/008_sandbox_hooks.sql#L1) |  | tenants, wallet_ledger, wallet_topups | guard_sandbox_flags |
-| [migrations/009_ecommerce_sync.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/009_ecommerce_sync.sql#L1) | ecommerce_stores, ecommerce_tracking_outbox | ecommerce_stores, ecommerce_tracking_outbox, shipments | guard_ecommerce_import_fields |
-| [migrations/010_hubspot_crm.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/010_hubspot_crm.sql#L1) | hubspot_sync_jobs, hubspot_tenant_links | hubspot_sync_jobs, hubspot_tenant_links | queue_hubspot_sync |
-| [migrations/011_tracking_and_support.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/011_tracking_and_support.sql#L1) | tracking_events, support_tickets, support_message_outbox | shipments, support_message_outbox, support_tickets, tracking_events | guard_delivery_proof |
-| [migrations/012_dashboard_portal.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/012_dashboard_portal.sql#L1) |  | support_tickets |  |
-| [migrations/013_automation_freight.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/013_automation_freight.sql#L1) | automation_failures | automation_failures, ecommerce_stores, shipments, support_tickets |  |
-| [migrations/014_support_ticket_lifecycle.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/014_support_ticket_lifecycle.sql#L1) |  | support_tickets |  |
-| [migrations/015_admin_management.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/015_admin_management.sql#L1) | admin_management_events | admin_management_events |  |
-| [migrations/016_core_pillars.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/016_core_pillars.sql#L1) |  | ecommerce_tracking_outbox, margin_rules, shipments |  |
-| [migrations/017_support_delivery_and_monitoring.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/017_support_delivery_and_monitoring.sql#L1) |  | support_message_outbox, whatsapp_bindings | guard_notification_consent |
-| [migrations/018_hubspot_activation_and_metrics.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/018_hubspot_activation_and_metrics.sql#L1) | hubspot_activation_jobs | hubspot_activation_jobs, hubspot_tenant_links | guard_hubspot_references, queue_hubspot_wallet_sync |
-| [migrations/019_stripe_snapshot_reconciliation.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/019_stripe_snapshot_reconciliation.sql#L1) | stripe_webhook_events, stripe_charge_refunds | stripe_charge_refunds, stripe_webhook_events, wallet_ledger, wallet_topups | guard_stripe_transaction_trace |
-| [migrations/020_platform_carriers.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/020_platform_carriers.sql#L1) | platform_carrier_connections, platform_carrier_events | carrier_accounts, platform_carrier_connections, platform_carrier_events | guard_platform_carrier_link, lock_platform_carrier_catalog, platform_carrier_changed, tenant_platform_carriers |
-| [migrations/021_identity_sessions.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/021_identity_sessions.sql#L1) | app_auth_sessions, app_user_profiles, app_login_limits | app_auth_sessions, app_login_limits, app_user_profiles |  |
-| [migrations/022_carrier_consolidation.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/022_carrier_consolidation.sql#L1) |  |  |  |
-| [migrations/023_partner_lifecycle.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/023_partner_lifecycle.sql#L1) | partner_unbound_quotes, partner_shipping_offers, partner_cancellations | partner_cancellations, partner_shipping_offers, partner_unbound_quotes, platform_carrier_connections, wallet_ledger |  |
-| [migrations/024_native_partner_orders_and_webhooks.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/024_native_partner_orders_and_webhooks.sql#L1) | partner_provider_options, partner_order_jobs | partner_order_jobs, partner_provider_options | queue_native_partner_order |
-| [migrations/025_pending_label_poll_index.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/025_pending_label_poll_index.sql#L1) |  |  |  |
-| [migrations/026_support_review_activity.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/026_support_review_activity.sql#L1) | support_ticket_activity | support_ticket_activity, support_tickets |  |
-| [migrations/027_workspace_invitations_and_disputes.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/027_workspace_invitations_and_disputes.sql#L1) | workspace_invitations, shipment_dispute_drafts | shipment_dispute_drafts, workspace_invitations |  |
-| [migrations/028_reporting_transit_index.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/028_reporting_transit_index.sql#L1) |  |  |  |
-| [migrations/029_booking_references.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/029_booking_references.sql#L1) | booking_references | booking_references |  |
-| [migrations/030_card_checkout.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/030_card_checkout.sql#L1) | payment_carts | payment_carts |  |
-| [migrations/031_store_connections.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/031_store_connections.sql#L1) | workspace_store_connections | workspace_store_connections |  |
-| [migrations/032_dispatch_events_and_invoice_audits.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/032_dispatch_events_and_invoice_audits.sql#L1) | workspace_dispatch_events, billing_disputes, amazon_order_notifications | amazon_order_notifications, billing_disputes, shipments, workspace_dispatch_events | emit_workspace_dispatch_event |
-| [migrations/033_xcover_claim_cases.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/033_xcover_claim_cases.sql#L1) | insurance_purchases, insurance_claim_cases, insurance_settlements, insurance_claim_evidence, xclaim_webhook_receipts, insurance_webhook_receipts | insurance_claim_cases, insurance_claim_evidence, insurance_purchases, insurance_settlements, insurance_webhook_receipts, support_message_outbox, support_tickets, wallet_ledger, xclaim_webhook_receipts |  |
-| [migrations/034_support_alert_controls.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/034_support_alert_controls.sql#L1) |  | whatsapp_bindings |  |
-| [migrations/035_packages_goods_returns_and_credential_locks.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/035_packages_goods_returns_and_credential_locks.sql#L1) | shipment_goods_items | carrier_accounts, ecommerce_tracking_outbox, shipment_goods_items, shipments | check_shipment_goods_mass, classify_store_tracking_job, freeze_submitted_package_snapshot, guard_carrier_credential_identity, lock_goods_parent, valid_multi_parcel_dimensions |
-| [migrations/036_tenant_catalogs.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/036_tenant_catalogs.sql#L1) | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products |  |
-| [migrations/037_admin_client_assistance.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/037_admin_client_assistance.sql#L1) | admin_client_assistance_sessions, admin_client_assistance_events | admin_client_assistance_events, admin_client_assistance_sessions | protect_assistance_event |
-| [migrations/038_conversational_actions.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/038_conversational_actions.sql#L1) | conversational_messages | conversational_messages |  |
-| [migrations/039_whatsapp_onboarding.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/039_whatsapp_onboarding.sql#L1) | whatsapp_registration_queue, whatsapp_registration_receipts | tenants, whatsapp_registration_queue, whatsapp_registration_receipts |  |
-| [migrations/040_workspace_personas.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/040_workspace_personas.sql#L1) | individual_pricing_settings, individual_pricing_events, web_registration_sessions | individual_pricing_events, individual_pricing_settings, tenants, web_registration_sessions, whatsapp_registration_queue |  |
-| [migrations/041_budget_seller_strategy.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/041_budget_seller_strategy.sql#L1) |  | admin_management_events, tenants | guard_workspace_strategy |
-| [migrations/042_headless_returns.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/042_headless_returns.sql#L1) | reverse_logistics_requests | reverse_logistics_requests |  |
-| [migrations/043_whatsapp_async_ingress.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/043_whatsapp_async_ingress.sql#L1) | whatsapp_inbound_queue, whatsapp_reply_outbox | whatsapp_inbound_queue, whatsapp_reply_outbox |  |
-| [migrations/044_carrier_manifests_and_media.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/044_carrier_manifests_and_media.sql#L1) | carrier_manifests, carrier_manifest_events, logistics_media_assets | carrier_manifest_events, carrier_manifests, logistics_media_assets, shipments, whatsapp_reply_outbox | guard_manifest_assignment, protect_manifest_event |
-| [migrations/045_unified_tracking.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L1) | tracking_share_links, tracking_customer_requests, tracking_preferences, tracking_notifications, tracking_refresh_jobs, tracking_provider_limits, tracking_case_reviews, tracking_operations_audit | public, tracking_events | guard_tracking_share, protect_tracking_history |
-| [migrations/046_return_review_and_delivery.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/046_return_review_and_delivery.sql#L1) | return_review_sessions, return_customer_deliveries | return_customer_deliveries, return_review_sessions |  |
-| [migrations/047_sender_shipment_notifications.sql](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/047_sender_shipment_notifications.sql#L1) | shipment_sender_notifications | shipment_sender_notifications | queue_sender_shipment_milestone |
+| [migrations/006_logistics_metadata.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/006_logistics_metadata.sql#L1) |  | shipments | guard_logistics_metadata |
+| [migrations/007_admin_configuration.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/007_admin_configuration.sql#L1) | admin_configuration_events | admin_configuration_events, margin_rules, tenants | guard_platform_configuration |
+| [migrations/008_sandbox_hooks.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/008_sandbox_hooks.sql#L1) |  | tenants, wallet_ledger, wallet_topups | guard_sandbox_flags |
+| [migrations/009_ecommerce_sync.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/009_ecommerce_sync.sql#L1) | ecommerce_stores, ecommerce_tracking_outbox | ecommerce_stores, ecommerce_tracking_outbox, shipments | guard_ecommerce_import_fields |
+| [migrations/010_hubspot_crm.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/010_hubspot_crm.sql#L1) | hubspot_sync_jobs, hubspot_tenant_links | hubspot_sync_jobs, hubspot_tenant_links | queue_hubspot_sync |
+| [migrations/011_tracking_and_support.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/011_tracking_and_support.sql#L1) | tracking_events, support_tickets, support_message_outbox | shipments, support_message_outbox, support_tickets, tracking_events | guard_delivery_proof |
+| [migrations/012_dashboard_portal.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/012_dashboard_portal.sql#L1) |  | support_tickets |  |
+| [migrations/013_automation_freight.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/013_automation_freight.sql#L1) | automation_failures | automation_failures, ecommerce_stores, shipments, support_tickets |  |
+| [migrations/014_support_ticket_lifecycle.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/014_support_ticket_lifecycle.sql#L1) |  | support_tickets |  |
+| [migrations/015_admin_management.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/015_admin_management.sql#L1) | admin_management_events | admin_management_events |  |
+| [migrations/016_core_pillars.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/016_core_pillars.sql#L1) |  | ecommerce_tracking_outbox, margin_rules, shipments |  |
+| [migrations/017_support_delivery_and_monitoring.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/017_support_delivery_and_monitoring.sql#L1) |  | support_message_outbox, whatsapp_bindings | guard_notification_consent |
+| [migrations/018_hubspot_activation_and_metrics.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/018_hubspot_activation_and_metrics.sql#L1) | hubspot_activation_jobs | hubspot_activation_jobs, hubspot_tenant_links | guard_hubspot_references, queue_hubspot_wallet_sync |
+| [migrations/019_stripe_snapshot_reconciliation.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/019_stripe_snapshot_reconciliation.sql#L1) | stripe_webhook_events, stripe_charge_refunds | stripe_charge_refunds, stripe_webhook_events, wallet_ledger, wallet_topups | guard_stripe_transaction_trace |
+| [migrations/020_platform_carriers.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/020_platform_carriers.sql#L1) | platform_carrier_connections, platform_carrier_events | carrier_accounts, platform_carrier_connections, platform_carrier_events | guard_platform_carrier_link, lock_platform_carrier_catalog, platform_carrier_changed, tenant_platform_carriers |
+| [migrations/021_identity_sessions.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/021_identity_sessions.sql#L1) | app_auth_sessions, app_user_profiles, app_login_limits | app_auth_sessions, app_login_limits, app_user_profiles |  |
+| [migrations/022_carrier_consolidation.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/022_carrier_consolidation.sql#L1) |  |  |  |
+| [migrations/023_partner_lifecycle.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/023_partner_lifecycle.sql#L1) | partner_unbound_quotes, partner_shipping_offers, partner_cancellations | partner_cancellations, partner_shipping_offers, partner_unbound_quotes, platform_carrier_connections, wallet_ledger |  |
+| [migrations/024_native_partner_orders_and_webhooks.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/024_native_partner_orders_and_webhooks.sql#L1) | partner_provider_options, partner_order_jobs | partner_order_jobs, partner_provider_options | queue_native_partner_order |
+| [migrations/025_pending_label_poll_index.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/025_pending_label_poll_index.sql#L1) |  |  |  |
+| [migrations/026_support_review_activity.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/026_support_review_activity.sql#L1) | support_ticket_activity | support_ticket_activity, support_tickets |  |
+| [migrations/027_workspace_invitations_and_disputes.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/027_workspace_invitations_and_disputes.sql#L1) | workspace_invitations, shipment_dispute_drafts | shipment_dispute_drafts, workspace_invitations |  |
+| [migrations/028_reporting_transit_index.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/028_reporting_transit_index.sql#L1) |  |  |  |
+| [migrations/029_booking_references.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/029_booking_references.sql#L1) | booking_references | booking_references |  |
+| [migrations/030_card_checkout.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/030_card_checkout.sql#L1) | payment_carts | payment_carts |  |
+| [migrations/031_store_connections.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/031_store_connections.sql#L1) | workspace_store_connections | workspace_store_connections |  |
+| [migrations/032_dispatch_events_and_invoice_audits.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/032_dispatch_events_and_invoice_audits.sql#L1) | workspace_dispatch_events, billing_disputes, amazon_order_notifications | amazon_order_notifications, billing_disputes, shipments, workspace_dispatch_events | emit_workspace_dispatch_event |
+| [migrations/033_xcover_claim_cases.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/033_xcover_claim_cases.sql#L1) | insurance_purchases, insurance_claim_cases, insurance_settlements, insurance_claim_evidence, xclaim_webhook_receipts, insurance_webhook_receipts | insurance_claim_cases, insurance_claim_evidence, insurance_purchases, insurance_settlements, insurance_webhook_receipts, support_message_outbox, support_tickets, wallet_ledger, xclaim_webhook_receipts |  |
+| [migrations/034_support_alert_controls.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/034_support_alert_controls.sql#L1) |  | whatsapp_bindings |  |
+| [migrations/035_packages_goods_returns_and_credential_locks.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/035_packages_goods_returns_and_credential_locks.sql#L1) | shipment_goods_items | carrier_accounts, ecommerce_tracking_outbox, shipment_goods_items, shipments | check_shipment_goods_mass, classify_store_tracking_job, freeze_submitted_package_snapshot, guard_carrier_credential_identity, lock_goods_parent, valid_multi_parcel_dimensions |
+| [migrations/036_tenant_catalogs.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/036_tenant_catalogs.sql#L1) | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products | tenant_catalog_addresses, tenant_catalog_contacts, tenant_catalog_products |  |
+| [migrations/037_admin_client_assistance.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/037_admin_client_assistance.sql#L1) | admin_client_assistance_sessions, admin_client_assistance_events | admin_client_assistance_events, admin_client_assistance_sessions | protect_assistance_event |
+| [migrations/038_conversational_actions.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/038_conversational_actions.sql#L1) | conversational_messages | conversational_messages |  |
+| [migrations/039_whatsapp_onboarding.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/039_whatsapp_onboarding.sql#L1) | whatsapp_registration_queue, whatsapp_registration_receipts | tenants, whatsapp_registration_queue, whatsapp_registration_receipts |  |
+| [migrations/040_workspace_personas.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/040_workspace_personas.sql#L1) | individual_pricing_settings, individual_pricing_events, web_registration_sessions | individual_pricing_events, individual_pricing_settings, tenants, web_registration_sessions, whatsapp_registration_queue |  |
+| [migrations/041_budget_seller_strategy.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/041_budget_seller_strategy.sql#L1) |  | admin_management_events, tenants | guard_workspace_strategy |
+| [migrations/042_headless_returns.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/042_headless_returns.sql#L1) | reverse_logistics_requests | reverse_logistics_requests |  |
+| [migrations/043_whatsapp_async_ingress.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/043_whatsapp_async_ingress.sql#L1) | whatsapp_inbound_queue, whatsapp_reply_outbox | whatsapp_inbound_queue, whatsapp_reply_outbox |  |
+| [migrations/044_carrier_manifests_and_media.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/044_carrier_manifests_and_media.sql#L1) | carrier_manifests, carrier_manifest_events, logistics_media_assets | carrier_manifest_events, carrier_manifests, logistics_media_assets, shipments, whatsapp_reply_outbox | guard_manifest_assignment, protect_manifest_event |
+| [migrations/045_unified_tracking.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L1) | tracking_share_links, tracking_customer_requests, tracking_preferences, tracking_notifications, tracking_refresh_jobs, tracking_provider_limits, tracking_case_reviews, tracking_operations_audit | public, tracking_events | guard_tracking_share, protect_tracking_history |
+| [migrations/046_return_review_and_delivery.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/046_return_review_and_delivery.sql#L1) | return_review_sessions, return_customer_deliveries | return_customer_deliveries, return_review_sessions |  |
+| [migrations/047_sender_shipment_notifications.sql](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/047_sender_shipment_notifications.sql#L1) | shipment_sender_notifications | shipment_sender_notifications | queue_sender_shipment_milestone |
 
 ## Exact CREATE TABLE definitions
 
 ### admin_client_assistance_events
 
-Source: [migrations/037_admin_client_assistance.sql:17](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/037_admin_client_assistance.sql#L17).
+Source: [migrations/037_admin_client_assistance.sql:17](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/037_admin_client_assistance.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_client_assistance_events (
@@ -19744,7 +19760,7 @@ CREATE TABLE IF NOT EXISTS public.admin_client_assistance_events (
 
 ### admin_client_assistance_sessions
 
-Source: [migrations/037_admin_client_assistance.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/037_admin_client_assistance.sql#L4).
+Source: [migrations/037_admin_client_assistance.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/037_admin_client_assistance.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_client_assistance_sessions (
@@ -19763,7 +19779,7 @@ CREATE TABLE IF NOT EXISTS public.admin_client_assistance_sessions (
 
 ### admin_configuration_events
 
-Source: [migrations/007_admin_configuration.sql:10](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/007_admin_configuration.sql#L10).
+Source: [migrations/007_admin_configuration.sql:10](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/007_admin_configuration.sql#L10).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_configuration_events (
@@ -19781,7 +19797,7 @@ CREATE TABLE IF NOT EXISTS public.admin_configuration_events (
 
 ### admin_management_events
 
-Source: [migrations/015_admin_management.sql:3](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/015_admin_management.sql#L3).
+Source: [migrations/015_admin_management.sql:3](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/015_admin_management.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.admin_management_events (
@@ -19797,7 +19813,7 @@ CREATE TABLE IF NOT EXISTS public.admin_management_events (
 
 ### amazon_order_notifications
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:88](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/032_dispatch_events_and_invoice_audits.sql#L88).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:88](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/032_dispatch_events_and_invoice_audits.sql#L88).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.amazon_order_notifications (
@@ -19815,7 +19831,7 @@ CREATE TABLE IF NOT EXISTS public.amazon_order_notifications (
 
 ### app_auth_sessions
 
-Source: [migrations/021_identity_sessions.sql:3](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/021_identity_sessions.sql#L3).
+Source: [migrations/021_identity_sessions.sql:3](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/021_identity_sessions.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_auth_sessions(
@@ -19827,7 +19843,7 @@ CREATE TABLE IF NOT EXISTS public.app_auth_sessions(
 
 ### app_login_limits
 
-Source: [migrations/021_identity_sessions.sql:14](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/021_identity_sessions.sql#L14).
+Source: [migrations/021_identity_sessions.sql:14](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/021_identity_sessions.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_login_limits(
@@ -19837,7 +19853,7 @@ CREATE TABLE IF NOT EXISTS public.app_login_limits(
 
 ### app_user_profiles
 
-Source: [migrations/021_identity_sessions.sql:9](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/021_identity_sessions.sql#L9).
+Source: [migrations/021_identity_sessions.sql:9](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/021_identity_sessions.sql#L9).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.app_user_profiles(
@@ -19849,7 +19865,7 @@ CREATE TABLE IF NOT EXISTS public.app_user_profiles(
 
 ### automation_failures
 
-Source: [migrations/013_automation_freight.sql:15](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/013_automation_freight.sql#L15).
+Source: [migrations/013_automation_freight.sql:15](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/013_automation_freight.sql#L15).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.automation_failures (
@@ -19862,7 +19878,7 @@ CREATE TABLE IF NOT EXISTS public.automation_failures (
 
 ### billing_disputes
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:69](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/032_dispatch_events_and_invoice_audits.sql#L69).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:69](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/032_dispatch_events_and_invoice_audits.sql#L69).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.billing_disputes (
@@ -19888,7 +19904,7 @@ CREATE TABLE IF NOT EXISTS public.billing_disputes (
 
 ### booking_references
 
-Source: [migrations/029_booking_references.sql:5](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/029_booking_references.sql#L5).
+Source: [migrations/029_booking_references.sql:5](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/029_booking_references.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.booking_references(
@@ -19900,7 +19916,7 @@ CREATE TABLE IF NOT EXISTS public.booking_references(
 
 ### carrier_manifest_events
 
-Source: [migrations/044_carrier_manifests_and_media.sql:146](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/044_carrier_manifests_and_media.sql#L146).
+Source: [migrations/044_carrier_manifests_and_media.sql:146](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/044_carrier_manifests_and_media.sql#L146).
 
 ```sql
 CREATE TABLE public.carrier_manifest_events (
@@ -19915,7 +19931,7 @@ CREATE TABLE public.carrier_manifest_events (
 
 ### carrier_manifests
 
-Source: [migrations/044_carrier_manifests_and_media.sql:107](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/044_carrier_manifests_and_media.sql#L107).
+Source: [migrations/044_carrier_manifests_and_media.sql:107](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/044_carrier_manifests_and_media.sql#L107).
 
 ```sql
 CREATE TABLE public.carrier_manifests (
@@ -19940,7 +19956,7 @@ CREATE TABLE public.carrier_manifests (
 
 ### conversational_messages
 
-Source: [migrations/038_conversational_actions.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/038_conversational_actions.sql#L4).
+Source: [migrations/038_conversational_actions.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/038_conversational_actions.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.conversational_messages (
@@ -19959,7 +19975,7 @@ CREATE TABLE IF NOT EXISTS public.conversational_messages (
 
 ### ecommerce_stores
 
-Source: [migrations/009_ecommerce_sync.sql:15](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/009_ecommerce_sync.sql#L15).
+Source: [migrations/009_ecommerce_sync.sql:15](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/009_ecommerce_sync.sql#L15).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.ecommerce_stores (
@@ -19975,7 +19991,7 @@ CREATE TABLE IF NOT EXISTS public.ecommerce_stores (
 
 ### ecommerce_tracking_outbox
 
-Source: [migrations/009_ecommerce_sync.sql:48](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/009_ecommerce_sync.sql#L48).
+Source: [migrations/009_ecommerce_sync.sql:48](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/009_ecommerce_sync.sql#L48).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.ecommerce_tracking_outbox (
@@ -19998,7 +20014,7 @@ CREATE TABLE IF NOT EXISTS public.ecommerce_tracking_outbox (
 
 ### hubspot_activation_jobs
 
-Source: [migrations/018_hubspot_activation_and_metrics.sql:9](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/018_hubspot_activation_and_metrics.sql#L9).
+Source: [migrations/018_hubspot_activation_and_metrics.sql:9](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/018_hubspot_activation_and_metrics.sql#L9).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_activation_jobs (
@@ -20017,7 +20033,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_activation_jobs (
 
 ### hubspot_sync_jobs
 
-Source: [migrations/010_hubspot_crm.sql:3](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/010_hubspot_crm.sql#L3).
+Source: [migrations/010_hubspot_crm.sql:3](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/010_hubspot_crm.sql#L3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_sync_jobs (
@@ -20033,7 +20049,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_sync_jobs (
 
 ### hubspot_tenant_links
 
-Source: [migrations/010_hubspot_crm.sql:12](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/010_hubspot_crm.sql#L12).
+Source: [migrations/010_hubspot_crm.sql:12](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/010_hubspot_crm.sql#L12).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.hubspot_tenant_links (
@@ -20046,7 +20062,7 @@ CREATE TABLE IF NOT EXISTS public.hubspot_tenant_links (
 
 ### individual_pricing_events
 
-Source: [migrations/040_workspace_personas.sql:21](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/040_workspace_personas.sql#L21).
+Source: [migrations/040_workspace_personas.sql:21](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/040_workspace_personas.sql#L21).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.individual_pricing_events (
@@ -20060,7 +20076,7 @@ CREATE TABLE IF NOT EXISTS public.individual_pricing_events (
 
 ### individual_pricing_settings
 
-Source: [migrations/040_workspace_personas.sql:14](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/040_workspace_personas.sql#L14).
+Source: [migrations/040_workspace_personas.sql:14](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/040_workspace_personas.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.individual_pricing_settings (
@@ -20073,7 +20089,7 @@ CREATE TABLE IF NOT EXISTS public.individual_pricing_settings (
 
 ### insurance_claim_cases
 
-Source: [migrations/033_xcover_claim_cases.sql:44](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/033_xcover_claim_cases.sql#L44).
+Source: [migrations/033_xcover_claim_cases.sql:44](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/033_xcover_claim_cases.sql#L44).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_claim_cases (
@@ -20094,7 +20110,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_claim_cases (
 
 ### insurance_claim_evidence
 
-Source: [migrations/033_xcover_claim_cases.sql:91](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/033_xcover_claim_cases.sql#L91).
+Source: [migrations/033_xcover_claim_cases.sql:91](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/033_xcover_claim_cases.sql#L91).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_claim_evidence (
@@ -20110,7 +20126,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_claim_evidence (
 
 ### insurance_purchases
 
-Source: [migrations/033_xcover_claim_cases.sql:5](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/033_xcover_claim_cases.sql#L5).
+Source: [migrations/033_xcover_claim_cases.sql:5](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/033_xcover_claim_cases.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_purchases (
@@ -20133,7 +20149,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_purchases (
 
 ### insurance_settlements
 
-Source: [migrations/033_xcover_claim_cases.sql:62](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/033_xcover_claim_cases.sql#L62).
+Source: [migrations/033_xcover_claim_cases.sql:62](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/033_xcover_claim_cases.sql#L62).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_settlements (
@@ -20153,7 +20169,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_settlements (
 
 ### insurance_webhook_receipts
 
-Source: [migrations/033_xcover_claim_cases.sql:108](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/033_xcover_claim_cases.sql#L108).
+Source: [migrations/033_xcover_claim_cases.sql:108](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/033_xcover_claim_cases.sql#L108).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.insurance_webhook_receipts (
@@ -20169,7 +20185,7 @@ CREATE TABLE IF NOT EXISTS public.insurance_webhook_receipts (
 
 ### logistics_media_assets
 
-Source: [migrations/044_carrier_manifests_and_media.sql:160](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/044_carrier_manifests_and_media.sql#L160).
+Source: [migrations/044_carrier_manifests_and_media.sql:160](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/044_carrier_manifests_and_media.sql#L160).
 
 ```sql
 CREATE TABLE public.logistics_media_assets (
@@ -20184,7 +20200,7 @@ CREATE TABLE public.logistics_media_assets (
 
 ### partner_cancellations
 
-Source: [migrations/023_partner_lifecycle.sql:35](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/023_partner_lifecycle.sql#L35).
+Source: [migrations/023_partner_lifecycle.sql:35](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/023_partner_lifecycle.sql#L35).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_cancellations(
@@ -20200,7 +20216,7 @@ CREATE TABLE IF NOT EXISTS public.partner_cancellations(
 
 ### partner_order_jobs
 
-Source: [migrations/024_native_partner_orders_and_webhooks.sql:17](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/024_native_partner_orders_and_webhooks.sql#L17).
+Source: [migrations/024_native_partner_orders_and_webhooks.sql:17](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/024_native_partner_orders_and_webhooks.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_order_jobs(
@@ -20223,7 +20239,7 @@ CREATE TABLE IF NOT EXISTS public.partner_order_jobs(
 
 ### partner_provider_options
 
-Source: [migrations/024_native_partner_orders_and_webhooks.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/024_native_partner_orders_and_webhooks.sql#L4).
+Source: [migrations/024_native_partner_orders_and_webhooks.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/024_native_partner_orders_and_webhooks.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_provider_options(
@@ -20243,7 +20259,7 @@ CREATE TABLE IF NOT EXISTS public.partner_provider_options(
 
 ### partner_shipping_offers
 
-Source: [migrations/023_partner_lifecycle.sql:17](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/023_partner_lifecycle.sql#L17).
+Source: [migrations/023_partner_lifecycle.sql:17](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/023_partner_lifecycle.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_shipping_offers(
@@ -20260,7 +20276,7 @@ CREATE TABLE IF NOT EXISTS public.partner_shipping_offers(
 
 ### partner_unbound_quotes
 
-Source: [migrations/023_partner_lifecycle.sql:5](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/023_partner_lifecycle.sql#L5).
+Source: [migrations/023_partner_lifecycle.sql:5](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/023_partner_lifecycle.sql#L5).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.partner_unbound_quotes(
@@ -20275,7 +20291,7 @@ CREATE TABLE IF NOT EXISTS public.partner_unbound_quotes(
 
 ### payment_carts
 
-Source: [migrations/030_card_checkout.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/030_card_checkout.sql#L4).
+Source: [migrations/030_card_checkout.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/030_card_checkout.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.payment_carts(
@@ -20290,7 +20306,7 @@ CREATE TABLE IF NOT EXISTS public.payment_carts(
 
 ### platform_carrier_connections
 
-Source: [migrations/020_platform_carriers.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/020_platform_carriers.sql#L4).
+Source: [migrations/020_platform_carriers.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/020_platform_carriers.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.platform_carrier_connections(
@@ -20306,7 +20322,7 @@ CREATE TABLE IF NOT EXISTS public.platform_carrier_connections(
 
 ### platform_carrier_events
 
-Source: [migrations/020_platform_carriers.sql:18](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/020_platform_carriers.sql#L18).
+Source: [migrations/020_platform_carriers.sql:18](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/020_platform_carriers.sql#L18).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.platform_carrier_events(
@@ -20319,7 +20335,7 @@ CREATE TABLE IF NOT EXISTS public.platform_carrier_events(
 
 ### return_customer_deliveries
 
-Source: [migrations/046_return_review_and_delivery.sql:26](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/046_return_review_and_delivery.sql#L26).
+Source: [migrations/046_return_review_and_delivery.sql:26](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/046_return_review_and_delivery.sql#L26).
 
 ```sql
 CREATE TABLE public.return_customer_deliveries (
@@ -20335,7 +20351,7 @@ CREATE TABLE public.return_customer_deliveries (
 
 ### return_review_sessions
 
-Source: [migrations/046_return_review_and_delivery.sql:11](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/046_return_review_and_delivery.sql#L11).
+Source: [migrations/046_return_review_and_delivery.sql:11](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/046_return_review_and_delivery.sql#L11).
 
 ```sql
 CREATE TABLE public.return_review_sessions (
@@ -20355,7 +20371,7 @@ CREATE TABLE public.return_review_sessions (
 
 ### reverse_logistics_requests
 
-Source: [migrations/042_headless_returns.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/042_headless_returns.sql#L4).
+Source: [migrations/042_headless_returns.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/042_headless_returns.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.reverse_logistics_requests (
@@ -20379,7 +20395,7 @@ CREATE TABLE IF NOT EXISTS public.reverse_logistics_requests (
 
 ### shipment_dispute_drafts
 
-Source: [migrations/027_workspace_invitations_and_disputes.sql:14](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/027_workspace_invitations_and_disputes.sql#L14).
+Source: [migrations/027_workspace_invitations_and_disputes.sql:14](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/027_workspace_invitations_and_disputes.sql#L14).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.shipment_dispute_drafts(
@@ -20392,7 +20408,7 @@ CREATE TABLE IF NOT EXISTS public.shipment_dispute_drafts(
 
 ### shipment_goods_items
 
-Source: [migrations/035_packages_goods_returns_and_credential_locks.sql:80](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/035_packages_goods_returns_and_credential_locks.sql#L80).
+Source: [migrations/035_packages_goods_returns_and_credential_locks.sql:80](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/035_packages_goods_returns_and_credential_locks.sql#L80).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.shipment_goods_items (
@@ -20413,7 +20429,7 @@ CREATE TABLE IF NOT EXISTS public.shipment_goods_items (
 
 ### shipment_sender_notifications
 
-Source: [migrations/047_sender_shipment_notifications.sql:10](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/047_sender_shipment_notifications.sql#L10).
+Source: [migrations/047_sender_shipment_notifications.sql:10](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/047_sender_shipment_notifications.sql#L10).
 
 ```sql
 CREATE TABLE public.shipment_sender_notifications (
@@ -20434,7 +20450,7 @@ CREATE TABLE public.shipment_sender_notifications (
 
 ### stripe_charge_refunds
 
-Source: [migrations/019_stripe_snapshot_reconciliation.sql:55](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/019_stripe_snapshot_reconciliation.sql#L55).
+Source: [migrations/019_stripe_snapshot_reconciliation.sql:55](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/019_stripe_snapshot_reconciliation.sql#L55).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.stripe_charge_refunds (
@@ -20450,7 +20466,7 @@ CREATE TABLE IF NOT EXISTS public.stripe_charge_refunds (
 
 ### stripe_webhook_events
 
-Source: [migrations/019_stripe_snapshot_reconciliation.sql:34](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/019_stripe_snapshot_reconciliation.sql#L34).
+Source: [migrations/019_stripe_snapshot_reconciliation.sql:34](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/019_stripe_snapshot_reconciliation.sql#L34).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
@@ -20472,7 +20488,7 @@ CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
 
 ### support_message_outbox
 
-Source: [migrations/011_tracking_and_support.sql:57](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/011_tracking_and_support.sql#L57).
+Source: [migrations/011_tracking_and_support.sql:57](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/011_tracking_and_support.sql#L57).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_message_outbox (
@@ -20487,7 +20503,7 @@ CREATE TABLE IF NOT EXISTS public.support_message_outbox (
 
 ### support_ticket_activity
 
-Source: [migrations/026_support_review_activity.sql:6](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/026_support_review_activity.sql#L6).
+Source: [migrations/026_support_review_activity.sql:6](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/026_support_review_activity.sql#L6).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_ticket_activity (
@@ -20505,7 +20521,7 @@ CREATE TABLE IF NOT EXISTS public.support_ticket_activity (
 
 ### support_tickets
 
-Source: [migrations/011_tracking_and_support.sql:48](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/011_tracking_and_support.sql#L48).
+Source: [migrations/011_tracking_and_support.sql:48](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/011_tracking_and_support.sql#L48).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.support_tickets (
@@ -20521,7 +20537,7 @@ CREATE TABLE IF NOT EXISTS public.support_tickets (
 
 ### tenant_catalog_addresses
 
-Source: [migrations/036_tenant_catalogs.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/036_tenant_catalogs.sql#L4).
+Source: [migrations/036_tenant_catalogs.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/036_tenant_catalogs.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_addresses (
@@ -20538,7 +20554,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_addresses (
 
 ### tenant_catalog_contacts
 
-Source: [migrations/036_tenant_catalogs.sql:17](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/036_tenant_catalogs.sql#L17).
+Source: [migrations/036_tenant_catalogs.sql:17](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/036_tenant_catalogs.sql#L17).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_contacts (
@@ -20553,7 +20569,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_contacts (
 
 ### tenant_catalog_products
 
-Source: [migrations/036_tenant_catalogs.sql:26](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/036_tenant_catalogs.sql#L26).
+Source: [migrations/036_tenant_catalogs.sql:26](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/036_tenant_catalogs.sql#L26).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tenant_catalog_products (
@@ -20572,7 +20588,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_catalog_products (
 
 ### tracking_case_reviews
 
-Source: [migrations/045_unified_tracking.sql:103](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L103).
+Source: [migrations/045_unified_tracking.sql:103](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L103).
 
 ```sql
 CREATE TABLE public.tracking_case_reviews (
@@ -20586,7 +20602,7 @@ CREATE TABLE public.tracking_case_reviews (
 
 ### tracking_customer_requests
 
-Source: [migrations/045_unified_tracking.sql:57](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L57).
+Source: [migrations/045_unified_tracking.sql:57](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L57).
 
 ```sql
 CREATE TABLE public.tracking_customer_requests (
@@ -20603,7 +20619,7 @@ CREATE TABLE public.tracking_customer_requests (
 
 ### tracking_events
 
-Source: [migrations/011_tracking_and_support.sql:31](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/011_tracking_and_support.sql#L31).
+Source: [migrations/011_tracking_and_support.sql:31](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/011_tracking_and_support.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.tracking_events (
@@ -20627,7 +20643,7 @@ CREATE TABLE IF NOT EXISTS public.tracking_events (
 
 ### tracking_notifications
 
-Source: [migrations/045_unified_tracking.sql:77](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L77).
+Source: [migrations/045_unified_tracking.sql:77](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L77).
 
 ```sql
 CREATE TABLE public.tracking_notifications (
@@ -20644,7 +20660,7 @@ CREATE TABLE public.tracking_notifications (
 
 ### tracking_operations_audit
 
-Source: [migrations/045_unified_tracking.sql:110](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L110).
+Source: [migrations/045_unified_tracking.sql:110](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L110).
 
 ```sql
 CREATE TABLE public.tracking_operations_audit (
@@ -20658,7 +20674,7 @@ CREATE TABLE public.tracking_operations_audit (
 
 ### tracking_preferences
 
-Source: [migrations/045_unified_tracking.sql:68](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L68).
+Source: [migrations/045_unified_tracking.sql:68](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L68).
 
 ```sql
 CREATE TABLE public.tracking_preferences (
@@ -20674,7 +20690,7 @@ CREATE TABLE public.tracking_preferences (
 
 ### tracking_provider_limits
 
-Source: [migrations/045_unified_tracking.sql:99](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L99).
+Source: [migrations/045_unified_tracking.sql:99](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L99).
 
 ```sql
 CREATE TABLE public.tracking_provider_limits (
@@ -20685,7 +20701,7 @@ CREATE TABLE public.tracking_provider_limits (
 
 ### tracking_refresh_jobs
 
-Source: [migrations/045_unified_tracking.sql:88](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L88).
+Source: [migrations/045_unified_tracking.sql:88](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L88).
 
 ```sql
 CREATE TABLE public.tracking_refresh_jobs (
@@ -20702,7 +20718,7 @@ CREATE TABLE public.tracking_refresh_jobs (
 
 ### tracking_share_links
 
-Source: [migrations/045_unified_tracking.sql:30](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/045_unified_tracking.sql#L30).
+Source: [migrations/045_unified_tracking.sql:30](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/045_unified_tracking.sql#L30).
 
 ```sql
 CREATE TABLE public.tracking_share_links (
@@ -20719,7 +20735,7 @@ CREATE TABLE public.tracking_share_links (
 
 ### web_registration_sessions
 
-Source: [migrations/040_workspace_personas.sql:31](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/040_workspace_personas.sql#L31).
+Source: [migrations/040_workspace_personas.sql:31](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/040_workspace_personas.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.web_registration_sessions (
@@ -20735,7 +20751,7 @@ CREATE TABLE IF NOT EXISTS public.web_registration_sessions (
 
 ### whatsapp_inbound_queue
 
-Source: [migrations/043_whatsapp_async_ingress.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/043_whatsapp_async_ingress.sql#L4).
+Source: [migrations/043_whatsapp_async_ingress.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/043_whatsapp_async_ingress.sql#L4).
 
 ```sql
 CREATE TABLE public.whatsapp_inbound_queue (
@@ -20753,7 +20769,7 @@ CREATE TABLE public.whatsapp_inbound_queue (
 
 ### whatsapp_registration_queue
 
-Source: [migrations/039_whatsapp_onboarding.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/039_whatsapp_onboarding.sql#L4).
+Source: [migrations/039_whatsapp_onboarding.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/039_whatsapp_onboarding.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.whatsapp_registration_queue (
@@ -20781,7 +20797,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_registration_queue (
 
 ### whatsapp_registration_receipts
 
-Source: [migrations/039_whatsapp_onboarding.sql:31](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/039_whatsapp_onboarding.sql#L31).
+Source: [migrations/039_whatsapp_onboarding.sql:31](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/039_whatsapp_onboarding.sql#L31).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.whatsapp_registration_receipts (
@@ -20796,7 +20812,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_registration_receipts (
 
 ### whatsapp_reply_outbox
 
-Source: [migrations/043_whatsapp_async_ingress.sql:18](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/043_whatsapp_async_ingress.sql#L18).
+Source: [migrations/043_whatsapp_async_ingress.sql:18](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/043_whatsapp_async_ingress.sql#L18).
 
 ```sql
 CREATE TABLE public.whatsapp_reply_outbox (
@@ -20813,7 +20829,7 @@ CREATE TABLE public.whatsapp_reply_outbox (
 
 ### workspace_dispatch_events
 
-Source: [migrations/032_dispatch_events_and_invoice_audits.sql:44](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/032_dispatch_events_and_invoice_audits.sql#L44).
+Source: [migrations/032_dispatch_events_and_invoice_audits.sql:44](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/032_dispatch_events_and_invoice_audits.sql#L44).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_dispatch_events (
@@ -20827,7 +20843,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_dispatch_events (
 
 ### workspace_invitations
 
-Source: [migrations/027_workspace_invitations_and_disputes.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/027_workspace_invitations_and_disputes.sql#L4).
+Source: [migrations/027_workspace_invitations_and_disputes.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/027_workspace_invitations_and_disputes.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_invitations(
@@ -20842,7 +20858,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_invitations(
 
 ### workspace_store_connections
 
-Source: [migrations/031_store_connections.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/031_store_connections.sql#L4).
+Source: [migrations/031_store_connections.sql:4](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/031_store_connections.sql#L4).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.workspace_store_connections (
@@ -20859,7 +20875,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_store_connections (
 
 ### xclaim_webhook_receipts
 
-Source: [migrations/033_xcover_claim_cases.sql:101](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/migrations/033_xcover_claim_cases.sql#L101).
+Source: [migrations/033_xcover_claim_cases.sql:101](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/migrations/033_xcover_claim_cases.sql#L101).
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.xclaim_webhook_receipts (
@@ -20878,7 +20894,7 @@ Repository module/class/function locations are listed below. Source links refere
 
 ## main.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L1)
 
 EasyInvio.com: combined rating, financial controls and WhatsApp service.
 
@@ -20939,23 +20955,23 @@ wire contract; use an adapter matching the selected regional provider's API.
 - `RatingService` (line 1098): `__init__`, `run_provider`, `quote`.
 - `FinanceEngine` (line 1303): `__init__`, `lock_tenant`, `lock_wallet`, `append_ledger`, `reserve`, `locked_reservation`, `verified_test_booking`, `mark_submitted`, `finish_booking`, `check_payment_environment`, `authorize_label_preview`, `create_checkout`, `credit_session`.
 - `WhatsAppService` (line 1783): `__init__`, `resolve_sender`, `sign_choice`, `process`.
-- `UKAddressLookupRequest` (line 2340): .
-- `UKAddressChoice` (line 2344): .
-- `UKAddressLookupResponse` (line 2350): .
+- `UKAddressLookupRequest` (line 2355): .
+- `UKAddressChoice` (line 2359): .
+- `UKAddressLookupResponse` (line 2365): .
 
-Top-level functions: `decimal_input` (line 285), `parse_json` (line 631), `streamed_json` (line 641), `money` (line 650), `to_minor_units` (line 656), `from_minor_units` (line 667), `encrypt_carrier_credentials` (line 675), `borrow_finance_connection` (line 1295), `country_to_alpha2` (line 1737), `parse_quote` (line 1745), `twiml` (line 1759), `xml_response` (line 1765), `decode_json` (line 1769), `rls_context` (line 1773), `deterministic_lifespan` (line 1926), `lifespan` (line 2110), `branded_carrier_transport` (line 2143), `preview_guard` (line 2167), `validate_tenant_query` (line 2181), `authenticate` (line 2199), `wallet_risk_interceptor` (line 2275), `health` (line 2296), `frontend` (line 2303), `public_tracking_page` (line 2309), `tracking_asset` (line 2323), `public_config` (line 2329), `lookup_uk_address` (line 2357), `get_rates` (line 2377), `carrier_performance` (line 2437), `create_wallet_topup` (line 2455), `limited_body` (line 2466), `stripe_webhook` (line 2476), `inbound_whatsapp` (line 2522), `resolve_quote_choice` (line 2528), `verify_local_logic` (line 2606).
+Top-level functions: `decimal_input` (line 285), `parse_json` (line 631), `streamed_json` (line 641), `money` (line 650), `to_minor_units` (line 656), `from_minor_units` (line 667), `encrypt_carrier_credentials` (line 675), `borrow_finance_connection` (line 1295), `country_to_alpha2` (line 1737), `parse_quote` (line 1745), `twiml` (line 1759), `xml_response` (line 1765), `decode_json` (line 1769), `rls_context` (line 1773), `deterministic_lifespan` (line 1926), `lifespan` (line 2110), `branded_carrier_transport` (line 2143), `preview_guard` (line 2167), `validate_tenant_query` (line 2181), `authenticate` (line 2199), `wallet_risk_interceptor` (line 2275), `health` (line 2296), `frontend` (line 2303), `public_tracking_page` (line 2309), `tracking_asset` (line 2323), `brand_asset` (line 2336), `public_config` (line 2344), `lookup_uk_address` (line 2372), `get_rates` (line 2392), `carrier_performance` (line 2452), `create_wallet_topup` (line 2470), `limited_body` (line 2481), `stripe_webhook` (line 2491), `inbound_whatsapp` (line 2537), `resolve_quote_choice` (line 2543), `verify_local_logic` (line 2621).
 
 Public SQL object references: `carrier_manifests`, `js`, `margin_rules`, `partner_unbound_quotes`, `payment_carts`, `return_customer_deliveries`, `shipment_sender_notifications`, `shipments`, `tenants`, `users`, `wallet_ledger`, `wallet_reservations`, `wallet_topups`, `wallets`, `whatsapp_bindings`, `whatsapp_quote_choices`, `whatsapp_receipts`, `whatsapp_reply_outbox`, `whatsapp_routes`.
 
 ## backend/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/__init__.py#L1)
 
 EasyInvio logistics extensions.
 
 ## backend/adapters/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/adapters/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/adapters/__init__.py#L1)
 
 Direct carrier extension points. No unverified carrier endpoint is registered.
 
@@ -20965,7 +20981,7 @@ Top-level functions: `direct_registration` (line 18).
 
 ## backend/adapters/direct_contract.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/adapters/direct_contract.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/adapters/direct_contract.py#L1)
 
 Typed internal contract for certified direct transports, not a carrier wire schema.
 
@@ -20977,7 +20993,7 @@ Typed internal contract for certified direct transports, not a carrier wire sche
 - `DirectCarrierContract` (line 76): `quote`, `purchase_label`, `create_manifest`.
 ## backend/adapters/evri_adapter.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/adapters/evri_adapter.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/adapters/evri_adapter.py#L1)
 
 Evri direct provision; no guessed enterprise endpoint, signing or QR generation.
 
@@ -20985,14 +21001,14 @@ Evri direct provision; no guessed enterprise endpoint, signing or QR generation.
 - `EvriStrategy` (line 17): `postable_height_candidate`, `extract_dropoff_barcode`.
 ## backend/adapters/royal_mail_adapter.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/adapters/royal_mail_adapter.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/adapters/royal_mail_adapter.py#L1)
 
 Royal Mail direct provision. An issued, certified API contract is mandatory.
 
 - `RoyalMailStrategy` (line 14): `__init__`, `verified_contract`, `rates`, `purchase_label`, `create_manifest`.
 ## backend/address_validation.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/address_validation.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/address_validation.py#L1)
 
 Server-owned UK delivery-point checks shared by quotes and label purchases.
 
@@ -21001,7 +21017,7 @@ Top-level functions: `configured` (line 16), `comparable` (line 21), `verify_shi
 
 ## backend/admin_management.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L1)
 
 Owner-only, audited management of existing tenant-scoped configuration.
 
@@ -21015,7 +21031,7 @@ Public SQL object references: `admin_management_events`, `carrier_accounts`, `ma
 
 ## backend/admin_portal.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L1)
 
 Platform-owner administration and database-backed tenant pricing.
 
@@ -21040,7 +21056,7 @@ Public SQL object references: `admin_configuration_events`, `carrier_accounts`, 
 
 ## backend/advanced_logistics.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L1)
 
 Decimal dimensional pricing, declaration metadata and bounded CSV order imports.
 
@@ -21055,18 +21071,18 @@ Public SQL object references: `partner_order_jobs`, `shipments`, `tenants`, `wal
 
 ## backend/agents/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/__init__.py#L1)
 
 Bounded AI assistance around EasyInvio's existing authorised services.
 
 ## backend/agents/config.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/config.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/config.py#L1)
 
 - `AgentSettings` (line 5): `available`.
 ## backend/agents/conversation_context.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/conversation_context.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/conversation_context.py#L1)
 
 Bounded typed conversation drafts and deterministic location extraction.
 
@@ -21076,7 +21092,7 @@ Top-level functions: `explicit_country` (line 14), `location` (line 45), `explic
 
 ## backend/agents/conversational_gateway.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/conversational_gateway.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/conversational_gateway.py#L1)
 
 One authenticated action dispatcher for signed WhatsApp and session-bound web chat.
 
@@ -21093,7 +21109,7 @@ Public SQL object references: `admin_client_assistance_sessions`, `carrier_manif
 
 ## backend/agents/margin_optimizer.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/margin_optimizer.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/margin_optimizer.py#L1)
 
 Optional strategic advice over immutable, already-priced top-ten offers.
 
@@ -21106,7 +21122,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `tenants
 
 ## backend/agents/models.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/models.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/models.py#L1)
 
 - `StrictOutput` (line 9): .
 - `QuoteIntent` (line 13): .
@@ -21121,7 +21137,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `tenants
 - `HelpQuestion` (line 104): .
 ## backend/agents/rag_support.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/rag_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/rag_support.py#L1)
 
 Versioned local documentation retrieval; customer queries are never written to disk.
 
@@ -21133,7 +21149,7 @@ Top-level functions: `words` (line 77), `complete_excerpts` (line 88), `document
 
 ## backend/agents/routes.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L1)
 
 Authenticated AI preparation and documentation; no general-purpose action tools.
 
@@ -21144,7 +21160,7 @@ Top-level functions: `build_router` (line 17).
 
 ## backend/agents/runtime.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/runtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/runtime.py#L1)
 
 No durable customer prompts, no model retries, bounded SDK runs and measured usage.
 
@@ -21153,7 +21169,7 @@ No durable customer prompts, no model retries, bounded SDK runs and measured usa
 - `AgentRuntime` (line 47): `__init__`, `available`, `key`, `reserve`, `record`, `run`, `embed`, `close`.
 ## backend/agents/status_guidance.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/status_guidance.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/status_guidance.py#L1)
 
 Recognize explanatory status questions without authorizing any action.
 
@@ -21162,7 +21178,7 @@ Top-level functions: `normalized` (line 8), `status_question` (line 12), `needs_
 
 ## backend/agents/supervisor.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/supervisor.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/supervisor.py#L1)
 
 Bounded orchestration around existing, authoritative logistics services.
 
@@ -21172,7 +21188,7 @@ Top-level functions: `supervisor` (line 119).
 
 ## backend/agents/web_help.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/web_help.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/web_help.py#L1)
 
 Read-only public web guidance. No tenant records, tools for actions or page fetching.
 
@@ -21181,7 +21197,7 @@ Top-level functions: `public_search_query` (line 15), `safe_source_url` (line 38
 
 ## backend/agents/workers.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/workers.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/workers.py#L1)
 
 Specialists have narrow capabilities; no worker can buy labels or alter a wallet.
 
@@ -21191,13 +21207,13 @@ Specialists have narrow capabilities; no worker can buy labels or alter a wallet
 - `ProactiveClaimsSupportAgent` (line 269): `__init__`, `receive_tracking`, `stage`.
 ## backend/aggregator_lifecycle.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/aggregator_lifecycle.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/aggregator_lifecycle.py#L1)
 
 Backward-compatible imports for the explicit three-provider engine.
 
 ## backend/aggregator_registry.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/aggregator_registry.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/aggregator_registry.py#L1)
 
 Explicit aggregator capabilities: shared interface, provider-specific wire contracts.
 
@@ -21207,7 +21223,7 @@ Top-level functions: `identify_aggregator` (line 23), `public_capabilities` (lin
 
 ## backend/ai_engine.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L1)
 
 Explainable mock ML and tenant-scoped invoice auditing.
 
@@ -21226,7 +21242,7 @@ Public SQL object references: `shipments`, `tenants`.
 
 ## backend/apply_automation_migration.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/apply_automation_migration.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/apply_automation_migration.py#L1)
 
 Apply the additive freight/support compatibility migration in sandbox.
 
@@ -21235,7 +21251,7 @@ Top-level functions: `run` (line 9).
 
 ## backend/apply_partner_lifecycle.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/apply_partner_lifecycle.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/apply_partner_lifecycle.py#L1)
 
 Explicit sandbox-only migration runner; contains no credentials or seed data.
 
@@ -21244,7 +21260,7 @@ Top-level functions: `run` (line 12).
 
 ## backend/apply_tracking_migration.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/apply_tracking_migration.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/apply_tracking_migration.py#L1)
 
 Apply only the additive tracking/support migration to configured Supabase.
 
@@ -21253,7 +21269,7 @@ Top-level functions: `run` (line 9).
 
 ## backend/automation_freight_engine.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L1)
 
 Cargo-aware bulk rating, confirmed EasyPost purchase and customs bundles.
 
@@ -21275,7 +21291,7 @@ Public SQL object references: `automation_failures`, `ecommerce_stores`, `partne
 
 ## backend/automation_three_partners.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L1)
 
 Native partner lifecycle contracts behind EasyInvio's private account boundary.
 
@@ -21305,7 +21321,7 @@ Public SQL object references: `carrier_accounts`, `partner_cancellations`, `part
 
 ## backend/booking_receipt.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/booking_receipt.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/booking_receipt.py#L1)
 
 Printable booking receipt from confirmed, tenant-owned shipment records.
 
@@ -21314,7 +21330,7 @@ Top-level functions: `receipt_pdf` (line 11).
 
 ## backend/build_rigorous_seed.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/build_rigorous_seed.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/build_rigorous_seed.py#L1)
 
 Generate complete SQL fixture scripts without embedding usable credentials.
 
@@ -21325,7 +21341,7 @@ Public SQL object references: `carrier_accounts`, `ecommerce_stores`, `fixture_s
 
 ## backend/bulk_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L1)
 
 Review persisted rates and explicitly buy selected offers for CSV or store orders.
 
@@ -21339,7 +21355,7 @@ Public SQL object references: `partner_shipping_offers`, `shipments`, `tenants`,
 
 ## backend/card_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/card_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/card_checkout.py#L1)
 
 Card-funded label baskets over the atomic wallet booking ledger.
 
@@ -21351,7 +21367,7 @@ Public SQL object references: `partner_shipping_offers`, `payment_carts`, `shipm
 
 ## backend/carrier_access.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/carrier_access.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/carrier_access.py#L1)
 
 Historical carrier access is limited to a verified shipment lifecycle.
 
@@ -21362,7 +21378,7 @@ Public SQL object references: `shipments`, `tenant_catalog_addresses`.
 
 ## backend/carrier_consolidation.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/carrier_consolidation.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/carrier_consolidation.py#L1)
 
 Private carrier consolidation, tenant-local history and branded public payloads.
 
@@ -21373,7 +21389,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tracking_events`
 
 ## backend/check_hubspot.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/check_hubspot.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/check_hubspot.py#L1)
 
 Read-only deployment preflight. Never enables a worker or creates records.
 
@@ -21385,13 +21401,13 @@ Top-level functions: `check` (line 13).
 
 ## backend/check_setup.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/check_setup.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/check_setup.py#L1)
 
 Report invalid environment variable names without exposing their values.
 
 ## backend/client_assistance.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L1)
 
 Verified platform operators acting in a tenant, with durable request audit events.
 
@@ -21405,7 +21421,7 @@ Public SQL object references: `admin_client_assistance_events`, `admin_client_as
 
 ## backend/conversational_claims.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/conversational_claims.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/conversational_claims.py#L1)
 
 One-time completion of an authenticated, unsubmitted chat claim draft.
 
@@ -21416,7 +21432,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 
 ## backend/credential_rotation.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/credential_rotation.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/credential_rotation.py#L1)
 
 Fresh-admin replacement of sealed, tenant-bound credentials; never unlock.
 
@@ -21428,7 +21444,7 @@ Public SQL object references: `carrier_accounts`.
 
 ## backend/customer_checkout.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L1)
 
 Tenant-authorized checkout of private offers and confirmed invoice PDFs.
 
@@ -21442,7 +21458,7 @@ Public SQL object references: `booking_references`, `easyinvio_booking_reference
 
 ## backend/dashboard_portal.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L1)
 
 Server-verified portal roles, owner analytics and support dashboard actions.
 
@@ -21457,7 +21473,7 @@ Public SQL object references: `app_user_profiles`, `automation_failures`, `ecomm
 
 ## backend/database_tls.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/database_tls.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/database_tls.py#L1)
 
 Verified PostgreSQL TLS with explicit legacy-CA compatibility.
 
@@ -21466,7 +21482,7 @@ Top-level functions: `database_tls_context` (line 5).
 
 ## backend/delivery_quality.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/delivery_quality.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/delivery_quality.py#L1)
 
 Tenant-bound tracking readiness; status transport and quality are separate.
 
@@ -21477,7 +21493,7 @@ Public SQL object references: `carrier_accounts`, `partner_provider_options`, `s
 
 ## backend/dispatch_pdf.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_pdf.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_pdf.py#L1)
 
 Bounded, tenant-authorized print bundles of confirmed carrier PDFs.
 
@@ -21490,7 +21506,7 @@ Top-level functions: `invoice_pdf` (line 48), `fetch_pdf` (line 99), `merge_pdfs
 
 ## backend/dispatch_realtime.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_realtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_realtime.py#L1)
 
 Commit-time Postgres notifications fan out to authenticated tenant sockets.
 
@@ -21500,7 +21516,7 @@ Top-level functions: `build_router` (line 53).
 
 ## backend/dispatch_workspace.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L1)
 
 Operational marketplace inbox. No credentials or financial ledger are exposed.
 
@@ -21515,7 +21531,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/ecommerce_connectors.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_connectors.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_connectors.py#L1)
 
 Native signed intake and opt-in Shopify fulfillment delivery.
 
@@ -21530,7 +21546,7 @@ Top-level functions: `single_header` (line 88), `receive_store_webhook` (line 95
 
 ## backend/ecommerce_inbound.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_inbound.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_inbound.py#L1)
 
 Authenticated Shopify intake and Amazon AWS API-destination order notifications.
 
@@ -21542,7 +21558,7 @@ Public SQL object references: `amazon_order_notifications`, `ecommerce_stores`.
 
 ## backend/ecommerce_sync.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L1)
 
 Tenant-scoped imports and durable fulfillment delivery.
 
@@ -21564,7 +21580,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/email_delivery.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/email_delivery.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/email_delivery.py#L1)
 
 Selectable notification email delivery; Hostinger SMTP is the default.
 
@@ -21578,7 +21594,7 @@ Top-level functions: `mailbox` (line 41), `email_configured` (line 45), `refusal
 
 ## backend/help_center.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/help_center.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/help_center.py#L1)
 
 Public, authored customer guidance with no account access or external actions.
 
@@ -21588,7 +21604,7 @@ Top-level functions: `guide_source` (line 269), `rendered_guide` (line 279), `re
 
 ## backend/hubspot_crm.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L1)
 
 Optional HubSpot CRM synchronization with durable PostgreSQL jobs.
 
@@ -21607,7 +21623,7 @@ Public SQL object references: `hubspot_sync_jobs`, `hubspot_tenant_links`, `ship
 
 ## backend/hubspot_provisioning.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_provisioning.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_provisioning.py#L1)
 
 Signed HubSpot deal events and durable, idempotent workspace provisioning.
 
@@ -21622,7 +21638,7 @@ Public SQL object references: `hubspot_activation_jobs`, `hubspot_tenant_links`,
 
 ## backend/identity.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L1)
 
 Password-verified, revocable HS256 app sessions around Supabase Auth identity.
 
@@ -21638,7 +21654,7 @@ Public SQL object references: `admin_client_assistance_sessions`, `app_auth_sess
 
 ## backend/inspect_seed_schema.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/inspect_seed_schema.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/inspect_seed_schema.py#L1)
 
 Export only schema metadata needed for relational sandbox fixtures.
 
@@ -21647,7 +21663,7 @@ Top-level functions: `run` (line 10).
 
 ## backend/integration_policy.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/integration_policy.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/integration_policy.py#L1)
 
 Server-owned switches for new provider work; historical reads remain available.
 
@@ -21657,7 +21673,7 @@ Top-level functions: `integration_code` (line 21), `integration_enabled` (line 3
 
 ## backend/invoice_upload.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/invoice_upload.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/invoice_upload.py#L1)
 
 Bounded statement parsing and reproducible comparisons against server snapshots.
 
@@ -21669,7 +21685,7 @@ Public SQL object references: `billing_disputes`, `shipments`.
 
 ## backend/label_availability.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/label_availability.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/label_availability.py#L1)
 
 Known purchase gates checked before payment; live carrier acceptance is separate.
 
@@ -21678,7 +21694,7 @@ Top-level functions: `label_availability` (line 5), `require_label_purchase` (li
 
 ## backend/logistics_media.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/logistics_media.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/logistics_media.py#L1)
 
 Normalize real carrier assets and publish read-only, tenant-scoped signed images.
 
@@ -21691,7 +21707,7 @@ Public SQL object references: `logistics_media_assets`.
 
 ## backend/manifest_service.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L1)
 
 Fenced carrier close-out and explicit internal driver handover documents.
 
@@ -21708,7 +21724,7 @@ Public SQL object references: `admin_client_assistance_sessions`, `carrier_accou
 
 ## backend/manifest_workflow.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_workflow.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_workflow.py#L1)
 
 Read-only shipment action policy; never infer a booking or mutate a quote.
 
@@ -21717,7 +21733,7 @@ Top-level functions: `decoded` (line 35), `https_asset` (line 44), `workflow` (l
 
 ## backend/multi_label.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/multi_label.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/multi_label.py#L1)
 
 A group is confirmed only when every native package label is confirmed.
 
@@ -21726,7 +21742,7 @@ Top-level functions: `bundle_labels` (line 5).
 
 ## backend/order_csv.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/order_csv.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/order_csv.py#L1)
 
 Versioned CSV orders, tenant-scoped persistence and customs review.
 
@@ -21742,7 +21758,7 @@ Public SQL object references: `ecommerce_stores`, `shipments`, `tenants`, `users
 
 ## backend/package_guidance.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/package_guidance.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_guidance.py#L1)
 
 Route-scoped package guidance; reference limits never certify carrier eligibility.
 
@@ -21754,7 +21770,7 @@ Top-level functions: `evaluate_package` (line 66), `build_router` (line 134).
 
 ## backend/package_sets.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/package_sets.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_sets.py#L1)
 
 Exact physical package snapshots; carrier APIs receive individual boxes.
 
@@ -21766,7 +21782,7 @@ Public SQL object references: `shipment_goods_items`, `shipments`.
 
 ## backend/paf_lookup.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/paf_lookup.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/paf_lookup.py#L1)
 
 Asynchronous licensed PAF lookup boundary. Postcode syntax is not delivery proof.
 
@@ -21779,7 +21795,7 @@ Top-level functions: `uk_postcode` (line 19).
 
 ## backend/payment_gateway.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L1)
 
 Environment-validated Checkout gateway over the shared, atomic wallet ledger service.
 
@@ -21793,7 +21809,7 @@ Public SQL object references: `shipments`, `stripe_charge_refunds`, `stripe_webh
 
 ## backend/platform_carriers.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L1)
 
 Owner-managed shared provider connections; tenant shipments retain isolated FKs.
 
@@ -21805,7 +21821,7 @@ Public SQL object references: `carrier_accounts`, `platform_carrier_connections`
 
 ## backend/provider_routing.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/provider_routing.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/provider_routing.py#L1)
 
 Bounded direct-first routing without sacrificing uncovered carrier options.
 
@@ -21814,7 +21830,7 @@ Top-level functions: `service_key` (line 11), `run_tiered_providers` (line 15).
 
 ## backend/rate_diagnostics.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/rate_diagnostics.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/rate_diagnostics.py#L1)
 
 Safe rate diagnostics; never expose upstream response bodies or credentials.
 
@@ -21827,7 +21843,7 @@ Public SQL object references: `automation_failures`, `support_tickets`.
 
 ## backend/repair_local_config.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/repair_local_config.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/repair_local_config.py#L1)
 
 Repair identifiable dotenv formatting without printing credential values.
 
@@ -21836,7 +21852,7 @@ Top-level functions: `run` (line 12).
 
 ## backend/return_delivery.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_delivery.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_delivery.py#L1)
 
 Payment-gated customer return documents and durable transactional notices.
 
@@ -21849,7 +21865,7 @@ Public SQL object references: `return_customer_deliveries`, `return_review_sessi
 
 ## backend/return_documents.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_documents.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_documents.py#L1)
 
 Optional carrier drop-off documents; never a second label purchase.
 
@@ -21860,7 +21876,7 @@ Public SQL object references: `shipments`.
 
 ## backend/return_ingress.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_ingress.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_ingress.py#L1)
 
 Signed normalized return commands from merchant and marketplace gateways.
 
@@ -21874,7 +21890,7 @@ Public SQL object references: `ecommerce_stores`, `tenants`, `users`.
 
 ## backend/return_review.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L1)
 
 Two-phase, tenant-bound return preparation and explicit service selection.
 
@@ -21893,7 +21909,7 @@ Public SQL object references: `partner_shipping_offers`, `payment_carts`, `retur
 
 ## backend/reverse_logistics.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/reverse_logistics.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/reverse_logistics.py#L1)
 
 Authenticated, durable full-parcel returns over the existing booking ledger.
 
@@ -21909,7 +21925,7 @@ Public SQL object references: `reverse_logistics_requests`, `shipments`, `tenant
 
 ## backend/runtime_hosting.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/runtime_hosting.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/runtime_hosting.py#L1)
 
 Process roles and supervised continuous jobs, independent of provider logic.
 
@@ -21919,7 +21935,7 @@ Top-level functions: `resolve_role` (line 11), `pool_options` (line 17).
 
 ## backend/sandbox_hooks.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/sandbox_hooks.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sandbox_hooks.py#L1)
 
 Real Stripe test-mode hooks and strict signed Twilio Sandbox requests.
 
@@ -21934,7 +21950,7 @@ Public SQL object references: `tenants`, `users`, `wallet_topups`, `wallets`, `w
 
 ## backend/seed_rigorous_data.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/seed_rigorous_data.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/seed_rigorous_data.py#L1)
 
 Apply or rollback-verify the complete relational seed in one transaction.
 
@@ -21945,7 +21961,7 @@ Public SQL object references: `carrier_accounts`, `fixture_seed_runs`, `shipment
 
 ## backend/sendcloud_adapter.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/sendcloud_adapter.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sendcloud_adapter.py#L1)
 
 Read-only Sendcloud v2 rates for explicitly configured contract methods.
 
@@ -21960,7 +21976,7 @@ Public SQL object references: `strip`.
 
 ## backend/shipment_notifications.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L1)
 
 Durable sender milestone delivery. No carrier actions or financial mutations.
 
@@ -21974,7 +21990,7 @@ Public SQL object references: `shipment_sender_notifications`, `shipments`.
 
 ## backend/shipment_protection.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1)
 
 XCover premium arithmetic and explicit integration readiness.
 
@@ -22000,7 +22016,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 
 ## backend/store_connections.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L1)
 
 Write-only merchant setup; encrypted envelopes are bound to tenant and store.
 
@@ -22012,7 +22028,7 @@ Public SQL object references: `amazon_order_notifications`, `ecommerce_stores`, 
 
 ## backend/store_returns.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_returns.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_returns.py#L1)
 
 Native return tracking without forward fulfillment, refunds or restocking.
 
@@ -22024,7 +22040,7 @@ Public SQL object references: `ecommerce_stores`, `ecommerce_tracking_outbox`, `
 
 ## backend/support_alert_controls.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_alert_controls.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_alert_controls.py#L1)
 
 Platform delivery controls separate from the recipient's verified consent.
 
@@ -22036,7 +22052,7 @@ Public SQL object references: `tenants`, `whatsapp_bindings`.
 
 ## backend/support_delivery.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_delivery.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L1)
 
 Opt-in WhatsApp notification delivery with a durable uncertain-send fence.
 
@@ -22053,7 +22069,7 @@ Public SQL object references: `shipments`, `support_message_outbox`, `support_ti
 
 ## backend/support_workflow.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_workflow.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_workflow.py#L1)
 
 Explicit internal review ownership and tenant-scoped append-only activity.
 
@@ -22064,7 +22080,7 @@ Public SQL object references: `app_user_profiles`, `support_ticket_activity`, `s
 
 ## backend/tenant_catalogs.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L1)
 
 Private, versioned tenant registries. No bookings, wallet changes or AI calls.
 
@@ -22079,7 +22095,7 @@ Public SQL object references: `tenant_catalog_addresses`, `tenant_catalog_produc
 
 ## backend/test_supabase_transaction.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/test_supabase_transaction.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/test_supabase_transaction.py#L1)
 
 Explicit, persisted sandbox connectivity test. Creates no payments or labels.
 
@@ -22090,13 +22106,13 @@ Public SQL object references: `margin_rules`, `tenants`, `wallets`.
 
 ## backend/tools/__init__.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tools/__init__.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tools/__init__.py#L1)
 
 Explicitly invoked operational utilities; never run as application startup jobs.
 
 ## backend/tools/sme_lead_scraper.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tools/sme_lead_scraper.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tools/sme_lead_scraper.py#L1)
 
 Company-level UK logistics prospect discovery and unsent outreach drafts.
 
@@ -22110,7 +22126,7 @@ Top-level functions: `district` (line 39), `company_number` (line 46), `public_u
 
 ## backend/tracking_and_support.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_and_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_and_support.py#L1)
 
 Signed, tenant/account-scoped tracking and durable support staging.
 
@@ -22129,7 +22145,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `support_message_
 
 ## backend/tracking_refresh.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_refresh.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_refresh.py#L1)
 
 Bounded read-only reconciliation. Never create a tracker or retry a purchase.
 
@@ -22141,7 +22157,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tenants`, `track
 
 ## backend/tracking_workspace.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L1)
 
 Shared, tenant-bound tracking projections and revocable customer capabilities.
 
@@ -22162,7 +22178,7 @@ Public SQL object references: `carrier_accounts`, `ecommerce_tracking_outbox`, `
 
 ## backend/verify_automation_sandbox.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/verify_automation_sandbox.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/verify_automation_sandbox.py#L1)
 
 Persist one clearly identified invalid-order support test; no carrier calls.
 
@@ -22173,7 +22189,7 @@ Public SQL object references: `automation_failures`, `support_tickets`, `wallets
 
 ## backend/verify_automation_writepath.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/verify_automation_writepath.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/verify_automation_writepath.py#L1)
 
 Real PostgreSQL write-path probe with controlled rates and final rollback.
 
@@ -22189,7 +22205,7 @@ Public SQL object references: `carrier_accounts`, `shipments`, `tenants`, `users
 
 ## backend/verify_supabase.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/verify_supabase.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/verify_supabase.py#L1)
 
 Read-only connection/schema probe. Never log credentials or raw server errors.
 
@@ -22200,7 +22216,7 @@ Public SQL object references: `status_code`.
 
 ## backend/verify_tracking_support.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/verify_tracking_support.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/verify_tracking_support.py#L1)
 
 Real sandbox schema, tenant-scoped report and durable ticket-worker verification.
 
@@ -22211,7 +22227,7 @@ Public SQL object references: `shipments`.
 
 ## backend/web_registration.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/web_registration.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/web_registration.py#L1)
 
 Email-verified public account creation; passwords and OTPs are never stored locally.
 
@@ -22224,7 +22240,7 @@ Public SQL object references: `app_user_profiles`, `tenants`, `users`, `wallets`
 
 ## backend/webhook_security.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/webhook_security.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/webhook_security.py#L1)
 
 Query-secret redaction and optional trusted-proxy-aware webhook IP policy.
 
@@ -22234,7 +22250,7 @@ Top-level functions: `redact_query_secrets` (line 11), `install_webhook_log_reda
 
 ## backend/whatsapp_bot.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_bot.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_bot.py#L1)
 
 Signed WhatsApp ingress into the shared authenticated conversational gateway.
 
@@ -22247,7 +22263,7 @@ Top-level functions: `initialize_whatsapp` (line 28), `xml_message` (line 41), `
 
 ## backend/whatsapp_ingress.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_ingress.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_ingress.py#L1)
 
 Local ingress for tunneling only signed Twilio callbacks, never the app UI/API.
 
@@ -22256,7 +22272,7 @@ Top-level functions: `lifespan` (line 11), `identify_gateway` (line 23), `forwar
 
 ## backend/whatsapp_onboarding.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_onboarding.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_onboarding.py#L1)
 
 Signed-phone registration with separate email proof and native Auth identities.
 
@@ -22272,7 +22288,7 @@ Public SQL object references: `app_user_profiles`, `tenants`, `users`, `wallets`
 
 ## backend/whatsapp_queue.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_queue.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_queue.py#L1)
 
 Durable WhatsApp ingress and REST delivery; no carrier work in the HTTP ack.
 
@@ -22285,7 +22301,7 @@ Public SQL object references: `whatsapp_inbound_queue`, `whatsapp_reply_outbox`.
 
 ## backend/worker_runtime.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/worker_runtime.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/worker_runtime.py#L1)
 
 Dedicated queue consumer. Run with python -m backend.worker_runtime.
 
@@ -22294,7 +22310,7 @@ Top-level functions: `serve` (line 11), `main` (line 49).
 
 ## backend/workspace_personas.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_personas.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_personas.py#L1)
 
 Shared account profiles and exact consumer pricing; no parallel wallets.
 
@@ -22306,7 +22322,7 @@ Public SQL object references: `individual_pricing_settings`.
 
 ## backend/workspace_settings.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L1)
 
 Tenant-owned settings, verified email invitations and durable dispute drafts.
 
@@ -22322,7 +22338,7 @@ Public SQL object references: `app_auth_sessions`, `app_login_limits`, `carrier_
 
 ## backend/xcover_claims.py
 
-[Open source](https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/xcover_claims.py#L1)
+[Open source](https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/xcover_claims.py#L1)
 
 Native XClaim JWT, FNOL, evidence, async claims and signed status events.
 
@@ -22340,6 +22356,7 @@ Public SQL object references: `insurance_claim_cases`, `insurance_claim_evidence
 
 - `tests/aggregator_lifecycle_database_probe.py`
 - `tests/apply_support_migration.py`
+- `tests/brand_browser.py`
 - `tests/budget_strategy_browser.py`
 - `tests/build_uat_artifacts.py`
 - `tests/bulk_dispatch_browser.py`

@@ -853,7 +853,7 @@
       "field": "return_email_from",
       "environment_name": "RETURN_EMAIL_FROM",
       "annotation": "str",
-      "default_expression": "'operations@easyinvio.com'"
+      "default_expression": "'support@easyinvio.com'"
     },
     {
       "file": "backend/return_delivery.py",
@@ -907,7 +907,7 @@
       "field": "shipment_email_from",
       "environment_name": "SHIPMENT_EMAIL_FROM",
       "annotation": "str",
-      "default_expression": "'operations@easyinvio.com'"
+      "default_expression": "'support@easyinvio.com'"
     },
     {
       "file": "backend/shipment_notifications.py",

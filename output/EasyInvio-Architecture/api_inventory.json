@@ -8,7 +8,7 @@
       "tags": [],
       "authorization_summary": "Authenticated workspace dependency; endpoint/helper role and tenant guards apply",
       "file": "main.py",
-      "line": 2356,
+      "line": 2371,
       "function": "lookup_uk_address",
       "guard_calls": [],
       "inline_role_conditions": [
@@ -56,7 +56,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2356",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2371",
       "anchor": "op-post-api-v1-addresses-uk-lookup"
     },
     {
@@ -94,7 +94,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L60",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L60",
       "anchor": "op-get-api-v1-admin-agents-metrics"
     },
     {
@@ -177,7 +177,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L107",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L107",
       "anchor": "op-get-api-v1-admin-analytics-dashboard"
     },
     {
@@ -245,7 +245,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L282",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L282",
       "anchor": "op-post-api-v1-admin-audit-invoice"
     },
     {
@@ -283,7 +283,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L127",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L127",
       "anchor": "op-get-api-v1-admin-carriers"
     },
     {
@@ -340,7 +340,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L138",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L138",
       "anchor": "op-post-api-v1-admin-carriers"
     },
     {
@@ -399,7 +399,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L210",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L210",
       "anchor": "op-delete-api-v1-admin-carriers-account-id"
     },
     {
@@ -467,7 +467,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L183",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L183",
       "anchor": "op-patch-api-v1-admin-carriers-account-id"
     },
     {
@@ -526,7 +526,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L210",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L210",
       "anchor": "op-post-api-v1-admin-carriers-account-id-disable"
     },
     {
@@ -596,7 +596,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/credential_rotation.py#L32",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/credential_rotation.py#L32",
       "anchor": "op-post-api-v1-admin-carriers-account-id-replace-credentials"
     },
     {
@@ -656,7 +656,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L111",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L111",
       "anchor": "op-get-api-v1-admin-client-assistance-clients"
     },
     {
@@ -732,7 +732,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L164",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L164",
       "anchor": "op-get-api-v1-admin-client-assistance-events"
     },
     {
@@ -789,7 +789,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L122",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L122",
       "anchor": "op-post-api-v1-admin-client-assistance-sessions"
     },
     {
@@ -848,7 +848,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/client_assistance.py#L151",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/client_assistance.py#L151",
       "anchor": "op-delete-api-v1-admin-client-assistance-sessions-session-id"
     },
     {
@@ -886,7 +886,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L588",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L588",
       "anchor": "op-get-api-v1-admin-individual-pricing"
     },
     {
@@ -943,7 +943,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L595",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L595",
       "anchor": "op-put-api-v1-admin-individual-pricing"
     },
     {
@@ -1000,7 +1000,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L2177",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L2177",
       "anchor": "op-post-api-v1-admin-insurance-settlements"
     },
     {
@@ -1038,7 +1038,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L472",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L472",
       "anchor": "op-get-api-v1-admin-integrations-alerts"
     },
     {
@@ -1104,7 +1104,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L43",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L43",
       "anchor": "op-get-api-v1-admin-margins"
     },
     {
@@ -1163,7 +1163,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L569",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L569",
       "anchor": "op-post-api-v1-admin-margins"
     },
     {
@@ -1222,7 +1222,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L80",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L80",
       "anchor": "op-delete-api-v1-admin-margins-rule-id"
     },
     {
@@ -1290,7 +1290,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L54",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L54",
       "anchor": "op-put-api-v1-admin-margins-rule-id"
     },
     {
@@ -1328,7 +1328,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L107",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L107",
       "anchor": "op-get-api-v1-admin-platform-carriers"
     },
     {
@@ -1385,7 +1385,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L114",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L114",
       "anchor": "op-post-api-v1-admin-platform-carriers"
     },
     {
@@ -1423,7 +1423,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L134",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L134",
       "anchor": "op-get-api-v1-admin-platform-carriers-capabilities"
     },
     {
@@ -1482,7 +1482,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L124",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L124",
       "anchor": "op-delete-api-v1-admin-platform-carriers-connection-id"
     },
     {
@@ -1550,7 +1550,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L119",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L119",
       "anchor": "op-put-api-v1-admin-platform-carriers-connection-id"
     },
     {
@@ -1609,7 +1609,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L124",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L124",
       "anchor": "op-post-api-v1-admin-platform-carriers-connection-id-disable"
     },
     {
@@ -1677,7 +1677,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L481",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L481",
       "anchor": "op-post-api-v1-admin-platform-carriers-connection-id-native-orders-reconcile"
     },
     {
@@ -1736,7 +1736,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L547",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L547",
       "anchor": "op-get-api-v1-admin-platform-carriers-connection-id-native-settings"
     },
     {
@@ -1804,7 +1804,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L507",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L507",
       "anchor": "op-put-api-v1-admin-platform-carriers-connection-id-native-settings"
     },
     {
@@ -1864,7 +1864,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L178",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L178",
       "anchor": "op-get-api-v1-admin-platform-carriers-connection-id-quote-diagnostics"
     },
     {
@@ -1923,7 +1923,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L141",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L141",
       "anchor": "op-post-api-v1-admin-platform-carriers-connection-id-upgrade-sendcloud"
     },
     {
@@ -1985,7 +1985,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/platform_carriers.py#L206",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/platform_carriers.py#L206",
       "anchor": "op-post-api-v1-admin-platform-carriers-connection-id-verify"
     },
     {
@@ -2044,7 +2044,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/sandbox_hooks.py#L301",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sandbox_hooks.py#L301",
       "anchor": "op-post-api-v1-admin-sandbox-whatsapp-setup"
     },
     {
@@ -2082,7 +2082,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L407",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L407",
       "anchor": "op-get-api-v1-admin-shipments-manifest"
     },
     {
@@ -2152,7 +2152,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L204",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L204",
       "anchor": "op-get-api-v1-admin-shipments-shipment-id-dispute-draft"
     },
     {
@@ -2231,7 +2231,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L207",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L207",
       "anchor": "op-put-api-v1-admin-shipments-shipment-id-dispute-draft"
     },
     {
@@ -2304,7 +2304,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L198",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L198",
       "anchor": "op-get-api-v1-admin-support-tickets"
     },
     {
@@ -2372,7 +2372,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L209",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L209",
       "anchor": "op-post-api-v1-admin-support-tickets-ticket-id-intervene"
     },
     {
@@ -2431,7 +2431,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L221",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L221",
       "anchor": "op-post-api-v1-admin-support-tickets-ticket-id-resolve"
     },
     {
@@ -2469,7 +2469,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_alert_controls.py#L16",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_alert_controls.py#L16",
       "anchor": "op-get-api-v1-admin-support-whatsapp-bindings"
     },
     {
@@ -2537,7 +2537,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_alert_controls.py#L32",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_alert_controls.py#L32",
       "anchor": "op-patch-api-v1-admin-support-whatsapp-bindings-binding-id"
     },
     {
@@ -2598,7 +2598,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L33",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L33",
       "anchor": "op-get-api-v1-admin-tenants"
     },
     {
@@ -2657,7 +2657,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_portal.py#L561",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_portal.py#L561",
       "anchor": "op-post-api-v1-admin-tenants"
     },
     {
@@ -2725,7 +2725,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L237",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L237",
       "anchor": "op-patch-api-v1-admin-tenants-tenant-id-seller-classification"
     },
     {
@@ -2763,7 +2763,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L596",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L596",
       "anchor": "op-get-api-v1-admin-tracking-health"
     },
     {
@@ -2917,7 +2917,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L469",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L469",
       "anchor": "op-get-api-v1-admin-tracking-shipments"
     },
     {
@@ -2976,7 +2976,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L479",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L479",
       "anchor": "op-get-api-v1-admin-tracking-shipments-shipment-id"
     },
     {
@@ -3035,7 +3035,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L586",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L586",
       "anchor": "op-post-api-v1-admin-tracking-shipments-shipment-id-refresh"
     },
     {
@@ -3094,7 +3094,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L591",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L591",
       "anchor": "op-post-api-v1-admin-tracking-shipments-shipment-id-retry"
     },
     {
@@ -3162,7 +3162,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L577",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L577",
       "anchor": "op-post-api-v1-admin-tracking-shipments-shipment-id-review"
     },
     {
@@ -3228,7 +3228,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/admin_management.py#L223",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/admin_management.py#L223",
       "anchor": "op-get-api-v1-admin-transactions"
     },
     {
@@ -3287,7 +3287,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L46",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L46",
       "anchor": "op-post-api-v1-agents-customs-information"
     },
     {
@@ -3346,7 +3346,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L29",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L29",
       "anchor": "op-post-api-v1-agents-customs-suggest"
     },
     {
@@ -3403,7 +3403,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L20",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L20",
       "anchor": "op-post-api-v1-agents-interpret"
     },
     {
@@ -3460,7 +3460,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L24",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L24",
       "anchor": "op-post-api-v1-agents-quote"
     },
     {
@@ -3471,7 +3471,7 @@
       "tags": [],
       "authorization_summary": "Authenticated workspace dependency; endpoint/helper role and tenant guards apply",
       "file": "main.py",
-      "line": 2436,
+      "line": 2451,
       "function": "carrier_performance",
       "guard_calls": [],
       "inline_role_conditions": [],
@@ -3516,7 +3516,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2436",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2451",
       "anchor": "op-get-api-v1-analytics-carrier-performance"
     },
     {
@@ -3609,7 +3609,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_and_support.py#L386",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_and_support.py#L386",
       "anchor": "op-get-api-v1-analytics-reports"
     },
     {
@@ -3680,7 +3680,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/delivery_quality.py#L45",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/delivery_quality.py#L45",
       "anchor": "op-get-api-v1-analytics-tracking-readiness"
     },
     {
@@ -3739,7 +3739,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L262",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L262",
       "anchor": "op-post-api-v1-audit-invoice"
     },
     {
@@ -3789,7 +3789,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L290",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L290",
       "anchor": "op-post-api-v1-audit-preview"
     },
     {
@@ -3840,7 +3840,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L130",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L130",
       "anchor": "op-post-api-v1-auth-accept-invitation"
     },
     {
@@ -3890,7 +3890,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L280",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L280",
       "anchor": "op-post-api-v1-auth-forgot-password"
     },
     {
@@ -3921,7 +3921,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L245",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L245",
       "anchor": "op-post-api-v1-auth-logout"
     },
     {
@@ -3952,7 +3952,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L223",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L223",
       "anchor": "op-get-api-v1-auth-me"
     },
     {
@@ -4002,7 +4002,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L233",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L233",
       "anchor": "op-patch-api-v1-auth-me"
     },
     {
@@ -4052,7 +4052,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L344",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L344",
       "anchor": "op-post-api-v1-auth-register"
     },
     {
@@ -4102,7 +4102,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L348",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L348",
       "anchor": "op-post-api-v1-auth-register-verify"
     },
     {
@@ -4137,7 +4137,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L129",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L129",
       "anchor": "op-post-api-v1-auth-renew"
     },
     {
@@ -4187,7 +4187,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L309",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L309",
       "anchor": "op-post-api-v1-auth-reset-password"
     },
     {
@@ -4240,7 +4240,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/identity.py#L74",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/identity.py#L74",
       "anchor": "op-post-api-v1-auth-token"
     },
     {
@@ -4280,7 +4280,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L598",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L598",
       "anchor": "op-post-api-v1-automation-bulk-fulfill"
     },
     {
@@ -4337,7 +4337,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L587",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L587",
       "anchor": "op-post-api-v1-automation-cargo-weight"
     },
     {
@@ -4396,7 +4396,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L591",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L591",
       "anchor": "op-get-api-v1-automation-customs-shipment-id"
     },
     {
@@ -4455,7 +4455,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_freight_engine.py#L595",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_freight_engine.py#L595",
       "anchor": "op-post-api-v1-automation-orders-shipment-id-reconcile"
     },
     {
@@ -4512,7 +4512,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/card_checkout.py#L137",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/card_checkout.py#L137",
       "anchor": "op-post-api-v1-billing-carts"
     },
     {
@@ -4571,7 +4571,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/card_checkout.py#L140",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/card_checkout.py#L140",
       "anchor": "op-post-api-v1-billing-carts-cart-id-complete"
     },
     {
@@ -4632,7 +4632,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L354",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L354",
       "anchor": "op-post-api-v1-billing-create-checkout"
     },
     {
@@ -4689,7 +4689,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/sandbox_hooks.py#L284",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sandbox_hooks.py#L284",
       "anchor": "op-post-api-v1-billing-test-topup"
     },
     {
@@ -4750,7 +4750,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L391",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L391",
       "anchor": "op-get-api-v1-billing-topups-topup-id"
     },
     {
@@ -4809,7 +4809,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L387",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L387",
       "anchor": "op-post-api-v1-billing-topups-topup-id-reconcile"
     },
     {
@@ -4849,7 +4849,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L375",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L375",
       "anchor": "op-get-api-v1-billing-wallet-activity"
     },
     {
@@ -4880,7 +4880,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/payment_gateway.py#L189",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/payment_gateway.py#L189",
       "anchor": "op-post-api-v1-billing-webhooks-stripe"
     },
     {
@@ -4988,7 +4988,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L184",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L184",
       "anchor": "op-get-api-v1-catalog-addresses"
     },
     {
@@ -5047,7 +5047,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L193",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L193",
       "anchor": "op-post-api-v1-catalog-addresses"
     },
     {
@@ -5117,7 +5117,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L207",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L207",
       "anchor": "op-delete-api-v1-catalog-addresses-record-id"
     },
     {
@@ -5187,7 +5187,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L200",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L200",
       "anchor": "op-put-api-v1-catalog-addresses-record-id"
     },
     {
@@ -5295,7 +5295,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L184",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L184",
       "anchor": "op-get-api-v1-catalog-contacts"
     },
     {
@@ -5354,7 +5354,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L193",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L193",
       "anchor": "op-post-api-v1-catalog-contacts"
     },
     {
@@ -5424,7 +5424,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L207",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L207",
       "anchor": "op-delete-api-v1-catalog-contacts-record-id"
     },
     {
@@ -5494,7 +5494,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L200",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L200",
       "anchor": "op-put-api-v1-catalog-contacts-record-id"
     },
     {
@@ -5602,7 +5602,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L184",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L184",
       "anchor": "op-get-api-v1-catalog-products"
     },
     {
@@ -5661,7 +5661,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L193",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L193",
       "anchor": "op-post-api-v1-catalog-products"
     },
     {
@@ -5719,7 +5719,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L225",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L225",
       "anchor": "op-get-api-v1-catalog-products-by-sku-sku"
     },
     {
@@ -5789,7 +5789,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L207",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L207",
       "anchor": "op-delete-api-v1-catalog-products-record-id"
     },
     {
@@ -5859,7 +5859,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tenant_catalogs.py#L200",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tenant_catalogs.py#L200",
       "anchor": "op-put-api-v1-catalog-products-record-id"
     },
     {
@@ -5918,7 +5918,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L130",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L130",
       "anchor": "op-get-api-v1-checkout-context"
     },
     {
@@ -5975,7 +5975,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L118",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L118",
       "anchor": "op-post-api-v1-checkout-hs-search"
     },
     {
@@ -6034,7 +6034,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L143",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L143",
       "anchor": "op-post-api-v1-checkout-prepare"
     },
     {
@@ -6093,7 +6093,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L220",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L220",
       "anchor": "op-get-api-v1-checkout-shipment-id-commercial-invoice-pdf"
     },
     {
@@ -6154,7 +6154,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/customer_checkout.py#L203",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/customer_checkout.py#L203",
       "anchor": "op-get-api-v1-checkout-shipment-id-receipt-pdf"
     },
     {
@@ -6165,7 +6165,7 @@
       "tags": [],
       "authorization_summary": "Public UI/help/health/config surface; inspect projection",
       "file": "main.py",
-      "line": 2328,
+      "line": 2343,
       "function": "public_config",
       "guard_calls": [],
       "inline_role_conditions": [],
@@ -6183,7 +6183,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2328",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2343",
       "anchor": "op-get-api-v1-config"
     },
     {
@@ -6242,7 +6242,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/conversational_gateway.py#L673",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/conversational_gateway.py#L673",
       "anchor": "op-post-api-v1-conversational-process-message"
     },
     {
@@ -6273,7 +6273,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L411",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L411",
       "anchor": "op-get-api-v1-countries"
     },
     {
@@ -6332,7 +6332,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_crm.py#L454",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_crm.py#L454",
       "anchor": "op-post-api-v1-crm-sync-tenant"
     },
     {
@@ -6382,7 +6382,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L186",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L186",
       "anchor": "op-post-api-v1-customs-declaration"
     },
     {
@@ -6432,7 +6432,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L240",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L240",
       "anchor": "op-post-api-v1-customs-harmonize"
     },
     {
@@ -6493,7 +6493,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L157",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L157",
       "anchor": "op-get-api-v1-dispatch-workspace-orders"
     },
     {
@@ -6554,7 +6554,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L195",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L195",
       "anchor": "op-get-api-v1-dispatch-workspace-orders-shipment-id"
     },
     {
@@ -6624,7 +6624,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L202",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L202",
       "anchor": "op-post-api-v1-dispatch-workspace-orders-shipment-id-prepare"
     },
     {
@@ -6683,7 +6683,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L230",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L230",
       "anchor": "op-post-api-v1-dispatch-workspace-print-bundle"
     },
     {
@@ -6742,7 +6742,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L215",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L215",
       "anchor": "op-post-api-v1-dispatch-workspace-process"
     },
     {
@@ -6819,7 +6819,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dispatch_workspace.py#L176",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dispatch_workspace.py#L176",
       "anchor": "op-post-api-v1-dispatch-workspace-sync-store-id"
     },
     {
@@ -6878,7 +6878,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L396",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L396",
       "anchor": "op-post-api-v1-dispatch-manifests-close"
     },
     {
@@ -6941,7 +6941,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L392",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L392",
       "anchor": "op-post-api-v1-dispatch-manifests-preview"
     },
     {
@@ -7002,7 +7002,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L401",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L401",
       "anchor": "op-get-api-v1-dispatch-manifests-manifest-id"
     },
     {
@@ -7061,7 +7061,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L404",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L404",
       "anchor": "op-get-api-v1-dispatch-manifests-manifest-id-document"
     },
     {
@@ -7122,7 +7122,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/manifest_service.py#L407",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/manifest_service.py#L407",
       "anchor": "op-get-api-v1-dispatch-manifests-manifest-id-download"
     },
     {
@@ -7162,7 +7162,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L61",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L61",
       "anchor": "op-get-api-v1-dispatch-summary"
     },
     {
@@ -7221,7 +7221,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/invoice_upload.py#L162",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/invoice_upload.py#L162",
       "anchor": "op-post-api-v1-finance-audit-invoice-upload"
     },
     {
@@ -7261,7 +7261,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/invoice_upload.py#L225",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/invoice_upload.py#L225",
       "anchor": "op-get-api-v1-finance-billing-disputes"
     },
     {
@@ -7318,7 +7318,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/agents/routes.py#L56",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/agents/routes.py#L56",
       "anchor": "op-post-api-v1-help-search-agent"
     },
     {
@@ -7356,7 +7356,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L444",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L444",
       "anchor": "op-post-api-v1-integration-pull-orders"
     },
     {
@@ -7408,7 +7408,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L371",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L371",
       "anchor": "op-post-api-v1-integration-return-webhooks-store-id"
     },
     {
@@ -7448,7 +7448,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L384",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L384",
       "anchor": "op-get-api-v1-integration-tracking-events"
     },
     {
@@ -7509,7 +7509,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L394",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L394",
       "anchor": "op-post-api-v1-integration-tracking-events-event-id-reconcile"
     },
     {
@@ -7579,7 +7579,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L424",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L424",
       "anchor": "op-post-api-v1-integration-tracking-events-event-id-return-reference"
     },
     {
@@ -7631,7 +7631,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_sync.py#L376",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_sync.py#L376",
       "anchor": "op-post-api-v1-integration-webhooks-store-id"
     },
     {
@@ -7683,7 +7683,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ecommerce_inbound.py#L182",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ecommerce_inbound.py#L182",
       "anchor": "op-post-api-v1-integrations-ecommerce-orders-sync"
     },
     {
@@ -7716,7 +7716,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/hubspot_provisioning.py#L49",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/hubspot_provisioning.py#L49",
       "anchor": "op-post-api-v1-integrations-hubspot-webhook"
     },
     {
@@ -7767,7 +7767,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_queue.py#L314",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_queue.py#L314",
       "anchor": "op-post-api-v1-integrations-whatsapp-outbound-status-part-id"
     },
     {
@@ -7798,7 +7798,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/whatsapp_bot.py#L86",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/whatsapp_bot.py#L86",
       "anchor": "op-post-api-v1-integrations-whatsapp-webhook"
     },
     {
@@ -7848,7 +7848,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L178",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L178",
       "anchor": "op-post-api-v1-logistics-cargo-weight"
     },
     {
@@ -7898,7 +7898,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/package_guidance.py#L159",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_guidance.py#L159",
       "anchor": "op-post-api-v1-logistics-package-guidance"
     },
     {
@@ -7948,7 +7948,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L174",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L174",
       "anchor": "op-post-api-v1-logistics-weight"
     },
     {
@@ -7982,7 +7982,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L84",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L84",
       "anchor": "op-get-api-v1-profile"
     },
     {
@@ -8047,7 +8047,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L519",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L519",
       "anchor": "op-post-api-v1-public-tracking-help"
     },
     {
@@ -8099,7 +8099,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L506",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L506",
       "anchor": "op-post-api-v1-public-tracking-resolve"
     },
     {
@@ -8151,7 +8151,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L190",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L190",
       "anchor": "op-post-api-v1-rates-preview"
     },
     {
@@ -8203,7 +8203,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L199",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L199",
       "anchor": "op-post-api-v1-rates-sample"
     },
     {
@@ -8270,7 +8270,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/ai_engine.py#L247",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/ai_engine.py#L247",
       "anchor": "op-get-api-v1-routing-disruptions"
     },
     {
@@ -8330,7 +8330,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L211",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L211",
       "anchor": "op-get-api-v1-routing-preview"
     },
     {
@@ -8390,7 +8390,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L205",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L205",
       "anchor": "op-get-api-v1-routing-sample"
     },
     {
@@ -8430,7 +8430,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L221",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L221",
       "anchor": "op-post-api-v1-shipments-batch"
     },
     {
@@ -8461,7 +8461,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L252",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L252",
       "anchor": "op-post-api-v1-shipments-batch-preview"
     },
     {
@@ -8511,7 +8511,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L289",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L289",
       "anchor": "op-post-api-v1-shipments-batch-review-preview"
     },
     {
@@ -8563,7 +8563,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L285",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L285",
       "anchor": "op-get-api-v1-shipments-batch-template"
     },
     {
@@ -8624,7 +8624,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L302",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L302",
       "anchor": "op-get-api-v1-shipments-batch-shipment-id"
     },
     {
@@ -8694,7 +8694,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L312",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L312",
       "anchor": "op-post-api-v1-shipments-batch-shipment-id-quote"
     },
     {
@@ -8753,7 +8753,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L141",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L141",
       "anchor": "op-post-api-v1-shipments-bulk-checkout"
     },
     {
@@ -8812,7 +8812,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L145",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L145",
       "anchor": "op-post-api-v1-shipments-bulk-print-bundle"
     },
     {
@@ -8873,7 +8873,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L129",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L129",
       "anchor": "op-post-api-v1-shipments-bulk-quote"
     },
     {
@@ -8932,7 +8932,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/bulk_checkout.py#L125",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/bulk_checkout.py#L125",
       "anchor": "op-post-api-v1-shipments-bulk-review"
     },
     {
@@ -8974,7 +8974,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L400",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L400",
       "anchor": "op-get-api-v1-shipments-manifest"
     },
     {
@@ -9036,7 +9036,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L161",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L161",
       "anchor": "op-get-api-v1-shipments-shipment-id-dispute-draft"
     },
     {
@@ -9107,7 +9107,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L167",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L167",
       "anchor": "op-put-api-v1-shipments-shipment-id-dispute-draft"
     },
     {
@@ -9168,7 +9168,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/sandbox_hooks.py#L294",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/sandbox_hooks.py#L294",
       "anchor": "op-get-api-v1-shipments-shipment-id-label-preview"
     },
     {
@@ -9231,7 +9231,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L379",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L379",
       "anchor": "op-get-api-v1-shipments-shipment-id-requote-context"
     },
     {
@@ -9292,7 +9292,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1987",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1987",
       "anchor": "op-get-api-v1-shipping-claims-case-id"
     },
     {
@@ -9363,7 +9363,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L2039",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L2039",
       "anchor": "op-get-api-v1-shipping-claims-case-id-evidence-evidence-id"
     },
     {
@@ -9420,7 +9420,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2132",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2132",
       "anchor": "op-post-api-v1-shipping-confirm-booking"
     },
     {
@@ -9451,7 +9451,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L2069",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L2069",
       "anchor": "op-post-api-v1-shipping-insurance-updates"
     },
     {
@@ -9492,7 +9492,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1695",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1695",
       "anchor": "op-get-api-v1-shipping-insured-shipments"
     },
     {
@@ -9532,7 +9532,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L591",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L591",
       "anchor": "op-get-api-v1-shipping-native-orders"
     },
     {
@@ -9591,7 +9591,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L562",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L562",
       "anchor": "op-post-api-v1-shipping-native-orders-sync"
     },
     {
@@ -9650,7 +9650,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/package_guidance.py#L163",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_guidance.py#L163",
       "anchor": "op-post-api-v1-shipping-package-check"
     },
     {
@@ -9720,7 +9720,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2149",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2149",
       "anchor": "op-post-api-v1-shipping-prepare-return"
     },
     {
@@ -9779,7 +9779,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1614",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1614",
       "anchor": "op-get-api-v1-shipping-protection-quote"
     },
     {
@@ -9840,7 +9840,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1681",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1681",
       "anchor": "op-post-api-v1-shipping-protection-quote"
     },
     {
@@ -9899,7 +9899,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/package_guidance.py#L137",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/package_guidance.py#L137",
       "anchor": "op-post-api-v1-shipping-quote-support"
     },
     {
@@ -9956,7 +9956,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2145",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2145",
       "anchor": "op-post-api-v1-shipping-request-void"
     },
     {
@@ -10007,7 +10007,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2165",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2165",
       "anchor": "op-get-api-v1-shipping-return-dropoff"
     },
     {
@@ -10068,7 +10068,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2158",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2158",
       "anchor": "op-get-api-v1-shipping-return-requests-request-id"
     },
     {
@@ -10119,7 +10119,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L325",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L325",
       "anchor": "op-get-api-v1-shipping-returns-customer-document"
     },
     {
@@ -10176,7 +10176,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L313",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L313",
       "anchor": "op-post-api-v1-shipping-returns-review"
     },
     {
@@ -10235,7 +10235,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L321",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L321",
       "anchor": "op-get-api-v1-shipping-returns-reviews-request-id"
     },
     {
@@ -10303,7 +10303,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L317",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L317",
       "anchor": "op-post-api-v1-shipping-returns-reviews-request-id-select"
     },
     {
@@ -10362,7 +10362,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/return_review.py#L309",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/return_review.py#L309",
       "anchor": "op-get-api-v1-shipping-returns-shipment-id-preparation-context"
     },
     {
@@ -10402,7 +10402,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_protection.py#L1738",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_protection.py#L1738",
       "anchor": "op-post-api-v1-shipping-submit-claim"
     },
     {
@@ -10433,7 +10433,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L492",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L492",
       "anchor": "op-post-api-v1-shipping-tracking-webhooks"
     },
     {
@@ -10501,7 +10501,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/automation_three_partners.py#L2174",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/automation_three_partners.py#L2174",
       "anchor": "op-get-api-v1-shipping-shipment-id-documents-document"
     },
     {
@@ -10560,7 +10560,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/shipment_notifications.py#L166",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/shipment_notifications.py#L166",
       "anchor": "op-get-api-v1-shipping-shipment-id-sender-notifications"
     },
     {
@@ -10598,7 +10598,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L194",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L194",
       "anchor": "op-get-api-v1-support-tickets"
     },
     {
@@ -10668,7 +10668,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L202",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L202",
       "anchor": "op-post-api-v1-support-tickets-ticket-id-intervene"
     },
     {
@@ -10729,7 +10729,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L213",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L213",
       "anchor": "op-post-api-v1-support-tickets-ticket-id-resolve"
     },
     {
@@ -10788,7 +10788,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_delivery.py#L151",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L151",
       "anchor": "op-post-api-v1-support-whatsapp-consent"
     },
     {
@@ -10840,7 +10840,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/support_delivery.py#L148",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/support_delivery.py#L148",
       "anchor": "op-post-api-v1-support-whatsapp-status-message-id"
     },
     {
@@ -10878,7 +10878,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L610",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L610",
       "anchor": "op-get-api-v1-tracking-capabilities"
     },
     {
@@ -10916,7 +10916,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L551",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L551",
       "anchor": "op-get-api-v1-tracking-notifications"
     },
     {
@@ -10954,7 +10954,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L531",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L531",
       "anchor": "op-get-api-v1-tracking-preferences"
     },
     {
@@ -11013,7 +11013,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L539",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L539",
       "anchor": "op-put-api-v1-tracking-preferences"
     },
     {
@@ -11072,7 +11072,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L487",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L487",
       "anchor": "op-delete-api-v1-tracking-share-links-share-id"
     },
     {
@@ -11209,7 +11209,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L464",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L464",
       "anchor": "op-get-api-v1-tracking-shipments"
     },
     {
@@ -11268,7 +11268,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L475",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L475",
       "anchor": "op-get-api-v1-tracking-shipments-shipment-id"
     },
     {
@@ -11327,7 +11327,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L581",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L581",
       "anchor": "op-post-api-v1-tracking-shipments-shipment-id-refresh"
     },
     {
@@ -11395,7 +11395,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L573",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L573",
       "anchor": "op-post-api-v1-tracking-shipments-shipment-id-review"
     },
     {
@@ -11463,7 +11463,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L483",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L483",
       "anchor": "op-post-api-v1-tracking-shipments-shipment-id-share"
     },
     {
@@ -11522,7 +11522,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_workspace.py#L498",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_workspace.py#L498",
       "anchor": "op-get-api-v1-tracking-shipments-shipment-id-share-links"
     },
     {
@@ -11553,7 +11553,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/tracking_and_support.py#L352",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/tracking_and_support.py#L352",
       "anchor": "op-post-api-v1-tracking-webhook"
     },
     {
@@ -11593,7 +11593,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/advanced_logistics.py#L416",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/advanced_logistics.py#L416",
       "anchor": "op-get-api-v1-wallet"
     },
     {
@@ -11651,7 +11651,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L95",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L95",
       "anchor": "op-post-api-v1-workspace-invitations"
     },
     {
@@ -11711,7 +11711,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L123",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L123",
       "anchor": "op-post-api-v1-workspace-invitations-invite-id-cancel"
     },
     {
@@ -11771,7 +11771,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L112",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L112",
       "anchor": "op-post-api-v1-workspace-invitations-invite-id-resend"
     },
     {
@@ -11810,7 +11810,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L71",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L71",
       "anchor": "op-get-api-v1-workspace-settings"
     },
     {
@@ -11868,7 +11868,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L79",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L79",
       "anchor": "op-patch-api-v1-workspace-settings"
     },
     {
@@ -11908,7 +11908,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L37",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L37",
       "anchor": "op-get-api-v1-workspace-stores"
     },
     {
@@ -11967,7 +11967,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L46",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L46",
       "anchor": "op-post-api-v1-workspace-stores"
     },
     {
@@ -12037,7 +12037,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L53",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L53",
       "anchor": "op-patch-api-v1-workspace-stores-store-id"
     },
     {
@@ -12096,7 +12096,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L79",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L79",
       "anchor": "op-get-api-v1-workspace-stores-store-id-connection"
     },
     {
@@ -12164,7 +12164,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L87",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L87",
       "anchor": "op-put-api-v1-workspace-stores-store-id-connection"
     },
     {
@@ -12223,7 +12223,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L152",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L152",
       "anchor": "op-get-api-v1-workspace-stores-store-id-notifications"
     },
     {
@@ -12292,7 +12292,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/store_connections.py#L161",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/store_connections.py#L161",
       "anchor": "op-post-api-v1-workspace-stores-store-id-notifications-notification-id-retry"
     },
     {
@@ -12351,7 +12351,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/dashboard_portal.py#L68",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/dashboard_portal.py#L68",
       "anchor": "op-post-api-v1-workspace-users"
     },
     {
@@ -12420,7 +12420,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/backend/workspace_settings.py#L85",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/backend/workspace_settings.py#L85",
       "anchor": "op-patch-api-v1-workspace-users-member-id"
     },
     {
@@ -12455,7 +12455,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2295",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2295",
       "anchor": "op-get-health"
     },
     {
@@ -12466,7 +12466,7 @@
       "tags": [],
       "authorization_summary": "Authenticated workspace dependency; endpoint/helper role and tenant guards apply",
       "file": "main.py",
-      "line": 2376,
+      "line": 2391,
       "function": "get_rates",
       "guard_calls": [],
       "inline_role_conditions": [
@@ -12515,7 +12515,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2376",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2391",
       "anchor": "op-post-v1-rates"
     },
     {
@@ -12526,7 +12526,7 @@
       "tags": [],
       "authorization_summary": "Authenticated workspace dependency; endpoint/helper role and tenant guards apply",
       "file": "main.py",
-      "line": 2454,
+      "line": 2469,
       "function": "create_wallet_topup",
       "guard_calls": [],
       "inline_role_conditions": [
@@ -12574,7 +12574,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2454",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2469",
       "anchor": "op-post-v1-wallet-topups"
     },
     {
@@ -12585,7 +12585,7 @@
       "tags": [],
       "authorization_summary": "Authenticated workspace dependency; endpoint/helper role and tenant guards apply",
       "file": "main.py",
-      "line": 2527,
+      "line": 2542,
       "function": "resolve_quote_choice",
       "guard_calls": [],
       "inline_role_conditions": [
@@ -12636,7 +12636,7 @@
           "HTTPBearer": []
         }
       ],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2527",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2542",
       "anchor": "op-get-v1-whatsapp-quote-choice"
     },
     {
@@ -12647,7 +12647,7 @@
       "tags": [],
       "authorization_summary": "Callback-specific signature/identity/tenant checks in handler and service",
       "file": "main.py",
-      "line": 2475,
+      "line": 2490,
       "function": "stripe_webhook",
       "guard_calls": [],
       "inline_role_conditions": [],
@@ -12671,7 +12671,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2475",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2490",
       "anchor": "op-post-webhooks-stripe"
     },
     {
@@ -12682,7 +12682,7 @@
       "tags": [],
       "authorization_summary": "Callback-specific signature/identity/tenant checks in handler and service",
       "file": "main.py",
-      "line": 2521,
+      "line": 2536,
       "function": "inbound_whatsapp",
       "guard_calls": [],
       "inline_role_conditions": [],
@@ -12700,7 +12700,7 @@
         }
       },
       "declared_security": [],
-      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/3425e4e9f51efee699fd5c368b1c82c4006ac4c8/main.py#L2521",
+      "source_url": "https://github.com/sync4ai-lab/easyinvio/blob/89248cb0f3aa908c0b73bb5e4b56d66656835495/main.py#L2536",
       "anchor": "op-post-webhooks-twilio-whatsapp"
     }
   ],
@@ -12932,6 +12932,86 @@
       "file": "main.py",
       "line": 2315,
       "function": "tracking_asset",
+      "guard_calls": [],
+      "inline_role_conditions": [],
+      "dependencies": []
+    },
+    {
+      "method": "GET",
+      "path": "/site.webmanifest",
+      "file": "main.py",
+      "line": 2328,
+      "function": "brand_asset",
+      "guard_calls": [],
+      "inline_role_conditions": [],
+      "dependencies": []
+    },
+    {
+      "method": "GET",
+      "path": "/app-icon-512.png",
+      "file": "main.py",
+      "line": 2328,
+      "function": "brand_asset",
+      "guard_calls": [],
+      "inline_role_conditions": [],
+      "dependencies": []
+    },
+    {
+      "method": "GET",
+      "path": "/app-icon-192.png",
+      "file": "main.py",
+      "line": 2328,
+      "function": "brand_asset",
+      "guard_calls": [],
+      "inline_role_conditions": [],
+      "dependencies": []
+    },
+    {
+      "method": "GET",
+      "path": "/apple-touch-icon.png",
+      "file": "main.py",
+      "line": 2328,
+      "function": "brand_asset",
+      "guard_calls": [],
+      "inline_role_conditions": [],
+      "dependencies": []
+    },
+    {
+      "method": "GET",
+      "path": "/favicon-32.png",
+      "file": "main.py",
+      "line": 2328,
+      "function": "brand_asset",
+      "guard_calls": [],
+      "inline_role_conditions": [],
+      "dependencies": []
+    },
+    {
+      "method": "GET",
+      "path": "/favicon.svg",
+      "file": "main.py",
+      "line": 2328,
+      "function": "brand_asset",
+      "guard_calls": [],
+      "inline_role_conditions": [],
+      "dependencies": []
+    },
+    {
+      "method": "GET",
+      "path": "/brand.css",
+      "file": "main.py",
+      "line": 2328,
+      "function": "brand_asset",
+      "guard_calls": [],
+      "inline_role_conditions": [],
+      "dependencies": []
+    },
+    {
+      "method": "GET",
+      "path": "/brand-mark.svg",
+      "file": "main.py",
+      "line": 2328,
+      "function": "brand_asset",
       "guard_calls": [],
       "inline_role_conditions": [],
       "dependencies": []
