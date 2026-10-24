@@ -63,3 +63,14 @@ body.platform-console .mobile-nav>button[data-enterprise-view]{font-size:11px;fl
 
 body.platform-console #transaction-rows td:nth-child(n+3):not(:last-child),body.platform-console table:has(#transaction-rows) th:nth-child(n+3):not(:last-child){text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:767px){body.platform-console main :is(input:not([type=checkbox]),select,textarea){font-size:16px}}
+
+body.platform-console dialog{padding:24px}
+body.platform-console dialog :is(p,.subtle,input,select,textarea,td){font-size:14px;line-height:1.5}
+body.platform-console dialog label{font-size:12px;line-height:1.5}
+body.platform-console dialog h2{font-size:20px;line-height:1.3;padding-right:40px;margin-bottom:16px}
+body.platform-console dialog :is(input:not([type=checkbox]),select){min-height:44px;padding:10px 12px}
+body.platform-console dialog :is(.primary,.secondary){min-height:44px;padding:10px 14px;font-size:13px;line-height:1.4;border-radius:8px}
+@media(max-width:767px){
+ body.platform-console dialog .fields{grid-template-columns:minmax(0,1fr)}
+ body.platform-console dialog :is(input:not([type=checkbox]),select,textarea){font-size:16px}
+}

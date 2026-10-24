@@ -74,6 +74,14 @@ async def run(origin):
      assert await page.locator('#tenant-rows .tag').first.evaluate('e=>getComputedStyle(e).whiteSpace')=='nowrap'
     await page.evaluate("scrollTo(0,0);document.getElementById('toast').hidden=true")
     await page.screenshot(path=str(OUT/(view+'-'+str(width)+'.png')))
+  for width in [320,1440]:
+   await page.set_viewport_size({'width':width,'height':950})
+   for identifier in ['tenant-admin-dialog','carrier-admin-dialog','margin-admin-dialog']:
+    await page.locator('#'+identifier).evaluate('dialog=>dialog.showModal()')
+    assert await page.locator('#'+identifier).evaluate('dialog=>dialog.scrollWidth<=dialog.clientWidth+1'),(width,identifier,'dialog overflow')
+    control=page.locator('#'+identifier+' input:not([type=checkbox])').first
+    assert (await control.bounding_box())['height']>=44,(width,identifier,'small control')
+    await page.locator('#'+identifier).evaluate('dialog=>dialog.close()')
   await page.evaluate("setView('admin-stores')");await page.locator('#platform-store-environment').select_option('SANDBOX');await expect(page.locator('#platform-store-rows')).to_contain_text('Settings saved')
   assert any('/admin/marketplaces?environment=SANDBOX' in call for call in calls)
   await page.locator('#platform-store-search').fill('Northgate');await page.wait_for_timeout(500)
