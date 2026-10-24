@@ -118,3 +118,10 @@ Supabase Storage supplies private image persistence/read signing with the existi
 ## Tracking capability registry
 
 EasyPost supports installed signed webhooks and optional GET-only retrieval of existing shipment/tracker resources; reconciliation never creates a billable tracker. Sendcloud and Shippo retain verified webhook normalization; arbitrary polling is explicitly unsupported. Royal Mail/Evri direct transports remain disabled provisions, not certified live integrations. The capability API separates installed support, connection activation and environment; contract fees/quotas remain unknown unless verified. New milestone availability is in-app only: paid WhatsApp/SMS/email campaigns are not activated.
+
+
+### Sender transactional milestone channels
+
+`backend/shipment_notifications.py` owns `SenderNotifications`, `ShipmentNotificationSettings` and `ShipmentNotificationWorker`. SendGrid uses the Mail Send API with separate `SHIPMENT_SENDGRID_API_KEY` and a verified `SHIPMENT_EMAIL_FROM`. Twilio uses existing account/sender credentials plus an approved `SHIPMENT_WHATSAPP_CONTENT_SID` (utility variables: booking reference, milestone text, tracking reference). There is no free-form out-of-window fallback. `SHIPMENT_NOTIFICATION_TEST_RECIPIENTS` restricts TEST sends; outbox environment and runtime environment must match. Both delivery flags default false. These settings do not activate return-customer notifications or change in-app tracking preferences.
+
+`047_sender_shipment_notifications.sql` adds the private status-only outbox and transactional triggers. It stores no recipient addresses or message bodies. The authenticated `GET /api/v1/shipping/{shipment_id}/sender-notifications` reports only the current workspace's outcomes. ACCEPTED is provider acceptance, not proof of delivery. Missing/disabled configuration is SKIPPED, explicit refusal is FAILED, and ambiguous outcomes require review. See `docs_shipment_updates.md` for setup and limitations.

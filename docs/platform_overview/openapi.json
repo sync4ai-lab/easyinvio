@@ -5,6 +5,52 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/shipping/{shipment_id}/sender-notifications": {
+      "get": {
+        "tags": [
+          "Sender shipment notifications"
+        ],
+        "summary": "Status",
+        "operationId": "status_api_v1_shipping__shipment_id__sender_notifications_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "shipment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Shipment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -12616,6 +12662,9 @@
       },
       "Order": {
         "properties": {
+          "sender_notifications": {
+            "$ref": "#/components/schemas/SenderNotifications"
+          },
           "idempotency_key": {
             "type": "string",
             "format": "uuid",
@@ -13757,6 +13806,9 @@
       },
       "RatingRequest": {
         "properties": {
+          "sender_notifications": {
+            "$ref": "#/components/schemas/SenderNotifications"
+          },
           "multi_parcel_dimensions": {
             "items": {
               "$ref": "#/components/schemas/PackageInput"
@@ -14485,6 +14537,28 @@
           "seller_classification"
         ],
         "title": "SellerClassificationUpdate"
+      },
+      "SenderNotifications": {
+        "properties": {
+          "email": {
+            "type": "boolean",
+            "title": "Email",
+            "default": true
+          },
+          "whatsapp": {
+            "type": "boolean",
+            "title": "Whatsapp",
+            "default": false
+          },
+          "whatsapp_permission_confirmed": {
+            "type": "boolean",
+            "title": "Whatsapp Permission Confirmed",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SenderNotifications"
       },
       "ShareRequest": {
         "properties": {

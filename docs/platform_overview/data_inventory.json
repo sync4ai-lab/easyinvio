@@ -565,6 +565,19 @@
         "return_review_sessions"
       ],
       "created_functions": []
+    },
+    {
+      "file": "migrations/047_sender_shipment_notifications.sql",
+      "sha256": "911b0461a4444f8f3d718d72fee5337143e8cb5e23a8d7616c9441e1ca03d942",
+      "created_tables": [
+        "shipment_sender_notifications"
+      ],
+      "alter_table_targets": [
+        "shipment_sender_notifications"
+      ],
+      "created_functions": [
+        "queue_sender_shipment_milestone"
+      ]
     }
   ],
   "hash_format": "SHA-256 with CRLF normalized to LF",
@@ -964,6 +977,12 @@
       "file": "migrations/046_return_review_and_delivery.sql",
       "line": 26,
       "create_definition": "CREATE TABLE public.return_customer_deliveries (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, tenant_id uuid NOT NULL, review_id uuid NOT NULL,\n kind text NOT NULL CHECK(kind IN ('PAYMENT','LABEL')),\n channel text NOT NULL CHECK(channel IN ('EMAIL','WHATSAPP')),\n state text NOT NULL DEFAULT 'READY' CHECK(state IN ('READY','SENDING','ACCEPTED','FAILED','REVIEW_REQUIRED')),\n provider_reference text, error_code text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),\n UNIQUE(tenant_id,review_id,kind,channel),\n FOREIGN KEY(tenant_id,review_id) REFERENCES public.return_review_sessions(tenant_id,id)\n);"
+    },
+    {
+      "name": "shipment_sender_notifications",
+      "file": "migrations/047_sender_shipment_notifications.sql",
+      "line": 10,
+      "create_definition": "CREATE TABLE public.shipment_sender_notifications (\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n tenant_id uuid NOT NULL, shipment_id uuid NOT NULL,\n category text NOT NULL CHECK(category IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','OUT_FOR_DELIVERY','AVAILABLE_FOR_PICKUP','DELIVERED','EXCEPTION','RETURNED_TO_SENDER','CANCELLED')),\n channel text NOT NULL CHECK(channel IN ('EMAIL','WHATSAPP')),\n environment text NOT NULL CHECK(environment IN ('TEST','LIVE')),\n state text NOT NULL DEFAULT 'READY' CHECK(state IN ('READY','SENDING','ACCEPTED','FAILED','SKIPPED','REVIEW_REQUIRED')),\n provider_reference text, error_code text,\n attempts integer NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 3),\n next_attempt_at timestamptz NOT NULL DEFAULT now(),\n created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),\n UNIQUE(tenant_id,shipment_id,category,channel),\n FOREIGN KEY(tenant_id,shipment_id) REFERENCES public.shipments(tenant_id,id)\n);"
     }
   ],
   "scope": "Exact repository CREATE TABLE blocks; not live introspection or a final flattened schema after all ALTERs.",

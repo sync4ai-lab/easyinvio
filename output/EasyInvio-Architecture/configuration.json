@@ -829,6 +829,60 @@
       "default_expression": "''"
     },
     {
+      "file": "backend/shipment_notifications.py",
+      "line": 27,
+      "class": "ShipmentNotificationSettings",
+      "field": "shipment_email_notifications_enabled",
+      "environment_name": "SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/shipment_notifications.py",
+      "line": 28,
+      "class": "ShipmentNotificationSettings",
+      "field": "shipment_sendgrid_api_key",
+      "environment_name": "SHIPMENT_SENDGRID_API_KEY",
+      "annotation": "SecretStr",
+      "default_expression": "SecretStr('')"
+    },
+    {
+      "file": "backend/shipment_notifications.py",
+      "line": 29,
+      "class": "ShipmentNotificationSettings",
+      "field": "shipment_email_from",
+      "environment_name": "SHIPMENT_EMAIL_FROM",
+      "annotation": "str",
+      "default_expression": "'operations@easyinvio.com'"
+    },
+    {
+      "file": "backend/shipment_notifications.py",
+      "line": 30,
+      "class": "ShipmentNotificationSettings",
+      "field": "shipment_whatsapp_notifications_enabled",
+      "environment_name": "SHIPMENT_WHATSAPP_NOTIFICATIONS_ENABLED",
+      "annotation": "bool",
+      "default_expression": "False"
+    },
+    {
+      "file": "backend/shipment_notifications.py",
+      "line": 31,
+      "class": "ShipmentNotificationSettings",
+      "field": "shipment_whatsapp_content_sid",
+      "environment_name": "SHIPMENT_WHATSAPP_CONTENT_SID",
+      "annotation": "str",
+      "default_expression": "''"
+    },
+    {
+      "file": "backend/shipment_notifications.py",
+      "line": 32,
+      "class": "ShipmentNotificationSettings",
+      "field": "shipment_notification_test_recipients",
+      "environment_name": "SHIPMENT_NOTIFICATION_TEST_RECIPIENTS",
+      "annotation": "list[str]",
+      "default_expression": "Field(default_factory=list, max_length=100)"
+    },
+    {
       "file": "backend/shipment_protection.py",
       "line": 91,
       "class": "XCoverSettings",
@@ -1165,7 +1219,13 @@
     "RETURN_EMAIL_FROM",
     "RETURN_WHATSAPP_ENABLED",
     "RETURN_WHATSAPP_CONTENT_SID",
-    "RETURN_WHATSAPP_MESSAGING_SERVICE_SID"
+    "RETURN_WHATSAPP_MESSAGING_SERVICE_SID",
+    "SHIPMENT_EMAIL_NOTIFICATIONS_ENABLED",
+    "SHIPMENT_SENDGRID_API_KEY",
+    "SHIPMENT_EMAIL_FROM",
+    "SHIPMENT_WHATSAPP_NOTIFICATIONS_ENABLED",
+    "SHIPMENT_WHATSAPP_CONTENT_SID",
+    "SHIPMENT_NOTIFICATION_TEST_RECIPIENTS"
   ],
   "privacy": "Source expressions and example variable names only. No settings class was instantiated; no private .env values were read."
 }
