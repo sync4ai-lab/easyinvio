@@ -37,6 +37,7 @@
   "backend/carrier_consolidation.py": "d819c58e12dcd128186972274f1b93f8c6eaac7be19903da9e9a4f052578a7b8",
   "backend/check_hubspot.py": "ed71652b95ec7d56087f2e81a0b7e3bb4b387950f47160f38ed65630b25f6fc2",
   "backend/check_setup.py": "32721160d40f10bbd2cdfd0c12a9cdeea16b28486e76233b22feb260b8501b85",
+  "backend/check_whatsapp.py": "35cf87e5a83cc428be0dcfbfa801c64ae98d8354d01ebb369637de4dd77dcba4",
   "backend/client_assistance.py": "f44bba68eb8704d1c95981ea3e14e60ded542fdbafc17600cdea40588c4e52da",
   "backend/conversational_claims.py": "950f650d7d60b85726125e7d46ac4a9f813cae5fc224be920bf56ed2ee742e9d",
   "backend/credential_rotation.py": "b406128b4f3b73283443154112de4e2c8ae17777409d93654fd79e799b7ab8f9",

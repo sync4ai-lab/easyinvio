@@ -1,36 +1,23 @@
-"""Opt-in real database/read-only webhook check. No messages, labels or DB writes."""
-import os
-from urllib.parse import urlencode
+"""Read-only PostgreSQL WhatsApp readiness probe; no app lifespan or messages."""
+import asyncio,json
+import asyncpg
+from main import Settings,database_tls_context
 
-os.environ['TWILIO_WEBHOOK_URL'] = 'https://local-verification.example/api/v1/integrations/whatsapp/webhook'
-# This probe is independent of financial/CRM workers and their migrations.
-os.environ['STRIPE_ENABLED'] = 'false'
-os.environ['HUBSPOT_ENABLED'] = 'false'
-os.environ['SUPPORT_WHATSAPP_ENABLED'] = 'false'
+async def run():
+ settings=Settings()
+ c=await asyncpg.connect(settings.database_url.get_secret_value(),ssl=database_tls_context(settings.database_ca_file,strict=settings.database_tls_strict),timeout=20)
+ try:
+  async with c.transaction(readonly=True):
+   expected=['whatsapp_bindings','whatsapp_routes','whatsapp_inbound_queue','whatsapp_reply_outbox']
+   rows=await c.fetch("SELECT relname,relrowsecurity FROM pg_class WHERE relnamespace='public'::regnamespace AND relname=ANY($1::text[])",expected)
+   assert {r['relname'] for r in rows}==set(expected),'Required WhatsApp schema missing'
+   assert all(r['relrowsecurity'] for r in rows),'Required RLS missing'
+   for table in ['whatsapp_inbound_queue','whatsapp_reply_outbox']:
+    assert not await c.fetchval('SELECT has_table_privilege($1,$2,$3)','authenticated','public.'+table,'SELECT'),'Private message queue is browser-readable'
+   states={}
+   for table in ['whatsapp_inbound_queue','whatsapp_reply_outbox']:
+    states[table]=[dict(r) for r in await c.fetch('SELECT state,count(*) AS count FROM public.'+table+' GROUP BY state')]
+   print(json.dumps({'required_tables_present':True,'rls_enabled':True,'message_queues_private':True,'queue_states':states,'database_writes':0,'provider_calls':0,'messages_sent':0},indent=2))
+ finally:await c.close()
 
-from fastapi.testclient import TestClient
-from twilio.request_validator import RequestValidator
-import main
-
-
-def run():
-    settings = main.Settings()
-    fields = {'AccountSid': settings.twilio_account_sid, 'From': 'whatsapp:+447700900999',
-              'To': 'whatsapp:' + settings.twilio_whatsapp_number, 'MessageSid': 'SM' + 'f'*32,
-              'Body': 'Quote 4.5kg from GB to US', 'NumMedia': '0'}
-    signature = RequestValidator(settings.twilio_auth_token.get_secret_value()).compute_signature(
-        settings.twilio_webhook_url, fields)
-    with TestClient(main.app) as client:
-        assert client.get('/health').json()['mode'] == 'configured'
-        response = client.post('/api/v1/integrations/whatsapp/webhook', content=urlencode(fields),
-            headers={'Content-Type': 'application/x-www-form-urlencoded', 'X-Twilio-Signature': signature})
-        assert response.status_code == 200, response.status_code
-        assert 'not registered to an active workspace' in response.text
-        forged = client.post('/api/v1/integrations/whatsapp/webhook', content=urlencode(fields),
-            headers={'Content-Type': 'application/x-www-form-urlencoded', 'X-Twilio-Signature': 'invalid'})
-        assert forged.status_code == 403, forged.status_code
-    print('PASS: configured backend startup, signed sender lookup in Supabase, unknown sender TwiML, forged signature rejection. No database writes or messages.')
-
-
-if __name__ == '__main__':
-    run()
+if __name__=='__main__':asyncio.run(run())
