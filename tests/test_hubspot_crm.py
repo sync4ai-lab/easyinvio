@@ -253,6 +253,8 @@ class HubSpotTests(unittest.IsolatedAsyncioTestCase):
             async def fetchrow(self, sql, *args):
                 if "revision,attempts" in sql:
                     return {"revision": 1, "attempts": 0}
+                if "FROM public.shipments" in sql:
+                    return {"package_count": 0, "shipment_count": 0, "total_spend": Decimal("0.00"), "mixed_currency": 0}
                 return {"company_name": "Acme", "company_profile": {"billing_email": "alex@example.com"}, "default_currency": "GBP"}
             async def execute(self, sql, *args):
                 if "UPDATE public.hubspot_sync_jobs" in sql:

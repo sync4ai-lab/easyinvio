@@ -1,7 +1,8 @@
 """Optional HubSpot CRM synchronization with durable PostgreSQL jobs.
 
 No credential prefix denotes test mode in HubSpot: pat-* tokens access the
-account that issued them. Use a separate developer/test account for testing.
+account that issued them. A standard account can receive explicitly allowlisted,
+labelled UAT workspaces without changing their shipping/payment environment.
 """
 from __future__ import annotations
 
@@ -33,6 +34,7 @@ class HubSpotSettings(BaseSettings):
     hubspot_access_token: SecretStr | None = None
     hubspot_expected_portal_id: int | None = Field(default=None,ge=1)
     hubspot_environment: str = Field(default='SANDBOX',pattern=r'^(SANDBOX|PRODUCTION)$')
+    hubspot_uat_tenant_ids: list[UUID] = Field(default_factory=list, max_length=100)
     hubspot_provisioning_enabled: bool = False
     hubspot_webhook_client_secret: SecretStr | None = None
     hubspot_webhook_url: str = ""
@@ -71,6 +73,8 @@ class HubSpotSettings(BaseSettings):
     def activated(self):
         if self.hubspot_enabled and (not self.hubspot_access_token or not self.hubspot_expected_portal_id):
             raise ValueError('Enabled CRM requires an access token and expected HubSpot account ID')
+        if self.hubspot_uat_tenant_ids and self.hubspot_environment != 'PRODUCTION':
+            raise ValueError('UAT allowlist is only used with a STANDARD HubSpot account in PRODUCTION mode')
         if self.hubspot_upsell_enabled and (not self.hubspot_upsell_pipeline_id or not self.hubspot_upsell_stage_id):
             raise ValueError('Upsell requires both internal pipeline and stage IDs')
         if self.hubspot_provisioning_enabled:
@@ -83,6 +87,19 @@ class HubSpotSettings(BaseSettings):
             if not self.hubspot_closed_won_stage_ids or any(not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", v) for v in self.hubspot_closed_won_stage_ids):
                 raise ValueError("Configure internal closed-won stage IDs")
         return self
+
+
+def tenant_crm_scope(settings, tenant_id: UUID, is_sandbox: bool, *, fixture: bool = False) -> str | None:
+    """Account type and shipping mode are distinct; UAT exports require opt-in."""
+    if settings is None or fixture:
+        return None
+    environment = settings.hubspot_environment
+    if environment == 'SANDBOX':
+        return 'TEST' if is_sandbox else None
+    if not is_sandbox:
+        return 'PRODUCTION'
+    allowed = getattr(settings, 'hubspot_uat_tenant_ids', ())
+    return 'UAT' if str(tenant_id) in {str(value) for value in allowed} else None
 
 
 class CRMError(Exception):
@@ -356,12 +373,34 @@ class HubSpotService:
                     if tenant is None:
                         raise CRMError("crm_tenant_missing", retryable=False)
                     settings=getattr(self.client,'settings',None)
-                    if settings and bool(tenant['is_sandbox'])!=(settings.hubspot_environment=='SANDBOX'):
-                        raise CRMError('crm_tenant_environment_mismatch',retryable=False)
                     profile = json.loads(tenant["company_profile"]) if isinstance(tenant["company_profile"], str) else tenant["company_profile"]
+                    profile = profile or {}
+                    scope = tenant_crm_scope(settings, tenant_id, bool(tenant['is_sandbox']), fixture='fixture_batch' in profile) if settings else None
+                    if settings and scope is None:
+                        raise CRMError('crm_fixture_excluded' if 'fixture_batch' in profile else 'crm_tenant_environment_mismatch',retryable=False)
+                    company_name = ('[UAT] ' + tenant['company_name'])[:200] if scope == 'UAT' else tenant['company_name']
+                    if settings:
+                        async with connection.transaction(isolation='repeatable_read', readonly=True):
+                            totals = await self.totals(connection, tenant_id)
+                            wallet = await connection.fetchrow("SELECT balance,currency FROM public.wallets WHERE tenant_id=$1", tenant_id)
+                    else:
+                        totals = await self.totals(connection, tenant_id)
+                        wallet = None
+                    if settings and (wallet is None or wallet['currency'] != tenant['default_currency']):
+                        raise CRMError('crm_wallet_currency_mismatch', retryable=False)
+                    # Validate canonical metrics before creating any remote records.
+                    try:
+                        spend_string(totals['total_spend'])
+                        if wallet: spend_string(wallet['balance'])
+                        for value in (totals['package_count'], totals.get('shipment_count', totals['package_count'])):
+                            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                                raise ValueError('Invalid shipment count')
+                    except ValueError:
+                        raise CRMError('crm_shipment_totals_invalid', retryable=False) from None
                     try:
                         email=tenant.get('billing_email') or profile.get('billing_email','')
                         vat=tenant.get('vat_registration_number') or profile.get('tax_id') or ''
+                        validate_profile(tenant['company_name'], email, vat)
                         address=tenant.get('billing_address')
                         address=json.loads(address) if isinstance(address,str) else address
                         extra={'address':address} if address else {}
@@ -370,7 +409,7 @@ class HubSpotService:
                             linked = await connection.fetchrow('SELECT company_id FROM public.hubspot_tenant_links WHERE tenant_id=$1 AND portal_id=$2', tenant_id,settings.hubspot_expected_portal_id)
                             if linked:
                                 extra['existing_company_id'] = linked['company_id']
-                        company_id = await self.client.onboard(tenant_id, tenant["company_name"],email,vat,**extra)
+                        company_id = await self.client.onboard(tenant_id, company_name,email,vat,**extra)
                     except ValueError:
                         raise CRMError("crm_tenant_profile_invalid", retryable=False) from None
                     contact_id = getattr(self.client, 'contact_ids', {}).pop(str(tenant_id), None)
@@ -384,17 +423,8 @@ class HubSpotService:
                             WHERE tenant_id=$1 AND company_profile->'hubspot' IS DISTINCT FROM
                             jsonb_build_object('portal_id',$2::text,'company_id',$3::text,'contact_id',$4::text)""",
                             tenant_id, str(settings.hubspot_expected_portal_id), company_id, contact_id)
-                    if settings:
-                        async with connection.transaction(isolation='repeatable_read', readonly=True):
-                            totals = await self.totals(connection, tenant_id)
-                            wallet = await connection.fetchrow("SELECT balance,currency FROM public.wallets WHERE tenant_id=$1", tenant_id)
-                    else:
-                        totals = await self.totals(connection, tenant_id)
-                        wallet = None
-                    if settings and (wallet is None or wallet['currency'] != tenant['default_currency']):
-                        raise CRMError('crm_wallet_currency_mismatch', retryable=False)
                     try:
-                        deal_id = await self.client.milestone(tenant_id, company_id, tenant["company_name"], totals["package_count"], totals["total_spend"], tenant["default_currency"], **({"wallet_balance": wallet["balance"],"shipment_count":totals.get("shipment_count",totals["package_count"])} if wallet else {}))
+                        deal_id = await self.client.milestone(tenant_id, company_id, company_name, totals["package_count"], totals["total_spend"], tenant["default_currency"], **({"wallet_balance": wallet["balance"],"shipment_count":totals.get("shipment_count",totals["package_count"])} if wallet else {}))
                     except ValueError:
                         raise CRMError("crm_shipment_totals_invalid", retryable=False) from None
                     await connection.execute("""INSERT INTO public.hubspot_tenant_links(tenant_id,company_id,upsell_deal_id,last_synced_at)
@@ -419,7 +449,9 @@ class HubSpotService:
             try:
                 async with self.pool.acquire() as connection:
                     jobs = await connection.fetch('''SELECT j.tenant_id FROM public.hubspot_sync_jobs j JOIN public.tenants t ON t.tenant_id=j.tenant_id
-                        WHERE NOT j.blocked AND j.next_attempt_at<=now() AND t.is_sandbox=$1 ORDER BY j.next_attempt_at LIMIT 20''',self.client.settings.hubspot_environment=='SANDBOX')
+                        WHERE NOT j.blocked AND j.next_attempt_at<=now() AND NOT (t.company_profile ? 'fixture_batch')
+                        AND (t.is_sandbox=$1 OR (t.is_sandbox AND t.tenant_id=ANY($2::uuid[])))
+                        ORDER BY j.next_attempt_at LIMIT 20''',self.client.settings.hubspot_environment=='SANDBOX',self.client.settings.hubspot_uat_tenant_ids)
                 if self.client.settings.hubspot_provisioning_enabled:
                     from backend.hubspot_provisioning import process_pending
                     await process_pending(self)

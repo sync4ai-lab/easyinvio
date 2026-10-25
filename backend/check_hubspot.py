@@ -16,7 +16,7 @@ async def check():
         return {'ready':False,'code':'invalid_local_hubspot_configuration','writes':0}
     result={'ready':False,'enabled':settings.hubspot_enabled,'environment':settings.hubspot_environment,
             'token_present':bool(settings.hubspot_access_token),'expected_account_configured':bool(settings.hubspot_expected_portal_id),
-            'upsell_enabled':settings.hubspot_upsell_enabled,'writes':0}
+            'upsell_enabled':settings.hubspot_upsell_enabled,'uat_allowlisted_workspaces':len(settings.hubspot_uat_tenant_ids),'writes':0}
     if not result['token_present'] or not result['expected_account_configured']:
         return {**result,'code':'set_token_and_expected_account_locally'}
     checks=[]

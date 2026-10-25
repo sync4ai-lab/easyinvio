@@ -1,6 +1,6 @@
 # HubSpot CRM integration
 
-The client uses `https://api.hubapi.com` with CRM v3 company, contact, optional deal and association paths. The configured Supabase CRM queue/link tables and canonical mapping columns have been verified. Service-key authentication has been checked separately. Deployment still requires the matching environment, CRM properties and migration 018; no synchronization is enabled automatically.
+The client uses `https://api.hubapi.com` with CRM v3 company, contact, optional deal and association paths. Account authentication, the required seven company properties, remote company/contact writes and Supabase queue/link mappings have been verified. Sync is operator-enabled; optional upsell deals and signed Closed Won provisioning remain disabled. See the UAT acceptance workflow below for the supported tests and current limitations.
 
 ## Activation
 
@@ -92,11 +92,7 @@ Automatic enqueue happens in the same database transaction as the tenant/shipmen
 
 429 and safe-to-repeat requests use bounded backoff and respect Retry-After. Long waits are deferred to the durable scheduler. A 5xx/transport failure during record creation is not blindly retried inline; the durable job recovers through unique identities. Authentication, account and property configuration errors block the job; transient jobs block after twelve attempts. Failure codes contain no token, email or remote response body. Search indexing can delay conflict recovery, so 409 retains the job for a later attempt.
 
-Deployment preparation checks: **15 HubSpot tests passed**, covering company/contact
-mapping without deal configuration, account mismatch/type fencing, schema mismatch,
-secret redaction, ambiguous create handling, associations, retries and job revisions.
-These use controlled HTTP responses; real token authentication and remote writes
-remain unverified until the empty local fields are completed.
+Initial preparation used controlled HTTP tests. The October 2026 live verification subsequently exercised actual company/contact creation, readback, stable identities and client-summary synchronization. These are separate from browser purchase testing and from the optional inbound webhook workflow.
 
 The exported async utilities preserve the requested signatures:
 
@@ -141,7 +137,7 @@ for the CLI; Developer API Keys do not authenticate this CRM data sync. The
 verified account reports STANDARD: use HUBSPOT_ENVIRONMENT=PRODUCTION if that is
 your intended CRM. This describes account type, not subscription price. SANDBOX
 requires a real SANDBOX/DEVELOPER_TEST account and only syncs sandbox tenants;
-PRODUCTION only syncs non-sandbox tenants. Do not mix synthetic fixture tenants
+PRODUCTION syncs non-sandbox tenants plus explicitly allowlisted UAT tenants; seeded fixtures are excluded. Do not mix synthetic fixture tenants
 with a production CRM. Existing records do not get activated or funded by this change.
 
 ### Inbound webhook setup
@@ -204,7 +200,7 @@ operator configuration is complete and the backend is restarted.
 
 The recent Platform Owner UI changes expose CRM state; they do not activate CRM synchronization. The live read-only review established that the saved credential identifies the expected STANDARD HubSpot account. Local sync was disabled and local account mode was SANDBOX. Companies, contacts, schema and pipeline reads returned HTTP 403/MISSING_SCOPES. This is a credential-permission problem, not evidence that the free edition cannot hold client records. After the operator saved the missing permissions, readiness passed and all seven required company properties were created successfully.
 
-The local account mode has been corrected to PRODUCTION. The operator confirmed HUBSPOT_ENABLED=true and HUBSPOT_ENVIRONMENT=PRODUCTION in Vercel and the worker environment; the local flags now match. The operator subsequently explicitly approved normal client CRM synchronization and deployment. In this integration PRODUCTION means a STANDARD HubSpot account and non-sandbox EasyInvio client data; it does not switch shipping providers to LIVE. SANDBOX requires an actual HubSpot SANDBOX/DEVELOPER_TEST account and processes only sandbox client data. Do not remove these environment checks or export seeded UAT companies to the ordinary business CRM.
+The local account mode has been corrected to PRODUCTION. The operator confirmed HUBSPOT_ENABLED=true and HUBSPOT_ENVIRONMENT=PRODUCTION in Vercel and the worker environment; the local flags now match. The operator subsequently explicitly approved normal client CRM synchronization and deployment. In this integration PRODUCTION means a STANDARD HubSpot account; non-sandbox EasyInvio client data and explicitly allowlisted UAT workspaces are eligible; it does not switch shipping providers to LIVE. SANDBOX requires an actual HubSpot SANDBOX/DEVELOPER_TEST account and processes only sandbox client data. Do not remove these environment checks or export seeded UAT companies to the ordinary business CRM.
 
 In HubSpot, open Settings → Integrations → Service Keys, or Development → Keys → Service Keys. Select the EasyInvio key and add object read/write scopes for companies and contacts, schema read scopes for companies and contacts, and retain working account-details read access. Creating the required company properties additionally requires crm.schemas.companies.write. Optional opportunity/deal work requires deal read/write and deal-schema read; optional milestone-property creation additionally requires deal-schema write. Legacy private apps have their own scope-editing screen. A Service Key does not provide webhook subscriptions: optional inbound Closed Won provisioning requires the supported signed app-webhook setup separately.
 
@@ -220,7 +216,7 @@ Readiness and controlled tests from the project root:
 .\.venv\Scripts\python.exe -m scripts.hubspot_test_transactions --run --allow-standard-account
 ```
 
-The property helper creates only missing matching EasyInvio definitions and refuses incompatible existing definitions. HubSpot enforces subscription/property quotas; the helper never removes another integration's properties or buys an upgrade. The test helper creates two clearly labelled [EASYINVIO TEST] companies and reserved-domain contacts, sends synthetic aggregate updates, and repeats upserts to verify stable IDs. These are CRM fixtures, not real shipping/payment transactions. It creates no Supabase shipments/wallet movements and starts no automatic worker. Deterministic fixture identities allow retry without duplicate companies. The standard-account flag explicitly permits these fixtures in the configured STANDARD account; account identity/schema checks still apply. Live fixture testing subsequently passed: two labelled companies and two associated contacts were created and read back successfully. Repeated upserts reused the company IDs. Each fixture reports 3 parcels, 2 distinct shipments, GBP 12.34 spend and GBP 50 wallet balance; these are synthetic CRM values only. Fixture company IDs in portal 149519962 are 456864863466 and 457056398548. After explicit approval, Alpha Global Retail and Beta Electronics Hub synced successfully through the normal service; company/contact mappings were saved and both queue jobs completed. Their HubSpot company IDs are 456759539941 and 457076796644 respectively. The live account sync exposed a company street-address mapping error: HubSpot uses the built-in company property address, not street. Both outbound sync and optional inbound provisioning now use address, with regression fixtures corrected to match the real API. Five sandbox sync jobs remain outside the STANDARD account data boundary.
+The property helper creates only missing matching EasyInvio definitions and refuses incompatible existing definitions. HubSpot enforces subscription/property quotas; the helper never removes another integration's properties or buys an upgrade. The test helper creates two clearly labelled [EASYINVIO TEST] companies and reserved-domain contacts, sends synthetic aggregate updates, and repeats upserts to verify stable IDs. These are CRM fixtures, not real shipping/payment transactions. It creates no Supabase shipments/wallet movements and starts no automatic worker. Deterministic fixture identities allow retry without duplicate companies. The standard-account flag explicitly permits these fixtures in the configured STANDARD account; account identity/schema checks still apply. Live fixture testing subsequently passed: two labelled companies and two associated contacts were created and read back successfully. Repeated upserts reused the company IDs. Each fixture reports 3 parcels, 2 distinct shipments, GBP 12.34 spend and GBP 50 wallet balance; these are synthetic CRM values only. Fixture company IDs in portal 149519962 are 456864863466 and 457056398548. After explicit approval, Alpha Global Retail and Beta Electronics Hub synced successfully through the normal service; company/contact mappings were saved and both queue jobs completed. Their HubSpot company IDs are 456759539941 and 457076796644 respectively. The live account sync exposed a company street-address mapping error: HubSpot uses the built-in company property address, not street. Both outbound sync and optional inbound provisioning now use address, with regression fixtures corrected to match the real API. At that stage five sandbox jobs were excluded. The subsequent explicit UAT allowlist allows the selected Mavuri Consultancy workspace to sync without changing its sandbox flag.
 
 ### What is implemented
 
@@ -243,3 +239,81 @@ Recommended next work is to map business lifecycle explicitly (prospect, trial, 
 HubSpot's current free-tools catalog lists ten total custom properties and up to two free users. The present mapping uses seven company properties and optionally one deal property. Prefer built-in lifecycle, contact, company, deal and task fields before spending the remaining custom-property allowance. The separate Leads object/Sales Workspace lead-management functionality requires Sales Hub Professional/Enterprise; free-plan prospect tracking can use contact lifecycle/lead status and deals. Richer custom reporting/automation may require paid subscriptions, but missing CRM scopes will not be fixed by buying an upgrade alone.
 
 Primary references checked: https://developers.hubspot.com/changelog/service-keys ; https://developers.hubspot.com/blog/hubspot-service-keys-the-right-api-credential-for-data-integrations ; https://legal.hubspot.com/hubspot-product-and-services-catalog/free-tools ; https://knowledge.hubspot.com/records/use-lifecycle-stages ; https://knowledge.hubspot.com/records/create-leads .
+
+
+## UAT acceptance workflow and blank-record diagnosis (25 October 2026)
+
+### Two different meanings of environment
+
+HUBSPOT_ENVIRONMENT checks the HubSpot account type, not whether the EasyInvio hostname contains uat. This account reports STANDARD, so keep HUBSPOT_ENVIRONMENT=PRODUCTION. EasyInvio workspace is_sandbox controls shipping/payment test behavior and must not be changed to enable CRM.
+
+A STANDARD HubSpot account can receive explicitly selected sandbox workspaces:
+
+```dotenv
+HUBSPOT_ENABLED=true
+HUBSPOT_ENVIRONMENT=PRODUCTION
+HUBSPOT_UAT_TENANT_IDS=["b9f5260c-3f03-42d5-8753-84690af5f647"]
+```
+
+The user selected Mavuri Consultancy Services Limited only. Save the allowlist in the web application and worker environments and restart/redeploy with this code. The operator configured local .env and confirmed saving the same allowlist in Vercel before deployment. An empty list restores the default exclusion of sandbox workspaces. The allowlist is only valid in PRODUCTION HubSpot account mode. It is server configuration, not a permission a client can grant itself.
+
+Allowed sandbox companies are named [UAT] followed by their stored company name. Canonical EasyInvio tenant UUIDs still identify them, and shipping/payment sandbox flags remain unchanged. Seeded profiles carrying fixture_batch are excluded even if explicitly listed. The ordinary worker queue and the direct sync processor enforce the same boundaries. UAT and production in one HubSpot account are not isolated databases: a shared billing email identifies the same contact, so use deliberate test identities and do not treat UAT metrics as live revenue. No extra custom property is required for this mode.
+
+The selected UAT company was successfully created through the normal service and its queue completed: portal 149519962, company 456857630908, contact 901405242581. Live company readback and worker deployment/configuration should be checked separately; a manual successful service run does not prove that a separately deployed worker received its configuration.
+
+### Why there are extra or blank companies
+
+Read-only source metadata confirmed these records were created by HubSpot's own Create and associate companies with contacts setting, not by EasyInvio's company upsert:
+
+- Company 456817406194: blank name, example.com domain; associated with the two deliberate CRM fixture contacts.
+- Company 457015794891: blank name, betaelec.co.uk domain; associated with the Beta billing contact.
+- Company 456830229739: Alpha Retail, alpharetail.co.uk domain; additional to the explicitly linked Alpha Global Retail company.
+- The original HubSpot company also reports the same automatic setting as its source.
+
+Disable automatic domain-based company creation at HubSpot Settings > Data Management > Objects > Companies > Automation > Create and associate companies with contacts. EasyInvio already creates explicit associations using unique workspace IDs. Turning the setting off does not remove existing records. For a clean integration view, filter companies where EasyInvio Tenant ID / veloce_tenant_id is known; then separately filter name starting [UAT] or [EASYINVIO TEST]. Review associations and history before archiving anything. No existing company/contact was deleted by this change. No owner and an empty phone column are unassigned/missing properties, not extra records; company phone and HubSpot salesperson ownership are not currently populated by this sync.
+
+Reference: https://knowledge.hubspot.com/object-settings/automatically-create-and-associate-companies-with-contacts
+
+### Tests the owner can perform in EasyInvio
+
+Use the selected Mavuri Consultancy workspace, either as its client OWNER or through the platform's audited Assist a client function. A platform owner should not book under their own platform identity. Before each test, record the HubSpot company ID, current metric values and count of matching companies. In HubSpot add columns for the seven EasyInvio properties; the defaults such as Last activity date and Company owner do not show metric sync results.
+
+| Action | Expected evidence | What does not happen |
+|---|---|---|
+| First sync of selected existing workspace | One [UAT] company, its billing contact association, address and seven summary fields; platform Client Accounts shows Linked / UAT test account and Open HubSpot account | No new shipment, payment or invitation is created |
+| Speed Quote Matrix: request rates only | Company shipment/spend totals remain unchanged | A quote is not a booked shipment or sales deal |
+| Buy one supported TEST label from the selected workspace | Shipping receipt/label succeeds; after background sync, distinct shipments increases by one, parcels increases by the shipment parcel count, booked spend increases by final client price, and wallet reflects the actual payment method | Card payments need not reduce wallet; pending/failed bookings do not count; no shipment-by-shipment HubSpot timeline note is created |
+| Repeat the booking workflow with a second shipment | Same company ID; cumulative counts change again, without duplicate company/contact creation | Do not retry a successful paid booking just to test CRM retries |
+| Wallet & Billing: complete an available TEST wallet top-up | HubSpot wallet balance matches the resulting Supabase wallet; shipment count and booked shipping spend do not increase | Merely opening/abandoning a top-up does not credit the wallet |
+| Return to Platform Owner > Client Accounts > Refresh clients | Linked company opens the same HubSpot record; excluded seed clients remain Not enabled for CRM or Test fixture excluded | Refresh clients is a read, not a backfill/sync button |
+| User Profile: edit a login user's full name/phone | Login profile changes only | This is not the workspace billing-contact profile; current sync does not mirror all login users |
+| Settings: add a parcel recipient/address | Address book is updated in EasyInvio | End recipients are not automatically imported as sales contacts |
+
+For healthy small queues allow approximately 5–30 seconds; this is not a guaranteed delivery SLA. Authentication/schema errors block jobs, throttling and temporary failures delay them. Refresh the HubSpot record and inspect EasyInvio Tenant ID and numeric fields; Last activity date is not proof that property updates failed. CRM failures must not invalidate paid labels.
+
+A new signup queues a record, but a new sandbox workspace is excluded until its UUID is explicitly allowlisted for UAT; the current pilot setting does not auto-approve every new signup. A genuine non-sandbox production signup is eligible automatically. Historical accounts require queue/backfill; enabling the integration is not a blanket scan/import.
+
+Read-only SQL evidence (Supabase SQL editor, trusted backend operator):
+
+```sql
+SELECT t.company_name, t.is_sandbox, l.portal_id, l.company_id, l.contact_id,
+       l.last_synced_at, j.attempts, j.blocked, j.last_error, j.next_attempt_at
+FROM public.tenants t
+LEFT JOIN public.hubspot_tenant_links l USING (tenant_id)
+LEFT JOIN public.hubspot_sync_jobs j USING (tenant_id)
+WHERE t.tenant_id = 'b9f5260c-3f03-42d5-8753-84690af5f647'::uuid;
+```
+
+A mapped company with last_synced_at and no queue row means the latest completed job succeeded. A company ID alone does not prove future worker processing. Compare the timestamp/metrics after the next app booking. A trusted OWNER/ADMIN can explicitly request POST /api/v1/crm/sync-tenant with their own tenant_id; it returns QUEUED, not a guarantee of remote completion. This is an API, not an existing UI button.
+
+### HubSpot to EasyInvio: current limits and optional test
+
+There is no general two-way profile synchronization. Editing a HubSpot contact/company, adding a sales note or creating an ordinary deal does not update EasyInvio. Supabase-owned billing fields may overwrite CRM edits on the next outbound sync. No ordinary app action should be presented as proof of this unsupported direction.
+
+The implemented inbound path is specifically Closed Won onboarding, currently disabled. To test it, first configure a supported HubSpot app's signed dealstage webhook, its app ID/client secret/public HTTPS endpoint, company/contact/deal read permissions, and actual Closed Won stage IDs; then deliberately enable HUBSPOT_PROVISIONING_ENABLED. A Service Key alone cannot subscribe to webhooks. Do this with a separate test portal/database for inbound onboarding: the current STANDARD-account inbound path creates non-sandbox workspaces and is not changed by the outbound UAT allowlist.
+
+Once separately configured, create a clearly labelled test company with full address/country ISO and an associated contact with name/email. Associate exactly that company and contact to one deal, then move it to the configured Closed Won stage. Expected evidence: a verified webhook queues one activation job; the worker creates one mapped EasyInvio workspace and a zero-balance wallet. Replayed events or another won deal for the linked company must not create duplicates or reset the wallet. Missing data/invalid signatures must be rejected. Login invitations, wallet funding and label purchases are not part of that inbound workflow. Controlled database/HTTP tests cover this path; live inbound webhook acceptance has not been claimed.
+
+### Production acceptance
+
+Keep fixtures and the UAT pilot identifiable; clear HUBSPOT_UAT_TENANT_IDS in a production-only worker, or deliberately retain the selected pilot if sharing the same app/database. Verify expected portal/token/scopes/property readiness, then test one genuine non-sandbox signup and one supported confirmed booking, compare the CRM totals against Supabase, and confirm the same IDs after a second event. There must be no queue errors left unresolved. A production deployment is not fully accepted just because two test companies were created. Optional deal automation and inbound provisioning need their own explicit acceptance tests before enabling them.

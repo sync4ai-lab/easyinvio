@@ -35,6 +35,7 @@ async def tenants(request: Request, owner=Depends(authenticate_platform_operator
     async with request.app.state.finance.pool.acquire() as c:
         rows=await c.fetch('''SELECT tenant_id,company_name,workspace_type,seller_classification,workspace_slug,billing_email,billing_plan,
             default_currency,workspace_status,billing_status,is_sandbox,t.created_at,
+            company_profile ? 'fixture_batch' AS crm_fixture,
             company_profile->'hubspot'->>'company_id' AS hubspot_company_id,
             company_profile->'hubspot'->>'portal_id' AS hubspot_portal_id,
             j.tenant_id IS NOT NULL AS crm_queued,j.blocked AS crm_blocked,j.last_error AS crm_error,
@@ -42,7 +43,13 @@ async def tenants(request: Request, owner=Depends(authenticate_platform_operator
             FROM public.tenants t LEFT JOIN public.hubspot_sync_jobs j USING(tenant_id) ORDER BY t.created_at DESC,tenant_id LIMIT $1''',limit)
     service=getattr(request.app.state,'hubspot',None)
     settings=getattr(getattr(service,'client',None),'settings',None)
-    return {'tenants':[public_record(r) for r in rows], 'limit':limit,
+    from backend.hubspot_crm import tenant_crm_scope
+    records=[]
+    for row in rows:
+        record=public_record(row)
+        record['crm_scope']=tenant_crm_scope(settings,row['tenant_id'],bool(row.get('is_sandbox')),fixture=bool(row.get('crm_fixture')))
+        records.append(record)
+    return {'tenants':records, 'limit':limit,
         'crm':{'enabled':service is not None,'environment':getattr(settings,'hubspot_environment',None)}}
 
 @router.get('/marketplaces')
