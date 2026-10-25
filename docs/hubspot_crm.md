@@ -198,3 +198,48 @@ Apply migration 018 separately for deployment. Provision the seven company
 properties from config/hubspot_properties.json, then run the read-only
 `python -m backend.check_hubspot`. Synchronization/provisioning stay disabled until
 operator configuration is complete and the backend is restarted.
+
+
+## Current integration review and free-account setup (25 October 2026)
+
+The recent Platform Owner UI changes expose CRM state; they do not activate CRM synchronization. The live read-only review established that the saved credential identifies the expected STANDARD HubSpot account. Local sync was disabled and local account mode was SANDBOX. Companies, contacts, schema and pipeline reads returned HTTP 403/MISSING_SCOPES. This is a credential-permission problem, not evidence that the free edition cannot hold client records. After the operator saved the missing permissions, readiness passed and all seven required company properties were created successfully.
+
+The local account mode has been corrected to PRODUCTION. The operator confirmed HUBSPOT_ENABLED=true and HUBSPOT_ENVIRONMENT=PRODUCTION in Vercel and the worker environment; the local flags now match. Normal client-data export and deployment are pending explicit confirmation after automatic approval review separated synthetic testing from real-client sync. In this integration PRODUCTION means a STANDARD HubSpot account and non-sandbox EasyInvio client data; it does not switch shipping providers to LIVE. SANDBOX requires an actual HubSpot SANDBOX/DEVELOPER_TEST account and processes only sandbox client data. Do not remove these environment checks or export seeded UAT companies to the ordinary business CRM.
+
+In HubSpot, open Settings → Integrations → Service Keys, or Development → Keys → Service Keys. Select the EasyInvio key and add object read/write scopes for companies and contacts, schema read scopes for companies and contacts, and retain working account-details read access. Creating the required company properties additionally requires crm.schemas.companies.write. Optional opportunity/deal work requires deal read/write and deal-schema read; optional milestone-property creation additionally requires deal-schema write. Legacy private apps have their own scope-editing screen. A Service Key does not provide webhook subscriptions: optional inbound Closed Won provisioning requires the supported signed app-webhook setup separately.
+
+Keep the key server-side. If rotated, update HUBSPOT_ACCESS_TOKEN locally and in the deployed application/worker environments. Set HUBSPOT_ENVIRONMENT=PRODUCTION for the verified standard account in each deployed environment. Keep HUBSPOT_ENABLED=false until readiness and the isolated test pass. Then deliberately enable automatic sync and redeploy/restart the app and worker. Local .env changes do not change Vercel configuration.
+
+Readiness and controlled tests from the project root:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.check_hubspot
+.\.venv\Scripts\python.exe -m scripts.setup_hubspot_properties
+# After reviewing the property plan and granting schema-write access:
+.\.venv\Scripts\python.exe -m scripts.setup_hubspot_properties --apply
+.\.venv\Scripts\python.exe -m scripts.hubspot_test_transactions --run --allow-standard-account
+```
+
+The property helper creates only missing matching EasyInvio definitions and refuses incompatible existing definitions. HubSpot enforces subscription/property quotas; the helper never removes another integration's properties or buys an upgrade. The test helper creates two clearly labelled [EASYINVIO TEST] companies and reserved-domain contacts, sends synthetic aggregate updates, and repeats upserts to verify stable IDs. These are CRM fixtures, not real shipping/payment transactions. It creates no Supabase shipments/wallet movements and starts no automatic worker. Deterministic fixture identities allow retry without duplicate companies. The standard-account flag explicitly permits these fixtures in the configured STANDARD account; account identity/schema checks still apply. Live fixture testing subsequently passed: two labelled companies and two associated contacts were created and read back successfully. Repeated upserts reused the company IDs. Each fixture reports 3 parcels, 2 distinct shipments, GBP 12.34 spend and GBP 50 wallet balance; these are synthetic CRM values only. Fixture company IDs in portal 149519962 are 456864863466 and 457056398548. The two queued non-sandbox business profiles passed stored-profile readiness checks but have not yet been exported by this test; normal client sync requires the separately requested confirmation. Five sandbox sync jobs remain outside the STANDARD account data boundary.
+
+### What is implemented
+
+- Company upsert keyed by the unique EasyInvio tenant UUID; contact upsert keyed by billing email; contact/company association.
+- Stored company address and VAT data, with canonical billing email. Stored contact name and international phone now enrich standard contact fields when present.
+- Confirmed package count, distinct shipment count, cumulative shipping spend, currency and current wallet balance. Multi-parcel shipments previously inflated the total-shipment property; it now uses shipment count while package count remains separate.
+- Database queues triggered by relevant account, shipment and wallet changes; bounded retries, permanent-error blocking and mapping IDs/timestamps. A manual request can requeue work after configuration repair.
+- Optional one-time high-volume upsell deal above 50 packages, disabled until pipeline/stage/property configuration is verified.
+- Optional signed Closed Won webhook onboarding that creates a mapped EasyInvio workspace/zero-balance wallet when valid company/contact data is available. This is disabled by default and does not provision or email an Auth user automatically.
+- Separate lead-discovery tooling writes reviewed lead candidates and unsent drafts; it does not currently import these automatically into HubSpot.
+
+### Business role and next enhancements
+
+Supabase remains the operational and financial source for orders, labels, tracking, payments, wallet ledgers, returns and support. HubSpot is the sales and relationship workspace: prospects, people, companies, opportunities, follow-up tasks and a concise account-health summary.
+
+On the free edition, start with Contacts and Companies lifecycle/lead-status fields, associated Deals and the existing sales pipeline. A practical proposed deal process is Qualified → Discovery → Trial → Proposal → Closed Won or Closed Lost; changing the stage labels is an administrator choice and not performed by this sync. A newly registered account and a won opportunity are different business events. Routine customer signups do not currently create acquisition deals automatically. The optional high-volume upsell is not a general sales pipeline.
+
+Recommended next work is to map business lifecycle explicitly (prospect, trial, paying customer, dormant), sync the primary client contact and owner, expose selected account-health totals with a link back to EasyInvio, and add deduplicated summary notes/tasks for first paid shipment, inactivity and open support. Keep parcel recipients and individual shipping/financial events in Supabase. Current sync updates company properties and links; it does not create a shipment-by-shipment CRM activity timeline.
+
+HubSpot's current free-tools catalog lists ten total custom properties and up to two free users. The present mapping uses seven company properties and optionally one deal property. Prefer built-in lifecycle, contact, company, deal and task fields before spending the remaining custom-property allowance. The separate Leads object/Sales Workspace lead-management functionality requires Sales Hub Professional/Enterprise; free-plan prospect tracking can use contact lifecycle/lead status and deals. Richer custom reporting/automation may require paid subscriptions, but missing CRM scopes will not be fixed by buying an upgrade alone.
+
+Primary references checked: https://developers.hubspot.com/changelog/service-keys ; https://developers.hubspot.com/blog/hubspot-service-keys-the-right-api-credential-for-data-integrations ; https://legal.hubspot.com/hubspot-product-and-services-catalog/free-tools ; https://knowledge.hubspot.com/records/use-lifecycle-stages ; https://knowledge.hubspot.com/records/create-leads .

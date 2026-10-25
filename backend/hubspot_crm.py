@@ -236,7 +236,7 @@ class HubSpotClient:
         created = await self.request("POST", f"/crm/v3/objects/{object_type}", {"properties": properties})
         return self.record_id(created)
 
-    async def onboard(self, tenant_id: UUID, company_name: str, email: str, vat_number: str, *, address:dict|None=None, existing_company_id: str | None = None) -> str:
+    async def onboard(self, tenant_id: UUID, company_name: str, email: str, vat_number: str, *, address:dict|None=None, existing_company_id: str | None = None, contact_name: str | None = None, phone: str | None = None) -> str:
         validate_profile(company_name, email, vat_number)
         await self.verify_schema()
         properties={"name": company_name, "veloce_tenant_id": str(tenant_id), "veloce_vat_number": vat_number}
@@ -249,18 +249,26 @@ class HubSpotClient:
             await self.request('PATCH', f'/crm/v3/objects/companies/{company_id}', {'properties': properties})
         else:
             company_id = await self.upsert("companies", "veloce_tenant_id", str(tenant_id),properties)
-        contact_id = await self.upsert("contacts", "email", email, {"email": email})
+        contact_properties={"email":email}
+        if isinstance(contact_name,str) and contact_name.strip() and len(contact_name)<=200 and not any(ord(c)<32 for c in contact_name):
+            first,_,last=contact_name.strip().partition(' ')
+            contact_properties['firstname']=first
+            if last:contact_properties['lastname']=last
+        if isinstance(phone,str) and re.fullmatch(r'\+[1-9]\d{7,14}',phone):contact_properties['phone']=phone
+        contact_id = await self.upsert("contacts", "email", email, contact_properties)
         await self.request("POST", "/crm/v3/associations/contacts/companies/batch/create", {
             "inputs": [{"from": {"id": contact_id}, "to": {"id": company_id}, "type": "contact_to_company"}]})
         self.contact_ids[str(tenant_id)] = contact_id
         return company_id
 
-    async def milestone(self, tenant_id: UUID, company_id: str, company_name: str, count: int, spend: Decimal, currency: str, wallet_balance: Decimal | None = None):
+    async def milestone(self, tenant_id: UUID, company_id: str, company_name: str, count: int, spend: Decimal, currency: str, wallet_balance: Decimal | None = None, shipment_count: int | None = None):
         await self.verify_schema()
         if isinstance(count, bool) or not isinstance(count, int) or count < 0:
             raise ValueError("Package count must be a nonnegative integer")
+        if shipment_count is not None and (isinstance(shipment_count,bool) or not isinstance(shipment_count,int) or shipment_count<0):
+            raise ValueError('Shipment count must be a nonnegative integer')
         amount = spend_string(spend)
-        properties = {"veloce_package_count": str(count), "veloce_total_shipments": str(count),
+        properties = {"veloce_package_count": str(count), "veloce_total_shipments": str(count if shipment_count is None else shipment_count),
                       "veloce_total_spend": amount, "veloce_currency": currency}
         if wallet_balance is not None:
             properties["veloce_wallet_balance"] = spend_string(wallet_balance)
@@ -324,7 +332,7 @@ class HubSpotService:
 
     async def totals(self, connection, tenant_id):
         row = await connection.fetchrow("""SELECT coalesce(sum(s.parcel_count),0)::bigint AS package_count,
-            coalesce(sum(s.final_client_price),0)::numeric AS total_spend,
+            count(*)::bigint AS shipment_count,coalesce(sum(s.final_client_price),0)::numeric AS total_spend,
             count(*) FILTER (WHERE s.currency<>t.default_currency)::int AS mixed_currency
             FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
             WHERE s.tenant_id=$1 AND s.status::text IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION','DELIVERED')""", tenant_id)
@@ -358,6 +366,7 @@ class HubSpotService:
                         address=json.loads(address) if isinstance(address,str) else address
                         extra={'address':address} if address else {}
                         if settings:
+                            extra.update(contact_name=profile.get('contact_name') or profile.get('full_name'),phone=profile.get('phone_e164'))
                             linked = await connection.fetchrow('SELECT company_id FROM public.hubspot_tenant_links WHERE tenant_id=$1 AND portal_id=$2', tenant_id,settings.hubspot_expected_portal_id)
                             if linked:
                                 extra['existing_company_id'] = linked['company_id']
@@ -385,7 +394,7 @@ class HubSpotService:
                     if settings and (wallet is None or wallet['currency'] != tenant['default_currency']):
                         raise CRMError('crm_wallet_currency_mismatch', retryable=False)
                     try:
-                        deal_id = await self.client.milestone(tenant_id, company_id, tenant["company_name"], totals["package_count"], totals["total_spend"], tenant["default_currency"], **({"wallet_balance": wallet["balance"]} if wallet else {}))
+                        deal_id = await self.client.milestone(tenant_id, company_id, tenant["company_name"], totals["package_count"], totals["total_spend"], tenant["default_currency"], **({"wallet_balance": wallet["balance"],"shipment_count":totals.get("shipment_count",totals["package_count"])} if wallet else {}))
                     except ValueError:
                         raise CRMError("crm_shipment_totals_invalid", retryable=False) from None
                     await connection.execute("""INSERT INTO public.hubspot_tenant_links(tenant_id,company_id,upsell_deal_id,last_synced_at)
