@@ -37,7 +37,7 @@ async def run():
         result['migration_idempotent']=True
         merchant=Merchant()
         merchant.records['companies']=[{'id':'987654321098765432','properties':{'name':'Rollback CRM Fixture',
-            'street':'1 Fixture Way','city':'London','zip':'SW1A 1AA','country':'GB'},
+            'address':'1 Fixture Way','city':'London','zip':'SW1A 1AA','country':'GB'},
             'associations':{'contacts':{'results':[{'id':'987654321098765433'}]}}}]
         merchant.records['contacts']=[{'id':'987654321098765433','properties':
             {'email':'rollback-crm@example.invalid','firstname':'Rollback','lastname':'Fixture'}}]

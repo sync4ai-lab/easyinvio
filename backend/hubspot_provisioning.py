@@ -111,7 +111,7 @@ async def provision(service, c, portal_id, deal_id):
         raise CRMError('crm_activation_deal_not_closed_won', retryable=False)
     company_id = association_id(deal, 'companies')
     contact_id = association_id(deal, 'contacts')
-    company = await client.request('GET', f'/crm/v3/objects/companies/{company_id}?properties=name,street,city,zip,country,veloce_vat_number,veloce_tenant_id&associations=contacts')
+    company = await client.request('GET', f'/crm/v3/objects/companies/{company_id}?properties=name,address,city,zip,country,veloce_vat_number,veloce_tenant_id&associations=contacts')
     # Require this deal contact to be associated to the company too.
     contacts = (company.get('associations') or {}).get('contacts') or {}
     if contacts.get('paging') or contact_id not in {str(r.get('id')) for r in contacts.get('results', [])}:
@@ -121,7 +121,7 @@ async def provision(service, c, portal_id, deal_id):
     try:
         profile = CompanyProfile(company_name=p.get('name'), billing_email=person.get('email'),
             contact_name=' '.join(v for v in [person.get('firstname'), person.get('lastname')] if v),
-            address_line1=p.get('street'), city=p.get('city'), postal_code=p.get('zip'), country_code=p.get('country'),
+            address_line1=p.get('address'), city=p.get('city'), postal_code=p.get('zip'), country_code=p.get('country'),
             tax_id=p.get('veloce_vat_number') or None)
     except (ValueError, TypeError):
         raise CRMError('crm_activation_incomplete_company_profile', retryable=False) from None

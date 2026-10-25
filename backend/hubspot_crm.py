@@ -241,7 +241,7 @@ class HubSpotClient:
         await self.verify_schema()
         properties={"name": company_name, "veloce_tenant_id": str(tenant_id), "veloce_vat_number": vat_number}
         if address:
-            for source,target in [('line1','street'),('city','city'),('postal_code','zip'),('country_code','country')]:
+            for source,target in [('line1','address'),('city','city'),('postal_code','zip'),('country_code','country')]:
                 value=address.get(source)
                 if isinstance(value,str) and value.strip() and len(value)<=250 and not any(ord(c)<32 for c in value):properties[target]=value.strip()
         if existing_company_id:

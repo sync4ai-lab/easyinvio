@@ -37,6 +37,8 @@ class Merchant:
             return httpx.Response(201, json={"status": "COMPLETE", "results": body["inputs"]})
         parts = path.split("/")
         object_type = parts[4]
+        if object_type=='companies' and 'street' in body.get('properties',{}):
+            return httpx.Response(400,json={'category':'VALIDATION_ERROR'})
         if path.endswith("/search"):
             selector = body["filterGroups"][0]["filters"][0]
             rows = [r for r in self.records[object_type] if r["properties"].get(selector["propertyName"]) == selector["value"]]
@@ -61,7 +63,7 @@ class HubSpotTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(await client.milestone(tenant,company,'Sandbox Company',100,Decimal('123.45'),'GBP'))
         self.assertFalse(any('/deals' in str(r.url) for r in merchant.calls))
         properties=merchant.records['companies'][0]['properties']
-        self.assertEqual(properties['street'],'1 Test Street');self.assertEqual(properties['veloce_total_spend'],'123.45')
+        self.assertEqual(properties['address'],'1 Test Street');self.assertEqual(properties['veloce_total_spend'],'123.45')
         self.assertEqual(merchant.records['contacts'][0]['properties'],{'email':'test@example.invalid'})
 
     async def test_account_mismatch_and_standard_account_block_before_writes(self):
