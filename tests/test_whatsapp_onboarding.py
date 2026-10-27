@@ -195,7 +195,17 @@ async def reach_codes(manager, database):
 
 
 @pytest.mark.asyncio
-async def test_full_signup_requires_both_codes_and_provisions_only_native_identity(signup):
+@pytest.mark.parametrize('transport',['TWILIO','GUPSHUP'])
+async def test_full_signup_requires_both_codes_and_provisions_only_native_identity(signup,monkeypatch,transport):
+    if transport=='GUPSHUP':
+        import sys,hashlib
+        original=form
+        def normalized_form(text,sid=None,phone='+447700900123'):
+            value=original(text,sid,phone)
+            value['MessageSid']='gs:'+hashlib.sha256(value['MessageSid'].encode()).hexdigest()
+            value['To']='whatsapp:+447700900321'
+            return value
+        monkeypatch.setattr(sys.modules[__name__],'form',normalized_form)
     manager, database, provider = signup
     queue, phone_code, response = await reach_codes(manager, database)
     assert queue['current_state'] == 'PENDING_OTP' and queue['phone_otp_hmac'] != phone_code

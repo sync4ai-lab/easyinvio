@@ -11,6 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 from pydantic_settings import SettingsConfigDict
 from backend.email_delivery import EmailDeliverySettings, email_configured, send_notification_email
 
+from backend.whatsapp_provider import enabled as whatsapp_enabled, number as whatsapp_number, provider as whatsapp_provider, account as whatsapp_account, paused as whatsapp_paused, recipient_error, template as whatsapp_template, valid_message_id
+from backend.whatsapp_dispatch import send_selected
+
 class SenderNotifications(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
     email: bool = True
@@ -81,14 +84,17 @@ def target_for(row, config, settings) -> tuple[str | None, str | None]:
         if not (preferences.get('whatsapp') is True and preferences.get('whatsapp_permission_confirmed') is True):
             return None, 'WHATSAPP_PERMISSION_MISSING'
         target = sender.get('phone')
-        if not (config.shipment_whatsapp_notifications_enabled and getattr(settings, 'twilio_enabled', False)
-                and re.fullmatch(r'HX[0-9a-fA-F]{32}', config.shipment_whatsapp_content_sid)
-                and getattr(settings, 'twilio_account_sid', '') and settings.twilio_auth_token.get_secret_value()
-                and re.fullmatch(r'\+[1-9][0-9]{7,14}', getattr(settings, 'twilio_whatsapp_number', ''))):
+        if not config.shipment_whatsapp_notifications_enabled or not whatsapp_enabled(settings):
             return None, 'WHATSAPP_NOT_CONFIGURED'
+        if whatsapp_provider(settings)=='GUPSHUP':
+            if not whatsapp_template(settings,'SHIPMENT'):return None,'APPROVED_GUPSHUP_TEMPLATE_REQUIRED'
+        elif not (re.fullmatch(r'HX[0-9a-fA-F]{32}',config.shipment_whatsapp_content_sid) and getattr(settings,'twilio_account_sid','') and settings.twilio_auth_token.get_secret_value()):
+            return None,'WHATSAPP_NOT_CONFIGURED'
+        reason=recipient_error(settings,target)
+        if reason:return None,reason
         if not re.fullmatch(r'\+[1-9][0-9]{7,14}', target or ''):
             return None, 'SENDER_PHONE_MISSING'
-    if settings.provider_environment == 'TEST' and target.casefold() not in {v.casefold() for v in config.shipment_notification_test_recipients}:
+    if row['channel']=='EMAIL' and settings.provider_environment == 'TEST' and target.casefold() not in {v.casefold() for v in config.shipment_notification_test_recipients}:
         return None, 'TEST_RECIPIENT_NOT_ALLOWED'
     return target, None
 
@@ -103,16 +109,21 @@ class ShipmentNotificationWorker:
                 row = await c.fetchrow("""SELECT n.*,s.customer_reference,s.tracking_number,s.sender_address,s.logistics_metadata
                     FROM public.shipment_sender_notifications n JOIN public.shipments s
                     ON s.tenant_id=n.tenant_id AND s.id=n.shipment_id
-                    WHERE n.state='READY' AND n.next_attempt_at<=now() AND n.attempts<3 AND NOT EXISTS(SELECT 1 FROM public.shipment_sender_notifications earlier
-                      WHERE earlier.tenant_id=n.tenant_id AND earlier.shipment_id=n.shipment_id AND earlier.id<n.id AND earlier.state IN ('READY','SENDING'))
-                    ORDER BY n.id LIMIT 1 FOR UPDATE OF n SKIP LOCKED""")
+                    WHERE n.state='READY' AND ($1::boolean=false OR n.channel='EMAIL') AND (n.channel='EMAIL' OR n.provider IS NULL OR (n.provider=$2 AND n.provider_account IN ('',$3))) AND n.next_attempt_at<=now() AND n.attempts<3 AND NOT EXISTS(SELECT 1 FROM public.shipment_sender_notifications earlier
+                      WHERE earlier.tenant_id=n.tenant_id AND earlier.shipment_id=n.shipment_id AND earlier.channel=n.channel AND earlier.id<n.id AND earlier.state IN ('READY','SENDING'))
+                    ORDER BY n.id LIMIT 1 FOR UPDATE OF n SKIP LOCKED""",whatsapp_paused(service.automation.settings),whatsapp_provider(service.automation.settings),whatsapp_account(service.automation.settings))
                 if row is None:
                     return False
                 row = dict(row)
                 target, reason = target_for(row, config, service.automation.settings)
+                if reason and reason=='APPROVED_GUPSHUP_TEMPLATE_REQUIRED':
+                    await c.execute("UPDATE public.shipment_sender_notifications SET error_code=$2,next_attempt_at=now()+interval '5 minutes' WHERE id=$1",row['id'],reason)
+                    return True
                 if reason:
                     await c.execute("UPDATE public.shipment_sender_notifications SET state='SKIPPED',error_code=$2,updated_at=now() WHERE id=$1", row['id'], reason)
                     return True
+                if row['channel']=='WHATSAPP' and hasattr(service.automation.settings,'whatsapp_provider'):
+                    await c.execute('UPDATE public.shipment_sender_notifications SET provider=$2,provider_account=$3 WHERE id=$1',row['id'],whatsapp_provider(service.automation.settings),whatsapp_account(service.automation.settings))
                 # Commit SENDING before external IO; ambiguous sends never replay.
                 await c.execute("UPDATE public.shipment_sender_notifications SET state='SENDING',attempts=attempts+1,updated_at=now() WHERE id=$1", row['id'])
         heading, text = notice_content(row, service.automation.settings)
@@ -126,16 +137,14 @@ class ShipmentNotificationWorker:
                     state='READY' if row['attempts']+1<3 else 'FAILED'
             else:
                 settings = service.automation.settings
-                response = await service.client.post(f'https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json',
-                    auth=httpx.BasicAuth(settings.twilio_account_sid, settings.twilio_auth_token.get_secret_value()),
-                    data={'From':'whatsapp:'+settings.twilio_whatsapp_number,'To':'whatsapp:'+target,
-                          'ContentSid':config.shipment_whatsapp_content_sid,
-                          'ContentVariables':json.dumps({'1':str(row.get('customer_reference') or row['shipment_id']),
-                                                        '2':text,'3':str(row.get('tracking_number') or 'Not yet assigned')})},
-                    timeout=15, follow_redirects=False)
+                response = await send_selected(settings,service.pool,service.client,
+                    {'From':'whatsapp:'+whatsapp_number(settings),'To':'whatsapp:'+target,'ContentSid':config.shipment_whatsapp_content_sid,
+                     'ContentVariables':json.dumps({'1':str(row.get('customer_reference') or row['shipment_id']),'2':text,'3':str(row.get('tracking_number') or 'Not yet assigned')})},
+                    logical_key='shipment:'+str(row['id'])+':'+str(row['attempts']),kind='SHIPMENT',target_id=row['id'],tenant_id=row['tenant_id'],
+                    parameters={'reference':str(row.get('customer_reference') or row['shipment_id']),'body':text,'tracking':str(row.get('tracking_number') or 'Not yet assigned')})
                 accepted = response.status_code == 201
                 reference = response.json().get('sid') if accepted else None
-                if accepted and not re.fullmatch(r'SM[0-9a-fA-F]{32}', reference or ''):
+                if accepted and not valid_message_id(settings,reference):
                     raise ValueError('Invalid provider receipt')
                 state = 'ACCEPTED' if accepted else 'FAILED' if 400 <= response.status_code < 500 else 'REVIEW_REQUIRED'
                 reason = None if accepted else 'PROVIDER_REJECTED' if state == 'FAILED' else 'PROVIDER_OUTCOME_UNCERTAIN'

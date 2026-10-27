@@ -391,8 +391,9 @@ class TrackingWorkspace:
                 # Explicit allowlist: no internal IDs, country/address/contact, financial,
                 # review, sync, provider URL or account fields cross the public boundary.
                 visible.append({key:item[key] for key in ('order_reference','carrier','carrier_portal','tracking_number','status','data_state','latest_event','parcels','timeline','lifecycle','return_status','estimated_delivery_at')})
-            whatsapp_number=getattr(self.settings,'twilio_whatsapp_number','')
-            whatsapp={'number':whatsapp_number,'sandbox':bool(getattr(self.settings,'twilio_whatsapp_sandbox_enabled',False))} if getattr(self.settings,'twilio_enabled',False) and re.fullmatch(r'\+[1-9][0-9]{7,14}',whatsapp_number) else None
+            from backend.whatsapp_provider import number,enabled,provider
+            whatsapp_number=number(self.settings)
+            whatsapp={'number':whatsapp_number,'sandbox':provider(self.settings)=='TWILIO' and bool(getattr(self.settings,'twilio_whatsapp_sandbox_enabled',False))} if enabled(self.settings) and re.fullmatch(r'\+[1-9][0-9]{7,14}',whatsapp_number) else None
             return {'shipments':visible,'tracking_included':True,'whatsapp':whatsapp,
                     'support_message':'For delivery changes, returns or refund help, contact the retailer using your order confirmation.'}
 

@@ -21,7 +21,12 @@ from twilio.request_validator import RequestValidator
 logger=logging.getLogger('veloce.support_delivery')
 
 
-class DeliverySettings(BaseSettings):
+from backend.whatsapp_provider import enabled as whatsapp_enabled, number as whatsapp_number, provider as whatsapp_provider, account as whatsapp_account, paused as whatsapp_paused, recipient_error, template as whatsapp_template, valid_message_id
+from backend.whatsapp_dispatch import send_selected
+
+from backend.whatsapp_provider import WhatsAppProviderSettings
+
+class DeliverySettings(WhatsAppProviderSettings):
     model_config=SettingsConfigDict(env_file='.env',extra='ignore',hide_input_in_errors=True)
     support_whatsapp_enabled: bool=False
     support_whatsapp_content_sid: str=''
@@ -30,7 +35,7 @@ class DeliverySettings(BaseSettings):
 
     @model_validator(mode='after')
     def configured(self):
-        if self.support_whatsapp_enabled:
+        if self.support_whatsapp_enabled and self.whatsapp_provider == "TWILIO":
             parsed=urlsplit(self.support_whatsapp_status_url)
             if ((self.support_whatsapp_content_sid and not re.fullmatch(r'HX[0-9a-fA-F]{32}',self.support_whatsapp_content_sid))
                 or parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password
@@ -48,13 +53,14 @@ class SupportDelivery:
         self.pool,self.client,self.settings,self.delivery=pool,client,settings,delivery
 
     async def drain(self):
-        if not self.delivery.support_whatsapp_enabled or not self.settings.twilio_enabled:
+        if not self.delivery.support_whatsapp_enabled or not whatsapp_enabled(self.settings) or whatsapp_paused(self.settings):
             return 0
+        if whatsapp_provider(self.settings)=='GUPSHUP' and not whatsapp_template(self.settings,'SUPPORT'):return 0
         async with self.pool.acquire() as c:
             async with c.transaction():
                 row=await c.fetchrow('''SELECT o.id,o.tenant_id,o.recipient_e164,o.body,o.attempts
                   FROM public.support_message_outbox o JOIN public.support_tickets t ON t.tenant_id=o.tenant_id AND t.id=o.ticket_id
-                  WHERE o.status='STAGED' AND o.next_attempt_at<=now() AND o.attempts<5
+                  WHERE (o.provider IS NULL OR (o.provider=$4 AND o.provider_account IN ('',$5))) AND o.status='STAGED' AND o.next_attempt_at<=now() AND o.attempts<5
                    AND ((t.status IN ('OPEN','IN_REVIEW') AND EXISTS(SELECT 1 FROM public.shipments s
                      WHERE s.tenant_id=t.tenant_id AND s.id=t.shipment_id AND s.status='EXCEPTION'))
                      OR (t.status='CLOSED' AND to_jsonb(t)->>'insurance_claim_id' IS NOT NULL
@@ -68,33 +74,38 @@ class SupportDelivery:
                       AND b.receiver_e164=$1
                       AND ($3::boolean OR b.last_inbound_at>now()-interval '23 hours 59 minutes')
                       AND u.is_active AND u.role IN ('OWNER','ADMIN'))
-                  ORDER BY o.next_attempt_at,o.id LIMIT 1 FOR UPDATE OF o SKIP LOCKED''',self.settings.twilio_whatsapp_number,getattr(self.settings,'twilio_whatsapp_sandbox_enabled',False),bool(self.delivery.support_whatsapp_content_sid))
+                  ORDER BY o.next_attempt_at,o.id LIMIT 1 FOR UPDATE OF o SKIP LOCKED''',whatsapp_number(self.settings),getattr(self.settings,'database_environment','SANDBOX' if getattr(self.settings,'twilio_whatsapp_sandbox_enabled',False) else 'LIVE')=='SANDBOX',bool(whatsapp_template(self.settings,'SUPPORT')) if whatsapp_provider(self.settings)=='GUPSHUP' else bool(self.delivery.support_whatsapp_content_sid),whatsapp_provider(self.settings),whatsapp_account(self.settings))
                 if row is None:return 0
+                reason=recipient_error(self.settings,row['recipient_e164'])
+                if reason:
+                    await c.execute("UPDATE public.support_message_outbox SET status='FAILED',last_error_code=$2 WHERE id=$1",row['id'],reason)
+                    return 1
+                if hasattr(self.settings,'whatsapp_provider'):
+                    await c.execute('UPDATE public.support_message_outbox SET provider=$2,provider_account=$3 WHERE id=$1',row['id'],whatsapp_provider(self.settings),whatsapp_account(self.settings))
                 await c.execute("UPDATE public.support_message_outbox SET status='RECONCILIATION_REQUIRED',attempts=attempts+1,last_error_code=NULL WHERE id=$1",row['id'])
         callback=self.delivery.support_whatsapp_status_url+'/'+str(row['id'])
-        payload={'From':'whatsapp:'+self.settings.twilio_whatsapp_number,'To':'whatsapp:'+row['recipient_e164'],'StatusCallback':callback}
+        payload={'From':'whatsapp:'+whatsapp_number(self.settings),'To':'whatsapp:'+row['recipient_e164'],'StatusCallback':callback}
         if self.delivery.support_whatsapp_content_sid:
             payload.update(ContentSid=self.delivery.support_whatsapp_content_sid,ContentVariables=json.dumps({'1':row['body']}))
         else:
             # The locked claim required verified inbound proof within the service window.
             payload['Body']=row['body']
         try:
-            response=await self.client.post(f'https://api.twilio.com/2010-04-01/Accounts/{self.settings.twilio_account_sid}/Messages.json',
-                auth=httpx.BasicAuth(self.settings.twilio_account_sid,self.settings.twilio_auth_token.get_secret_value()),
-                data=payload,timeout=20,follow_redirects=False)
-        except httpx.HTTPError:
+            response=await send_selected(self.settings,self.pool,self.client,payload,logical_key='support:'+str(row['id'])+':'+str(row['attempts']),
+                kind='SUPPORT',target_id=row['id'],tenant_id=row['tenant_id'],parameters={'body':row['body']})
+        except (httpx.HTTPError,HTTPException):
             return 1  # Unknown outcome: durable fence remains for manual reconciliation.
         async with self.pool.acquire() as c:
             if response.status_code==429:
                 state='STAGED' if row['attempts']+1<5 else 'FAILED'
                 delay=min(300,2**(row['attempts']+1))
                 await c.execute("UPDATE public.support_message_outbox SET status=$2,next_attempt_at=now()+$3::integer*interval '1 second',last_error_code='TWILIO_RATE_LIMIT' WHERE id=$1 AND status='RECONCILIATION_REQUIRED' AND provider_message_sid IS NULL",row['id'],state,delay)
-            elif response.status_code in {400,401,403,404,422}:
-                await c.execute("UPDATE public.support_message_outbox SET status='FAILED',last_error_code='TWILIO_REJECTED' WHERE id=$1 AND status='RECONCILIATION_REQUIRED' AND provider_message_sid IS NULL",row['id'])
+            elif response.status_code in {400,401,403,404,409,422}:
+                await c.execute("UPDATE public.support_message_outbox SET status='FAILED',last_error_code=$2 WHERE id=$1 AND status='RECONCILIATION_REQUIRED' AND provider_message_sid IS NULL",row['id'],'GUPSHUP_REJECTED' if whatsapp_provider(self.settings)=='GUPSHUP' else 'TWILIO_REJECTED')
             elif response.status_code==201:
                 try:sid=response.json()['sid']
                 except (ValueError,KeyError,TypeError):return 1
-                if not isinstance(sid,str) or not re.fullmatch(r'SM[0-9a-fA-F]{32}',sid):return 1
+                if not valid_message_id(self.settings,sid):return 1
                 await c.execute("UPDATE public.support_message_outbox SET status='ACCEPTED',provider_message_sid=$2,delivery_updated_at=now() WHERE id=$1 AND status='RECONCILIATION_REQUIRED' AND (provider_message_sid IS NULL OR provider_message_sid=$2)",row['id'],sid)
         return 1
 
@@ -107,8 +118,8 @@ class SupportDelivery:
             await asyncio.sleep(2)
 
     async def callback(self,request,message_id):
-        if not self.delivery.support_whatsapp_enabled or not self.settings.twilio_enabled:
-            raise HTTPException(503,'Support messaging is disabled')
+        if not self.settings.twilio_account_sid or not self.settings.twilio_auth_token.get_secret_value():
+            raise HTTPException(503,'Legacy Twilio callback credentials are unavailable')
         if request.url.query or request.headers.get('content-type','').split(';')[0].lower()!='application/x-www-form-urlencoded':
             raise HTTPException(400,'Invalid callback structure')
         raw=bytearray()
@@ -132,7 +143,9 @@ class SupportDelivery:
         rank={'RECONCILIATION_REQUIRED':0,'ACCEPTED':1,'SENT':2,'FAILED':3,'DELIVERED':4,'READ':5}
         async with self.pool.acquire() as c:
             async with c.transaction():
-                row=await c.fetchrow('SELECT status,recipient_e164,provider_message_sid,attempts FROM public.support_message_outbox WHERE id=$1 FOR UPDATE',message_id)
+                row=await c.fetchrow('SELECT status,recipient_e164,provider_message_sid,attempts,provider,provider_account FROM public.support_message_outbox WHERE id=$1 FOR UPDATE',message_id)
+                if row and hasattr(self.settings,'whatsapp_provider') and (row['provider']!='TWILIO' or row['provider_account'] not in ('',self.settings.twilio_account_sid)):
+                    raise HTTPException(404,'Original provider mismatch')
                 if (not row or row['attempts']<1 or form['To']!='whatsapp:'+row['recipient_e164']
                     or row['provider_message_sid'] not in (None,form['MessageSid'])):
                     raise HTTPException(404,'Notification receipt not found')

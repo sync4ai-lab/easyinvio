@@ -10,6 +10,8 @@ import hashlib
 import json
 import logging
 import re
+from backend.whatsapp_provider import number as whatsapp_number
+
 from contextlib import asynccontextmanager
 from decimal import Decimal
 from datetime import datetime
@@ -229,7 +231,7 @@ class ConversationalActionGateway:
                     await connection.execute('''UPDATE public.whatsapp_bindings b SET last_inbound_at=greatest(b.last_inbound_at,coalesce($5::timestamptz,now()))
                     FROM public.users u WHERE b.tenant_id=$1 AND b.user_id=u.id AND u.tenant_id=b.tenant_id
                     AND u.auth_user_id=$2 AND b.sender_e164=$3 AND b.receiver_e164=$4 AND b.is_active AND u.is_active''',
-                    context.tenant_id, context.user_id, body.sender_id, self.state.settings.twilio_whatsapp_number, received_at)
+                    context.tenant_id, context.user_id, body.sender_id, whatsapp_number(self.state.settings), received_at)
             self.draft = None
             previous = await self.store.latest_turn(context, body.channel)
             self.previous = previous or {}

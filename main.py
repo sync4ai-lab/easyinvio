@@ -123,7 +123,9 @@ from backend.integration_policy import IntegrationSettings, integration_enabled,
 from backend.runtime_hosting import BackgroundJobs, RuntimeRole, pool_options, resolve_role
 
 
-class Settings(IntegrationSettings):
+from backend.whatsapp_provider import WhatsAppProviderSettings, enabled as whatsapp_enabled, number as whatsapp_number, provider as whatsapp_provider
+
+class Settings(IntegrationSettings, WhatsAppProviderSettings):
     sendcloud_methods: dict[UUID, list[SendcloudMethod]] = Field(default_factory=dict)
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True
@@ -195,18 +197,20 @@ class Settings(IntegrationSettings):
                                    or not self.stripe_webhook_secret.get_secret_value().startswith("whsec_")
                                    or not self.checkout_success_url or not self.checkout_cancel_url):
             raise ValueError("Enabled Stripe requires real credentials and checkout URLs")
-        if self.twilio_enabled and (not re.fullmatch(r"AC[0-9a-fA-F]{32}", self.twilio_account_sid)
+        if self.whatsapp_provider == "GUPSHUP" and self.gupshup_enabled and len(self.quote_link_secret.get_secret_value().encode()) < 32:
+            raise ValueError("Enabled WhatsApp requires QUOTE_LINK_SECRET of at least 32 bytes")
+        if self.whatsapp_provider == "TWILIO" and self.twilio_enabled and (not re.fullmatch(r"AC[0-9a-fA-F]{32}", self.twilio_account_sid)
                                    or not re.fullmatch(r"\+[1-9][0-9]{7,14}", self.twilio_whatsapp_number)
                                    or not self.twilio_auth_token.get_secret_value()
                                    or not self.twilio_webhook_url
                                    or len(self.quote_link_secret.get_secret_value().encode()) < 32):
             raise ValueError("Enabled Twilio requires valid account, webhook and link credentials")
-        if self.sandbox_hooks_enabled or self.twilio_whatsapp_sandbox_enabled:
+        if self.sandbox_hooks_enabled or (self.whatsapp_provider == "TWILIO" and self.twilio_whatsapp_sandbox_enabled):
             if self.database_environment != "SANDBOX" or self.provider_environment != "TEST":
                 raise ValueError("Sandbox hooks require DATABASE_ENVIRONMENT=SANDBOX and PROVIDER_ENVIRONMENT=TEST")
         if self.sandbox_hooks_enabled and (self.stripe_livemode or not self.stripe_secret_key.get_secret_value().startswith("sk_test_")):
             raise ValueError("Sandbox billing requires an sk_test_ key and STRIPE_LIVEMODE=false")
-        if self.twilio_whatsapp_sandbox_enabled and self.twilio_whatsapp_number != "+14155238886":
+        if self.whatsapp_provider == "TWILIO" and self.twilio_whatsapp_sandbox_enabled and self.twilio_whatsapp_number != "+14155238886":
             raise ValueError("Twilio WhatsApp Sandbox requires +14155238886")
         if self.stripe_livemode and any(urlsplit(u).scheme=='http' for u in [self.checkout_success_url,self.checkout_cancel_url]):
             raise ValueError('Live checkout requires HTTPS return URLs')
@@ -1810,7 +1814,7 @@ class WhatsAppService:
                      AND u.is_active AND u.role IN ('OWNER','ADMIN','DISPATCHER','ACCOUNTANT')
                      AND t.workspace_status='ACTIVE'
                      AND (NOT $3::boolean OR t.is_sandbox) LIMIT 2""", sender, receiver,
-                getattr(self.settings, "twilio_whatsapp_sandbox_enabled", False),
+                self.settings.database_environment == 'SANDBOX',
             )
         if len(rows) != 1:
             return None
@@ -1850,7 +1854,7 @@ class WhatsAppService:
                     await connection.execute('''UPDATE public.whatsapp_bindings b SET last_inbound_at=now()
                         FROM public.users u WHERE b.tenant_id=$1 AND b.user_id=u.id AND u.tenant_id=b.tenant_id
                          AND u.auth_user_id=$2 AND b.sender_e164=$3 AND b.receiver_e164=$4 AND b.is_active AND u.is_active''',
-                        context.tenant_id,context.user_id,sender_e164,self.settings.twilio_whatsapp_number)
+                        context.tenant_id,context.user_id,sender_e164,whatsapp_number(self.settings))
                 try:
                     parsed = preparsed or parse_quote(body)
                 except ValueError:
@@ -1885,7 +1889,7 @@ class WhatsAppService:
                         with borrowed_pricing_connection(connection):
                             result = await self.rating.quote(context, rating_request,
                                                              self.settings.whatsapp_provider_seconds)
-                        sandbox = getattr(self.settings, "twilio_whatsapp_sandbox_enabled", False)
+                        sandbox = self.settings.provider_environment == "TEST"
                         lines = ["EasyInvio.com sandbox quotes" if sandbox else "EasyInvio.com live quotes",
                                  f"{parsed.weight_kg}kg | {parsed.origin_country} → {parsed.destination_country}",
                                  "Prices exclude tax. Final total is confirmed in app."]
@@ -1987,13 +1991,13 @@ async def deterministic_lifespan(application: FastAPI):
                         raise RuntimeError(f"Required migration table is missing: public.{table}")
                 if settings.stripe_enabled and await connection.fetchval("SELECT to_regclass('public.payment_carts')") is None:
                     raise RuntimeError('Apply migration 030_card_checkout.sql before enabling card checkout')
-                if settings.twilio_enabled:
-                    for table in ('whatsapp_inbound_queue', 'whatsapp_reply_outbox'):
+                if whatsapp_enabled(settings):
+                    for table in ('whatsapp_inbound_queue', 'whatsapp_reply_outbox', 'whatsapp_delivery_attempts', 'whatsapp_delivery_events'):
                         if await connection.fetchval('SELECT to_regclass($1)', 'public.' + table) is None:
-                            raise RuntimeError('Apply migration 043_whatsapp_async_ingress.sql before enabling Twilio')
+                            raise RuntimeError('Apply migrations through 049_whatsapp_providers.sql before enabling WhatsApp')
                     if await connection.fetchval("SELECT to_regclass('public.carrier_manifests')") is None:
                         raise RuntimeError('Apply migration 044_carrier_manifests_and_media.sql before enabling Twilio media delivery')
-                    await connection.execute('SELECT fallback_for,delivery_status FROM public.whatsapp_reply_outbox LIMIT 0')
+                    await connection.execute('SELECT fallback_for,delivery_status,provider,provider_account FROM public.whatsapp_reply_outbox LIMIT 0')
                 await connection.execute("SELECT is_sandbox,workspace_type,seller_classification FROM public.tenants LIMIT 0")
                 await connection.execute("SELECT is_sandbox,sandbox_test_token,stripe_payment_intent_id FROM public.wallet_topups LIMIT 0")
                 await connection.execute("SELECT stripe_payment_intent_id FROM public.wallet_ledger LIMIT 0")
@@ -2048,9 +2052,10 @@ async def deterministic_lifespan(application: FastAPI):
                 application.state.sandbox_billing = SandboxBillingService(application.state.finance, settings) if settings.stripe_enabled else None
                 application.state.admin_portal = AdminService(pool)
                 application.state.whatsapp = WhatsAppService(pool, settings, rating)
-                application.state.twilio_validator = RequestValidator(settings.twilio_auth_token.get_secret_value()) if settings.twilio_enabled else None
+                application.state.twilio_validator = RequestValidator(settings.twilio_auth_token.get_secret_value()) if settings.twilio_account_sid and settings.twilio_auth_token.get_secret_value() else None
                 from backend.whatsapp_queue import WhatsAppQueue
-                application.state.whatsapp_queue = WhatsAppQueue(pool, settings, application) if settings.twilio_enabled else None
+                from backend.gupshup_ingress import GupshupQueue
+                application.state.whatsapp_queue = (GupshupQueue if whatsapp_provider(settings)=='GUPSHUP' else WhatsAppQueue)(pool, settings, application) if whatsapp_enabled(settings) else None
                 application.state.jwks = PyJWKClient(
                     f"{settings.supabase_url}/auth/v1/.well-known/jwks.json",
                     cache_jwk_set=True, lifespan=300, timeout=5,
@@ -2072,7 +2077,7 @@ async def deterministic_lifespan(application: FastAPI):
                 jobs.start('amazon-intake', application.state.amazon_inbound.worker)
                 jobs.start('tracking-support', application.state.tracking_support.worker)
                 jobs.start('support-delivery', application.state.support_delivery.worker)
-                if settings.twilio_enabled:
+                if whatsapp_enabled(settings):
                     for index in range(settings.whatsapp_queue_workers):
                         jobs.start(f'whatsapp-queue-{index}', application.state.whatsapp_queue.worker)
                 from backend.payment_gateway import SnapshotWebhookService
@@ -2733,3 +2738,5 @@ from backend.manifest_service import build_router as manifest_router
 app.include_router(manifest_router(authenticate))
 from backend.whatsapp_queue import build_media_status_router
 app.include_router(build_media_status_router())
+from backend.gupshup_ingress import build_router as gupshup_router
+app.include_router(gupshup_router())

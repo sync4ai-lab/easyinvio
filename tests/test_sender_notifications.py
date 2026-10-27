@@ -44,6 +44,7 @@ def test_explicit_permission_and_environment_recipient_gates():
 async def migrate(w):
     await w.db.command("ALTER TABLE public.tenants ADD COLUMN is_sandbox boolean NOT NULL DEFAULT true; ALTER TABLE public.shipments ADD COLUMN sender_address jsonb NOT NULL DEFAULT '{}'; CREATE TABLE public.return_customer_deliveries(id bigint);",mode='exec')
     await w.db.command((ROOT/'migrations/047_sender_shipment_notifications.sql').read_text(encoding='utf-8'),mode='exec')
+    await w.db.command("ALTER TABLE public.shipment_sender_notifications ADD COLUMN provider text,ADD COLUMN provider_account text DEFAULT '';",mode='exec')
     await w.db.execute("UPDATE public.shipments SET logistics_metadata=$2::jsonb WHERE id=$1",w.shipments[0],json.dumps(payload()))
     await w.db.execute("UPDATE public.shipments SET status='FAILED' WHERE id=$1",w.shipments[0])
     await w.db.execute("UPDATE public.shipments SET status='BOOKED' WHERE id=$1",w.shipments[0])
