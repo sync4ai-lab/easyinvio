@@ -227,6 +227,8 @@ async def authenticated_twilio_form(request: Request) -> FormData:
     settings = request.app.state.settings
     if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/x-www-form-urlencoded":
         raise HTTPException(415, "Expected form-urlencoded payload")
+    from backend.whatsapp_provider import provider
+    if provider(settings)!='TWILIO':raise HTTPException(503,'Twilio-only ingress is disabled for the selected provider')
     if request.url.path != urlsplit(settings.twilio_webhook_url).path or request.url.query:
         raise HTTPException(400, "Unexpected webhook URL")
     raw = bytearray()

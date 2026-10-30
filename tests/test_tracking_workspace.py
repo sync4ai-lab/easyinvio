@@ -88,11 +88,14 @@ def test_actual_scan_time_and_detailed_milestone_do_not_change_legacy_receipt_di
 
 
 @pytest.mark.asyncio
-async def test_existing_whatsapp_queue_accepts_capability_without_inferred_phone_ownership(monkeypatch):
+@pytest.mark.parametrize('provider',['TWILIO','GUPSHUP'])
+async def test_existing_whatsapp_queue_accepts_capability_without_inferred_phone_ownership(monkeypatch,provider):
     from backend.whatsapp_queue import process_inbound
     from starlette.datastructures import FormData
     from starlette.requests import Request
     token='b'*43;app=FastAPI()
+    app.state.settings=SimpleNamespace(whatsapp_provider=provider,twilio_enabled=True,gupshup_enabled=True,
+        whatsapp_outbound_paused=False,whatsapp_uat_mode=True,whatsapp_test_recipients=['+447700900001'])
     app.state.tracking_workspace=SimpleNamespace(ready=True,public_rate_limit=lambda _:None,
         resolve=AsyncMock(return_value={'shipments':[{'order_reference':'ORDER-TEST','status':'IN_TRANSIT'}],'support_message':'Contact the retailer for help.'}))
     # A capability branch must not invoke registration, model parsing or a carrier.
@@ -100,4 +103,8 @@ async def test_existing_whatsapp_queue_accepts_capability_without_inferred_phone
     request=Request({'type':'http','method':'POST','path':'/','headers':[],'app':app})
     result=await process_inbound(request,FormData({'From':'whatsapp:+447700900001','To':'whatsapp:+447700900002','Body':'Track link '+token,'NumMedia':'0'}))
     assert 'ORDER-TEST' in result[0].body and 'in transit' in result[0].body
+    app.state.tracking_workspace.resolve.assert_awaited_once_with(token)
+    app.state.settings.whatsapp_test_recipients=[]
+    with pytest.raises(HTTPException):
+        await process_inbound(request,FormData({'From':'whatsapp:+447700900001','To':'whatsapp:+447700900002','Body':'Track link '+token,'NumMedia':'0'}))
     app.state.tracking_workspace.resolve.assert_awaited_once_with(token)

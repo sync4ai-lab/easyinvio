@@ -21,6 +21,8 @@ from twilio.base.exceptions import TwilioRestException
 from twilio.http.http_client import TwilioHttpClient
 from twilio.rest import Client
 
+from backend.whatsapp_provider import paused,recipient_error,provider,account,TwilioChatAdapter
+
 logger = logging.getLogger('easyinvio.whatsapp_queue')
 if TYPE_CHECKING:
     from main import Settings
@@ -86,6 +88,8 @@ async def process_inbound(request: Request, form: FormData, received_at: datetim
     from backend.whatsapp_onboarding import onboarding_manager
     from backend.agents.conversational_gateway import ConversationalActionGateway, ConversationMessage, message_xml
     state = request.app.state
+    reason=recipient_error(state.settings,form.get('From','').removeprefix('whatsapp:'))
+    if reason:raise HTTPException(409,reason)
     # Customer access requires the actual unguessable capability, not a claimed
     # phone/order relationship. The signed, encrypted inbox fences this read too.
     capability = re.fullmatch(r'\s*track\s+link\s+([A-Za-z0-9_-]{40,100})\s*',form.get('Body',''),re.I)
@@ -159,9 +163,9 @@ class WhatsAppQueue:
         async with self.pool.acquire() as connection:
             async with connection.transaction():
                 row = await connection.fetchrow('''SELECT q.* FROM public.whatsapp_inbound_queue q
-                    WHERE q.state IN ('STAGED','READY') AND NOT EXISTS(
+                    WHERE q.provider='TWILIO' AND q.state IN ('STAGED','READY') AND NOT EXISTS(
                       SELECT 1 FROM public.whatsapp_inbound_queue earlier
-                      WHERE earlier.receiver_e164=q.receiver_e164 AND earlier.sender_e164=q.sender_e164
+                      WHERE earlier.provider=q.provider AND earlier.receiver_e164=q.receiver_e164 AND earlier.sender_e164=q.sender_e164
                       AND earlier.id<q.id AND earlier.state NOT IN ('ACCEPTED','FAILED'))
                     ORDER BY q.id LIMIT 1 FOR UPDATE OF q SKIP LOCKED''')
                 if row:
@@ -182,6 +186,9 @@ class WhatsAppQueue:
                 await connection.execute("UPDATE public.whatsapp_inbound_queue SET state='READY',updated_at=now() WHERE id=$1", inbound_id)
 
     async def dispatch(self, row: asyncpg.Record) -> None:
+        reason=recipient_error(self.settings,row['sender_e164'])
+        if reason:
+            await self.mark(row['id'],'READY',reason);return
         async with self.pool.acquire() as connection:
             parts = await connection.fetch('SELECT * FROM public.whatsapp_reply_outbox WHERE inbound_id=$1 ORDER BY part_index', row['id'])
         for item in parts:
@@ -200,13 +207,18 @@ class WhatsAppQueue:
             if claimed is None:
                 await self.mark(row['id'], 'REVIEW_REQUIRED', 'SEND_STATE_CONFLICT')
                 return
+            if hasattr(self.settings,'whatsapp_provider'):
+                async with self.pool.acquire() as connection:
+                    await connection.execute("UPDATE public.whatsapp_reply_outbox SET provider='TWILIO',provider_account=$2 WHERE id=$1",item['id'],account(self.settings))
             try:
+                reason=recipient_error(self.settings,row['sender_e164'])
+                if reason:raise HTTPException(409,reason)
                 kwargs: dict[str, Any] = {'from_': 'whatsapp:' + row['receiver_e164'],
                     'to': 'whatsapp:' + row['sender_e164'], 'body': part.body}
                 if part.media_urls:
                     kwargs['media_url'] = part.media_urls
                     kwargs['status_callback'] = self.status_url(item['id'])
-                sent = await asyncio.to_thread(self.client.messages.create, **kwargs)
+                sent = await TwilioChatAdapter(self.client).send(**kwargs)
                 if not re.fullmatch(r'SM[0-9a-fA-F]{32}', sent.sid or ''):
                     raise ValueError('Invalid outbound SID')
             except TwilioRestException as error:
@@ -249,10 +261,14 @@ class WhatsAppQueue:
         state = 'FAILED' if definite else 'REVIEW_REQUIRED'
         async with self.pool.acquire() as connection:
             await connection.execute('UPDATE public.whatsapp_reply_outbox SET state=$2,error_code=$3,updated_at=now() WHERE id=$1',
-                                     part_id, state, 'TWILIO_REJECTED' if definite else 'UNCERTAIN_SEND')
-        await self.mark(inbound_id, state, 'TWILIO_REJECTED' if definite else 'UNCERTAIN_SEND')
+                                     part_id, state, ('TWILIO_REJECTED' if provider(self.settings)=='TWILIO' else 'GUPSHUP_REJECTED') if definite else 'UNCERTAIN_SEND')
+        await self.mark(inbound_id, state, ('TWILIO_REJECTED' if provider(self.settings)=='TWILIO' else 'GUPSHUP_REJECTED') if definite else 'UNCERTAIN_SEND')
 
     async def drain(self) -> bool:
+        if hasattr(self.settings,'whatsapp_provider'):
+            from backend.whatsapp_dispatch import reconcile_events
+            await reconcile_events(self)
+        if paused(self.settings):return False
         row = await self.claim()
         if row is None:
             return False
@@ -260,6 +276,9 @@ class WhatsAppQueue:
             if row['created_at'] < datetime.now(timezone.utc) - timedelta(hours=23, minutes=59):
                 await self.mark(row['id'], 'FAILED', 'SERVICE_WINDOW_EXPIRED')
                 return True
+            reason=recipient_error(self.settings,row['sender_e164'])
+            if reason:
+                await self.mark(row['id'],'FAILED',reason);return True
             raw = self.ciphers[row['key_id']].decrypt(bytes(row['payload_ciphertext']))
             form = FormData(parse_qsl(raw.decode(), keep_blank_values=True))
             if (inbound_digest(raw) != row['input_sha256'] or form['MessageSid'] != row['message_sid']
@@ -295,7 +314,7 @@ class WhatsAppQueue:
 
 async def accept_whatsapp(request: Request) -> Response:
     from backend.sandbox_hooks import authenticated_twilio_form
-    if not request.app.state.settings.twilio_enabled:
+    if provider(request.app.state.settings)!='TWILIO' or not request.app.state.settings.twilio_enabled:
         raise HTTPException(503, 'Twilio integration is disabled')
     try:
         async with asyncio.timeout(.45):
@@ -303,6 +322,8 @@ async def accept_whatsapp(request: Request) -> Response:
             queue = getattr(request.app.state, 'whatsapp_queue', None)
             if queue is None:
                 raise HTTPException(503, 'WhatsApp queue is unavailable; apply migration 043 and restart')
+            reason=recipient_error(request.app.state.settings,form['From'].removeprefix('whatsapp:'))
+            if reason:raise HTTPException(409,reason)
             await queue.enqueue(request.state.twilio_raw_body, form)
     except (TimeoutError, asyncpg.PostgresError):
         raise HTTPException(503, 'WhatsApp ingress is busy; retry the same MessageSid') from None
@@ -323,7 +344,7 @@ def build_media_status_router() -> APIRouter:
             if len(raw)>16384:raise HTTPException(413,'Callback too large')
         try:form=FormData(parse_qsl(raw.decode('utf-8'),keep_blank_values=True,errors='strict',max_num_fields=100))
         except (ValueError,UnicodeError):raise HTTPException(400,'Invalid callback encoding') from None
-        if len(request.headers.getlist('x-twilio-signature'))!=1 or not request.app.state.twilio_validator.validate(queue.status_url(part_id),form,request.headers.get('x-twilio-signature','')):
+        if not request.app.state.twilio_validator or len(request.headers.getlist('x-twilio-signature'))!=1 or not request.app.state.twilio_validator.validate(queue.status_url(part_id),form,request.headers.get('x-twilio-signature','')):
             raise HTTPException(403,'Invalid Twilio signature')
         if any(len(form.getlist(k))!=1 for k in ('AccountSid','MessageSid','MessageStatus','From','To')) or form['AccountSid']!=queue.settings.twilio_account_sid:
             raise HTTPException(403,'Unexpected callback identity')
@@ -333,6 +354,7 @@ def build_media_status_router() -> APIRouter:
             async with c.transaction():
                 row=await c.fetchrow('''SELECT o.*,q.sender_e164,q.receiver_e164 FROM public.whatsapp_reply_outbox o
                   JOIN public.whatsapp_inbound_queue q ON q.id=o.inbound_id WHERE o.id=$1 FOR UPDATE OF o,q''',part_id)
+                if row and hasattr(queue.settings,'whatsapp_provider') and row['provider']!='TWILIO':raise HTTPException(404,'Original provider mismatch')
                 if not row or form['From']!='whatsapp:'+row['receiver_e164'] or form['To']!='whatsapp:'+row['sender_e164']:
                     raise HTTPException(404,'Outbound receipt not found')
                 if row['provider_message_sid'] not in (None,form['MessageSid']) or (row['provider_message_sid'] is None and row['state'] not in {'SENDING','REVIEW_REQUIRED'}):

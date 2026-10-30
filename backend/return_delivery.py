@@ -21,6 +21,9 @@ from backend.email_delivery import EmailDeliverySettings, email_configured, send
 from backend.dispatch_workspace import decoded
 
 
+from backend.whatsapp_provider import enabled as whatsapp_enabled, number as whatsapp_number, provider as whatsapp_provider, account as whatsapp_account, paused as whatsapp_paused, recipient_error, template as whatsapp_template, valid_message_id
+from backend.whatsapp_dispatch import send_selected
+
 class ReturnDeliverySettings(EmailDeliverySettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore', hide_input_in_errors=True)
     return_email_enabled: bool = False
@@ -55,10 +58,10 @@ def delivery_capabilities(lifecycle) -> dict:
         documents = False
     return {'email': documents and config.return_email_enabled and email_configured(config,config.return_email_from,config.return_sendgrid_api_key)
             and bool(re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', config.return_email_from)),
-            'whatsapp': documents and config.return_whatsapp_enabled and bool(getattr(settings, 'twilio_enabled', False))
-            and bool(re.fullmatch(r'HX[0-9a-fA-F]{32}', config.return_whatsapp_content_sid))
-            and bool(re.fullmatch(r'MG[0-9a-fA-F]{32}', config.return_whatsapp_messaging_service_sid)),
-            'notice': 'Customer notifications use the configured email server and approved Twilio templates. Provider acceptance is not proof of delivery.'}
+            'whatsapp': documents and config.return_whatsapp_enabled and whatsapp_enabled(settings)
+            and (bool(whatsapp_template(settings,'RETURN')) if whatsapp_provider(settings)=='GUPSHUP' else
+                 bool(re.fullmatch(r'HX[0-9a-fA-F]{32}',config.return_whatsapp_content_sid) and re.fullmatch(r'MG[0-9a-fA-F]{32}',config.return_whatsapp_messaging_service_sid))),
+            'notice': 'Customer notifications use the configured email server and approved provider templates. Provider acceptance is not proof of delivery.'}
 
 
 def validate_delivery(lifecycle, preferences, customer: dict) -> None:
@@ -70,6 +73,9 @@ def validate_delivery(lifecycle, preferences, customer: dict) -> None:
             raise HTTPException(409, f'Customer {channel} delivery is not configured. Disable this notification or configure the channel.')
     if preferences.email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', customer.get('email') or ''):
         raise HTTPException(422, 'The original customer has no valid email address')
+    if preferences.whatsapp:
+        reason=recipient_error(lifecycle.automation.settings,customer.get('phone'))
+        if reason:raise HTTPException(409,reason)
     if preferences.whatsapp and not re.fullmatch(r'\+[1-9][0-9]{7,14}', customer.get('phone') or ''):
         raise HTTPException(422, 'The original customer has no valid international phone number')
 
@@ -152,14 +158,14 @@ class ReturnDeliveryWorker:
                     JOIN public.tenants t ON t.tenant_id=r.tenant_id AND t.workspace_status='ACTIVE'
                     LEFT JOIN public.users u ON u.tenant_id=r.tenant_id AND u.auth_user_id=r.requested_by
                       AND u.is_active AND u.role IN ('OWNER','ADMIN','DISPATCHER')
-                    WHERE d.state='READY' AND (u.id IS NOT NULL OR (
+                    WHERE d.state='READY' AND ($2::boolean=false OR d.channel='EMAIL') AND (d.channel='EMAIL' OR d.provider IS NULL OR (d.provider=$3 AND d.provider_account IN ('',$4))) AND (u.id IS NOT NULL OR (
                       (r.requested_by=ANY($1::uuid[]) OR EXISTS(SELECT 1 FROM public.platform_staff f
                         WHERE f.auth_user_id=r.requested_by AND f.is_active))
                       AND EXISTS(SELECT 1 FROM public.admin_client_assistance_sessions a
                         WHERE a.tenant_id=r.tenant_id AND a.actor_auth_user_id=r.requested_by
                         AND a.created_at<=r.created_at AND a.expires_at>=r.created_at
                         AND (a.revoked_at IS NULL OR a.revoked_at>r.created_at))))
-                    ORDER BY d.id LIMIT 1 FOR UPDATE OF d SKIP LOCKED''',list(getattr(service.automation.settings,'platform_admin_user_ids',[])))
+                    ORDER BY d.id LIMIT 1 FOR UPDATE OF d SKIP LOCKED''',list(getattr(service.automation.settings,'platform_admin_user_ids',[])),whatsapp_paused(service.automation.settings),whatsapp_provider(service.automation.settings),whatsapp_account(service.automation.settings))
                 if not notice:
                     return False
                 row = await c.fetchrow('SELECT * FROM public.return_review_sessions WHERE tenant_id=$1 AND id=$2', notice['tenant_id'], notice['review_id'])
@@ -172,9 +178,18 @@ class ReturnDeliveryWorker:
                 if not prefs.get('customer_permission_confirmed') or not prefs.get(notice['channel'].lower()):
                     raise ValueError('Missing return delivery permission')
                 available = delivery_capabilities(service)[notice['channel'].lower()]
+                if not available and notice['channel']=='WHATSAPP' and whatsapp_provider(service.automation.settings)=='GUPSHUP' and not whatsapp_template(service.automation.settings,'RETURN'):
+                    return False  # Hold READY; diagnostic command identifies the missing approved template.
                 if not available:
                     await c.execute("UPDATE public.return_customer_deliveries SET state='FAILED',error_code='CHANNEL_DISABLED',updated_at=now() WHERE id=$1", notice['id'])
                     return True
+                if notice['channel']=='WHATSAPP':
+                    reason=recipient_error(service.automation.settings,customer.get('phone'))
+                    if reason:
+                        await c.execute("UPDATE public.return_customer_deliveries SET state='FAILED',error_code=$2 WHERE id=$1",notice['id'],reason)
+                        return True
+                    if hasattr(service.automation.settings,'whatsapp_provider'):
+                        await c.execute('UPDATE public.return_customer_deliveries SET provider=$2,provider_account=$3 WHERE id=$1',notice['id'],whatsapp_provider(service.automation.settings),whatsapp_account(service.automation.settings))
                 # Fence *before* network I/O. Interrupted/ambiguous requests cannot resend.
                 await c.execute("UPDATE public.return_customer_deliveries SET state='SENDING',updated_at=now() WHERE id=$1", notice['id'])
         try:
@@ -217,15 +232,15 @@ class ReturnDeliveryWorker:
                 reference, error_code = receipt.reference, receipt.error_code
             else:
                 settings = service.automation.settings
-                response = await service.client.post(f'https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json',
-                    auth=httpx.BasicAuth(settings.twilio_account_sid, settings.twilio_auth_token.get_secret_value()),
-                    data={'From': 'whatsapp:' + settings.twilio_whatsapp_number, 'To': 'whatsapp:' + customer['phone'],
-                          'MessagingServiceSid': config.return_whatsapp_messaging_service_sid,
-                          'ContentSid': config.return_whatsapp_content_sid,
-                          'ContentVariables': json.dumps({'1': heading, '2': text, '3': link})}, timeout=15, follow_redirects=False)
+                response = await send_selected(settings,service.pool,service.client,
+                    {'From':'whatsapp:'+whatsapp_number(settings),'To':'whatsapp:'+customer['phone'],
+                     'MessagingServiceSid':config.return_whatsapp_messaging_service_sid,'ContentSid':config.return_whatsapp_content_sid,
+                     'ContentVariables':json.dumps({'1':heading,'2':text,'3':link})},
+                    logical_key='return:'+str(notice['id']),kind='RETURN',target_id=notice['id'],tenant_id=notice['tenant_id'],
+                    parameters={'heading':heading,'body':text,'link':link})
                 accepted = response.status_code == 201
                 reference = response.json().get('sid') if accepted else None
-                if accepted and not re.fullmatch(r'SM[0-9a-fA-F]{32}', reference or ''):
+                if accepted and not valid_message_id(settings,reference):
                     raise ValueError('Invalid provider receipt')
                 state = 'ACCEPTED' if accepted else 'FAILED' if 400 <= response.status_code < 500 else 'REVIEW_REQUIRED'
                 error_code = None if accepted else 'PROVIDER_REJECTED' if state == 'FAILED' else 'PROVIDER_OUTCOME_UNCERTAIN'

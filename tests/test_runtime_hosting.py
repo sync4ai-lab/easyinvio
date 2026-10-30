@@ -119,7 +119,8 @@ def test_vercel_configuration_keeps_api_routes_out_of_cdn_rewrites():
     assert configuration['env']['RUNTIME_ROLE'] == 'WEB'
 
 
-def test_real_web_lifespan_initialises_services_without_queue_consumers(monkeypatch):
+@pytest.mark.parametrize('transport',['DISABLED','GUPSHUP'])
+def test_real_web_lifespan_initialises_services_without_queue_consumers(monkeypatch,transport):
     import main
     from fastapi import FastAPI
 
@@ -154,6 +155,12 @@ def test_real_web_lifespan_initialises_services_without_queue_consumers(monkeypa
         database_url='postgresql://synthetic.invalid/fixture',
         regional_allowed_origins=['https://synthetic.invalid'], runtime_role='WEB',
         stripe_enabled=False, twilio_enabled=False, credential_keys={})
+    if transport=='GUPSHUP':
+        from cryptography.fernet import Fernet
+        from pydantic import SecretStr
+        from test_gupshup_provider import settings as gupshup_settings
+        settings=main.Settings(**(settings.model_dump()|dict(gupshup_settings())|{'quote_link_secret':SecretStr('synthetic-signing-key-with-more-than-32-bytes'),'credential_keys':{'v1':SecretStr(Fernet.generate_key().decode())}}),_env_file=None)
+        assert not settings.twilio_account_sid and not settings.twilio_enabled
     monkeypatch.setattr(main, 'Settings', lambda: settings)
     monkeypatch.setattr(main.asyncpg, 'create_pool', create_pool)
     # Any accidental network call must fail the test, even if an optional

@@ -1,4 +1,6 @@
 """Explicit, persisted sandbox connectivity test. Creates no payments or labels."""
+from backend.whatsapp_provider import enabled as whatsapp_enabled
+
 import asyncio
 import json
 import ssl
@@ -18,7 +20,7 @@ async def run():
     settings = Settings()
     if settings.database_environment != "SANDBOX":
         raise ValueError("The connectivity transaction requires SANDBOX configuration")
-    if settings.stripe_enabled or settings.twilio_enabled:
+    if settings.stripe_enabled or whatsapp_enabled(settings):
         raise ValueError("Disable external payment/messaging integrations for this test")
     tenant_id, rule_id = uuid4(), uuid4()
     label = "VELOCE CONNECTIVITY TEST " + datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")

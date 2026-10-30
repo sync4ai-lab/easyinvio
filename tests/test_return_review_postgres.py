@@ -30,6 +30,7 @@ async def setup(w, payer='RETAILER_PAY', notifications=False):
     ''', mode='exec')
     await w.db.command((ROOT/'migrations/042_headless_returns.sql').read_text(), mode='exec')
     await w.db.command((ROOT/'migrations/046_return_review_and_delivery.sql').read_text(), mode='exec')
+    await w.db.command("ALTER TABLE public.return_customer_deliveries ADD COLUMN provider text,ADD COLUMN provider_account text DEFAULT '';",mode='exec')
     await w.db.command((ROOT/'migrations/048_platform_agents.sql').read_text(), mode='exec')
     await w.db.command('CREATE TABLE public.admin_client_assistance_sessions(id uuid,tenant_id uuid,actor_auth_user_id uuid,created_at timestamptz,expires_at timestamptz,revoked_at timestamptz)',mode='exec')
     address = dict(name='Synthetic customer',line1='10 Test Road',city='London',postal_code='SW1A 1AA',

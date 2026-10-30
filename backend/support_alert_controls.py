@@ -16,7 +16,9 @@ def build_router(authenticate_platform_owner):
     @router.get('/bindings')
     async def bindings(request: Request, owner=Depends(authenticate_platform_owner)):
         service = request.app.state.support_delivery
-        configured = bool(service.settings.twilio_enabled and service.delivery.support_whatsapp_enabled)
+        from backend.whatsapp_provider import enabled,paused,provider,template
+        configured = bool(enabled(service.settings) and not paused(service.settings) and service.delivery.support_whatsapp_enabled
+            and (provider(service.settings)=='TWILIO' or template(service.settings,'SUPPORT')))
         async with request.app.state.finance.pool.acquire() as connection:
             ready = await connection.fetchval("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='whatsapp_bindings' AND column_name='alerts_paused')")
             rows = await connection.fetch('''SELECT b.id,b.tenant_id,t.company_name,t.is_sandbox,
@@ -27,7 +29,7 @@ def build_router(authenticate_platform_owner):
                 LEFT JOIN public.users u ON u.tenant_id=b.tenant_id AND u.id=b.user_id
                 ORDER BY t.company_name,b.id LIMIT 500''')
         return {'configured': configured, 'controls_ready': ready,
-                'setup': 'Delivery requires a verified phone binding, recipient opt-in, Twilio sender, approved template or active messaging window, and public HTTPS callbacks. Internal processing failures never trigger merchant alerts.',
+                'setup': 'Delivery requires a verified phone binding, recipient opt-in, configured WhatsApp sender, approved template or active messaging window, and public HTTPS callbacks. Internal processing failures never trigger merchant alerts.',
                 'bindings': [{**dict(row), 'id': str(row['id']), 'tenant_id': str(row['tenant_id'])} for row in rows]}
 
     @router.patch('/bindings/{binding_id}')

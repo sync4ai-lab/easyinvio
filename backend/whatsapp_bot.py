@@ -17,7 +17,9 @@ logger = logging.getLogger("easyinvio.whatsapp")
 WEBHOOK_PATH = "/api/v1/integrations/whatsapp/webhook"
 
 
-class WhatsAppConfiguration(BaseSettings):
+from backend.whatsapp_provider import WhatsAppProviderSettings
+
+class WhatsAppConfiguration(WhatsAppProviderSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
     twilio_account_sid: str = ""
     twilio_auth_token: SecretStr = SecretStr("")
@@ -28,6 +30,8 @@ class WhatsAppConfiguration(BaseSettings):
 def initialize_whatsapp(configuration: Any = None) -> bool:
     """Report unmapped keys without exposing credentials or disabling other modules."""
     config = configuration if configuration is not None else WhatsAppConfiguration()
+    from backend.whatsapp_provider import provider,enabled
+    if provider(config)=='GUPSHUP':return enabled(config)
     token = config.twilio_auth_token
     token = token.get_secret_value() if isinstance(token, SecretStr) else str(token or "")
     number = config.twilio_whatsapp_number.removeprefix("whatsapp:")

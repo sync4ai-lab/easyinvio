@@ -476,6 +476,8 @@ class ConversationalSignupManager:
 
 async def onboarding_manager(request):
     settings = request.app.state.settings
+    from backend.whatsapp_provider import enabled,paused
+    if not enabled(settings) or paused(settings):return None
     if not getattr(settings, 'whatsapp_onboarding_enabled', False):
         return None
     existing = getattr(request.app.state, 'whatsapp_onboarding', None)

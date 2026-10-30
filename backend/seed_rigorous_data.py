@@ -1,4 +1,6 @@
 """Apply or rollback-verify the complete relational seed in one transaction."""
+from backend.whatsapp_provider import enabled as whatsapp_enabled
+
 import asyncio
 import json
 import sys
@@ -13,7 +15,7 @@ from cryptography.fernet import Fernet
 async def run(apply=False):
     settings=Settings()
     if settings.database_environment!='SANDBOX':raise ValueError('SANDBOX database configuration required')
-    if settings.stripe_enabled or settings.twilio_enabled or HubSpotSettings().hubspot_enabled:
+    if settings.stripe_enabled or whatsapp_enabled(settings) or HubSpotSettings().hubspot_enabled:
         raise ValueError('Disable external integrations for this fixture run')
     sql=Path('seeds/rigorous_v1/all_in_one.sql').read_text(encoding='utf-8')
     connection=await asyncpg.connect(settings.database_url.get_secret_value(),ssl=database_tls_context(settings.database_ca_file,strict=settings.database_tls_strict),command_timeout=150)
