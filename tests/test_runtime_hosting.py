@@ -76,6 +76,9 @@ def test_web_sessions_close_only_on_release_and_local_pool_is_preserved():
 def fixture_checkout(root):
     for name in ASSETS:
         (root / name).write_text('synthetic public file', encoding='utf-8')
+    (root / 'frontend/landing').mkdir(parents=True)
+    (root / 'frontend/landing/index.html').write_text('synthetic landing', encoding='utf-8')
+    (root / 'index.html').write_text('synthetic workspace', encoding='utf-8')
     (root / 'main.py').write_text('app = None', encoding='utf-8')
     (root / 'requirements.lock.txt').write_text('', encoding='utf-8')
     (root / 'backend').mkdir()
@@ -89,6 +92,8 @@ def test_build_publishes_only_allowlisted_assets_and_blocks_stale_worker(tmp_pat
     fixture_checkout(tmp_path)
     result = prepare(tmp_path, write_bundle=True)
     assert result['public_assets'] == len(ASSETS)
+    assert (tmp_path / 'public/index.html').read_text() == 'synthetic landing'
+    assert (tmp_path / 'public/workspace.html').read_text() == 'synthetic workspace'
     assert {p.name for p in (tmp_path / 'public').iterdir()} == set(ASSETS)
     data = (tmp_path / 'deployment/worker/runtime.tar.gz').read_bytes()
     assert data == bundle(runtime_files(tmp_path))
@@ -112,7 +117,10 @@ def test_build_refuses_unexpected_public_files(tmp_path):
 def test_vercel_configuration_keeps_api_routes_out_of_cdn_rewrites():
     root = Path(__file__).resolve().parents[1]
     configuration = json.loads((root / 'vercel.json').read_text(encoding='utf-8'))
-    assert {r['source'] for r in configuration['rewrites']} == {'/', '/set-password', '/track'}
+    assert {r['source'] for r in configuration['rewrites']} == {'/', '/login', '/workspace', '/set-password', '/track'}
+    rewrites = {r['source']: r['destination'] for r in configuration['rewrites']}
+    assert rewrites['/'] == '/index.html'
+    assert rewrites['/login'] == rewrites['/set-password'] == '/workspace.html'
     daemon = configuration['daemons']['logistics-worker']
     assert daemon['instances'] == {'lhr1': 1}
     assert daemon['root'] != '.'
@@ -310,3 +318,21 @@ async def test_brand_assets_are_public_typed_and_tracking_policy_allows_local_im
         assert "img-src 'self'" in tracking.headers['content-security-policy']
         assert "manifest-src 'self'" in tracking.headers['content-security-policy']
         assert (await client.get('/brand/../../.env')).status_code==404
+
+
+def test_public_root_and_workspace_routes_remain_separate():
+    from fastapi.testclient import TestClient
+    from main import app
+    client = TestClient(app)
+    for path in ('/', '/index.html'):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert 'Less logistics.' in response.text
+        assert 'id="loginContainer"' not in response.text
+        assert 'href="/login"' in response.text
+        assert response.headers['cache-control'] == 'no-store'
+    for path in ('/login', '/workspace', '/workspace.html', '/set-password'):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert 'id="loginContainer"' in response.text
+        assert 'identityInviteToken' in response.text
