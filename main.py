@@ -2320,6 +2320,14 @@ async def health(request: Request) -> dict[str, str]:
 
 @app.get("/", include_in_schema=False)
 @app.get("/index.html", include_in_schema=False)
+async def public_frontend():
+    return FileResponse(Path(__file__).parent / "frontend" / "landing" / "index.html",
+                        media_type="text/html", headers={'Cache-Control': 'no-store'})
+
+
+@app.get("/login", include_in_schema=False)
+@app.get("/workspace", include_in_schema=False)
+@app.get("/workspace.html", include_in_schema=False)
 @app.get("/set-password", include_in_schema=False)
 async def frontend():
     return FileResponse(Path(__file__).with_name("index.html"), media_type="text/html", headers={'Cache-Control':'no-store'})
