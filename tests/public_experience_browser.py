@@ -13,6 +13,8 @@ os.environ.setdefault('PLAYWRIGHT_BROWSERS_PATH',str(ROOT/'.playwright'))
 async def main():
     output=ROOT/'output/public-experience-qa';output.mkdir(parents=True,exist_ok=True)
     signed=False
+    session_gate=asyncio.Event();session_gate.set()
+    restore_gate=asyncio.Event();restore_gate.set()
     errors=[]
     requests=[]
     profile={'user_id':'00000000-0000-4000-8000-000000000001','email':'tester@example.invalid','role':'SUPER_ADMIN','full_name':'Test Operator','phone_e164':None}
@@ -32,8 +34,11 @@ async def main():
                 requests.append(path)
                 if path=='/health':data={'status':'ok','mode':'configured'}
                 elif path=='/api/v1/config':data={'mode':'configured','supabase_url':None,'publishable_key':None}
-                elif path=='/api/v1/public/session':data={'authenticated':signed,'name':'Test Operator'}
+                elif path=='/api/v1/public/session':
+                    await session_gate.wait()
+                    data={'authenticated':signed,'name':'Test Operator'}
                 elif path=='/api/v1/auth/browser-session/restore':
+                    await restore_gate.wait()
                     if not signed:return await route.fulfill(status=401,json={'detail':'Sign in'})
                     data=session()
                 elif path=='/api/v1/auth/token':signed=True;data=session()
@@ -56,15 +61,14 @@ async def main():
         assert await page.locator('.nav .brand-mark').get_attribute('src')=='/brand-mark.svg'
         assert await page.locator('body').evaluate('(e)=>getComputedStyle(e).backgroundColor')=='rgb(15, 23, 42)'
         # New landing interactions use synthetic data and never purchase a label.
-        await page.locator('#solutions-toggle').click()
-        await expect(page.locator('#solutions-menu')).to_be_visible()
-        await page.locator('[data-solution="2"]').click()
-        await expect(page.locator('#pillar-2')).to_have_attribute('aria-selected','true')
-        await expect(page.locator('#pillar-content')).to_contain_text('Authorize the label')
-        await page.locator('#solutions-toggle').hover()
-        await expect(page.locator('#solutions-menu')).to_be_visible()
-        await page.keyboard.press('Escape')
-        await expect(page.locator('#solutions-menu')).to_be_hidden()
+        assert await page.locator('#solutions-toggle,#nav-ask').count()==0
+        await expect(page.locator('#public-workspace')).to_be_hidden()
+        await expect(page.locator('#public-register')).to_be_visible()
+        for target in ['pricing','integrations']:
+            await page.locator(f'.nav-links a[href="#{target}"]').click()
+            await page.wait_for_timeout(700)
+            gap=await page.locator(f'#{target} .eyebrow').first.evaluate('(e)=>e.getBoundingClientRect().top-document.querySelector("#nav").getBoundingClientRect().bottom')
+            assert 10<=gap<=75,(target,gap)
         await page.locator('#hero-rate').click()
         await expect(page.locator('#rate-tab')).to_have_attribute('aria-selected','true')
         await expect(page.locator('#weight')).to_have_value('2.5')
@@ -95,17 +99,14 @@ async def main():
         await faqs.nth(1).locator('summary').click()
         await page.locator('#pillar-0').click()
         await page.locator('#track-tab').click()
-        # Mobile solutions navigation closes its menu and selects a showroom.
         await page.set_viewport_size({'width':375,'height':950})
         await page.locator('#menu').click()
-        await page.locator('#solutions-toggle').click()
-        await page.locator('[data-solution="4"]').click()
-        await expect(page.locator('#pillar-4')).to_have_attribute('aria-selected','true')
-        await expect(page.locator('#menu')).to_have_attribute('aria-expanded','false')
+        await expect(page.locator('#public-register')).to_be_visible()
+        await page.locator('#menu').click()
         assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth')
         await page.set_viewport_size({'width':1440,'height':1000})
         await page.locator('#pillar-0').click()
-        await page.locator('#nav-ask').click()
+        await page.locator('#ai-open').click()
         await page.locator('[data-prompt]').first.click()
         await expect(page.locator('#public-chat-log')).to_contain_text('Published Amazon')
         await page.locator('#ai-close').click()
@@ -118,7 +119,7 @@ async def main():
         await page.screenshot(path=str(output/'public-chat.png'))
         await page.locator('#ai-question').fill('Track my shipment')
         await page.locator('#ai-form button').click()
-        await expect(page.locator('#public-chat-log')).to_contain_text('Open your workspace')
+        await expect(page.locator('#public-chat-log')).to_contain_text('Sign in for account help')
         await page.locator('#ai-close').click()
         allowed={'/health','/api/v1/config','/api/v1/public/session','/api/v1/public/assistance'}
         assert set(requests)<=allowed,requests
@@ -129,13 +130,34 @@ async def main():
         await page.set_viewport_size({'width':375,'height':950})
         await page.screenshot(path=str(output/'landing-mobile.png'),full_page=True)
         await page.set_viewport_size({'width':1440,'height':1000})
+        await page.locator('#public-register').click()
+        await expect(page.locator('#identity-signup-form')).to_be_visible()
+        await expect(page.locator('#loginContainer h1')).to_have_text('Create an account')
+        await expect(page.locator('#identity-login-form')).to_be_hidden()
+        await page.locator('#identity-signup-back').click()
         await page.goto('https://experience.test/login')
         await expect(page.locator('#loginContainer')).to_be_visible()
         await page.locator('#identity-email').fill(profile['email'])
         await page.locator('#identity-password').fill('synthetic-password')
         await page.locator('#identity-login-submit').click()
         await expect(page.locator('#loginContainer')).to_be_hidden()
-        await page.locator('.sidebar a[href="/"]').click()
+        assert await page.locator('.sidebar a[href="/"]').count()==0
+        await page.locator('#identity-avatar').hover()
+        await expect(page.locator('#identity-account-menu')).to_be_visible()
+        await page.locator('#identity-profile-link').click()
+        await expect(page.locator('#profile')).to_be_visible()
+        await page.locator('#identity-avatar').focus()
+        await page.keyboard.press('ArrowDown')
+        await expect(page.locator('#identity-profile-link')).to_be_focused()
+        await page.keyboard.press('Escape')
+        await expect(page.locator('#identity-account-menu')).to_be_hidden()
+        await page.locator('#identity-avatar').click()
+        session_gate.clear()
+        await page.locator('#identity-home-link').click()
+        await expect(page.locator('#public-session-status')).to_be_visible()
+        await expect(page.locator('#public-signin')).to_be_hidden()
+        await expect(page.locator('#public-register')).to_be_hidden()
+        session_gate.set()
         await expect(page.locator('#public-account-name')).to_contain_text('Test Operator')
         await expect(page.locator('#public-signin')).to_be_hidden()
         await page.screenshot(path=str(output/'signed-in-landing.png'))
@@ -145,7 +167,11 @@ async def main():
         await page.set_viewport_size({'width':1440,'height':1000})
         assert await page.evaluate("localStorage.getItem('easyinvio.session')===null")
         await page.locator('#public-account summary').click()
+        restore_gate.clear()
         await page.locator('#public-account a').click()
+        await expect(page.locator('#identity-session-loading')).to_be_visible()
+        await expect(page.locator('#loginContainer')).to_be_hidden()
+        restore_gate.set()
         await expect(page.locator('#loginContainer')).to_be_hidden()
         await expect(page.locator('#identity-avatar')).to_be_visible()
         await page.reload()
@@ -163,7 +189,7 @@ async def main():
         await page.locator('#public-account summary').click();await page.locator('#public-logout').click()
         await expect(page.locator('#public-signin')).to_be_visible();assert not signed
         assert not errors,errors
-        report={'passed':True,'page_errors':errors,'checks':['working solutions menu and mobile pathways','five visual showroom tabs and wallet currencies','editable savings calculator and invalid input','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
+        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and removed navigation','five visual showroom tabs and wallet currencies','editable savings calculator and invalid input','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
         (output/'report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         await browser.close()
 

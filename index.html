@@ -16,7 +16,11 @@ let pendingConversationQuote = (() => {
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style id="identity-first-paint">body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-nav,body.auth-locked>#customs-backdrop,body.auth-locked>#box-backdrop{display:none!important}</style>
+<script>window.easyinvioIdentityPending=true;</script><style id="identity-first-paint">
+body.auth-checking #loginContainer{display:none!important}
+#identity-session-loading{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0f172a;color:#cbd5e1}
+body:not(.auth-checking) #identity-session-loading{display:none}
+body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-nav,body.auth-locked>#customs-backdrop,body.auth-locked>#box-backdrop{display:none!important}</style>
 <link rel="stylesheet" href="/workspace-ui.css">
 <script src="/workspace-ui.js" defer></script>
 <link rel="stylesheet" href="/platform-console.css">
@@ -96,7 +100,8 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <link rel="stylesheet" href="/brand.css">
 <link rel="stylesheet" href="/ask-easyinvio.css">
 </head>
-<body class="auth-locked bg-slate-900 text-slate-100">
+<body class="auth-locked auth-checking bg-slate-900 text-slate-100">
+<section id="identity-session-loading" role="status" aria-live="polite"><img src="/brand-mark.svg" width="64" height="74" alt=""><p>Opening your workspace…</p></section>
 <svg aria-hidden="true" style="display:none">
 <symbol id="i-grid" viewBox="0 0 24 24">
 <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -5646,13 +5651,18 @@ body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-na
 label[for="identity-email"],label[for="identity-recovery-email"]{margin-bottom:10px}#identity-reset-email{margin-top:10px}
 .identity-input{display:flex;align-items:center;gap:10px;background:#0f172a;border:1px solid #334155;border-radius:12px;padding:0 12px;margin-bottom:18px}.identity-input input{border:0;background:transparent;min-width:0;color:#f1f5f9;flex:1}.identity-input svg{width:20px;height:20px;color:#818cf8;flex-shrink:0}.identity-input:has(.lucide)>.icon-fallback{display:none}
 #identity-login-submit{width:100%;background:#4f46e5;color:#f1f5f9;border:0;border-radius:12px;padding:14px;font-weight:800;cursor:pointer}#identity-login-submit:hover{background:#6366f1}
-#identity-user-widget{display:flex;align-items:center;gap:10px}#identity-avatar{width:34px;height:34px;border-radius:50%;background:#312e81;color:#e0e7ff;display:grid;place-items:center;font-weight:800}#identity-logout:hover{color:#f87171}
+#identity-user-widget{position:relative;display:flex;align-items:center;gap:10px}#identity-avatar{width:34px;height:34px;border-radius:50%;background:#312e81;color:#e0e7ff;display:grid;place-items:center;font-weight:800}#identity-logout:hover{color:#f87171}
+#identity-user-widget[hidden],#identity-account-menu[hidden]{display:none!important}
+#identity-account-menu{position:absolute;top:100%;right:0;min-width:190px;padding:8px;background:#101a2e;border:1px solid #334155;border-radius:12px;box-shadow:0 12px 30px #0006;z-index:100}
+#identity-account-menu>*{display:flex;align-items:center;min-height:44px;width:100%;padding:10px 14px;border:0;border-radius:7px;background:transparent;color:#e2e8f0;text-align:left;text-decoration:none;white-space:nowrap}
+#identity-account-menu>*:hover,#identity-account-menu>*:focus-visible{background:#25204b;color:white}
+
 body.auth-ready>.app-shell{animation:identityFade .3s ease-out}@keyframes identityFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.identity-logo,.identity-login-card,body.auth-ready>.app-shell{animation:none}}
 </style>`);
 document.body.insertAdjacentHTML('afterbegin', `<section id="loginContainer" aria-label="EasyInvio sign in">
 <div class="identity-login-card bg-slate-950 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
- <a href="/" style="display:block;text-align:center;margin-bottom:18px;color:#a5b4fc">? Back to EasyInvio</a><div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"><span class="brand-copy" aria-hidden="true"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></div>
+ <a href="/" style="display:block;text-align:center;margin-bottom:18px;color:#a5b4fc">Back to EasyInvio</a><div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"><span class="brand-copy" aria-hidden="true"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></div>
  <h1 style="font-size:26px;margin-top:24px">Sign in to your workspace</h1><p class="subtle">Your verified identity controls access to shipments, billing and administration.</p>
  <form id="identity-login-form" style="margin-top:24px"><label for="identity-email">Email</label><div class="identity-input"><i data-lucide="mail"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg><input id="identity-email" type="email" autocomplete="username" required maxlength="254"></div>
  <label for="identity-password">Password</label><div class="identity-input"><i data-lucide="lock"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg><input id="identity-password" type="password" autocomplete="current-password" required maxlength="4096"></div>
@@ -5664,15 +5674,17 @@ document.querySelector('main').insertAdjacentHTML('beforeend', `<section id="pro
 <div class="pagehead"><div><div class="eyebrow">Your identity</div><h1>User Profile</h1><p>Manage contact details. Permissions are assigned by your administrator.</p></div></div>
 <article class="card bg-slate-950 border border-slate-800"><span id="identity-role" class="tag green"></span><p id="identity-email-badge" class="mono"></p>
 <form id="identity-profile-form"><label>Full name<input name="full_name" required maxlength="200" autocomplete="name"></label><label>Phone (E.164)<input name="phone_e164" type="tel" pattern="\\+[1-9][0-9]{7,14}" placeholder="+447700900123" autocomplete="tel"></label><p class="subtle">Editing contact details does not change verified WhatsApp pairing.</p><button class="primary" type="submit">Save Profile</button></form></article></section>`);
-document.querySelector('.topbar-actions').insertAdjacentHTML('beforeend', `<div id="identity-user-widget" hidden><button id="identity-avatar" aria-label="Open user profile"></button></div>`);
-document.querySelector('.sidebar').insertAdjacentHTML('beforeend', `<a href="/" class="outline" style="display:block;margin:12px 0">EasyInvio home ?</a>`);
+document.querySelector('.topbar-actions').insertAdjacentHTML('beforeend', `<div id="identity-user-widget" hidden><button id="identity-avatar" aria-label="Account menu" aria-expanded="false" aria-controls="identity-account-menu"></button><div id="identity-account-menu" hidden aria-label="Account navigation"><button id="identity-profile-link" type="button">Profile</button><a href="/" id="identity-home-link">EasyInvio’s Home</a></div></div>`);
+
 document.querySelector('.sidebar').insertAdjacentHTML('beforeend', `<div class="sidebar-account"><button id="identity-logout" class="outline" aria-label="Log out" hidden><i data-lucide="log-out"></i>Log Out</button></div>`);
 
 function showIdentityGate() {
   const signedIn = !identityRecoveryHash && !!state.session && !!identityProfile;
   document.body.classList.toggle('auth-locked', !signedIn);
   document.body.classList.toggle('auth-ready', signedIn);
-  $('#loginContainer').hidden = signedIn;
+  const checking=Boolean(window.easyinvioIdentityPending)&&!signedIn;
+  document.body.classList.toggle('auth-checking',checking);
+  $('#loginContainer').hidden = signedIn || checking;
   $('#identity-user-widget').hidden = !signedIn;
   $('#identity-logout').hidden = !signedIn;
   if (signedIn) $('#identity-avatar').textContent = identityProfile.email.slice(0, 1).toUpperCase();
@@ -5744,6 +5756,9 @@ const identityClearBase = clearSession;
 clearSession = function() {
   window.easyinvioRestoreGeneration=(window.easyinvioRestoreGeneration||0)+1;
   identityProfile = null;
+  window.easyinvioIdentityPending=false;
+  document.body.classList.remove('auth-checking');
+  if($('#identity-account-menu'))closeIdentityMenu();
   window.easyinvioIdentityUI?.maskPasswords();
   localStorage.removeItem(identityStorageKey);
   identityClearBase();
@@ -5795,7 +5810,16 @@ $('#identity-profile-form').addEventListener('submit', event => {
     notify('Profile saved.');
   });
 });
-$('#identity-avatar').addEventListener('click', () => setView('profile'));
+let identityMenuTimer;
+function closeIdentityMenu(){clearTimeout(identityMenuTimer);$('#identity-account-menu').hidden=true;$('#identity-avatar').setAttribute('aria-expanded','false');}
+function openIdentityMenu(){if(!identityProfile)return;$('#identity-account-menu').hidden=false;$('#identity-avatar').setAttribute('aria-expanded','true');}
+$('#identity-avatar').addEventListener('click',()=>{clearTimeout(identityMenuTimer);$('#identity-account-menu').hidden?openIdentityMenu():closeIdentityMenu();});
+$('#identity-user-widget').addEventListener('pointerenter',event=>{if(event.pointerType==='mouse')identityMenuTimer=setTimeout(openIdentityMenu,150);});
+$('#identity-user-widget').addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')closeIdentityMenu();});
+$('#identity-user-widget').addEventListener('focusout',event=>{if(!event.currentTarget.contains(event.relatedTarget))closeIdentityMenu();});
+document.addEventListener('click',event=>{if(!event.target.closest('#identity-user-widget'))closeIdentityMenu();});
+$('#identity-user-widget').addEventListener('keydown',event=>{if(event.key==='Escape'){closeIdentityMenu();$('#identity-avatar').focus();}else if(event.key==='ArrowDown'&&event.target.id==='identity-avatar'){event.preventDefault();openIdentityMenu();$('#identity-profile-link').focus();}});
+$('#identity-profile-link').addEventListener('click',()=>{closeIdentityMenu();setView('profile');});
 $('#identity-logout').addEventListener('click', () => logoutIdentity().catch(() => notify('Signed out locally; server logout could not be confirmed.', true)));
 $('#signout-btn').addEventListener('click', event => {
   event.stopImmediatePropagation();
@@ -5805,6 +5829,7 @@ window.addEventListener('storage', event => {
   if ((event.key === identityStorageKey && !event.newValue) || event.key === 'easyinvio.logout') clearSession();
 });
 async function restoreIdentitySession() {
+  window.easyinvioIdentityPending=true;
   const generation=window.easyinvioRestoreGeneration=(window.easyinvioRestoreGeneration||0)+1;
   localStorage.removeItem(identityStorageKey); // Retire legacy browser token storage.
   state.session = null;
@@ -5835,7 +5860,8 @@ async function restoreIdentitySession() {
     renderPortal();
     window.dispatchEvent(new Event('easyinvio-session-ready'));
     void refreshPortal().catch(error => notify(error.message, true));
-  } catch { clearSession(); }
+  } catch { if(generation===window.easyinvioRestoreGeneration)clearSession(); }
+  finally {if(generation===window.easyinvioRestoreGeneration){window.easyinvioIdentityPending=false;showIdentityGate();}}
 }
 // Recovery links carry a one-use token hash in the fragment, never an app JWT.
 // Remove it before rendering or restoring any saved workspace session.
@@ -8753,7 +8779,7 @@ else if(!state.session)resetSessionForms();
 </style>
 <script>
 $('#identity-login-form').insertAdjacentHTML('afterend', `<button type="button" id="identity-signup-open" class="secondary full" style="margin-top:12px">Create an account</button>
-<form id="identity-signup-form" hidden style="margin-top:20px"><h2>Create your EasyInvio account</h2>
+<form id="identity-signup-form" hidden style="margin-top:20px"><h2>Your account details</h2>
 <div class="persona-switch" role="group" aria-label="Account type"><button type="button" data-signup-persona="BUSINESS" aria-pressed="true">&#128084; Business Account</button><button type="button" data-signup-persona="INDIVIDUAL" aria-pressed="false">&#128100; Personal Account</button></div>
 <label>Name<input name="full_name" autocomplete="name" minlength="2" maxlength="200" required></label>
 <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254"></label>
@@ -8775,6 +8801,7 @@ function setSignupPersona(persona) {
 $$('[data-signup-persona]').forEach(button => button.addEventListener('click', () => setSignupPersona(button.dataset.signupPersona)));
 const personaRecoveryViewBase = identityRecoveryView;
 identityRecoveryView = function(view) {
+  $('#loginContainer h1').textContent=view==='signup'?'Create an account':'Sign in to your workspace';
   $('#identity-signup-form').hidden = true;
   $('#identity-signup-open').hidden = view !== 'login';
   personaRecoveryViewBase(view);
@@ -8784,6 +8811,7 @@ $('#identity-signup-open').addEventListener('click', () => {
   $('#identity-signup-form').hidden = false;
   $('#identity-signup-form input').focus();
 });
+if(new URLSearchParams(location.search).get('signup')==='1')$('#identity-signup-open').click();
 function resetPersonaSignup() {
   signupReceipt = null;
   const form = $('#identity-signup-form');
