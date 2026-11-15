@@ -9,7 +9,7 @@ import jwt
 import asyncpg
 from backend.platform_staff import platform_role
 from cryptography.fernet import Fernet, InvalidToken
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
@@ -73,7 +73,7 @@ async def unwrap_app_session(request: Request, token: str) -> str:
 
 
 @router.post('/token')
-async def token(body: Login, request: Request):
+async def token(body: Login, request: Request, response: Response):
     settings=getattr(request.app.state,'settings',None)
     if not settings or len(settings.auth_jwt_secret.get_secret_value().encode())<32 or not settings.credential_keys:
         raise HTTPException(503,'Authentication configuration is unavailable')
@@ -129,14 +129,17 @@ async def token(body: Login, request: Request):
     claims={'iss':ISSUER,'aud':AUDIENCE,'sub':str(user_id),'user_id':str(user_id),
         'tenant_id':str(tenant_id) if tenant_id else None,'role':role,'email':email,
         'iat':now,'exp':expires,'jti':str(identifier)}
-    return {'access_token':jwt.encode(claims,settings.auth_jwt_secret.get_secret_value(),algorithm='HS256'),
+    from backend.public_experience import remember_browser
+    bearer = jwt.encode(claims,settings.auth_jwt_secret.get_secret_value(),algorithm='HS256')
+    remember_browser(request, response, bearer, expires)
+    return {'access_token':bearer,
             'token_type':'bearer','expires_at':expires,'absolute_expires_at':now+SESSION_MAX_SECONDS,
             'user':{'id':str(user_id),'email':email},
             'bootstrap':{'identity':identity_profile,'profile':workspace_profile}}
 
 
 @router.post('/renew')
-async def renew(request: Request):
+async def renew(request: Request, response: Response):
     """Renew an unexpired app session; provider refresh secrets never leave the server."""
     from fastapi.security import HTTPBearer
     credentials=await HTTPBearer(auto_error=False)(request)
@@ -212,7 +215,10 @@ async def renew(request: Request):
                     audit_id=uuid4()
                     await append_event(connection,item,'REQUEST_STARTED',audit_id,'POST','/api/v1/auth/renew',detail={'operation':'SESSION_RENEWAL'})
                     await append_event(connection,item,'REQUEST_FINISHED',audit_id,'POST','/api/v1/auth/renew',200,{'expires_at':item['expires_at'].isoformat()})
-    return {'access_token':jwt.encode(renewed,settings.auth_jwt_secret.get_secret_value(),algorithm='HS256'),
+    from backend.public_experience import remember_browser
+    bearer = jwt.encode(renewed,settings.auth_jwt_secret.get_secret_value(),algorithm='HS256')
+    remember_browser(request, response, bearer, expires)
+    return {'access_token':bearer,
         'token_type':'bearer','expires_at':expires,'absolute_expires_at':absolute,'assistance_sessions':assisted}
 
 
@@ -257,12 +263,14 @@ async def update_me(body: ProfileUpdate,request: Request):
 
 
 @router.post('/logout')
-async def logout(request: Request):
+async def logout(request: Request, response: Response):
     user_id,_=await current_identity(request)
     claims=getattr(request.state,'app_session_claims',None)
     if claims:
         async with request.app.state.finance.pool.acquire() as c:
             await c.execute('DELETE FROM public.app_auth_sessions WHERE id=$1 AND auth_user_id=$2',UUID(claims['jti']),user_id)
+    from backend.public_experience import COOKIE
+    response.delete_cookie(COOKIE, path='/')
     return {'logged_out':True}
 
 class RecoveryRequest(BaseModel):

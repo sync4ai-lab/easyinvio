@@ -2184,7 +2184,7 @@ async def branded_carrier_transport(request: Request, call_next):
 
 @app.middleware("http")
 async def preview_guard(request: Request, call_next):
-    public_tools = {"/api/v1/config", "/api/v1/customs/harmonize", "/api/v1/customs/declaration",
+    public_tools = {"/api/v1/public/assistance", "/api/v1/public/session", "/api/v1/config", "/api/v1/customs/harmonize", "/api/v1/customs/declaration",
                     "/api/v1/logistics/package-guidance",
                     "/api/v1/logistics/weight", "/api/v1/logistics/cargo-weight", "/api/v1/rates/sample", "/api/v1/routing/sample", "/api/v1/rates/preview", "/api/v1/routing/preview",
                     "/api/v1/shipments/batch-preview", "/api/v1/shipments/batch-template",
@@ -2360,6 +2360,7 @@ async def tracking_asset(request:Request):
 
 @app.get('/brand-mark.svg', include_in_schema=False)
 @app.get('/brand.css', include_in_schema=False)
+@app.get('/ask-easyinvio.css', include_in_schema=False)
 @app.get('/favicon.svg', include_in_schema=False)
 @app.get('/favicon-32.png', include_in_schema=False)
 @app.get('/apple-touch-icon.png', include_in_schema=False)
@@ -2722,6 +2723,9 @@ app.include_router(tenant_catalog_router(authenticate, Address))
 from backend.client_assistance import router as assistance_router, ClientAssistanceMiddleware
 app.include_router(assistance_router)
 app.add_middleware(ClientAssistanceMiddleware)
+
+from backend.public_experience import router as public_experience_router
+app.include_router(public_experience_router)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")

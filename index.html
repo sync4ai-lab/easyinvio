@@ -94,6 +94,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/brand.css">
+<link rel="stylesheet" href="/ask-easyinvio.css">
 </head>
 <body class="auth-locked bg-slate-900 text-slate-100">
 <svg aria-hidden="true" style="display:none">
@@ -5651,7 +5652,7 @@ body.auth-ready>.app-shell{animation:identityFade .3s ease-out}@keyframes identi
 </style>`);
 document.body.insertAdjacentHTML('afterbegin', `<section id="loginContainer" aria-label="EasyInvio sign in">
 <div class="identity-login-card bg-slate-950 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
- <div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"><span class="brand-copy" aria-hidden="true"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></div>
+ <a href="/" style="display:block;text-align:center;margin-bottom:18px;color:#a5b4fc">? Back to EasyInvio</a><div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"><span class="brand-copy" aria-hidden="true"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></div>
  <h1 style="font-size:26px;margin-top:24px">Sign in to your workspace</h1><p class="subtle">Your verified identity controls access to shipments, billing and administration.</p>
  <form id="identity-login-form" style="margin-top:24px"><label for="identity-email">Email</label><div class="identity-input"><i data-lucide="mail"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg><input id="identity-email" type="email" autocomplete="username" required maxlength="254"></div>
  <label for="identity-password">Password</label><div class="identity-input"><i data-lucide="lock"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg><input id="identity-password" type="password" autocomplete="current-password" required maxlength="4096"></div>
@@ -5664,6 +5665,7 @@ document.querySelector('main').insertAdjacentHTML('beforeend', `<section id="pro
 <article class="card bg-slate-950 border border-slate-800"><span id="identity-role" class="tag green"></span><p id="identity-email-badge" class="mono"></p>
 <form id="identity-profile-form"><label>Full name<input name="full_name" required maxlength="200" autocomplete="name"></label><label>Phone (E.164)<input name="phone_e164" type="tel" pattern="\\+[1-9][0-9]{7,14}" placeholder="+447700900123" autocomplete="tel"></label><p class="subtle">Editing contact details does not change verified WhatsApp pairing.</p><button class="primary" type="submit">Save Profile</button></form></article></section>`);
 document.querySelector('.topbar-actions').insertAdjacentHTML('beforeend', `<div id="identity-user-widget" hidden><button id="identity-avatar" aria-label="Open user profile"></button></div>`);
+document.querySelector('.sidebar').insertAdjacentHTML('beforeend', `<a href="/" class="outline" style="display:block;margin:12px 0">EasyInvio home ?</a>`);
 document.querySelector('.sidebar').insertAdjacentHTML('beforeend', `<div class="sidebar-account"><button id="identity-logout" class="outline" aria-label="Log out" hidden><i data-lucide="log-out"></i>Log Out</button></div>`);
 
 function showIdentityGate() {
@@ -5740,6 +5742,7 @@ async function process_user_login(email = $('#identity-email').value, password =
 
 const identityClearBase = clearSession;
 clearSession = function() {
+  window.easyinvioRestoreGeneration=(window.easyinvioRestoreGeneration||0)+1;
   identityProfile = null;
   window.easyinvioIdentityUI?.maskPasswords();
   localStorage.removeItem(identityStorageKey);
@@ -5762,12 +5765,14 @@ async function logoutIdentity() {
         method: 'POST',
         headers: {
           Authorization: 'Bearer ' + token
-        }
+        },
+        signal: AbortSignal.timeout(10000)
       });
       if (!response.ok) throw Error('Server logout unavailable');
     }
   } finally {
     token = null;
+    location.assign('/');
   }
 }
 $('#identity-login-form').addEventListener('submit', event => {
@@ -5800,10 +5805,37 @@ window.addEventListener('storage', event => {
   if ((event.key === identityStorageKey && !event.newValue) || event.key === 'easyinvio.logout') clearSession();
 });
 async function restoreIdentitySession() {
-  localStorage.removeItem(identityStorageKey);
+  const generation=window.easyinvioRestoreGeneration=(window.easyinvioRestoreGeneration||0)+1;
+  localStorage.removeItem(identityStorageKey); // Retire legacy browser token storage.
   state.session = null;
   identityProfile = null;
   showIdentityGate();
+  try {
+    const response = await fetch(API + '/api/v1/auth/browser-session/restore', {
+      method: 'POST', credentials: 'same-origin', cache: 'no-store',
+      headers: {'X-EasyInvio-Session': '1'}, signal: AbortSignal.timeout(35000)
+    });
+    if (!response.ok || generation!==window.easyinvioRestoreGeneration) return;
+    const session = await response.json();
+    if(generation!==window.easyinvioRestoreGeneration)return;
+    if (!session.access_token || Number(session.expires_at)*1000 <= Date.now()) return;
+    state.session = session;
+    portal.session = session;
+    const [profile, identity] = await Promise.all([
+      api('/api/v1/profile', {auth:true}), api('/api/v1/auth/me', {auth:true})
+    ]);
+    if (state.session !== session) return;
+    session.user = {id: identity.user_id, email: identity.email};
+    portal.profile = profile;
+    portal.role = isPlatformStaff() ? 'SUPER_ADMIN' : 'CLIENT';
+    renderIdentityProfile(identity);
+    lastIdentityActivity = Date.now();
+    armSessionExpiry();
+    renderAccount();
+    renderPortal();
+    window.dispatchEvent(new Event('easyinvio-session-ready'));
+    void refreshPortal().catch(error => notify(error.message, true));
+  } catch { clearSession(); }
 }
 // Recovery links carry a one-use token hash in the fragment, never an app JWT.
 // Remove it before rendering or restoring any saved workspace session.
@@ -8488,12 +8520,13 @@ clearSession=function(){
   identityHygieneClearBase.apply(this,arguments);
   resetSessionForms();
 };
-window.addEventListener('pagehide',()=>{
-  const token=state.session?.access_token;
-  clearSession();
-  if(token)void fetch(API+'/api/v1/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token},keepalive:true}).catch(()=>{});
+// Navigation clears private page state, but does not revoke the browser session.
+// Explicit sign-out and expiry remain responsible for server-side revocation.
+window.addEventListener('pagehide',()=>{ clearSession(); });
+window.addEventListener('pageshow',event=>{
+  if(event.persisted){ clearSession(); void restoreIdentitySession(); }
+  else if(!state.session)resetSessionForms();
 });
-window.addEventListener('pageshow',event=>{if(event.persisted)clearSession();else if(!state.session)resetSessionForms();});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{if(!state.session)resetSessionForms();},{once:true});
 else if(!state.session)resetSessionForms();
 </script>
@@ -8587,7 +8620,7 @@ else if(!state.session)resetSessionForms();
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.3 10 10 0 0 1-4-.8L3 21l1.5-4.5A8 8 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/><path d="M8 12h.01M12 12h.01M16 12h.01" stroke-width="3" stroke-linecap="round"/></svg>
 </button>
 <dialog id="conversation-dialog" aria-labelledby="conversation-title" aria-describedby="conversation-guidance">
-  <header class="conversation-header"><div><h2 id="conversation-title">EasyInvio Assistant</h2><p class="subtle">Shipping actions and help for your workspace</p></div><button id="conversation-close" type="button" class="close" aria-label="Close chat">&times;</button></header>
+  <header class="conversation-header"><div><h2 id="conversation-title">Ask EasyInvio</h2><p class="subtle">Shipping actions and help for your workspace</p></div><button id="conversation-close" type="button" class="close" aria-label="Close chat">&times;</button></header>
   <div id="conversation-log" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation"></div>
   <form id="conversation-form">
     <label for="conversation-message">Your message</label>
