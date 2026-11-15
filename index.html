@@ -8780,6 +8780,7 @@ else if(!state.session)resetSessionForms();
 <script>
 $('#identity-login-form').insertAdjacentHTML('afterend', `<button type="button" id="identity-signup-open" class="secondary full" style="margin-top:12px">Create an account</button>
 <form id="identity-signup-form" hidden style="margin-top:20px"><h2>Your account details</h2>
+<label for="identity-onboarding-intent">Your primary workflow<select id="identity-onboarding-intent"><option value="">Choose a workflow (optional)</option><option value="ecommerce">E-commerce brands</option><option value="dispatch">Warehouses & dispatch teams</option><option value="mobile">Mobile & independent sellers</option></select></label><p id="identity-onboarding-hint" class="subtle" role="status"></p>
 <div class="persona-switch" role="group" aria-label="Account type"><button type="button" data-signup-persona="BUSINESS" aria-pressed="true">&#128084; Business Account</button><button type="button" data-signup-persona="INDIVIDUAL" aria-pressed="false">&#128100; Personal Account</button></div>
 <label>Name<input name="full_name" autocomplete="name" minlength="2" maxlength="200" required></label>
 <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254"></label>
@@ -8811,7 +8812,19 @@ $('#identity-signup-open').addEventListener('click', () => {
   $('#identity-signup-form').hidden = false;
   $('#identity-signup-form input').focus();
 });
-if(new URLSearchParams(location.search).get('signup')==='1')$('#identity-signup-open').click();
+// Untrusted URL hints may customize copy only. Registration and authorization stay server-owned.
+const onboardingHints={ecommerce:'Start with supported store connections and order imports.',dispatch:'Start with parcel workflows, wallets and authorized team access.',mobile:'Start with WhatsApp pairing and eligible paperless services.'};
+function updateOnboardingHint(){const value=$('#identity-onboarding-intent').value;$('#identity-onboarding-hint').textContent=Object.hasOwn(onboardingHints,value)?onboardingHints[value]:'You can change your workflow later. Connections and access require separate setup.';}
+$('#identity-onboarding-intent').addEventListener('change',updateOnboardingHint);
+const onboardingParams=new URLSearchParams(location.search),onboardingMode=onboardingParams.get('mode'),onboardingIntent=onboardingParams.get('persona');
+if(Object.hasOwn(onboardingHints,onboardingIntent)){
+  // Existing anonymous/session cleanup resets all forms. Keep only this public,
+  // allowlisted preference as a form default; sensitive fields still reset normally.
+  for(const option of $('#identity-onboarding-intent').options)option.defaultSelected=option.value===onboardingIntent;
+}
+$('#identity-signup-form').addEventListener('reset',()=>queueMicrotask(updateOnboardingHint));
+updateOnboardingHint();
+if(!identityRecoveryHash&&!identityInviteToken&&(onboardingMode==='signup'||(!onboardingMode&&onboardingParams.get('signup')==='1')))$('#identity-signup-open').click();
 function resetPersonaSignup() {
   signupReceipt = null;
   const form = $('#identity-signup-form');

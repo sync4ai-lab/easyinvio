@@ -13,6 +13,7 @@ os.environ.setdefault('PLAYWRIGHT_BROWSERS_PATH',str(ROOT/'.playwright'))
 async def main():
     output=ROOT/'output/public-experience-qa';output.mkdir(parents=True,exist_ok=True)
     signed=False
+    preview=False
     session_gate=asyncio.Event();session_gate.set()
     restore_gate=asyncio.Event();restore_gate.set()
     errors=[]
@@ -32,8 +33,8 @@ async def main():
             if path in {'/login','/workspace'}:return await route.fulfill(body=(ROOT/'index.html').read_text(encoding='utf-8'),content_type='text/html')
             if path.startswith('/api/') or path=='/health':
                 requests.append(path)
-                if path=='/health':data={'status':'ok','mode':'configured'}
-                elif path=='/api/v1/config':data={'mode':'configured','supabase_url':None,'publishable_key':None}
+                if path=='/health':data={'status':'ok','mode':'local-preview' if preview else 'configured'}
+                elif path=='/api/v1/config':data={'mode':'local-preview' if preview else 'configured','supabase_url':None,'publishable_key':None}
                 elif path=='/api/v1/public/session':
                     await session_gate.wait()
                     data={'authenticated':signed,'name':'Test Operator'}
@@ -61,7 +62,24 @@ async def main():
         assert await page.locator('.nav .brand-mark').get_attribute('src')=='/brand-mark.svg'
         assert await page.locator('body').evaluate('(e)=>getComputedStyle(e).backgroundColor')=='rgb(15, 23, 42)'
         # New landing interactions use synthetic data and never purchase a label.
-        assert await page.locator('#solutions-toggle,#nav-ask').count()==0
+        assert await page.locator('#nav-ask').count()==0
+        # Every Solution selects a preview and rewrites only allowlisted signup URLs.
+        for persona,index in [('ecommerce',2),('dispatch',4),('mobile',0)]:
+            await page.locator('#solutions-toggle').click()
+            await expect(page.locator('#solutions-menu')).to_be_visible()
+            await page.locator(f'[data-solution="{persona}"]').click()
+            await expect(page.locator(f'#pillar-{index}')).to_have_attribute('aria-selected','true')
+            for link in await page.locator('[data-signup-cta]').all():
+                await expect(link).to_have_attribute('href',f'/login?mode=signup&persona={persona}')
+        await page.locator('[data-demo-confirm]').click()
+        await expect(page.locator('.demo-confirmation')).to_be_visible()
+        await expect(page.locator('.phone-thread')).to_contain_text('Demo expiry: 09:46')
+        await expect(page.locator('.phone-thread')).to_contain_text('estimated 2–3 working days')
+        assert await page.locator('.logo-strip .brand-badge').count()==13
+        assert await page.locator('.brand-sprite symbol').count()==13
+        assert await page.locator('#integrations .integration-brands').count()==3
+        assert await page.locator('.brand-sprite script,.brand-sprite foreignObject,.brand-sprite image').count()==0
+        assert await page.locator('.brand-sprite [onload],.brand-sprite [onclick]').count()==0
         await expect(page.locator('#public-workspace')).to_be_hidden()
         await expect(page.locator('#public-register')).to_be_visible()
         for target in ['pricing','integrations']:
@@ -102,7 +120,9 @@ async def main():
         await page.set_viewport_size({'width':375,'height':950})
         await page.locator('#menu').click()
         await expect(page.locator('#public-register')).to_be_visible()
-        await page.locator('#menu').click()
+        await page.locator('#solutions-toggle').click()
+        await page.locator('[data-solution="mobile"]').click()
+        await expect(page.locator('#menu')).to_have_attribute('aria-expanded','false')
         assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth')
         await page.set_viewport_size({'width':1440,'height':1000})
         await page.locator('#pillar-0').click()
@@ -132,10 +152,19 @@ async def main():
         await page.set_viewport_size({'width':1440,'height':1000})
         await page.locator('#public-register').click()
         await expect(page.locator('#identity-signup-form')).to_be_visible()
+        await expect(page.locator('#identity-onboarding-intent')).to_have_value('mobile')
+        await expect(page.locator('#identity-onboarding-hint')).to_contain_text('WhatsApp')
+        # URL intent never controls the Business/Personal account type or authorizes work.
+        await expect(page.locator('[data-signup-persona="BUSINESS"]')).to_have_attribute('aria-pressed','true')
         await expect(page.locator('#loginContainer h1')).to_have_text('Create an account')
         await expect(page.locator('#identity-login-form')).to_be_hidden()
         await page.locator('#identity-signup-back').click()
-        await page.goto('https://experience.test/login')
+        await page.goto('https://experience.test/login?mode=signup&persona=%3Cscript%3Ebad%3C/script%3E')
+        await expect(page.locator('#identity-signup-form')).to_be_visible()
+        await expect(page.locator('#identity-onboarding-intent')).to_have_value('')
+        assert await page.locator('#identity-onboarding-hint script').count()==0
+        await page.goto('https://experience.test/login?mode=signin&persona=dispatch')
+        await expect(page.locator('#identity-signup-form')).to_be_hidden()
         await expect(page.locator('#loginContainer')).to_be_visible()
         await page.locator('#identity-email').fill(profile['email'])
         await page.locator('#identity-password').fill('synthetic-password')
@@ -186,10 +215,17 @@ async def main():
         # A separately signed-in browser can also sign out directly on the landing page.
         signed=True;await page.reload()
         await expect(page.locator('#public-account-name')).to_contain_text('Test Operator')
-        await page.locator('#public-account summary').click();await page.locator('#public-logout').click()
+        await page.locator('#public-account summary').click()
+        async with page.expect_navigation(wait_until='load'):
+            await page.locator('#public-logout').click()
         await expect(page.locator('#public-signin')).to_be_visible();assert not signed
+        preview=True
+        await page.goto('https://experience.test/')
+        await expect(page.locator('#service-status')).to_have_text('Local preview')
+        await expect(page.locator('#public-signin')).to_be_visible()
+        await expect(page.locator('#public-workspace')).to_be_hidden()
         assert not errors,errors
-        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and removed navigation','five visual showroom tabs and wallet currencies','editable savings calculator and invalid input','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
+        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing','solutions preview and safe signup intent','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','editable savings calculator and invalid input','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
         (output/'report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         await browser.close()
 
