@@ -71,9 +71,16 @@ async def main():
         await expect(page.locator('.demo-confirmation')).to_be_visible()
         await expect(page.locator('.phone-thread')).to_contain_text('Demo expiry: 09:46')
         await expect(page.locator('.phone-thread')).to_contain_text('estimated 2–3 working days')
-        assert await page.locator('.logo-strip .brand-badge').count()==13
+        assert await page.locator('#integrations .brand-badge').count()==13
+        assert await page.locator('#integrations').count()==1
+        assert await page.locator('.ecosystem-strip,.savings-calculator,#parcel-volume').count()==0
+        assert 'Conversational execution' not in await page.locator('.hero').inner_text()
+        assert 'Model your own postage comparison' not in await page.locator('#pricing').inner_text()
+        assert await page.locator('#pricing .price-card').count()==2
+        for key in ['royalmail','evri','dpd','dhl','ups','shopify','amazon','woocommerce','whatsapp','easypost','shippo','sendcloud','gupshup']:
+            assert await page.locator(f'#integrations use[href="#brand-{key}"]').count()==1
         assert await page.locator('.brand-sprite symbol').count()==13
-        assert await page.locator('#integrations .integration-brands').count()==3
+        assert await page.locator('#integrations .ecosystem-group').count()==3
         assert await page.locator('.brand-sprite script,.brand-sprite foreignObject,.brand-sprite image').count()==0
         assert await page.locator('.brand-sprite [onload],.brand-sprite [onclick]').count()==0
         await expect(page.locator('#public-workspace')).to_be_hidden()
@@ -99,15 +106,6 @@ async def main():
         await page.locator('[data-currency="EUR"]').click()
         await expect(page.locator('#demo-wallet')).to_have_text('€95.70')
         await expect(page.locator('[data-currency="EUR"]')).to_have_attribute('aria-pressed','true')
-        await page.locator('#parcel-volume').fill('5000')
-        await expect(page.locator('#saving-amount')).to_have_text('£10,000.00')
-        await page.locator('#compared-cost').fill('7')
-        await expect(page.locator('#saving-note')).to_contain_text('costs more')
-        await page.locator('#compared-cost').fill('')
-        await expect(page.locator('#saving-amount')).to_have_text('Check your prices')
-        await expect(page.locator('#compared-total')).to_have_text('—')
-        await page.locator('#compared-cost').fill('4.50')
-        await page.locator('#parcel-volume').fill('500')
         faqs=page.locator('.faq-list details')
         assert await faqs.count()==5
         await faqs.nth(0).locator('summary').click()
@@ -141,6 +139,7 @@ async def main():
         await page.locator('#ai-close').click()
         allowed={'/health','/api/v1/config','/api/v1/public/session','/api/v1/public/assistance','/api/v1/public/tracking/resolve'}
         assert set(requests)<=allowed,requests
+        await page.locator('#integrations').screenshot(path=str(output/'integrations-desktop.png'))
         await page.screenshot(path=str(output/'landing-desktop.png'),full_page=True)
         for width in [375,768,1440]:
             await page.set_viewport_size({'width':width,'height':950})
@@ -224,7 +223,7 @@ async def main():
         await expect(page.locator('#public-signin')).to_be_visible()
         await expect(page.locator('#public-workspace')).to_be_hidden()
         assert not errors,errors
-        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','tracking-only hero and removed Solutions navigation','secure public tracking resolves correctly','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','editable savings calculator and invalid input','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
+        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','tracking-only hero and removed Solutions navigation','secure public tracking resolves correctly','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','single grouped integration directory and clear pricing cards','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
         (output/'report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         await browser.close()
 
