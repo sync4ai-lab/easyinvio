@@ -74,7 +74,6 @@
   "backend/platform_staff.py": "7f6ba5365da16743ae1318fa1a05a84bcd1bdfd0ea8fa60cc2e357d16adee907",
   "backend/provider_routing.py": "b44dcf4012a0cc514e1f617e48cbbf36cfced812bd92e0982792bb1117c29bfd",
   "backend/public_experience.py": "72db0a72f55c7842a4283fd136b7b64d9d8a432fc93d0298332711c982fd2a92",
-  "backend/public_rate_showcase.py": "43cccafd27b21885f5013e9b72bc5823143a70ebdb8fe6b544744ee02678c19d",
   "backend/rate_diagnostics.py": "b61544059222eecd855f0b8be6525863f411efcd907d4262fe0c7a0644d70e96",
   "backend/repair_local_config.py": "f1e9bfaa8ebd75896fbe10cde993ad1ff15feadc9bccaaa7cb83177e3c9a45cc",
   "backend/return_delivery.py": "4f4a351929d2dc37d348b7f4933ddc28751b8a8bfb105e44e6d03eb993089e25",
@@ -130,7 +129,7 @@
   "frontend/components/SupportHub.html": "37821c371e788148474b2bf0fecb116986604b45fa57d395b3669b0759119613",
   "frontend/components/support.css": "cac06eec53a50e4d5facb393cf6a52d7c5b10b2b78ca6f399d58b5af926bc1b2",
   "frontend/components/support.js": "427975ec86ccf700da07782b98763c2e10d522b0805d0a7a34bdf152aa4b8577",
-  "main.py": "719f049420ff52450f2cc5d1910f21e3c5ba255e80a0fd99effb98c1b8d76450",
+  "main.py": "8434ccf225423fc48ca0bca1911251dc29058cce46e832c9602fd36d25487067",
   "requirements.lock.txt": "300c619fdf9efa94a8e96f8360187988d6bedb8adc8dc5cb09d749f38c60be45",
   "requirements.txt": "f847e7ee5ea0a909408135db9d2cb7feea94441d8d639a927b03088b61f0611e"
 }
