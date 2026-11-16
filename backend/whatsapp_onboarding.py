@@ -464,6 +464,8 @@ class ConversationalSignupManager:
                 await c.execute('''INSERT INTO public.whatsapp_bindings(tenant_id,user_id,sender_e164,receiver_e164,is_active,verified_at)
                     VALUES($1,$2,$3,$4,true,now())''', tenant_id, queue['member_id'], queue['phone_e164'], queue['receiver_e164'])
                 await c.execute("UPDATE public.whatsapp_registration_queue SET current_state='VERIFIED',phone_otp_hmac=NULL,updated_at=now() WHERE id=$1", queue['id'])
+                from backend.entitlements import enabled,seed_subscription
+                if enabled(self.settings):await seed_subscription(c,tenant_id,'STARTER','MONTHLY',sandbox=sandbox)
         try:
             async with asyncio.timeout(1):
                 delivered = await self.provider.password_email(queue['email_address'])

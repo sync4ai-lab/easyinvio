@@ -219,6 +219,12 @@ class ConversationalActionGateway:
             raise HTTPException(403, 'An active registered workspace session is required')
         if body.channel == 'WHATSAPP' and not verified_whatsapp:
             raise HTTPException(403, 'WhatsApp actions require the signed Twilio webhook')
+        if body.channel == 'WHATSAPP':
+            from backend.entitlements import guard_feature
+            try:await guard_feature(self.pool,self.state.settings,context.tenant_id,'whatsapp_bot')
+            except HTTPException as error:
+                if error.status_code!=402:raise
+                return self.public(self.reply('HELP','WhatsApp booking is available on Velocity and Command. See '+self.state.settings.booking_page_url.rstrip('/')+'/pricing'))
         # sender_id is never a tenant/user selector for web chat; its identity is
         # always the authenticated browser session, including assistance audit.
         message_id = uuid5(NAMESPACE_URL, f'conversation:{context.tenant_id}:{context.user_id}:{body.channel}:{body.request_id}')

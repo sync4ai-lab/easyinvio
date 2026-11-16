@@ -311,7 +311,7 @@ $('year').textContent=new Date().getFullYear();
 const planPrices=Object.freeze({starter:{name:'Starter',monthly:0,annual:0},velocity:{name:'Velocity',monthly:29,annual:24},command:{name:'Command',monthly:79,annual:65}});
 let billing='monthly';
 const money=value=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(value);
-function planHref(key){return '/login?mode=signup&plan='+key+(billing==='annual'?'&billing=annual':'');}
+function planHref(key){return '/login?mode=signup&plan='+key+'&cycle='+billing;}
 function calculateEstimate(){
  const volume=Number($('parcel-volume').value),retail=Number($('retail-price').value),connected=Number($('connected-price').value);
  $('volume-output').textContent=volume.toLocaleString('en-GB')+' parcels';

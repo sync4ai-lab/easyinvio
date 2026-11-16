@@ -69,9 +69,10 @@ class StoreConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.client.put(self.url, json=self.body)).status_code, 404)
         self.assertFalse(self.rows)
 
-    async def test_dispatcher_manages_only_their_own_store(self):
+    async def test_dispatcher_cannot_change_store_credentials_or_read_other_tenants(self):
         self.context.role='DISPATCHER'
-        self.assertEqual((await self.client.put(self.url,json=self.body)).status_code,200)
+        self.assertEqual((await self.client.put(self.url,json=self.body)).status_code,403)
+        self.assertFalse(self.rows)
         self.context.tenant_id=uuid4()
         self.assertEqual((await self.client.get(self.url)).status_code,404)
 

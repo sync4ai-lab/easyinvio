@@ -50,6 +50,8 @@ async def main():
                 elif path in {'/api/v1/auth/logout','/api/v1/public/session/logout'}:signed=False;data={'logged_out':True}
                 elif path=='/api/v1/auth/me':data=profile
                 elif path=='/api/v1/profile':data={'portal_role':'SUPER_ADMIN','user_id':profile['user_id'],'tenant_id':None}
+                elif path=='/api/v1/admin/revenue/overview':data={'environment':'PRODUCTION','contracted_mrr_gbp':'29','tiers':[{'subscription_plan':'VELOCITY','active_tenants':1}],'label_totals_by_currency':[],'basis':'Contracted run rate, not cash or profit.','next_cursor':None,'tenants':[{'tenant_id':'00000000-0000-4000-8000-000000000002','company_name':'Synthetic revenue client','subscription_plan':'VELOCITY','billing_cycle':'MONTHLY','plan_status':'ACTIVE','plan_version':1,'parcels_this_month':0,'monthly_parcel_allowance':2000,'contracted_mrr_gbp':'29','shipping_totals':[],'wallet_balance':'12.50','wallet_currency':'GBP','subscription_complimentary':False}]}
+                elif path.endswith('/transactions') and path.startswith('/api/v1/admin/revenue/tenants/'):data={'wallet_movements':[],'recent_shipments':[],'next_cursor':None}
                 elif path=='/api/v1/public/assistance':
                     query=route.request.post_data_json['query'];private='my shipment' in query
                     data={'answer':'Open your workspace for shipment details.' if private else 'Published Amazon setup instructions. <script>unsafe()</script>','sources':[{'title':'Help Centre','url':'/help'}],'requires_login':private}
@@ -267,6 +269,19 @@ async def main():
         await page.locator('#identity-login-submit').click()
         await expect(page.locator('#loginContainer')).to_be_hidden()
         assert await page.locator('.sidebar a[href="/"]').count()==0
+        await expect(page.locator('#subscription-revenue')).to_be_visible()
+        await page.locator('#subscription-revenue summary').click()
+        await expect(page.locator('#subscription-revenue-rows')).to_contain_text('Synthetic revenue client')
+        await expect(page.locator('#subscription-kpis')).to_contain_text('Contracted MRR')
+        await page.locator('[data-subscription-transactions]').click()
+        await expect(page.locator('#subscription-transactions')).to_be_visible()
+        await expect(page.locator('#subscription-transaction-content')).to_contain_text('Wallet ledger')
+        await page.locator('#subscription-transactions button').click()
+        await page.locator('[data-subscription-plan]').click()
+        await expect(page.locator('#subscription-plan-dialog')).to_be_visible()
+        await expect(page.locator('#subscription-plan-form [name="plan"]')).to_have_value('VELOCITY')
+        await page.locator('#subscription-plan-dialog form[method="dialog"] button').click()
+        await page.locator('#subscription-revenue summary').click()
         await page.locator('#identity-avatar').hover()
         await expect(page.locator('#identity-account-menu')).to_be_visible()
         await page.locator('#identity-profile-link').click()

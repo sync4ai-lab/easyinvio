@@ -143,8 +143,9 @@ class ReturnReference(BaseModel):
     reference:str=Field(pattern=r'^gid://shopify/ReverseFulfillmentOrder/[1-9][0-9]{0,30}$')
 
 class EcommerceService:
-    def __init__(self, pool, *, connectors=None, client=None, credential_keys=None):
+    def __init__(self, pool, *, connectors=None, client=None, credential_keys=None,settings=None):
         self.pool = pool
+        self.settings = settings
         self.connectors = connectors or {}
         self.client = client
         self.credential_keys = credential_keys or {}
@@ -198,6 +199,8 @@ class EcommerceService:
             raise ValueError("Invalid internal import status")
         if context.role not in {"OWNER", "ADMIN", "DISPATCHER"}:
             raise HTTPException(403, "Dispatch permission required")
+        from backend.entitlements import guard_feature
+        await guard_feature(self.pool,self.settings,context.tenant_id,'store_integrations')
         try:
             metadata = parsed_order(payload.order)
         except ValueError as exc:

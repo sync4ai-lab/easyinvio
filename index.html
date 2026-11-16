@@ -7057,7 +7057,7 @@ renderStoreCatalogue();
 let storeConnectionId = null;
 
 function storeCanManage() {
-  return !state.session || ['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role);
+  return !state.session || ['OWNER', 'ADMIN'].includes(portal.profile?.workspace_role);
 }
 renderEnterpriseStores = function() {
   $('#store-new').hidden = !storeCanManage();
@@ -8819,7 +8819,7 @@ $('#identity-onboarding-intent').addEventListener('change',updateOnboardingHint)
 const onboardingParams=new URLSearchParams(location.search),onboardingMode=onboardingParams.get('mode'),onboardingIntent=onboardingParams.get('persona');
 const pricingPlanNames={starter:'Starter',velocity:'Velocity',command:'Command'},pricingPlan=onboardingParams.get('plan');
 if(Object.hasOwn(pricingPlanNames,pricingPlan)){
-  const hint=$('#identity-plan-hint'),annual=onboardingParams.get('billing')==='annual';
+  const hint=$('#identity-plan-hint'),annual=onboardingParams.get('cycle')==='annual'||onboardingParams.get('billing')==='annual';
   hint.textContent='Selected plan: '+pricingPlanNames[pricingPlan]+(annual?' · annual billing preference':'')+'. Plan activation and billing are confirmed separately after signup.';
   hint.hidden=false;
 }
@@ -8858,7 +8858,9 @@ $('#identity-signup-form').addEventListener('submit', async event => {
       } : {company_name:fields.company_name.value.trim(), contact_name:fields.full_name.value.trim(), billing_email:fields.email.value.trim(),
         company_registration_number:fields.registration.value.trim(), tax_id:fields.tax_id.value.trim()||null,
         address_line1:fields.street.value.trim(), city:fields.city.value.trim(), postal_code:fields.postcode.value.trim(), country_code:fields.country.value.trim(), phone_e164:fields.phone.value.trim()};
-      signupReceipt = await api('/api/v1/auth/register', {method:'POST',body:{workspace_type:signupPersona,profile}});
+      signupReceipt = await api('/api/v1/auth/register', {method:'POST',body:{workspace_type:signupPersona,profile,
+        plan:Object.hasOwn(pricingPlanNames,pricingPlan)?pricingPlan.toUpperCase():'STARTER',
+        cycle:(onboardingParams.get('cycle')==='annual'||onboardingParams.get('billing')==='annual')?'ANNUAL':'MONTHLY'}});
       form.querySelectorAll('input:not([name=password]):not([name=code])').forEach(input => input.disabled = true);
       $$('[data-signup-persona]').forEach(control => control.disabled = true);
       $('#identity-signup-code').hidden = false;

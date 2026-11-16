@@ -106,6 +106,8 @@ def build_router(authenticate):
         async with request.app.state.finance.pool.acquire() as c:
             async with c.transaction():
                 await c.execute("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",'workspace-invite:'+email)
+                from backend.entitlements import enabled,check_quota
+                if enabled(settings):await check_quota(c,context.tenant_id,'USERS')
                 if await c.fetchval('SELECT EXISTS(SELECT 1 FROM auth.users WHERE lower(email)=$1)',email):
                     raise HTTPException(409,'This email already has an identity. Contact platform support to avoid assigning an existing account to another workspace.')
                 try:
@@ -120,6 +122,8 @@ def build_router(authenticate):
             async with c.transaction():
                 row=await c.fetchrow("SELECT i.* FROM public.workspace_invitations i WHERE tenant_id=$1 AND id=$2 AND status IN ('PENDING','FAILED','CANCELLED') FOR UPDATE",context.tenant_id,invite_id)
                 if not row:raise HTTPException(404,'Resendable invitation not found')
+                from backend.entitlements import enabled,check_quota
+                if enabled(request.app.state.settings):await check_quota(c,context.tenant_id,'USERS',exclude_invitation=invite_id)
                 if row['auth_user_id'] and await c.fetchval('SELECT EXISTS(SELECT 1 FROM public.users WHERE auth_user_id=$1)',row['auth_user_id']):raise HTTPException(409,'This user already has workspace access')
                 try:await c.execute("UPDATE public.workspace_invitations SET status='SENDING',expires_at=now()+interval '24 hours' WHERE id=$1",invite_id)
                 except asyncpg.UniqueViolationError:raise HTTPException(409,'Another invitation is already pending for this email') from None

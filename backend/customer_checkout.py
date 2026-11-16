@@ -121,6 +121,9 @@ def build_router(authenticate):
         engine = getattr(request.app.state, 'logistics_supervisor', None)
         if not body.official_only and engine is not None and engine.runtime.available:
             try:
+                if user.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
+                from backend.entitlements import guard_feature
+                await guard_feature(request.app.state.finance.pool,request.app.state.settings,user.tenant_id,'customs_hs_builder')
                 result = await engine.customs.rank_tariff(user, body.description, result)
             except HTTPException:
                 # Official results remain usable when optional assistance fails.
