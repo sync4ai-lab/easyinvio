@@ -26,6 +26,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/pricing",
+      "destination": "/pricing.html"
+    },
+    {
       "source": "/login",
       "destination": "/workspace.html"
     },
@@ -57,7 +61,7 @@
       ]
     },
     {
-      "source": "/(index.html|login|workspace|workspace.html|set-password|track|tracking.html)",
+      "source": "/(index.html|pricing|pricing.html|login|workspace|workspace.html|set-password|track|tracking.html)",
       "headers": [
         {
           "key": "Cache-Control",

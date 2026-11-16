@@ -8779,7 +8779,7 @@ else if(!state.session)resetSessionForms();
 </style>
 <script>
 $('#identity-login-form').insertAdjacentHTML('afterend', `<button type="button" id="identity-signup-open" class="secondary full" style="margin-top:12px">Create an account</button>
-<form id="identity-signup-form" hidden style="margin-top:20px"><h2>Your account details</h2>
+<form id="identity-signup-form" hidden style="margin-top:20px"><h2>Your account details</h2><p id="identity-plan-hint" class="subtle" hidden></p>
 <label for="identity-onboarding-intent">Your primary workflow<select id="identity-onboarding-intent"><option value="">Choose a workflow (optional)</option><option value="ecommerce">E-commerce brands</option><option value="dispatch">Warehouses & dispatch teams</option><option value="mobile">Mobile & independent sellers</option></select></label><p id="identity-onboarding-hint" class="subtle" role="status"></p>
 <div class="persona-switch" role="group" aria-label="Account type"><button type="button" data-signup-persona="BUSINESS" aria-pressed="true">&#128084; Business Account</button><button type="button" data-signup-persona="INDIVIDUAL" aria-pressed="false">&#128100; Personal Account</button></div>
 <label>Name<input name="full_name" autocomplete="name" minlength="2" maxlength="200" required></label>
@@ -8817,6 +8817,13 @@ const onboardingHints={ecommerce:'Start with supported store connections and ord
 function updateOnboardingHint(){const value=$('#identity-onboarding-intent').value;$('#identity-onboarding-hint').textContent=Object.hasOwn(onboardingHints,value)?onboardingHints[value]:'You can change your workflow later. Connections and access require separate setup.';}
 $('#identity-onboarding-intent').addEventListener('change',updateOnboardingHint);
 const onboardingParams=new URLSearchParams(location.search),onboardingMode=onboardingParams.get('mode'),onboardingIntent=onboardingParams.get('persona');
+const pricingPlanNames={starter:'Starter',velocity:'Velocity',command:'Command'},pricingPlan=onboardingParams.get('plan');
+if(Object.hasOwn(pricingPlanNames,pricingPlan)){
+  const hint=$('#identity-plan-hint'),annual=onboardingParams.get('billing')==='annual';
+  hint.textContent='Selected plan: '+pricingPlanNames[pricingPlan]+(annual?' · annual billing preference':'')+'. Plan activation and billing are confirmed separately after signup.';
+  hint.hidden=false;
+}
+
 if(Object.hasOwn(onboardingHints,onboardingIntent)){
   // Existing anonymous/session cleanup resets all forms. Keep only this public,
   // allowlisted preference as a form default; sensitive fields still reset normally.

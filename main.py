@@ -2325,6 +2325,13 @@ async def public_frontend():
                         media_type="text/html", headers={'Cache-Control': 'no-store'})
 
 
+@app.get("/pricing", include_in_schema=False)
+@app.get("/pricing.html", include_in_schema=False)
+async def public_pricing():
+    return FileResponse(Path(__file__).parent / "frontend" / "landing" / "pricing.html",
+                        media_type="text/html", headers={'Cache-Control': 'no-store'})
+
+
 @app.get("/login", include_in_schema=False)
 @app.get("/workspace", include_in_schema=False)
 @app.get("/workspace.html", include_in_schema=False)

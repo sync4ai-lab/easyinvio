@@ -30,6 +30,7 @@ async def main():
             path=urlsplit(route.request.url).path
             if urlsplit(route.request.url).hostname!='experience.test':return await route.abort()
             if path in {'/','/index.html'}:return await route.fulfill(body=(ROOT/'frontend/landing/index.html').read_text(encoding='utf-8'),content_type='text/html')
+            if path in {'/pricing','/pricing.html'}:return await route.fulfill(body=(ROOT/'frontend/landing/pricing.html').read_text(encoding='utf-8'),content_type='text/html')
             if path in {'/login','/workspace'}:return await route.fulfill(body=(ROOT/'index.html').read_text(encoding='utf-8'),content_type='text/html')
             if path.startswith('/api/') or path=='/health':
                 requests.append(path)
@@ -75,8 +76,8 @@ async def main():
         assert await page.locator('#integrations').count()==1
         assert await page.locator('.ecosystem-strip,.savings-calculator,#parcel-volume').count()==0
         assert 'Conversational execution' not in await page.locator('.hero').inner_text()
-        assert 'Model your own postage comparison' not in await page.locator('#pricing').inner_text()
-        assert await page.locator('#pricing .price-card').count()==2
+        assert await page.locator('#pricing,.price-card').count()==0
+        assert await page.locator('.nav-links a[href="/pricing"]').count()==1
         for key in ['royalmail','evri','dpd','dhl','ups','shopify','amazon','woocommerce','whatsapp','easypost','shippo','sendcloud','gupshup']:
             assert await page.locator(f'#integrations .ecosystem-grid use[href="#brand-{key}"]').count()==1
         assert await page.locator('.brand-sprite symbol').count()==13
@@ -126,7 +127,7 @@ async def main():
         assert await page.locator('.brand-sprite [onload],.brand-sprite [onclick]').count()==0
         await expect(page.locator('#public-workspace')).to_be_hidden()
         await expect(page.locator('#public-register')).to_be_visible()
-        for target in ['pricing','integrations']:
+        for target in ['integrations']:
             await page.locator(f'.nav-links a[href="#{target}"]').click()
             await page.wait_for_timeout(1100)
             gap=await page.locator(f'#{target} .eyebrow').first.evaluate('(e)=>e.getBoundingClientRect().top-document.querySelector("#nav").getBoundingClientRect().bottom')
@@ -199,6 +200,52 @@ async def main():
         await page.locator('#intelligence').screenshot(path=str(output/'ai-services-mobile.png'))
         await page.locator('#analytics').screenshot(path=str(output/'analytics-mobile.png'))
         await page.set_viewport_size({'width':1440,'height':1000})
+        await page.locator('.nav-links a[href="/pricing"]').click()
+        await expect(page.locator('#public-signin')).to_be_visible()
+        assert await page.locator('.tier').count()==3
+        assert await page.locator('.comparison-table .category').count()==5
+        await expect(page.locator('[data-plan-price="velocity"]')).to_have_text('£29')
+        await page.locator('#billing-annual').click()
+        await expect(page.locator('[data-plan-price="velocity"]')).to_have_text('£24')
+        await expect(page.locator('[data-plan-price="command"]')).to_have_text('£65')
+        await expect(page.locator('[data-bill-detail="velocity"]')).to_contain_text('£288.00')
+        await expect(page.locator('[data-bill-detail="command"]')).to_contain_text('£780.00')
+        for volume,plan in [(50,'Starter'),(150,'Starter'),(151,'Velocity'),(2000,'Velocity'),(2001,'Command'),(6000,'Command')]:
+            await page.locator('#parcel-volume').fill(str(volume))
+            await expect(page.locator('#recommended-plan')).to_have_text(plan)
+        await page.locator('#parcel-volume').fill('500')
+        await expect(page.locator('#net-saving')).to_have_text('£226.00')
+        await page.locator('#retail-price').fill('4.00')
+        await expect(page.locator('#saving-label')).to_contain_text('additional monthly cost')
+        await page.locator('#retail-price').fill('')
+        await expect(page.locator('#estimate-results')).to_be_hidden()
+        await expect(page.locator('#estimate-error')).to_contain_text('valid postage assumptions')
+        await page.locator('#retail-price').fill('5.00')
+        await page.locator('#billing-monthly').click()
+        await expect(page.locator('#net-saving')).to_have_text('£221.00')
+        pricing_faq=page.locator('.faq-list details')
+        await pricing_faq.nth(0).locator('summary').click()
+        await pricing_faq.nth(1).locator('summary').click()
+        await expect(pricing_faq.nth(0)).not_to_have_attribute('open','')
+        await page.locator('#faq-ask').click()
+        await expect(page.locator('#ai-title')).to_have_text('Ask EasyInvio')
+        await page.locator('#ai-close').click()
+        for width in [375,768,1440]:
+            await page.set_viewport_size({'width':width,'height':950})
+            assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth'),('pricing',width)
+        await page.evaluate("document.activeElement.blur();scrollTo({top:0,behavior:'instant'})")
+        await page.screenshot(path=str(output/'pricing-desktop.png'),full_page=True)
+        await page.set_viewport_size({'width':375,'height':950})
+        await page.screenshot(path=str(output/'pricing-mobile.png'),full_page=True)
+        await page.set_viewport_size({'width':1440,'height':1000})
+        await page.locator('#billing-annual').click()
+        await page.locator('[data-plan-link="velocity"]').click()
+        await expect(page.locator('#identity-plan-hint')).to_contain_text('Velocity · annual')
+        await expect(page.locator('#identity-signup-form')).to_be_visible()
+        await page.goto('https://experience.test/login?mode=signup&plan=%3Cscript%3E')
+        await expect(page.locator('#identity-signup-form')).to_be_visible()
+        await expect(page.locator('#identity-plan-hint')).to_be_hidden()
+        await page.goto('https://experience.test/')
         await page.locator('#public-register').click()
         await expect(page.locator('#identity-signup-form')).to_be_visible()
         await expect(page.locator('#identity-onboarding-intent')).to_have_value('')
@@ -237,6 +284,10 @@ async def main():
         await expect(page.locator('#public-register')).to_be_hidden()
         session_gate.set()
         await expect(page.locator('#public-account-name')).to_contain_text('Test Operator')
+        await page.goto('https://experience.test/pricing.html')
+        await expect(page.locator('#public-account-name')).to_contain_text('Test Operator')
+        await expect(page.locator('#public-signin')).to_be_hidden()
+        await page.goto('https://experience.test/')
         await expect(page.locator('#public-signin')).to_be_hidden()
         await page.screenshot(path=str(output/'signed-in-landing.png'))
         for width in [375,768,1024,1440]:
@@ -275,7 +326,7 @@ async def main():
         await expect(page.locator('#public-signin')).to_be_visible()
         await expect(page.locator('#public-workspace')).to_be_hidden()
         assert not errors,errors
-        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','tracking-only hero and removed Solutions navigation','secure public tracking resolves correctly','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','single grouped integration directory and clear pricing cards','pausable integration marquee and reduced-motion alternative','three concrete outcome cards and nine shipping services','AI guidance cards and public assistant launch','illustrative analytics tabs, keyboard access and no private reporting requests','eight individually labelled fictional feedback examples','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
+        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','tracking-only hero and removed Solutions navigation','secure public tracking resolves correctly','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','dedicated pricing page, three tiers and categorized comparison','annual billing totals and accurate savings calculation','estimator boundaries, negative savings and invalid inputs','allowlisted signup plan hint, never an entitlement','single grouped integration directory','pausable integration marquee and reduced-motion alternative','three concrete outcome cards and nine shipping services','AI guidance cards and public assistant launch','illustrative analytics tabs, keyboard access and no private reporting requests','eight individually labelled fictional feedback examples','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
         (output/'report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         await browser.close()
 
