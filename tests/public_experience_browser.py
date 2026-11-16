@@ -92,7 +92,30 @@ async def main():
         assert await page.locator('.logo-track').evaluate('(e)=>getComputedStyle(e).animationName')=='none'
         await page.emulate_media(reduced_motion='no-preference')
         assert await page.locator('.outcome-card').count()==3
-        assert await page.locator('.operation').count()==6
+        assert await page.locator('.operation').count()==9
+        assert await page.locator('#intelligence .ai-service-card').count()==3
+        await page.locator('[data-open-assistant]').click()
+        await expect(page.locator('#ai-title')).to_have_text('Ask EasyInvio')
+        await page.locator('#ai-close').click()
+        await page.locator('[data-show-workflow="3"]').click()
+        await expect(page.locator('#pillar-panel')).to_have_attribute('aria-labelledby','pillar-3')
+        await page.locator('[data-show-workflow="0"]').click()
+        await expect(page.locator('#pillar-panel')).to_have_attribute('aria-labelledby','pillar-0')
+        await expect(page.locator('#analytics-chart')).to_contain_text('144 packages')
+        await page.locator('#analytics-tab-spend').click()
+        await expect(page.locator('#analytics-chart')).to_contain_text('£792')
+        await expect(page.locator('#analytics-chart')).to_have_attribute('aria-labelledby','analytics-tab-spend')
+        await page.locator('#analytics-tab-spend').press('ArrowLeft')
+        await expect(page.locator('#analytics-tab-volume')).to_be_focused()
+        await expect(page.locator('#analytics-chart')).to_contain_text('144 packages')
+        assert 'fictional' in await page.locator('.analytics-demo-note').text_content()
+        for target in ['services','intelligence','analytics']:
+            await page.locator(f'.capability-jumps a[href="#{target}"]').click()
+            await page.wait_for_timeout(1100)
+            gap=await page.locator(f'#{target} .eyebrow').first.evaluate('(e)=>e.getBoundingClientRect().top-document.querySelector("#nav").getBoundingClientRect().bottom')
+            assert 10<=gap<=75,(target,gap)
+
+
         assert await page.locator('.feedback-card').count()==8
         for card in await page.locator('.feedback-card').all():
             assert 'Not a customer review' in await card.text_content()
@@ -157,6 +180,9 @@ async def main():
         await page.locator('#ai-close').click()
         allowed={'/health','/api/v1/config','/api/v1/public/session','/api/v1/public/assistance','/api/v1/public/tracking/resolve'}
         assert set(requests)<=allowed,requests
+        await page.locator('#intelligence').screenshot(path=str(output/'ai-services-desktop.png'))
+        await page.locator('#analytics').screenshot(path=str(output/'analytics-desktop.png'))
+        await page.locator('#services').screenshot(path=str(output/'services-desktop.png'))
         await page.locator('#integrations').screenshot(path=str(output/'integrations-desktop.png'))
         await page.evaluate("document.activeElement.blur(); document.getElementById('track-result').hidden=true; scrollTo({top:0,behavior:'instant'})")
         await page.wait_for_timeout(200)
@@ -170,6 +196,8 @@ async def main():
         await page.screenshot(path=str(output/'landing-mobile.png'),full_page=True)
         await page.screenshot(path=str(output/'landing-mobile-hero.png'))
         assert await page.locator('.feedback-grid').evaluate('(e)=>e.scrollWidth>e.clientWidth')
+        await page.locator('#intelligence').screenshot(path=str(output/'ai-services-mobile.png'))
+        await page.locator('#analytics').screenshot(path=str(output/'analytics-mobile.png'))
         await page.set_viewport_size({'width':1440,'height':1000})
         await page.locator('#public-register').click()
         await expect(page.locator('#identity-signup-form')).to_be_visible()
@@ -247,7 +275,7 @@ async def main():
         await expect(page.locator('#public-signin')).to_be_visible()
         await expect(page.locator('#public-workspace')).to_be_hidden()
         assert not errors,errors
-        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','tracking-only hero and removed Solutions navigation','secure public tracking resolves correctly','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','single grouped integration directory and clear pricing cards','pausable integration marquee and reduced-motion alternative','three concrete outcome cards and six operational capabilities','eight individually labelled fictional feedback examples','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
+        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','tracking-only hero and removed Solutions navigation','secure public tracking resolves correctly','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','single grouped integration directory and clear pricing cards','pausable integration marquee and reduced-motion alternative','three concrete outcome cards and nine shipping services','AI guidance cards and public assistant launch','illustrative analytics tabs, keyboard access and no private reporting requests','eight individually labelled fictional feedback examples','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
         (output/'report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         await browser.close()
 
