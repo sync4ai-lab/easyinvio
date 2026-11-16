@@ -8985,5 +8985,24 @@ document.addEventListener('pointerdown', event => { if (!overviewInfo.contains(e
 <script>ManifestWorkflow.install();</script>
 <script src="/tracking-workspace.js?v=1"></script>
 <script src="/help-workspace-bridge.js?v=1"></script>
+
+<script>
+// Public example links are route hints, never bookable offers or authorization.
+const rateExampleCatalog={"uk-small":{"origin":"London","destination":"Manchester","weight_kg":"0.5","dimensions_cm":[20,15,5],"destination_country":"GB"},"uk-everyday":{"origin":"London","destination":"Birmingham","weight_kg":"1","dimensions_cm":[25,20,10],"destination_country":"GB"},"uk-medium":{"origin":"London","destination":"Edinburgh","weight_kg":"2.5","dimensions_cm":[30,20,10],"destination_country":"GB"},"uk-large":{"origin":"Manchester","destination":"Bristol","weight_kg":"5","dimensions_cm":[40,30,20],"destination_country":"GB"},"uk-heavy":{"origin":"Leeds","destination":"London","weight_kg":"10","dimensions_cm":[50,35,25],"destination_country":"GB"},"fr-small":{"origin":"London","destination":"Paris","weight_kg":"1","dimensions_cm":[25,20,10],"destination_country":"FR"},"fr-large":{"origin":"London","destination":"Paris","weight_kg":"5","dimensions_cm":[40,30,20],"destination_country":"FR"},"de-medium":{"origin":"London","destination":"Berlin","weight_kg":"2.5","dimensions_cm":[30,20,10],"destination_country":"DE"},"nl-small":{"origin":"London","destination":"Amsterdam","weight_kg":"1","dimensions_cm":[25,20,10],"destination_country":"NL"},"nl-heavy":{"origin":"Manchester","destination":"Amsterdam","weight_kg":"10","dimensions_cm":[50,35,25],"destination_country":"NL"}};
+const selectedRateExample=new URLSearchParams(location.search).get('rate_example');
+if(Object.hasOwn(rateExampleCatalog,selectedRateExample)){
+ const example=rateExampleCatalog[selectedRateExample];
+ const summary=example.origin+' → '+example.destination+' · '+example.weight_kg+' kg · '+example.dimensions_cm.join(' × ')+' cm. A fresh quote and your own addresses are required.';
+ const loginHint=document.createElement('p');loginHint.className='subtle';loginHint.id='rate-example-login-hint';loginHint.textContent='Selected route: '+summary;
+ document.querySelector('#identity-login-form').before(loginHint);
+ const banner=document.createElement('aside');banner.className='card';banner.id='rate-example-workspace-hint';banner.style.marginBottom='20px';
+ const label=document.createElement('p');label.textContent='Your public rate example: '+summary;
+ const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Start a fresh quote';
+ button.onclick=()=>{setView('dispatch');$('#cargo-type').value='PARCEL';$('#cargo-type').dispatchEvent(new Event('change',{bubbles:true}));
+  for(const [id,value] of [['weight_kg',example.weight_kg],...['length_cm','width_cm','height_cm'].map((id,i)=>[id,example.dimensions_cm[i]])])$(id).value=value;
+  $('#currency').value='GBP';$('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));$('#quote-form').scrollIntoView({behavior:'smooth'});};
+ banner.append(label,button);document.querySelector('main').prepend(banner);
+}
+</script>
 </body>
 </html>

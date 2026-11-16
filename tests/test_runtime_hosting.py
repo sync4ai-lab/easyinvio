@@ -327,9 +327,9 @@ def test_public_root_and_workspace_routes_remain_separate():
     for path in ('/', '/index.html'):
         response = client.get(path)
         assert response.status_code == 200
-        assert 'Less logistics.' in response.text
+        assert 'id="rate-showcase"' in response.text
         assert 'id="loginContainer"' not in response.text
-        assert 'href="/login"' in response.text
+        assert 'href="/login?mode=signin"' in response.text
         assert response.headers['cache-control'] == 'no-store'
     for path in ('/login', '/workspace', '/workspace.html', '/set-password'):
         response = client.get(path)

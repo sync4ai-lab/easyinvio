@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from urllib.parse import urlsplit
 from playwright.async_api import async_playwright, expect
+from backend.public_rate_showcase import catalog
 
 ROOT=Path(__file__).resolve().parents[1]
 os.environ.setdefault('PLAYWRIGHT_BROWSERS_PATH',str(ROOT/'.playwright'))
@@ -35,6 +36,10 @@ async def main():
                 requests.append(path)
                 if path=='/health':data={'status':'ok','mode':'local-preview' if preview else 'configured'}
                 elif path=='/api/v1/config':data={'mode':'local-preview' if preview else 'configured','supabase_url':None,'publishable_key':None}
+                elif path=='/api/v1/public/rate-showcase':
+                    examples=catalog()
+                    if not preview: examples[0].update(status='available',price_ex_tax='3.45',carrier='EVRI',service='STANDARD',checked_at=__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),delivery_days=3)
+                    data={'status':'local-preview' if preview else 'partial','examples':examples}
                 elif path=='/api/v1/public/session':
                     await session_gate.wait()
                     data={'authenticated':signed,'name':'Test Operator'}
@@ -87,11 +92,17 @@ async def main():
             await page.wait_for_timeout(700)
             gap=await page.locator(f'#{target} .eyebrow').first.evaluate('(e)=>e.getBoundingClientRect().top-document.querySelector("#nav").getBoundingClientRect().bottom')
             assert 10<=gap<=75,(target,gap)
-        await page.locator('#hero-rate').click()
-        await expect(page.locator('#rate-tab')).to_have_attribute('aria-selected','true')
-        await expect(page.locator('#weight')).to_have_value('2.5')
-        await expect(page.locator('#origin')).to_have_value('GB')
-        await expect(page.locator('#destination')).to_have_value('GB')
+        assert await page.locator('#hero-rate,#rate-form,.widget-top,.hero [data-signup-cta]').count()==0
+        await page.locator('#rate-tab').click()
+        await expect(page.locator('.rate-example')).to_have_count(10)
+        await expect(page.locator('.rate-example').first).to_contain_text('£3.45')
+        await expect(page.locator('.rate-example a').first).to_have_attribute('href','/login?mode=signup&rate_example=uk-small')
+        await page.locator('.hero-widget').screenshot(path=str(output/'rate-showcase.png'))
+        await page.locator('.rate-example a').first.click()
+        await expect(page.locator('#rate-example-login-hint')).to_contain_text('London → Manchester')
+        await expect(page.locator('#identity-signup-form')).to_be_visible()
+        await page.goto('https://experience.test/')
+        requests.clear() # The explicit registration navigation above is outside the public-page check.
         for index in range(5):
             await page.locator(f'#pillar-{index}').click()
             await expect(page.locator('#pillar-panel')).to_have_attribute('aria-labelledby',f'pillar-{index}')
@@ -141,7 +152,7 @@ async def main():
         await page.locator('#ai-form button').click()
         await expect(page.locator('#public-chat-log')).to_contain_text('Sign in for account help')
         await page.locator('#ai-close').click()
-        allowed={'/health','/api/v1/config','/api/v1/public/session','/api/v1/public/assistance'}
+        allowed={'/health','/api/v1/config','/api/v1/public/session','/api/v1/public/assistance','/api/v1/public/rate-showcase'}
         assert set(requests)<=allowed,requests
         await page.screenshot(path=str(output/'landing-desktop.png'),full_page=True)
         for width in [375,768,1440]:
@@ -150,6 +161,8 @@ async def main():
         await page.set_viewport_size({'width':375,'height':950})
         await page.screenshot(path=str(output/'landing-mobile.png'),full_page=True)
         await page.set_viewport_size({'width':1440,'height':1000})
+        await page.locator('#solutions-toggle').click()
+        await page.locator('[data-solution="mobile"]').click()
         await page.locator('#public-register').click()
         await expect(page.locator('#identity-signup-form')).to_be_visible()
         await expect(page.locator('#identity-onboarding-intent')).to_have_value('mobile')
@@ -221,11 +234,13 @@ async def main():
         await expect(page.locator('#public-signin')).to_be_visible();assert not signed
         preview=True
         await page.goto('https://experience.test/')
-        await expect(page.locator('#service-status')).to_have_text('Local preview')
+        await page.locator('#rate-tab').click()
+        await expect(page.locator('#rate-showcase-status')).to_contain_text('Choose a route')
+        await expect(page.locator('.rate-example')).to_have_count(10)
         await expect(page.locator('#public-signin')).to_be_visible()
         await expect(page.locator('#public-workspace')).to_be_hidden()
         assert not errors,errors
-        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing','solutions preview and safe signup intent','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','editable savings calculator and invalid input','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
+        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','ten public route cards and safe registration handoff','solutions preview and safe signup intent','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','editable savings calculator and invalid input','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
         (output/'report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         await browser.close()
 

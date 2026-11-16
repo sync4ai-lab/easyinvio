@@ -149,6 +149,9 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     jwt_audience: str = "authenticated"
     credential_keys: dict[str, SecretStr] = Field(default_factory=dict)
     regional_allowed_origins: list[str] = Field(min_length=1)
+    public_rate_showcase_enabled: bool = False
+    public_rate_showcase_tenant_id: UUID | None = None
+    public_rate_showcase_account_ids: list[UUID] = Field(default_factory=list, max_length=8)
     provider_environment: Literal["TEST", "LIVE"] = "TEST"
     provider_deadline_seconds: int = Field(default=35, ge=5, le=120)
     max_parallel_provider_requests: int = Field(default=20, ge=1, le=100)
@@ -215,6 +218,11 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
         if self.stripe_livemode and any(urlsplit(u).scheme=='http' for u in [self.checkout_success_url,self.checkout_cancel_url]):
             raise ValueError('Live checkout requires HTTPS return URLs')
         return self
+
+    @field_validator('public_rate_showcase_tenant_id', mode='before')
+    @classmethod
+    def optional_public_rate_tenant(cls, value):
+        return None if value == '' else value
 
     @field_validator("supabase_url")
     @classmethod
@@ -2015,6 +2023,10 @@ async def deterministic_lifespan(application: FastAPI):
                 application.state.settings = settings
                 application.state.repository = repository
                 application.state.rating = rating
+                from backend.public_rate_showcase import PublicRateShowcase, configuration as public_rate_configuration
+                application.state.public_rate_showcase = PublicRateShowcase(pool, rating, settings)
+                jobs.start('public-rate-showcase', application.state.public_rate_showcase.worker,
+                           enabled=public_rate_configuration(settings) is not None)
                 from backend.manifest_service import ManifestService
                 application.state.manifests = ManifestService(pool,settings,http_client,repository=repository)
                 from backend.paf_lookup import IdealPostcodesClient
@@ -2184,7 +2196,7 @@ async def branded_carrier_transport(request: Request, call_next):
 
 @app.middleware("http")
 async def preview_guard(request: Request, call_next):
-    public_tools = {"/api/v1/public/assistance", "/api/v1/public/session", "/api/v1/config", "/api/v1/customs/harmonize", "/api/v1/customs/declaration",
+    public_tools = {"/api/v1/public/rate-showcase", "/api/v1/public/assistance", "/api/v1/public/session", "/api/v1/config", "/api/v1/customs/harmonize", "/api/v1/customs/declaration",
                     "/api/v1/logistics/package-guidance",
                     "/api/v1/logistics/weight", "/api/v1/logistics/cargo-weight", "/api/v1/rates/sample", "/api/v1/routing/sample", "/api/v1/rates/preview", "/api/v1/routing/preview",
                     "/api/v1/shipments/batch-preview", "/api/v1/shipments/batch-template",
@@ -2726,6 +2738,8 @@ app.add_middleware(ClientAssistanceMiddleware)
 
 from backend.public_experience import router as public_experience_router
 app.include_router(public_experience_router)
+from backend.public_rate_showcase import router as public_rate_showcase_router
+app.include_router(public_rate_showcase_router)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
