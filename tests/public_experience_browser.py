@@ -78,16 +78,34 @@ async def main():
         assert 'Model your own postage comparison' not in await page.locator('#pricing').inner_text()
         assert await page.locator('#pricing .price-card').count()==2
         for key in ['royalmail','evri','dpd','dhl','ups','shopify','amazon','woocommerce','whatsapp','easypost','shippo','sendcloud','gupshup']:
-            assert await page.locator(f'#integrations use[href="#brand-{key}"]').count()==1
+            assert await page.locator(f'#integrations .ecosystem-grid use[href="#brand-{key}"]').count()==1
         assert await page.locator('.brand-sprite symbol').count()==13
         assert await page.locator('#integrations .ecosystem-group').count()==3
+        assert await page.locator('.logo-run:not([aria-hidden]) .marquee-brand').count()==13
+        assert await page.locator('.logo-run[aria-hidden="true"]').count()==1
+        await page.locator('#logo-pause').click()
+        await expect(page.locator('#ecosystem-motion')).to_have_attribute('data-paused','true')
+        assert await page.locator('.logo-track').evaluate('(e)=>getComputedStyle(e).animationPlayState')=='paused'
+        await page.locator('#logo-pause').click()
+        await expect(page.locator('#logo-pause')).to_have_text('Pause logos')
+        await page.emulate_media(reduced_motion='reduce')
+        assert await page.locator('.logo-track').evaluate('(e)=>getComputedStyle(e).animationName')=='none'
+        await page.emulate_media(reduced_motion='no-preference')
+        assert await page.locator('.outcome-card').count()==3
+        assert await page.locator('.operation').count()==6
+        assert await page.locator('.feedback-card').count()==8
+        for card in await page.locator('.feedback-card').all():
+            assert 'Not a customer review' in await card.text_content()
+            assert 'fictional' in await card.inner_text()
+        assert await page.locator('script[type="application/ld+json"]').count()==0
+
         assert await page.locator('.brand-sprite script,.brand-sprite foreignObject,.brand-sprite image').count()==0
         assert await page.locator('.brand-sprite [onload],.brand-sprite [onclick]').count()==0
         await expect(page.locator('#public-workspace')).to_be_hidden()
         await expect(page.locator('#public-register')).to_be_visible()
         for target in ['pricing','integrations']:
             await page.locator(f'.nav-links a[href="#{target}"]').click()
-            await page.wait_for_timeout(700)
+            await page.wait_for_timeout(1100)
             gap=await page.locator(f'#{target} .eyebrow').first.evaluate('(e)=>e.getBoundingClientRect().top-document.querySelector("#nav").getBoundingClientRect().bottom')
             assert 10<=gap<=75,(target,gap)
         assert await page.locator('#hero-rate,#rate-form,.widget-top,.hero [data-signup-cta]').count()==0
@@ -119,7 +137,7 @@ async def main():
         await expect(page.locator('#public-register')).to_be_visible()
         await page.locator('#menu').click()
         await expect(page.locator('#menu')).to_have_attribute('aria-expanded','false')
-        assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+        assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth'), await page.evaluate("[...document.querySelectorAll('.wrap,.hero-grid,.pillar-grid,.pillar-menu,.console,.feedback-grid,.operations-grid,.operation,.feedback-section')].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&getComputedStyle(e).position!=='fixed').slice(0,18).map(e=>[e.tagName,e.className.baseVal||e.className,e.getBoundingClientRect().width,e.getBoundingClientRect().right])")
         await page.set_viewport_size({'width':1440,'height':1000})
         await page.locator('#pillar-0').click()
         await page.locator('#ai-open').click()
@@ -140,12 +158,18 @@ async def main():
         allowed={'/health','/api/v1/config','/api/v1/public/session','/api/v1/public/assistance','/api/v1/public/tracking/resolve'}
         assert set(requests)<=allowed,requests
         await page.locator('#integrations').screenshot(path=str(output/'integrations-desktop.png'))
+        await page.evaluate("document.activeElement.blur(); document.getElementById('track-result').hidden=true; scrollTo({top:0,behavior:'instant'})")
+        await page.wait_for_timeout(200)
         await page.screenshot(path=str(output/'landing-desktop.png'),full_page=True)
+        await page.screenshot(path=str(output/'landing-hero.png'))
         for width in [375,768,1440]:
             await page.set_viewport_size({'width':width,'height':950})
             assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width
         await page.set_viewport_size({'width':375,'height':950})
+        await page.evaluate("scrollTo({top:0,behavior:'instant'})")
         await page.screenshot(path=str(output/'landing-mobile.png'),full_page=True)
+        await page.screenshot(path=str(output/'landing-mobile-hero.png'))
+        assert await page.locator('.feedback-grid').evaluate('(e)=>e.scrollWidth>e.clientWidth')
         await page.set_viewport_size({'width':1440,'height':1000})
         await page.locator('#public-register').click()
         await expect(page.locator('#identity-signup-form')).to_be_visible()
@@ -223,7 +247,7 @@ async def main():
         await expect(page.locator('#public-signin')).to_be_visible()
         await expect(page.locator('#public-workspace')).to_be_hidden()
         assert not errors,errors
-        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','tracking-only hero and removed Solutions navigation','secure public tracking resolves correctly','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','single grouped integration directory and clear pricing cards','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
+        report={'passed':True,'page_errors':errors,'checks':['avatar menu hover, click and keyboard navigation','delayed session checks never show sign-in forms','direct account creation links','compact anchor spacing and no duplicate hero controls','tracking-only hero and removed Solutions navigation','secure public tracking resolves correctly','sanitized local brand SVGs and interactive illustrative phone demo','five visual showroom tabs and wallet currencies','single grouped integration directory and clear pricing cards','pausable integration marquee and reduced-motion alternative','three concrete outcome cards and six operational capabilities','eight individually labelled fictional feedback examples','five accessible FAQs and assistant quick prompts','matching brand and palette','anonymous public requests only','public chat, account gate and text-only output','mobile overflow checks','login to landing preserves verified identity','workspace session restores on navigation and reload','workspace and landing logout return home','shared Ask EasyInvio title','no token in localStorage']}
         (output/'report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         await browser.close()
 
