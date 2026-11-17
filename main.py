@@ -130,6 +130,9 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     subscription_tiers_enabled: bool = False
     subscription_trial_days: int = Field(default=14, ge=1, le=30)
     subscription_price_ids: dict[str, str] = Field(default_factory=dict)
+    billing_lifecycle_enabled: bool = False
+    subscription_wallet_tax_percent: Decimal = Field(default=Decimal('0'),ge=0,le=100)
+    subscription_automatic_tax_enabled: bool = False
     sendcloud_methods: dict[UUID, list[SendcloudMethod]] = Field(default_factory=dict)
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True
@@ -2034,6 +2037,11 @@ async def deterministic_lifespan(application: FastAPI):
                     await connection.execute('SELECT * FROM public.v_tenant_monthly_usage LIMIT 0')
                     if await connection.fetchval("SELECT to_regprocedure('public.guard_subscription_commercial_feature()')") is None:
                         raise RuntimeError('Apply migration 051 before enabling subscription tiers')
+                if settings.billing_lifecycle_enabled:
+                    if not settings.subscription_tiers_enabled:raise RuntimeError('Billing lifecycle requires subscription tiers')
+                    await connection.execute('SELECT pending_plan,cancellation_effective_at FROM public.tenants LIMIT 0')
+                    for relation in ('subscription_operations','subscription_change_events','billing_statements','subscription_refunds'):
+                        if await connection.fetchval('SELECT to_regclass($1)','public.'+relation) is None:raise RuntimeError('Apply migration 052 before enabling billing lifecycle')
             repository = SupabaseRepository(http_client, settings)
             configure_pricing_pool(pool,settings)
             rating = RatingService(http_client, repository, settings, pool=pool)
@@ -2082,6 +2090,9 @@ async def deterministic_lifespan(application: FastAPI):
                 application.state.support_delivery = SupportDelivery(pool,http_client,settings,DeliverySettings())
                 application.state.sandbox_billing = SandboxBillingService(application.state.finance, settings) if settings.stripe_enabled else None
                 application.state.admin_portal = AdminService(pool,settings)
+                from backend.subscription_lifecycle import SubscriptionLifecycle
+                application.state.subscription_lifecycle=SubscriptionLifecycle(application.state.finance,settings)
+                jobs.start('subscription-lifecycle',application.state.subscription_lifecycle.worker,enabled=settings.billing_lifecycle_enabled)
                 application.state.whatsapp = WhatsAppService(pool, settings, rating)
                 application.state.twilio_validator = RequestValidator(settings.twilio_auth_token.get_secret_value()) if settings.twilio_account_sid and settings.twilio_auth_token.get_secret_value() else None
                 from backend.whatsapp_queue import WhatsAppQueue
@@ -2682,6 +2693,8 @@ app.include_router(identity_router)
 from backend.subscription_api import build_router as subscription_router
 from backend.admin_portal import authenticate_platform_owner
 app.include_router(subscription_router(authenticate, authenticate_platform_owner))
+from backend.billing_api import build_router as billing_router
+app.include_router(billing_router(authenticate))
 app.include_router(sandbox_router(authenticate, RatingRequest))
 app.include_router(ecommerce_router(authenticate))
 app.include_router(hubspot_router(authenticate))

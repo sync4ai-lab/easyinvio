@@ -57,7 +57,7 @@ class Subscription(BaseModel):
     model_config=ConfigDict(extra='ignore')
     subscription_plan:Plan=Plan.STARTER
     billing_cycle:Literal['MONTHLY','ANNUAL']='MONTHLY'
-    plan_status:Literal['ACTIVE','TRIALING','PAST_DUE','CANCELLED']='ACTIVE'
+    plan_status:Literal['ACTIVE','TRIALING','PAST_DUE','CANCELLED','PENDING_CANCELLATION']='ACTIVE'
     plan_period_start:datetime
     plan_period_end:datetime|None=None
     plan_enforcement_enabled:bool=False
@@ -67,11 +67,16 @@ class Subscription(BaseModel):
     workspace_type:str='BUSINESS'
     dedicated_account_manager:str|None=None
     stripe_subscription_id:str|None=None
+    pending_plan:Plan|None=None
+    pending_billing_cycle:Literal['MONTHLY','ANNUAL']|None=None
+    pending_plan_effective_at:datetime|None=None
+    cancellation_effective_at:datetime|None=None
+    final_notice_billed:bool=False
 
     def effective(self,now:datetime|None=None)->Plan:
         now=now or datetime.now(timezone.utc)
-        valid=self.plan_status in {'ACTIVE','TRIALING'}
-        if self.plan_status=='TRIALING' and self.plan_period_end is None:valid=False
+        valid=self.plan_status in {'ACTIVE','TRIALING','PENDING_CANCELLATION'}
+        if self.plan_status in {'TRIALING','PENDING_CANCELLATION'} and self.plan_period_end is None:valid=False
         if self.plan_period_end is not None and self.plan_period_end<=now:valid=False
         return self.subscription_plan if valid else Plan.STARTER
 

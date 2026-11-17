@@ -57,6 +57,8 @@ async def change_plan(c,tenant_id,body,actor):
     if subscription.plan_version!=body.expected_version:raise HTTPException(409,'Plan changed. Refresh before saving.')
     if subscription.stripe_subscription_id:
         raise HTTPException(409,'A provider-managed subscription must be changed through its billing agreement, not overridden locally')
+    if subscription.pending_plan or subscription.cancellation_effective_at:
+        raise HTTPException(409,'Resolve the scheduled commercial change before applying a manual plan override')
     policy=capabilities(body.subscription_plan if body.plan_status in {'ACTIVE','TRIALING'} else Plan.STARTER)
     seats=await c.fetchval("""SELECT (SELECT count(*) FROM public.users WHERE tenant_id=$1 AND is_active)+
         (SELECT count(*) FROM public.workspace_invitations WHERE tenant_id=$1 AND status IN ('SENDING','PENDING') AND expires_at>now())""",tenant_id)
@@ -81,7 +83,7 @@ async def change_plan(c,tenant_id,body,actor):
     # A downgrade cannot retain an old quote/price; quote-version fencing handles other in-flight actions.
     return response
 
-MRR_SQL="""CASE WHEN t.workspace_status='ACTIVE' AND t.plan_status='ACTIVE' AND NOT t.subscription_complimentary
+MRR_SQL="""CASE WHEN t.workspace_status='ACTIVE' AND t.plan_status IN ('ACTIVE','PENDING_CANCELLATION') AND NOT t.subscription_complimentary
  AND (t.plan_period_end IS NULL OR t.plan_period_end>now()) THEN
  CASE t.subscription_plan WHEN 'VELOCITY' THEN CASE t.billing_cycle WHEN 'ANNUAL' THEN 24 ELSE 29 END
  WHEN 'COMMAND' THEN CASE t.billing_cycle WHEN 'ANNUAL' THEN 65 ELSE 79 END ELSE 0 END ELSE 0 END"""

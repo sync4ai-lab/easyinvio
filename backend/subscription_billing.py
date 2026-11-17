@@ -78,7 +78,19 @@ async def checkout(request,context,body:SubscriptionCheckout):
                     raise HTTPException(409,'Checkout reference already used with different details')
                 if row['state']=='READY':return {'checkout_url':row['checkout_url'],'request_id':str(body.request_id)}
                 raise HTTPException(409,'Checkout is complete or requires reconciliation; do not submit a second charge')
-            if subscription.stripe_subscription_id:raise HTTPException(409,'Contact support to change the existing subscription; a second subscription cannot be created here')
+            if subscription.stripe_subscription_id:
+                # A completed cancellation/Starter downgrade may restart only after
+                # verifying that the previous provider agreement cannot renew.
+                lifecycle=bool(getattr(settings,'billing_lifecycle_enabled',False))
+                finished=lifecycle and subscription.subscription_plan==Plan.STARTER and not subscription.cancellation_effective_at and not subscription.pending_plan
+                evidence=await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.subscription_operations WHERE tenant_id=$1 AND action IN ('CANCEL','DOWNGRADE') AND target_plan='STARTER' AND state='APPLIED' AND payload->>'subscription_id'=$2)",context.tenant_id,subscription.stripe_subscription_id) if finished else False
+                if not evidence:raise HTTPException(409,'Manage the existing subscription through Billing; a second subscription cannot be created here')
+                try:previous=as_dict(await finance.stripe.v1.subscriptions.retrieve_async(subscription.stripe_subscription_id))
+                except stripe.StripeError:raise HTTPException(503,'Previous subscription reconciliation is temporarily unavailable') from None
+                expected_customer=await c.fetchval('SELECT stripe_customer_id FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
+                if previous.get('status')!='canceled' or previous.get('livemode') is not settings.stripe_livemode or reference(previous.get('customer'))!=expected_customer:
+                    raise HTTPException(409,'The previous subscription requires reconciliation before starting another')
+                await c.execute('UPDATE public.tenants SET stripe_subscription_id=NULL WHERE tenant_id=$1',context.tenant_id)
             if await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.subscription_checkout_receipts WHERE tenant_id=$1 AND state IN ('CREATING','READY','REVIEW'))",context.tenant_id):
                 raise HTTPException(409,'A subscription checkout is already pending; resolve it before starting another')
             tenant=await c.fetchrow('SELECT stripe_customer_id,billing_email FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
@@ -154,12 +166,36 @@ async def receive_verified_event(request,event):
                 if tenant['stripe_customer_id'] and tenant['stripe_customer_id']!=customer:raise HTTPException(409,'Subscription customer mismatch')
                 if tenant['is_sandbox']==settings.stripe_livemode:raise HTTPException(409,'Subscription workspace environment mismatch')
                 if sub.stripe_subscription_id and sub.stripe_subscription_id!=subscription_id:raise HTTPException(409,'A different subscription is already linked')
+                lifecycle=bool(getattr(settings,'billing_lifecycle_enabled',False));now=datetime.now(timezone.utc)
+                if lifecycle:
+                    intent=await c.fetchrow("SELECT action,effective_at FROM public.subscription_operations WHERE tenant_id=$1 AND action IN ('DOWNGRADE','CANCEL') AND state IN ('AUTHORIZED','PROVIDER_PENDING','REVIEW') ORDER BY created_at DESC LIMIT 1",tenant_id)
+                    if intent:
+                        # Provider webhooks can arrive before the worker saves its result.
+                        # Never erase already-paid access during that interval.
+                        plan,cycle,started,ends=sub.subscription_plan.value,sub.billing_cycle,sub.plan_period_start,sub.plan_period_end
+                        if intent['action']=='CANCEL':ends=min(ends,intent['effective_at'])
+                        status=sub.plan_status
+                # A lower recurring Stripe price is set now without proration, but
+                # the already-paid higher tier remains available until renewal.
+                if lifecycle and sub.pending_plan and sub.pending_plan_effective_at and now<sub.pending_plan_effective_at:
+                    plan,cycle,started,ends=sub.subscription_plan.value,sub.billing_cycle,sub.plan_period_start,sub.plan_period_end
+                if lifecycle and sub.cancellation_effective_at:
+                    plan,cycle,started,ends=sub.subscription_plan.value,sub.billing_cycle,sub.plan_period_start,sub.plan_period_end
+                    status='PAST_DUE' if sub.plan_status=='PAST_DUE' else 'PENDING_CANCELLATION'
                 await c.execute("""UPDATE public.tenants SET stripe_subscription_id=$2,stripe_customer_id=coalesce(stripe_customer_id,$3),
                     subscription_plan=$4::text,billing_cycle=$5::text,plan_status=$6::text,plan_period_end=$7,plan_period_start=$8,
                     plan_enforcement_enabled=true,subscription_complimentary=false,
                     plan_version=plan_version+CASE WHEN subscription_plan<>$4 OR billing_cycle<>$5 OR plan_status<>$6 THEN 1 ELSE 0 END
                     WHERE tenant_id=$1""",tenant_id,subscription_id,customer,plan,cycle,status,ends,started)
                 await seed_margin(c,tenant_id,plan)
+                if lifecycle and sub.pending_plan and sub.pending_plan_effective_at and now>=sub.pending_plan_effective_at and plan==sub.pending_plan.value and status=='ACTIVE':
+                    await c.execute('UPDATE public.tenants SET pending_plan=NULL,pending_billing_cycle=NULL,pending_plan_effective_at=NULL WHERE tenant_id=$1',tenant_id)
+                    await c.execute("UPDATE public.subscription_operations SET state='APPLIED',updated_at=now() WHERE tenant_id=$1 AND action='DOWNGRADE' AND state='SCHEDULED'",tenant_id)
+                if lifecycle and is_invoice and kind=='invoice.paid':
+                    total=obj.get('total');net=obj.get('total_excluding_tax')
+                    if type(total) is int and type(net) is int and 0<=net<=total:
+                        await c.execute('''UPDATE public.subscription_invoice_receipts SET invoice_net_gbp=$2,invoice_tax_gbp=$3,invoice_gross_gbp=$4
+                         WHERE stripe_invoice_id=$1 AND tenant_id=$5''',obj['id'],Decimal(net)/100,Decimal(total-net)/100,Decimal(total)/100,tenant_id)
                 await c.execute('UPDATE public.subscription_invoice_receipts SET tenant_id=$2 WHERE stripe_subscription_id=$1 AND tenant_id IS NULL',subscription_id,tenant_id)
                 if receipt:await c.execute("UPDATE public.subscription_checkout_receipts SET state='COMPLETE',stripe_session_id=$2,updated_at=now() WHERE id=$1",receipt['id'],obj['id'])
             await c.execute('INSERT INTO public.subscription_webhook_events(stripe_event_id,event_type,subscription_id,event_created_at) VALUES($1,$2,$3,$4)',event_id,kind,subscription_id,datetime.fromtimestamp(created,timezone.utc))
