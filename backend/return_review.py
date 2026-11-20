@@ -186,13 +186,24 @@ class ReturnReviewService:
                 await c.execute("UPDATE public.return_review_sessions SET state='REVIEW_REQUIRED',updated_at=now() WHERE tenant_id=$1 AND id=$2", context.tenant_id, body.request_id)
             raise
 
-    async def select(self, context, request_id: UUID, body: SelectReturn) -> dict:
+    async def select(self, context, request_id: UUID, body: SelectReturn, *, expected_policy_version: int | None = None) -> dict:
         from backend.automation_three_partners import authorize, BookingRequest
         from backend.card_checkout import CardCart, create_cart
         authorize(context, context.tenant_id)
         await self.ready()
         async with self.pool.acquire() as c:
             async with c.transaction():
+                if expected_policy_version is not None:
+                    # Serialize consumer policy revocation with the short purchase
+                    # claim, not with external carrier/payment I/O. Browser reviews
+                    # continue to require their own explicit authenticated choice.
+                    version=await c.fetchval('''SELECT p.version FROM public.whatsapp_consumer_return_policies p
+                      JOIN public.users u ON u.tenant_id=p.tenant_id AND u.auth_user_id=p.authorized_by
+                      JOIN public.tenants t ON t.tenant_id=p.tenant_id
+                      WHERE p.tenant_id=$1 AND p.authorized_by=$2 AND p.enabled AND u.is_active
+                        AND u.role IN ('OWNER','ADMIN') AND t.workspace_status='ACTIVE' FOR SHARE OF p,u,t''',context.tenant_id,context.user_id)
+                    if version!=expected_policy_version:
+                        raise HTTPException(409,'Consumer return policy was changed or revoked; retailer review is required')
                 row = await c.fetchrow('SELECT * FROM public.return_review_sessions WHERE tenant_id=$1 AND id=$2 FOR UPDATE', context.tenant_id, request_id)
                 if not row:
                     raise HTTPException(404, 'Return preparation not found')

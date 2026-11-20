@@ -170,8 +170,10 @@ async def test_failed_or_uncertain_return_stays_fenced(case):
 
 
 @pytest.mark.asyncio
-async def test_customer_pay_creates_exact_card_basket_without_wallet_booking():
+@pytest.mark.parametrize('role',['OWNER','ADMIN','DISPATCHER'])
+async def test_customer_pay_creates_exact_card_basket_without_wallet_booking(role):
     context,pool,lifecycle,prepared,command=setup()
+    context.role=role
     command=command.model_copy(update={'charge_bearer':'CUSTOMER_PAY'})
     with patch('backend.automation_three_partners.prepare_return_quote',AsyncMock(return_value=prepared)),patch(
             'backend.card_checkout.create_cart',AsyncMock(return_value={'url':'https://checkout.stripe.com/test','cart_id':str(command.idempotency_key)})) as checkout:
@@ -191,7 +193,7 @@ async def test_foreign_tenant_store_and_financial_role_denied_before_purchase():
     with pytest.raises(HTTPException) as exc:
         await service.process(context,command,store_id=uuid4())
     assert exc.value.status_code==404
-    context.role='DISPATCHER'
+    context.role='ACCOUNTANT'
     with pytest.raises(HTTPException) as exc:
         await service.process(context,command.model_copy(update={'charge_bearer':'CUSTOMER_PAY'}))
     assert exc.value.status_code==403

@@ -9,6 +9,25 @@ from pydantic import Field
 from backend.agents.models import ConversationalIntent, StrictOutput
 from backend.ai_engine import country_code, strict_decimal
 from backend.paf_lookup import PAFPremise, uk_postcode
+from uuid import UUID
+
+
+class ConsumerDraft(StrictOutput):
+    """Encrypted bearer scope, never a merchant identity or role."""
+    token: str = Field(pattern=r'^[A-Za-z0-9_-]{40,100}$')
+    token_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
+    sender_e164: str = Field(pattern=r'^\+[1-9][0-9]{7,14}$')
+    receiver_e164: str = Field(pattern=r'^\+[1-9][0-9]{7,14}$')
+    tenant_id: UUID
+    shipment_id: UUID
+    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc)+timedelta(minutes=15))
+    pending_action: str | None = Field(default=None, pattern=r'^(RETURN_REQUEST|SERVICE_REQUEST|COMPLAINT)$')
+    pending_category: str | None = Field(default=None, pattern=r'^(DAMAGED|MISSING_DELAYED|ADDRESS_CHANGE|BILLING_OTHER)$')
+
+    def active(self) -> bool:
+        import hashlib
+        return (self.expires_at.tzinfo is not None and self.expires_at>datetime.now(timezone.utc)
+                and self.token_sha256==hashlib.sha256(self.token.encode()).hexdigest())
 
 
 def explicit_country(value):
@@ -24,7 +43,7 @@ def explicit_country(value):
 
 
 class ConversationDraft(StrictOutput):
-    action: str = Field(pattern=r'^(QUOTE|TRACK_PACKAGE|FILE_CLAIM|TRIGGER_RETURN)$')
+    action: str = Field(pattern=r'^(QUOTE|TRACK_PACKAGE|FILE_CLAIM|TRIGGER_RETURN|SERVICE_REQUEST|COMPLAINT|REFUND_INQUIRY)$')
     intent: ConversationalIntent
     waiting_for: str = ''
     origin_address: dict | None = None

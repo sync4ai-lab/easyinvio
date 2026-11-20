@@ -421,22 +421,31 @@ class TrackingWorkspace:
         lines.append(NO_REFUND['message'])
         return '\n'.join(lines)
 
-    async def customer_request(self,body):
+    async def customer_request(self,body, *, connection=None, shipment_id=None):
         self.require_ready()
-        digest=hashlib.sha256(body.note.encode()).hexdigest()
+        if connection is not None:
+            return await self._customer_request(connection, body, shipment_id)
         async with self.pool.acquire() as connection:
             async with connection.transaction():
-                link=await connection.fetchrow('''SELECT id,tenant_id,anchor_shipment_id FROM public.tracking_share_links
-                    WHERE token_sha256=$1 AND revoked_at IS NULL AND expires_at>now() FOR UPDATE''',hashlib.sha256(body.token.encode()).hexdigest())
-                if link is None:raise HTTPException(404,'This tracking link is unavailable or expired')
-                previous=await connection.fetchrow('SELECT id,input_sha256 FROM public.tracking_customer_requests WHERE share_link_id=$1 AND request_id=$2',link['id'],body.request_id)
-                if previous:
-                    if previous['input_sha256']!=digest:raise HTTPException(409,'Request reference was already used for different content')
-                    return {'status':'RECEIVED','request_id':str(previous['id']),'replayed':True}
-                count=await connection.fetchval("SELECT count(*) FROM public.tracking_customer_requests WHERE share_link_id=$1 AND created_at>now()-interval '1 day'",link['id'])
-                if count>=3:raise HTTPException(429,'Three requests have already been recorded on this link today. Contact the retailer directly.')
-                request_id=await connection.fetchval('''INSERT INTO public.tracking_customer_requests(tenant_id,shipment_id,share_link_id,request_id,input_sha256,note)
-                    VALUES($1,$2,$3,$4,$5,$6) RETURNING id''',link['tenant_id'],link['anchor_shipment_id'],link['id'],body.request_id,digest,body.note)
+                return await self._customer_request(connection, body, shipment_id)
+
+    async def _customer_request(self, connection, body, shipment_id=None):
+        digest=hashlib.sha256(body.note.encode()).hexdigest()
+        link=await connection.fetchrow('''SELECT id,tenant_id,anchor_shipment_id,shipment_ids FROM public.tracking_share_links
+            WHERE token_sha256=$1 AND revoked_at IS NULL AND expires_at>now() FOR UPDATE''',hashlib.sha256(body.token.encode()).hexdigest())
+        if link is None:raise HTTPException(404,'This tracking link is unavailable or expired')
+        selected = shipment_id or link['anchor_shipment_id']
+        if selected not in link['shipment_ids']:
+            raise HTTPException(404,'Parcel is outside this tracking link')
+        previous=await connection.fetchrow('SELECT id,input_sha256,shipment_id FROM public.tracking_customer_requests WHERE share_link_id=$1 AND request_id=$2',link['id'],body.request_id)
+        if previous:
+            if previous['input_sha256']!=digest or previous['shipment_id']!=selected:
+                raise HTTPException(409,'Request reference was already used for different content or parcel')
+            return {'status':'RECEIVED','request_id':str(previous['id']),'replayed':True}
+        count=await connection.fetchval("SELECT count(*) FROM public.tracking_customer_requests WHERE share_link_id=$1 AND created_at>now()-interval '1 day'",link['id'])
+        if count>=3:raise HTTPException(429,'Three requests have already been recorded on this link today. Contact the retailer directly.')
+        request_id=await connection.fetchval('''INSERT INTO public.tracking_customer_requests(tenant_id,shipment_id,share_link_id,request_id,input_sha256,note)
+            VALUES($1,$2,$3,$4,$5,$6) RETURNING id''',link['tenant_id'],selected,link['id'],body.request_id,digest,body.note)
         return {'status':'RECEIVED','request_id':str(request_id),'replayed':False,
                 'message':'Your request is available to the retailer team. No delivery change or purchase refund has been made.'}
 

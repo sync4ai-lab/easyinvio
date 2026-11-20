@@ -63,6 +63,8 @@ class SupportDelivery:
                   WHERE (o.provider IS NULL OR (o.provider=$4 AND o.provider_account IN ('',$5))) AND o.status='STAGED' AND o.next_attempt_at<=now() AND o.attempts<5
                    AND ((t.status IN ('OPEN','IN_REVIEW') AND EXISTS(SELECT 1 FROM public.shipments s
                      WHERE s.tenant_id=t.tenant_id AND s.id=t.shipment_id AND s.status='EXCEPTION'))
+                     OR (t.status IN ('OPEN','IN_REVIEW') AND to_jsonb(t)->>'cx_request_id' IS NOT NULL
+                      AND to_jsonb(o)->>'message_kind'='CUSTOMER_CX')
                      OR (t.status='CLOSED' AND to_jsonb(t)->>'insurance_claim_id' IS NOT NULL
                       AND to_jsonb(o)->>'message_kind'='INSURANCE_SETTLEMENT'))
                    AND EXISTS(SELECT 1 FROM public.tenants account WHERE account.tenant_id=o.tenant_id

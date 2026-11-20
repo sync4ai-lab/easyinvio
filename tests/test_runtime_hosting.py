@@ -172,6 +172,10 @@ def test_real_web_lifespan_initialises_services_without_queue_consumers(monkeypa
         settings=main.Settings(**(settings.model_dump()|dict(gupshup_settings())|{'quote_link_secret':SecretStr('synthetic-signing-key-with-more-than-32-bytes'),'credential_keys':{'v1':SecretStr(Fernet.generate_key().decode())}}),_env_file=None)
         assert not settings.twilio_account_sid and not settings.twilio_enabled
     monkeypatch.setattr(main, 'Settings', lambda: settings)
+    # DeliverySettings is constructed separately from main.Settings. Keep this
+    # offline test independent of the operator's private .env as well.
+    delivery_settings=main.DeliverySettings
+    monkeypatch.setattr(main,'DeliverySettings',lambda: delivery_settings(_env_file=None))
     monkeypatch.setattr(main.asyncpg, 'create_pool', create_pool)
     # Any accidental network call must fail the test, even if an optional
     # integration has been enabled in the developer's local configuration.
