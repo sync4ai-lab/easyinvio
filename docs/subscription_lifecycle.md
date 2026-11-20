@@ -5,10 +5,48 @@ rerun 050 or 051. The migration creates scheduling, append-only audit events,
 statements and original-payment refund records. It does not charge customers,
 call providers or change existing paid agreements.
 
-The release defaults `BILLING_LIFECYCLE_ENABLED=false`. Enable it on both web and
+The release defaults `BILLING_LIFECYCLE_ENABLED=false` and
+`BILLING_STATEMENTS_ENABLED=false`. For **statement-only testing**, after 052
+succeeds set `BILLING_STATEMENTS_ENABLED=true` and leave
+`BILLING_LIFECYCLE_ENABLED=false`. This enables statement preview, creation,
+downloads and read-only subscription information. It does not start payment
+processing or enable upgrades/cancellations.
+
+For the complete subscription lifecycle, enable `BILLING_LIFECYCLE_ENABLED` on both web and
 the logistics worker only after 052 has succeeded and subscription tiers are
 enabled. A running worker is necessary for provider processing, scheduled changes
-and refunds. Migration 052 is checked at startup when the flag is enabled.
+and refunds. Migration 052 is checked at startup when either flag is enabled.
+
+## Billing 503 and protected preview troubleshooting
+
+`BILLING_STATEMENTS_DISABLED` means the deployment has neither billing flag
+enabled. Redeployment alone does not turn the feature on. In Vercel, open the
+deployment overview and check its **Environment**, then set the variable for
+that exact environment under Project → Settings → Environment Variables.
+A domain named `uat` does not determine whether its deployment uses Preview,
+Production or a custom environment. Preview branch overrides can also affect
+the value. Apply environment changes to a new deployment and test its URL.
+Do not rerun migration 052 if it already succeeded.
+
+The authenticated, finance-scoped `/api/v1/billing/capabilities` endpoint reports
+which features are enabled without accessing billing tables. The workspace
+checks it before statement requests and disables unavailable statement buttons;
+Refresh billing rechecks availability. Statement failures appear beside the
+buttons and can be retried. A 401 from an identity/session restore request before
+sign-in can be normal; a persistent 401 on authenticated billing requests requires
+signing in again on the same domain.
+
+The workspace manifest uses `crossorigin="use-credentials"` so a browser can
+include its Vercel access cookie on protected deployments. A redirect to
+`vercel.com/sso-api` indicates Vercel Deployment Protection before FastAPI.
+Authenticate to the preview through its authorized Vercel link. Do not add
+`vercel.com` to application CORS or put a protection-bypass secret in browser
+code. The external `apps.rokt.com` font preload warning is not a billing error;
+EasyInvio does not reference that URL in its application source.
+
+References: [Vercel environment variables](https://vercel.com/docs/environment-variables),
+[Vercel deployment protection](https://vercel.com/docs/deployment-protection),
+[credentialed manifests](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest).
 
 ## Cancellation policy
 

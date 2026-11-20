@@ -14,7 +14,7 @@ from uuid import UUID,uuid4
 from xml.sax.saxutils import escape
 from fastapi import HTTPException
 from backend.subscription_math import money,utc
-from backend.subscription_lifecycle import document,decoded
+from backend.subscription_lifecycle import document,decoded,require_statements
 
 LIMIT=10000
 FINANCE_ROLES={'OWNER','ADMIN','ACCOUNTANT'}
@@ -120,7 +120,7 @@ class StatementService:
     def __init__(self,pool,settings):self.pool=pool;self.settings=settings
     def ready(self,context):
         if context.role not in FINANCE_ROLES:raise HTTPException(403,'Financial permission required')
-        if not getattr(self.settings,'billing_lifecycle_enabled',False):raise HTTPException(503,'Billing statements are not enabled on this deployment')
+        require_statements(self.settings)
 
     async def list(self,context):
         self.ready(context)

@@ -100,7 +100,7 @@
  const h=value=>escapeHTML(value??'');
  const scope=()=>state.session&&portal.profile?.tenant_id&&['OWNER','ADMIN','ACCOUNTANT'].includes(portal.profile.workspace_role)
    ?[state.session.access_token,portal.profile.tenant_id,portal.profile.workspace_role,state.assistance?.session_id||''].join(':'):'';
- let currentScope='',generation=0,quote=null,agreement=null,statement=null;
+ let currentScope='',generation=0,quote=null,agreement=null,statement=null,capabilities=null;
  const card=document.createElement('div');card.id='billing-workspace';card.className='card';card.hidden=true;
  card.innerHTML=`<h2>Plan, billing & statements</h2><p>Review software charges, manage your agreement and download itemized account activity.</p>
  <button type="button" class="secondary" id="billing-refresh">Refresh billing</button><p id="billing-status" role="status" aria-live="polite"></p>
@@ -114,14 +114,27 @@
  <div class="grid"><label>From (UTC)<input id="billing-from" type="date"></label><label>Until (exclusive, UTC)<input id="billing-until" type="date"></label>
  <label>Currency<select id="billing-currency"><option>GBP</option><option>EUR</option><option>USD</option></select></label></div>
  <div class="button-row"><button type="button" class="secondary" id="billing-generate">Create completed-period statement</button><button type="button" class="secondary" id="billing-preview">Preview current month</button></div>
+ <p id="billing-statement-status" role="status" aria-live="polite" tabindex="-1"></p>
  <div id="billing-statements"></div><div id="billing-statement"></div>`;
  const $=selector=>card.querySelector(selector);
  const status=message=>{$('#billing-status').textContent=message;};
- function reset(){generation++;quote=null;agreement=null;statement=null;$('#billing-agreement').replaceChildren();$('#billing-change').hidden=true;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;$('#billing-statements').replaceChildren();$('#billing-statement').replaceChildren();status('Select Refresh billing to load this workspace.');}
+ const statementButton=button=>['billing-generate','billing-preview'].includes(button.id)||button.hasAttribute('data-statement-id')||button.hasAttribute('data-billing-export');
+ function notice(message,button,error=false){const node=$(statementButton(button)?'#billing-statement-status':'#billing-status');node.textContent=message;node.setAttribute('role',error?'alert':'status');if(error){node.scrollIntoView({block:'nearest'});}}
+ function statementControls(disabled){for(const id of ['billing-generate','billing-preview'])$('#'+id).disabled=disabled;}
+ function reset(){generation++;quote=null;agreement=null;statement=null;capabilities=null;statementControls(false);$('#billing-statement-status').textContent='';$('#billing-agreement').replaceChildren();$('#billing-change').hidden=true;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;$('#billing-statements').replaceChildren();$('#billing-statement').replaceChildren();status('Select Refresh billing to load this workspace.');}
  function sync(){const next=scope();if(next!==currentScope){currentScope=next;reset();}card.hidden=!next;}
  function valid(key,epoch){return key===scope()&&epoch===generation;}
  async function run(button,fn){sync();if(!currentScope||button.disabled)return;const key=currentScope,epoch=generation;button.disabled=true;
-  try{await fn(key,epoch);}catch(error){if(valid(key,epoch))status(error.message);}finally{button.disabled=false;sync();}}
+  notice('Loading billing…',button);
+  try{
+   if(!capabilities||button.id==='billing-refresh'){
+    const data=await api('/api/v1/billing/capabilities',{auth:true});if(!valid(key,epoch))return;capabilities=data;
+    statementControls(data.statements_enabled!==true);
+   }
+   if(capabilities.statements_enabled!==true){notice(capabilities.message||'Billing statements are not enabled for this deployment. Contact the platform administrator.',button,true);return;}
+   await fn(key,epoch);
+  }catch(error){if(valid(key,epoch))notice(error.message,button,true);}
+  finally{button.disabled=false;if(valid(key,epoch))statementControls(capabilities?.statements_enabled===false);sync();}}
  const date=value=>value?new Date(value).toLocaleString():'Not set';
  const amount=(value,currency='GBP')=>currency+' '+String(value??'Not supplied');
  function renderAgreement(data){agreement=data;quote=null;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;
@@ -130,7 +143,7 @@
    ${s.pending_plan?`<p>Scheduled ${h(s.pending_plan)} from ${h(date(s.pending_plan_effective_at))}.</p>`:''}
    ${s.cancellation_effective_at?`<p>Service ends ${h(date(s.cancellation_effective_at))}. Final notice amount: ${h(amount(s.final_notice_prorated_amount))} before applicable tax.</p>`:''}
    ${(data.operations||[]).map(o=>`<p>${h(o.action)}: ${h(o.state)} · ${h(amount(o.amount))}${o.error_code?' · Finance review required.':''}${safeInvoice(o.provider_url)?` · <a href="${h(o.provider_url)}" target="_blank" rel="noopener noreferrer">Review secure Stripe invoice</a>`:''}</p>`).join('')}`;
-  $('#billing-change').hidden=!data.can_manage;
+  $('#billing-change').hidden=!data.can_manage||capabilities?.subscription_changes_enabled===false;
  }
  function safeInvoice(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&['invoice.stripe.com','pay.stripe.com'].includes(u.hostname);}catch{return false;}}
  function renderList(data){$('#billing-statements').innerHTML=(data.statements||[]).map(s=>`<p><button type="button" class="secondary" data-statement-id="${h(s.id)}">${h(s.statement_number)}</button> ${h(s.period_start?.slice(0,10))} to ${h(s.period_end?.slice(0,10))} · ${h(s.currency)}</p>`).join('')||'<p class="subtle">No completed statements yet.</p>';}
@@ -170,16 +183,16 @@
   const currency=$('#billing-currency').value;let data;
   if(preview)data=await api('/api/v1/billing/statements/preview?currency='+encodeURIComponent(currency),{auth:true});
   else {const from=$('#billing-from').value,until=$('#billing-until').value;if(!from||!until)throw Error('Choose both dates. The end date is exclusive.');data=await api('/api/v1/billing/statements',{auth:true,method:'POST',body:{start:from+'T00:00:00Z',end:until+'T00:00:00Z',currency}});}
-  if(valid(key,epoch)){renderStatement(data);status(preview?'Current activity preview.':'Statement created and retained. Refresh billing to update the list.');}
+  if(valid(key,epoch)){renderStatement(data);notice(preview?'Current activity preview.':'Statement created and retained. Refresh billing to update the list.',$('#'+id));}
  }));
  card.addEventListener('click',e=>{const button=e.target.closest('[data-statement-id],[data-billing-export]');if(!button)return;
   run(button,async(key,epoch)=>{
-   if(button.dataset.statementId){const data=await api('/api/v1/billing/statements/'+encodeURIComponent(button.dataset.statementId),{auth:true});if(valid(key,epoch))renderStatement(data);return;}
+   if(button.dataset.statementId){const data=await api('/api/v1/billing/statements/'+encodeURIComponent(button.dataset.statementId),{auth:true});if(valid(key,epoch)){renderStatement(data);notice('Statement loaded.',button);}return;}
    const s=statement,format=button.dataset.billingExport;if(!s?.id||!['pdf','csv'].includes(format))return;
    await ensureActiveIdentitySession();if(!valid(key,epoch))return;
    const response=await fetch(API+'/api/v1/billing/statements/'+encodeURIComponent(s.id)+'/'+format,{headers:{Authorization:'Bearer '+state.session.access_token},cache:'no-store'});
    if(!response.ok)throw Error('The statement export could not be downloaded. Refresh your session and retry.');const blob=await response.blob();if(!valid(key,epoch))return;
-   const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='EasyInvio-statement.'+format;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+   const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='EasyInvio-statement.'+format;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('Statement downloaded.',button);
   });
  });
  function init(){const wallet=document.getElementById('wallet');if(!wallet)return;wallet.append(card);

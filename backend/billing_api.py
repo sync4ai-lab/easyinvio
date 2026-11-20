@@ -6,7 +6,7 @@ from typing import Literal
 from uuid import UUID
 from fastapi import APIRouter,Depends,HTTPException,Request,Response
 from pydantic import BaseModel,ConfigDict,AwareDatetime
-from backend.subscription_lifecycle import ChangeRequest
+from backend.subscription_lifecycle import ChangeRequest,statements_enabled,require_statements
 from backend.statements import StatementService,statement_pdf,statement_csv,FINANCE_ROLES
 
 class StatementPeriod(BaseModel):
@@ -17,13 +17,21 @@ class StatementPeriod(BaseModel):
 
 def services(request,context):
     if context.role not in FINANCE_ROLES:raise HTTPException(403,'Financial permission required')
-    if not getattr(request.app.state.settings,'billing_lifecycle_enabled',False):raise HTTPException(503,'Billing lifecycle is not enabled on this deployment')
+    require_statements(request.app.state.settings)
     lifecycle=request.app.state.subscription_lifecycle
     return lifecycle,StatementService(lifecycle.pool,request.app.state.settings)
 
 def build_router(authenticate):
     async def private_response(response:Response):response.headers['Cache-Control']='private, no-store'
     router=APIRouter(prefix='/api/v1/billing',tags=['Billing and statements'],dependencies=[Depends(private_response)])
+    @router.get('/capabilities')
+    async def capabilities(request:Request,context=Depends(authenticate)):
+        if context.role not in FINANCE_ROLES:raise HTTPException(403,'Financial permission required')
+        settings=request.app.state.settings;available=statements_enabled(settings)
+        lifecycle=bool(getattr(settings,'billing_lifecycle_enabled',False))
+        return {'statements_enabled':available,'subscription_changes_enabled':lifecycle,
+            'message':('Statements are available. Subscription changes are disabled.' if not lifecycle else 'Billing is available.') if available
+                else 'Billing statements are not enabled for this deployment. Contact the platform administrator to enable statement access.'}
     async def change(request,context,action,body):
         lifecycle,_=services(request,context)
         try:return await lifecycle.command(context,action,body)

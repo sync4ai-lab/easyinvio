@@ -40,11 +40,22 @@ def owner(context):
     if context.role!='OWNER' or getattr(context,'assistance_session_id',None):
         raise HTTPException(403,'The customer workspace Owner must authorize commercial changes')
 
+def statements_enabled(settings):
+    # Existing lifecycle-enabled deployments retain statement access. The new
+    # independent switch never starts payment workers or authorizes plan changes.
+    return bool(getattr(settings,'billing_statements_enabled',False) or getattr(settings,'billing_lifecycle_enabled',False))
+
+def require_statements(settings):
+    if not statements_enabled(settings):raise HTTPException(503,{
+        'code':'BILLING_STATEMENTS_DISABLED',
+        'message':'Billing statements are not enabled for this deployment. Contact the platform administrator to enable statement access.'})
+
 class SubscriptionLifecycle:
     def __init__(self,finance,settings):self.finance=finance;self.pool=finance.pool;self.settings=settings
 
     def ready(self):
-        if not getattr(self.settings,'billing_lifecycle_enabled',False):raise HTTPException(503,'Billing lifecycle is not enabled on this deployment')
+        if not getattr(self.settings,'billing_lifecycle_enabled',False):raise HTTPException(503,{
+            'code':'BILLING_LIFECYCLE_DISABLED','message':'Subscription changes are not enabled for this deployment. Statement access can be enabled separately.'})
 
     async def event(self,c,op,event_type,*,amount=None,breakdown=None):
         await c.execute('''INSERT INTO public.subscription_change_events
@@ -54,8 +65,8 @@ class SubscriptionLifecycle:
          op['effective_at'],json.dumps(document(breakdown or decoded(op['payload']))))
 
     async def status(self,context):
-        self.ready()
         if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Financial permission required')
+        require_statements(self.settings)
         async with self.pool.acquire() as c:
             tenant=await c.fetchrow('''SELECT tenant_id,subscription_plan,billing_cycle,plan_status,plan_period_start,plan_period_end,stripe_subscription_id,
              plan_version,subscription_complimentary,pending_plan,pending_billing_cycle,pending_plan_effective_at,
@@ -65,7 +76,7 @@ class SubscriptionLifecycle:
              FROM public.subscription_operations WHERE tenant_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20''',context.tenant_id)
         if not tenant:raise HTTPException(404,'Workspace not found')
         return document({'subscription':dict(tenant),'operations':[dict(x) for x in operations],
-            'can_manage':context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
+            'can_manage':bool(getattr(self.settings,'billing_lifecycle_enabled',False)) and context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
             'annual_cancellation_policy':'MONTHLY_PRICE_CLAWBACK'})
 
     async def command(self,context,action,body:ChangeRequest):

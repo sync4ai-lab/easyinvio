@@ -131,6 +131,7 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     subscription_trial_days: int = Field(default=14, ge=1, le=30)
     subscription_price_ids: dict[str, str] = Field(default_factory=dict)
     billing_lifecycle_enabled: bool = False
+    billing_statements_enabled: bool = False
     subscription_wallet_tax_percent: Decimal = Field(default=Decimal('0'),ge=0,le=100)
     subscription_automatic_tax_enabled: bool = False
     sendcloud_methods: dict[UUID, list[SendcloudMethod]] = Field(default_factory=dict)
@@ -2039,9 +2040,10 @@ async def deterministic_lifespan(application: FastAPI):
                         raise RuntimeError('Apply migration 051 before enabling subscription tiers')
                 if settings.billing_lifecycle_enabled:
                     if not settings.subscription_tiers_enabled:raise RuntimeError('Billing lifecycle requires subscription tiers')
+                if settings.billing_lifecycle_enabled or settings.billing_statements_enabled:
                     await connection.execute('SELECT pending_plan,cancellation_effective_at FROM public.tenants LIMIT 0')
                     for relation in ('subscription_operations','subscription_change_events','billing_statements','subscription_refunds'):
-                        if await connection.fetchval('SELECT to_regclass($1)','public.'+relation) is None:raise RuntimeError('Apply migration 052 before enabling billing lifecycle')
+                        if await connection.fetchval('SELECT to_regclass($1)','public.'+relation) is None:raise RuntimeError('Apply migration 052 before enabling billing statements or lifecycle')
             repository = SupabaseRepository(http_client, settings)
             configure_pricing_pool(pool,settings)
             rating = RatingService(http_client, repository, settings, pool=pool)

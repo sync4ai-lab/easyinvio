@@ -133,6 +133,20 @@ async def test_statements_are_private_immutable_and_repeatable(world):
     with pytest.raises(asyncpg.InsufficientPrivilegeError):await w.db.execute('DELETE FROM public.subscription_change_events') if await w.db.fetchval('SELECT count(*) FROM public.subscription_change_events') else await w.db.execute('UPDATE public.billing_statements SET gross_total=999')
 
 @pytest.mark.asyncio
+async def test_statement_only_access_does_not_enable_plan_mutations(world):
+    w=world;w.settings.billing_lifecycle_enabled=False;w.settings.billing_statements_enabled=True
+    status=await w.service.status(w.context)
+    assert status['can_manage'] is False
+    service=StatementService(w.db,w.settings)
+    result=await service.generate(w.context,preview=True)
+    assert result['preview'] is True
+    result=await service.generate(w.context)
+    assert result['id'] and len((await service.list(w.context))['statements'])==1
+    with pytest.raises(HTTPException) as exc:await w.service.command(w.context,'UPGRADE',ChangeRequest(request_id=uuid4(),target_plan='COMMAND',funding='WALLET'))
+    assert exc.value.status_code==503 and exc.value.detail['code']=='BILLING_LIFECYCLE_DISABLED'
+    assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==0
+
+@pytest.mark.asyncio
 async def test_new_event_does_not_weaken_old_ledger_shapes(world):
     w=world
     with pytest.raises(asyncpg.CheckViolationError):await w.db.execute("INSERT INTO public.wallet_ledger(tenant_id,entry_type,balance_delta,reserved_delta) VALUES($1,'TOPUP',-5,0)",w.t)
