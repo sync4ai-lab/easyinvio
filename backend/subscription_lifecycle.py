@@ -50,6 +50,26 @@ def require_statements(settings):
         'code':'BILLING_STATEMENTS_DISABLED',
         'message':'Billing statements are not enabled for this deployment. Contact the platform administrator to enable statement access.'})
 
+def management_options(sub,settings,context,now=None):
+    """Explain eligibility without inventing a paid term for assigned/free access."""
+    now=now or utcnow();reason=None
+    if context.role!='OWNER' or getattr(context,'assistance_session_id',None):reason='Only the workspace Owner can change or cancel the subscription.'
+    elif not getattr(settings,'billing_lifecycle_enabled',False):reason='Subscription changes are not enabled. You can still compare plans and view statements.'
+    elif not sub.plan_enforcement_enabled:reason='Your access is managed by EasyInvio. Contact support to change the assigned plan.'
+    elif sub.pending_plan or sub.cancellation_effective_at:reason='A change is already scheduled. Its effective date is shown above.'
+    elif sub.subscription_plan==Plan.STARTER and not sub.stripe_subscription_id:
+        reason='Starter has no paid subscription to cancel. To activate a paid plan, open Profile and review the secure subscription checkout.'
+    elif sub.plan_period_end is None:
+        reason=('This is complimentary access with no paid renewal to cancel. Contact support to change the assigned plan.' if sub.subscription_complimentary
+            else 'No billing period or renewal date is recorded for this account. Contact support to configure the billing agreement before changing or cancelling it.')
+    elif sub.plan_period_end<=now:reason='The recorded billing period has ended. Contact support to reconcile the subscription before changing it.'
+    elif sub.plan_status not in {'ACTIVE','TRIALING','PAST_DUE'}:reason='This subscription is not active. Contact support to review the agreement.'
+    ordered=list(Plan);rank=ordered.index(sub.subscription_plan)
+    return {'reason':reason,'upgrade_targets':[p.value for p in ordered[rank+1:]] if not reason and sub.plan_status!='PAST_DUE' else [],
+        'downgrade_targets':[p.value for p in ordered[:rank]] if not reason and sub.plan_status!='PAST_DUE' else [],
+        'can_cancel':not reason and sub.subscription_plan!=Plan.STARTER,
+        'access_type':'COMPLIMENTARY' if sub.subscription_complimentary else 'BILLED' if sub.plan_period_end else 'ASSIGNED'}
+
 class SubscriptionLifecycle:
     def __init__(self,finance,settings):self.finance=finance;self.pool=finance.pool;self.settings=settings
 
@@ -68,6 +88,7 @@ class SubscriptionLifecycle:
         if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Financial permission required')
         require_statements(self.settings)
         async with self.pool.acquire() as c:
+            sub=await read_subscription(c,context.tenant_id)
             tenant=await c.fetchrow('''SELECT tenant_id,subscription_plan,billing_cycle,plan_status,plan_period_start,plan_period_end,stripe_subscription_id,
              plan_version,subscription_complimentary,pending_plan,pending_billing_cycle,pending_plan_effective_at,
              cancellation_requested_at,cancellation_effective_at,final_notice_prorated_amount,final_notice_billed
@@ -77,6 +98,8 @@ class SubscriptionLifecycle:
         if not tenant:raise HTTPException(404,'Workspace not found')
         return document({'subscription':dict(tenant),'operations':[dict(x) for x in operations],
             'can_manage':bool(getattr(self.settings,'billing_lifecycle_enabled',False)) and context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
+            'management':management_options(sub,self.settings,context),
+            'plans':[{'plan':p.value,'annual_fee_gbp':cycle_price(p,'ANNUAL'),**capabilities(p).model_dump()} for p in Plan],
             'annual_cancellation_policy':'MONTHLY_PRICE_CLAWBACK'})
 
     async def command(self,context,action,body:ChangeRequest):

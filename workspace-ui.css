@@ -1,4 +1,16 @@
 /* Shared controls and layouts: no changes to business permissions. */
+#billing-workspace{margin-top:24px}
+#billing-workspace h2,#billing-workspace h3{margin-bottom:12px}
+#billing-workspace p{margin:10px 0 16px}
+#billing-workspace .billing-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:16px 0}
+#billing-change{padding:20px;margin:20px 0 28px;border:1px solid #334155;border-radius:16px;background:#0f172a}
+#billing-quote{margin:20px 0;padding:20px}
+#billing-comparison{width:min(1000px,calc(100vw - 32px));max-height:85dvh;padding:28px;border:1px solid #475569;border-radius:18px;background:#0f172a;color:#e2e8f0;overflow:auto}
+#billing-comparison::backdrop{background:rgba(2,6,23,.8)}
+#billing-comparison .billing-toolbar{justify-content:space-between;align-items:flex-start}
+#billing-comparison table{width:100%;border-collapse:collapse;min-width:760px}
+#billing-comparison th,#billing-comparison td{padding:14px;text-align:left;border-bottom:1px solid #334155;vertical-align:top}
+#billing-comparison th{color:#c7d2fe}
 #loginContainer .identity-login-card{min-width:0;flex-shrink:0}
 #loginContainer form,#loginContainer label{min-width:0;width:100%}
 #loginContainer .identity-input{width:100%;min-width:0;min-height:48px;padding:0 14px;align-items:center}

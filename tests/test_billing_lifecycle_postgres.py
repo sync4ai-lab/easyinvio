@@ -147,6 +147,32 @@ async def test_statement_only_access_does_not_enable_plan_mutations(world):
     assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==0
 
 @pytest.mark.asyncio
+async def test_plan_management_describes_valid_directions_and_unbounded_access(world):
+    w=world
+    status=await w.service.status(w.context)
+    assert status['management']['upgrade_targets']==['COMMAND']
+    assert status['management']['downgrade_targets']==['STARTER']
+    assert status['management']['can_cancel'] is True
+    assert [p['plan'] for p in status['plans']]==['STARTER','VELOCITY','COMMAND']
+    await w.db.execute("UPDATE public.tenants SET subscription_plan='COMMAND',plan_period_end=NULL,subscription_complimentary=true WHERE tenant_id=$1",w.t)
+    status=await w.service.status(w.context)
+    assert status['management']['access_type']=='COMPLIMENTARY'
+    assert 'no paid renewal to cancel' in status['management']['reason']
+    assert status['management']['upgrade_targets']==[] and not status['management']['can_cancel']
+    assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==0
+
+@pytest.mark.asyncio
+async def test_command_to_velocity_is_a_downgrade_and_cancellation_has_confirmation(world):
+    w=world;await w.db.execute("UPDATE public.tenants SET subscription_plan='COMMAND' WHERE tenant_id=$1",w.t)
+    data=await w.service.status(w.context)
+    assert data['management']['upgrade_targets']==[] and data['management']['downgrade_targets']==['STARTER','VELOCITY']
+    body,q=await preview(w,'DOWNGRADE','VELOCITY')
+    assert q['state']=='PREVIEW' and (await read_subscription(w.db,w.t)).subscription_plan=='COMMAND'
+    result=await confirm(w,'DOWNGRADE',body,q)
+    assert result['state']=='SCHEDULED' and (await read_subscription(w.db,w.t)).pending_plan=='VELOCITY'
+    assert (await read_subscription(w.db,w.t)).subscription_plan=='COMMAND'
+
+@pytest.mark.asyncio
 async def test_new_event_does_not_weaken_old_ledger_shapes(world):
     w=world
     with pytest.raises(asyncpg.CheckViolationError):await w.db.execute("INSERT INTO public.wallet_ledger(tenant_id,entry_type,balance_delta,reserved_delta) VALUES($1,'TOPUP',-5,0)",w.t)

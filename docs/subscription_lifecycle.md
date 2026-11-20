@@ -121,10 +121,32 @@ is exposed in this release.
 
 ## Workspace and statements
 
-Open **Wallet → Plan, billing & statements → Refresh billing**. Owners see
-preview/confirm controls; other finance roles see read-only data. A second
-refresh shows queued invoice/payment progress. No background browser polling
+Open **Wallet → Your plan & billing → Manage your plan**. Owners can review
+eligible changes; other finance roles see read-only data. **Reload billing
+details** only reads the saved plan, statement list and processing status; it
+never submits a payment. Processing guidance appears only for an actual pending
+request. No background browser polling
 or provider calls are triggered by merely opening the landing page.
+
+**Compare plans** opens a closable feature comparison sourced from the server's
+entitlement catalogue. It does not change the agreement. In Manage your plan,
+the selected tier determines whether **Review upgrade** or **Review downgrade**
+appears. The review contains the actual proposed financial amount and effective
+date. A separate **Cancel current subscription → Confirm cancellation** flow
+shows the notice period and refund/fee calculation before authorization.
+
+A Command account cannot upgrade to Velocity: that is a downgrade. Accounts
+without a recorded billing-period end date cannot safely calculate prorations
+or cancellation fees. The UI explains assigned/complimentary access and disables
+inapplicable financial actions instead of submitting avoidable 409 requests.
+Do not invent a paid renewal date to bypass this check. For UAT, the platform
+owner can set a bounded complimentary trial through the existing Plans & Revenue
+controls, or provision a verified Stripe test subscription for payment testing.
+Existing active Stripe agreements must be reconciled through their provider.
+
+Normal token renewal preserves the panel. A different session, identity,
+workspace, role or assistance session clears financial content and closes the
+comparison dialog. A failed review keeps the current plan and displays its error.
 
 Create a statement for a completed UTC range (exclusive end, maximum 32 days),
 or preview the current month. The default completed period is the previous
