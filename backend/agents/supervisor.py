@@ -29,6 +29,12 @@ class LogisticsSupervisor:
         self.dispatch_permission(context)
         workflow = Workflow()
         workflow.move(State.VALIDATING)
+        from backend.cx_intents import cx_intent
+        proposed = cx_intent(text)
+        if proposed:
+            workflow.move(State.NEEDS_INPUT)
+            return {'workflow': workflow.model_dump(mode='json'), 'intent': proposed.model_dump(mode='json'), 'booking_authorized': False,
+                    'message': 'Record a support request; no payment or carrier mutation is authorized.'}
         from backend.agents.status_guidance import status_question
         if status_question(text) or documentation_question(text):
             guidance = await self.help.answer(context, text)

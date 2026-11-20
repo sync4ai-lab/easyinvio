@@ -48,6 +48,11 @@ class MarginOptimizerAgent:
     async def recommend(self, context, response, pool):
         if not self.runtime.available or not response.rates:
             return response
+        from backend.entitlements import guard_feature
+        try:await guard_feature(pool,self.runtime.settings,context.tenant_id,'ai_carrier_advisor')
+        except HTTPException as error:
+            if error.status_code==402:return response
+            raise
         rates = response.rates[:10]
         if not any(rate.label_purchase_available for rate in rates):
             return response

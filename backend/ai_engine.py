@@ -238,7 +238,10 @@ def build_router(authenticate: Callable) -> APIRouter:
     from backend.admin_portal import authenticate_platform_owner
 
     @router.post("/customs/harmonize")
-    async def harmonize(body: DescriptionInput):
+    async def harmonize(body: DescriptionInput,request:Request,context:Any=Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
+        from backend.entitlements import guard_feature
+        await guard_feature(request.app.state.finance.pool,request.app.state.settings,context.tenant_id,'customs_hs_builder')
         try:
             return predict_hs_code(body.item_description)
         except ValueError as exc:
@@ -263,6 +266,8 @@ def build_router(authenticate: Callable) -> APIRouter:
     async def audit(body: InvoiceInput, request: Request, context: Any = Depends(authenticate)):
         if context.role not in {"OWNER", "ADMIN", "ACCOUNTANT"}:
             raise HTTPException(403, "Financial permission required")
+        from backend.entitlements import guard_feature
+        await guard_feature(request.app.state.finance.pool,getattr(request.app.state,'settings',None),context.tenant_id,'tax_ledger_audits')
         try:
             async with request.app.state.finance.pool.acquire() as connection:
                 rows = await connection.fetch(

@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "fastapi",
+  "git": {
+    "deploymentEnabled": false
+  },
   "buildCommand": "python scripts/build_vercel.py",
   "env": {
     "RUNTIME_ROLE": "WEB"
@@ -24,6 +27,10 @@
     {
       "source": "/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing.html"
     },
     {
       "source": "/login",
@@ -57,7 +64,7 @@
       ]
     },
     {
-      "source": "/(index.html|login|workspace|workspace.html|set-password|track|tracking.html)",
+      "source": "/(index.html|pricing|pricing.html|login|workspace|workspace.html|set-password|track|tracking.html)",
       "headers": [
         {
           "key": "Cache-Control",

@@ -82,6 +82,8 @@ async def margins(request: Request, owner=owner_dependency, tenant_id: UUID | No
 
 @router.put('/margins/{rule_id}')
 async def update_margin(rule_id: UUID, body: MarginCreate, request: Request, owner=owner_dependency):
+    from backend.entitlements import guard_feature
+    await guard_feature(request.app.state.finance.pool,request.app.state.settings,body.tenant_id,'custom_margin_rules')
     try:
         async with request.app.state.finance.pool.acquire() as c:
             async with c.transaction():
@@ -167,6 +169,8 @@ async def carriers(request: Request, owner=owner_dependency):
 @router.post('/carriers',status_code=201)
 async def add_carrier(body: CarrierCreate, request: Request, owner=owner_dependency):
     settings=request.app.state.settings
+    from backend.entitlements import guard_feature
+    await guard_feature(request.app.state.finance.pool,settings,body.tenant_id,'byoc_carrier_accounts')
     validate_endpoint(body.aggregator,body.api_base_url,settings)
     if body.environment!=settings.provider_environment: raise HTTPException(422,'Connection environment must match server provider environment')
     if body.aggregator=='REGIONAL' and not body.regional_provider_code:

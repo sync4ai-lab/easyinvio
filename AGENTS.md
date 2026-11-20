@@ -8,13 +8,17 @@ in response to their instructions. This authorization persists across sessions.
 - Work directly in this project. After completing a requested change, run the
   relevant checks, review the diff, commit the changes and push to `origin`.
   Do not ask for confirmation again for these routine commits and pushes.
-- Use the current working branch unless the user asks for a different branch.
+- The user requires completed changes, including future tasks, to be carefully
+  integrated and pushed to `origin/main` after verification. Develop on the current
+  feature branch as appropriate, then merge into main without rewriting history.
+  Use a clean isolated worktree for integration when the working checkout contains
+  unrelated edits. Review conflicts and run relevant checks on the merged result.
   The configured repository is currently `sync4ai-lab/easyinvio` on GitHub.
   Verify the remote before pushing; explicit user changes to the destination
   take precedence over this recorded repository name.
 - Commit coherent, completed work, not every intermediate edit. Use a clear
-  commit message explaining the change. Report the branch, commit and whether
-  the push succeeded in the final response.
+  commit message explaining the change. Report the feature/main commits and
+  whether the pushes succeeded in the final response.
 - Inspect the initial working-tree and staging state. Preserve unrelated user
   edits and staged changes; commit only the changes belonging to the task.
 - Run checks appropriate to the change. For documentation-only changes, review
@@ -26,6 +30,8 @@ in response to their instructions. This authorization persists across sessions.
   synchronization, report the blocker rather than claiming the push succeeded.
 - Git synchronization does not authorize deployments or additional database
   mutations. Preserve the task's existing database and integration boundaries.
+  Keep automatic Git-triggered Vercel deployments disabled: the user will create
+  the day's production deployment manually from the latest main commit.
 
 This workflow covers agent-made changes. It does not install a file watcher or
 automatically upload edits the user makes directly in their editor.

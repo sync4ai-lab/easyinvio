@@ -20,7 +20,8 @@ class QuoteIntent(StrictOutput):
 
 class ConversationalIntent(StrictOutput):
     """Model proposals are data; only the gateway authorizes an action."""
-    intent: Literal['QUOTE', 'BOOK_RESERVATION', 'TRACK_PACKAGE', 'TOPUP_WALLET', 'FILE_CLAIM', 'TRIGGER_RETURN', 'CLOSE_MANIFEST', 'MANIFEST_STATUS', 'HELP']
+    intent: Literal['QUOTE', 'BOOK_RESERVATION', 'TRACK_PACKAGE', 'TOPUP_WALLET', 'FILE_CLAIM', 'TRIGGER_RETURN', 'CLOSE_MANIFEST', 'MANIFEST_STATUS', 'SERVICE_REQUEST', 'COMPLAINT', 'REFUND_INQUIRY', 'HELP']
+    issue_category: Literal['DAMAGED','MISSING_DELAYED','ADDRESS_CHANGE','BILLING_OTHER'] | None = None
     weight_kg: str | None = None
     origin_country: str | None = None
     destination_country: str | None = None

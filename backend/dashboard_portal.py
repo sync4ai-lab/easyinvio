@@ -46,14 +46,17 @@ def build_router(authenticate):
 
     @router.post('/workspace/stores',status_code=201)
     async def create_store(body: StoreConfiguration, request: Request, context: Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
+        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace administration permission required')
         async with request.app.state.finance.pool.acquire() as c:
-            row=await c.fetchrow('INSERT INTO public.ecommerce_stores(tenant_id,platform,display_name) VALUES($1,$2,$3) RETURNING id',context.tenant_id,body.platform,body.display_name)
+            async with c.transaction():
+                from backend.entitlements import enabled,check_quota
+                if enabled(request.app.state.settings):await check_quota(c,context.tenant_id,'STORES')
+                row=await c.fetchrow('INSERT INTO public.ecommerce_stores(tenant_id,platform,display_name) VALUES($1,$2,$3) RETURNING id',context.tenant_id,body.platform,body.display_name)
         return {'id':str(row['id']),'platform':body.platform,'display_name':body.display_name,'is_active':True}
 
     @router.patch('/workspace/stores/{store_id}')
     async def store_state(store_id: UUID, body: StoreState, request: Request, context: Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
+        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace administration permission required')
         async with request.app.state.finance.pool.acquire() as c:
             row=await c.fetchrow('UPDATE public.ecommerce_stores SET is_active=$3 WHERE tenant_id=$1 AND id=$2 RETURNING id',context.tenant_id,store_id,body.is_active)
         if not row:raise HTTPException(404,'Workspace store not found')

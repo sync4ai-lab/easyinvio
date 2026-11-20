@@ -20,6 +20,8 @@ from backend.whatsapp_onboarding import SupabaseSignupProvider
 class RegistrationStart(BaseModel):
     model_config = ConfigDict(extra='forbid', hide_input_in_errors=True)
     workspace_type: Literal['BUSINESS', 'INDIVIDUAL']
+    plan: Literal['STARTER','VELOCITY','COMMAND'] = 'STARTER'
+    cycle: Literal['MONTHLY','ANNUAL'] = 'MONTHLY'
     profile: CompanyProfile | PersonalProfile
 
     @model_validator(mode='after')
@@ -64,6 +66,9 @@ async def start_registration(body: RegistrationStart, request: Request):
             row = await c.fetchrow('''INSERT INTO public.web_registration_sessions
                 (secret_sha256,email_address,workspace_type,profile,state) VALUES($1,$2,$3,$4::jsonb,'SENDING_EMAIL')
                 RETURNING id''', hashlib.sha256(secret.encode()).hexdigest(), email, body.workspace_type, profile.model_dump_json())
+            from backend.entitlements import enabled
+            if enabled(settings):
+                await c.execute('UPDATE public.web_registration_sessions SET requested_plan=$2,requested_cycle=$3 WHERE id=$1',row['id'],body.plan,body.cycle)
     async with httpx.AsyncClient(trust_env=False) as client:
         await SupabaseSignupProvider(settings, client).send_code(email)
     async with pool.acquire() as c:
@@ -141,4 +146,7 @@ async def verify_registration(body: RegistrationVerify, request: Request):
             await c.execute("INSERT INTO public.users(tenant_id,auth_user_id,role,full_name,is_active) VALUES($1,$2,'OWNER',$3,true)", row['tenant_id'], user_id, profile.contact_name)
             await c.execute('INSERT INTO public.app_user_profiles(auth_user_id,full_name,phone_e164) VALUES($1,$2,$3)', user_id, profile.contact_name, getattr(profile, 'phone_e164', None))
             await c.execute("UPDATE public.web_registration_sessions SET state='VERIFIED',auth_user_id=$2 WHERE id=$1", row['id'], user_id)
+            from backend.entitlements import enabled,seed_subscription
+            if enabled(settings):
+                await seed_subscription(c,row['tenant_id'],row['requested_plan'],row['requested_cycle'],sandbox=sandbox,trial_days=settings.subscription_trial_days)
     return {'message': 'Your account is activated with a GBP 0.00 wallet. Sign in with your email and password.'}

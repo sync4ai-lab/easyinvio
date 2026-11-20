@@ -83,6 +83,21 @@ def return_media(result: dict[str, Any], settings: Settings) -> str | None:
     return value
 
 
+def return_image(result: dict[str, Any], settings: Settings, tenant_id) -> str | None:
+    """Only our private, signed tenant/shipment media namespace may be attached."""
+    data=result.get('return_request') or {}
+    media=data.get('media_urls') or []
+    if not media:
+        return None
+    parsed=urlsplit(media[0]);base=urlsplit(settings.supabase_url)
+    expected=f'/storage/v1/object/sign/{settings.logistics_media_bucket}/{tenant_id}/{data.get("shipment_id")}/'
+    filename=parsed.path.removeprefix(expected)
+    if (parsed.scheme=='https' and parsed.netloc==base.netloc and parsed.path.startswith(expected)
+            and re.fullmatch(r'[A-Za-z0-9_-]+\.png',filename) and parsed.query and not parsed.fragment):
+        return media[0]
+    return None
+
+
 async def process_inbound(request: Request, form: FormData, received_at: datetime | None = None) -> list[OutboundPart]:
     """Re-resolve membership at execution; never trust queued caller-supplied IDs."""
     from backend.whatsapp_onboarding import onboarding_manager
@@ -90,6 +105,29 @@ async def process_inbound(request: Request, form: FormData, received_at: datetim
     state = request.app.state
     reason=recipient_error(state.settings,form.get('From','').removeprefix('whatsapp:'))
     if reason:raise HTTPException(409,reason)
+    if getattr(state.settings,'whatsapp_consumer_cx_enabled',False):
+        from backend.whatsapp_consumer import ConsumerCX, tracking_token
+        sender, receiver = (form[name].removeprefix('whatsapp:') for name in ('From','To'))
+        token, _ = tracking_token(form.get('Body',''),state.settings.booking_page_url)
+        # Explicit tracking capability takes precedence without granting B2B roles.
+        if token:
+            return await ConsumerCX(request).handle(form)
+        context = await state.whatsapp.resolve_sender(sender,receiver)
+        if context is None:
+            # Registration remains available only through its explicit command or
+            # an already-running registration, not through consumer identity guesses.
+            signup = await onboarding_manager(request)
+            if signup is not None:
+                cached = await signup.replay(form)
+                if cached is not None:
+                    return reply_parts(cached)
+                async with state.whatsapp.pool.acquire() as c:
+                    registering = await c.fetchval('''SELECT EXISTS(SELECT 1 FROM public.whatsapp_registration_queue
+                      WHERE phone_e164=$1 AND receiver_e164=$2 AND expires_at>now()
+                      AND current_state NOT IN ('VERIFIED','LOCKED','EXPIRED','CANCELLED'))''',sender,receiver)
+                if registering or re.fullmatch(r'\s*(?:register|sign up)\s*',form.get('Body',''),re.I):
+                    return reply_parts(await signup.handle(form))
+            return await ConsumerCX(request).handle(form)
     # Customer access requires the actual unguessable capability, not a claimed
     # phone/order relationship. The signed, encrypted inbox fences this read too.
     capability = re.fullmatch(r'\s*track\s+link\s+([A-Za-z0-9_-]{40,100})\s*',form.get('Body',''),re.I)
@@ -120,14 +158,9 @@ async def process_inbound(request: Request, form: FormData, received_at: datetim
         sender_id=sender, message_body=form['Body'], channel='WHATSAPP',
         request_id=uuid5(NAMESPACE_URL, 'twilio:' + form['MessageSid'])), verified_whatsapp=True, received_at=received_at)
     view=return_media(result,state.settings)
-    media=(result.get('return_request') or {}).get('media_urls') or []
-    if media and view:
-        # Only accept the server-owned private storage namespace for this tenant/shipment.
-        parsed=urlsplit(media[0]);base=urlsplit(state.settings.supabase_url)
-        shipment=(result.get('return_request') or {}).get('shipment_id')
-        expected=f'/storage/v1/object/sign/{state.settings.logistics_media_bucket}/{context.tenant_id}/{shipment}/'
-        if parsed.scheme=='https' and parsed.netloc==base.netloc and parsed.path.startswith(expected) and parsed.query:
-            return reply_parts(message_xml(result['conversational_reply']),media[0],fallback_view_url=view)
+    image=return_image(result,state.settings,context.tenant_id) if view else None
+    if image:
+        return reply_parts(message_xml(result['conversational_reply']),image,fallback_view_url=view)
     return reply_parts(message_xml(result['conversational_reply']),view)
 
 

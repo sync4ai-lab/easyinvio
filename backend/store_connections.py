@@ -86,7 +86,10 @@ def build_router(authenticate):
 
     @router.put('/{store_id}/connection')
     async def save(store_id: UUID, body: ConnectionSetup, request: Request, context: Any = Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN'}:raise HTTPException(403,'Workspace administration permission required')
         store = await scoped_store(request, context, store_id)
+        from backend.entitlements import guard_feature
+        await guard_feature(request.app.state.ecommerce.pool,getattr(request.app.state,'settings',None),context.tenant_id,'store_integrations')
         if store['platform'] not in {'SHOPIFY', 'WOOCOMMERCE', 'AMAZON'}:
             raise HTTPException(422, 'This platform requires assisted integration')
         service = request.app.state.ecommerce

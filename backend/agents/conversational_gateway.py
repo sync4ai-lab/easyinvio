@@ -163,6 +163,11 @@ class ConversationalActionGateway:
         return {'status': status, 'conversational_reply': text, 'action_taken': action, **details}
 
     async def interpret(self, context, text):
+        from backend.cx_intents import cx_intent
+        proposed = cx_intent(text)
+        # Preserve the established explicit insurance-claim command.
+        if proposed and not re.match(r'\s*claim\b', text, re.I) and getattr(self.state.settings,'whatsapp_consumer_cx_enabled',False):
+            return proposed
         if status_question(text) or documentation_question(text):
             return ConversationalIntent(intent='HELP')
         closing = re.fullmatch(r'\s*close\s+manifest\s+([A-Za-z0-9 _-]{1,50})\s*',text,re.I)
@@ -219,6 +224,12 @@ class ConversationalActionGateway:
             raise HTTPException(403, 'An active registered workspace session is required')
         if body.channel == 'WHATSAPP' and not verified_whatsapp:
             raise HTTPException(403, 'WhatsApp actions require the signed Twilio webhook')
+        if body.channel == 'WHATSAPP':
+            from backend.entitlements import guard_feature
+            try:await guard_feature(self.pool,self.state.settings,context.tenant_id,'whatsapp_bot')
+            except HTTPException as error:
+                if error.status_code!=402:raise
+                return self.public(self.reply('HELP','WhatsApp booking is available on Velocity and Command. See '+self.state.settings.booking_page_url.rstrip('/')+'/pricing'))
         # sender_id is never a tenant/user selector for web chat; its identity is
         # always the authenticated browser session, including assistance audit.
         message_id = uuid5(NAMESPACE_URL, f'conversation:{context.tenant_id}:{context.user_id}:{body.channel}:{body.request_id}')
@@ -248,12 +259,20 @@ class ConversationalActionGateway:
                 return self.public(result)
             try:
                 status_help = status_question(body.message_body) or documentation_question(body.message_body)
-                new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|return|topup|help|commands|manifest)\b|\btop\s+up\b', body.message_body, re.I)
+                new_command = None if ';' in body.message_body else re.search(r'\b(?:quote|rates?|track|tracking|claim|book|confirm|return|topup|help|commands|manifest|complaint|support|refund|void)\b|\btop\s+up\b', body.message_body, re.I)
                 if status_help:
                     intent = ConversationalIntent(intent='HELP')
                 elif self.draft and not new_command:
                     if self.draft.action == 'QUOTE':
                         collect_reply(self.draft, body.message_body, require_paf=body.channel == 'WHATSAPP')
+                    elif self.draft.waiting_for == 'issue':
+                        if len(body.message_body.strip())<10:
+                            raise ValueError('Describe the issue in at least ten characters')
+                        from backend.cx_intents import cx_intent
+                        details = cx_intent(body.message_body)
+                        self.draft.intent = self.draft.intent.model_copy(update={
+                            'description_notes': body.message_body.strip()[:1000],
+                            'issue_category': details.issue_category if details else 'BILLING_OTHER'})
                     elif self.draft.waiting_for == 'reference':
                         reference = body.message_body.strip()
                         if not re.fullmatch(r'[A-Za-z0-9_-]{1,200}', reference):
@@ -309,10 +328,13 @@ class ConversationalActionGateway:
             'paf_retry': 'Reply Retry to check the UK postcode again, or Cancel to start a new quote.',
             'retry': 'Reply Retry to request rates again, or Cancel to clear the draft.',
             'reference': 'Please reply with the shipment or tracking reference. I will check only your workspace.',
+            'issue': 'Describe your issue in at least ten characters: damaged, missing/delayed, address change, or billing/other.',
         }
         return prompts[draft.waiting_for]
 
     async def execute(self, context, body, intent, message_id):
+        if intent.intent in {'SERVICE_REQUEST','COMPLAINT','REFUND_INQUIRY'}:
+            return await self.support_request(context, body, intent, message_id)
         if intent.intent in {'CLOSE_MANIFEST','MANIFEST_STATUS'}:
             return await self.manifest(context,body,intent,message_id)
         if intent.intent == 'TRIGGER_RETURN':
@@ -604,6 +626,41 @@ class ConversationalActionGateway:
         if len(rows) != 1:
             raise HTTPException(404, 'No unique shipment with that reference was found in your workspace')
         return rows[0]
+
+    async def support_request(self, context, body, intent, message_id):
+        from backend.cx_support import SupportCase, record_case
+        from backend.cx_intents import cx_intent
+        if not getattr(self.state.settings,'whatsapp_consumer_cx_enabled',False):
+            raise HTTPException(409,'Conversational support requests are not enabled yet')
+        if not cx_intent(body.message_body) and not (self.draft and self.draft.action==intent.intent):
+            return self.reply(intent.intent,'Describe a complaint, service request or refund inquiry explicitly.',status='NEEDS_INPUT')
+        reference=intent.target_reference_id or getattr(self,'previous',{}).get('_last_reference')
+        if not reference:
+            draft=ConversationDraft(action=intent.intent,intent=intent,waiting_for='reference',
+                assistance_id=str(context.assistance_session_id) if context.assistance_session_id else None)
+            return self.pending_reply(draft,self.draft_prompt(draft))
+        shipment=await self.shipment(context,reference)
+        summary=(intent.description_notes or '').strip()[:1000]
+        if len(summary)<10:
+            draft=ConversationDraft(action=intent.intent,intent=intent.model_copy(update={'target_reference_id':reference}),
+                waiting_for='issue',assistance_id=str(context.assistance_session_id) if context.assistance_session_id else None)
+            return self.pending_reply(draft,self.draft_prompt(draft))
+        notice='Your request is recorded for the retailer support team. No delivery change or refund has been made.'
+        async with self.pool.acquire() as c:
+            async with c.transaction():
+                row=await c.fetchrow('SELECT status,manifest_id FROM public.shipments WHERE tenant_id=$1 AND id=$2 FOR SHARE',context.tenant_id,shipment['id'])
+                if intent.intent=='REFUND_INQUIRY':
+                    if context.role not in DISPATCH_ROLES:
+                        raise HTTPException(403,'A dispatch role is required for a label void review')
+                    if row['status']!='BOOKED' or row['manifest_id'] is not None:
+                        raise HTTPException(409,'Only an undispatched, unmanifested booked label is eligible for a void review. Contact support about other refunds.')
+                    notice=('A label void/refund review is recorded; this chat has not cancelled the label. '
+                        'For prepaid bookings, the original shipping charge is credited to the wallet only after the carrier confirms the void '
+                        'and the original captured charge is reconciled. Pending carrier decisions have no guaranteed completion time. '
+                        'Postpaid bookings do not receive a prepaid wallet credit.')
+                ticket=await record_case(c,SupportCase(request_id=message_id,tenant_id=context.tenant_id,shipment_id=shipment['id'],
+                    kind=intent.intent,category=intent.issue_category or 'BILLING_OTHER',summary=summary))
+        return self.reply(intent.intent,f'Case {ticket}. '+notice,ticket_id=str(ticket),_last_reference=reference)
 
     async def claim(self, context, body, intent, message_id):
         from backend.shipment_protection import insured_shipment, require_claim_role

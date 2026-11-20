@@ -78,6 +78,7 @@ def fixture_checkout(root):
         (root / name).write_text('synthetic public file', encoding='utf-8')
     (root / 'frontend/landing').mkdir(parents=True)
     (root / 'frontend/landing/index.html').write_text('synthetic landing', encoding='utf-8')
+    (root / 'frontend/landing/pricing.html').write_text('synthetic pricing', encoding='utf-8')
     (root / 'index.html').write_text('synthetic workspace', encoding='utf-8')
     (root / 'main.py').write_text('app = None', encoding='utf-8')
     (root / 'requirements.lock.txt').write_text('', encoding='utf-8')
@@ -94,6 +95,7 @@ def test_build_publishes_only_allowlisted_assets_and_blocks_stale_worker(tmp_pat
     assert result['public_assets'] == len(ASSETS)
     assert (tmp_path / 'public/index.html').read_text() == 'synthetic landing'
     assert (tmp_path / 'public/workspace.html').read_text() == 'synthetic workspace'
+    assert (tmp_path / 'public/pricing.html').read_text() == 'synthetic pricing'
     assert {p.name for p in (tmp_path / 'public').iterdir()} == set(ASSETS)
     data = (tmp_path / 'deployment/worker/runtime.tar.gz').read_bytes()
     assert data == bundle(runtime_files(tmp_path))
@@ -117,7 +119,7 @@ def test_build_refuses_unexpected_public_files(tmp_path):
 def test_vercel_configuration_keeps_api_routes_out_of_cdn_rewrites():
     root = Path(__file__).resolve().parents[1]
     configuration = json.loads((root / 'vercel.json').read_text(encoding='utf-8'))
-    assert {r['source'] for r in configuration['rewrites']} == {'/', '/login', '/workspace', '/set-password', '/track'}
+    assert {r['source'] for r in configuration['rewrites']} == {'/', '/pricing', '/login', '/workspace', '/set-password', '/track'}
     rewrites = {r['source']: r['destination'] for r in configuration['rewrites']}
     assert rewrites['/'] == '/index.html'
     assert rewrites['/login'] == rewrites['/set-password'] == '/workspace.html'
@@ -170,6 +172,10 @@ def test_real_web_lifespan_initialises_services_without_queue_consumers(monkeypa
         settings=main.Settings(**(settings.model_dump()|dict(gupshup_settings())|{'quote_link_secret':SecretStr('synthetic-signing-key-with-more-than-32-bytes'),'credential_keys':{'v1':SecretStr(Fernet.generate_key().decode())}}),_env_file=None)
         assert not settings.twilio_account_sid and not settings.twilio_enabled
     monkeypatch.setattr(main, 'Settings', lambda: settings)
+    # DeliverySettings is constructed separately from main.Settings. Keep this
+    # offline test independent of the operator's private .env as well.
+    delivery_settings=main.DeliverySettings
+    monkeypatch.setattr(main,'DeliverySettings',lambda: delivery_settings(_env_file=None))
     monkeypatch.setattr(main.asyncpg, 'create_pool', create_pool)
     # Any accidental network call must fail the test, even if an optional
     # integration has been enabled in the developer's local configuration.
@@ -327,10 +333,17 @@ def test_public_root_and_workspace_routes_remain_separate():
     for path in ('/', '/index.html'):
         response = client.get(path)
         assert response.status_code == 200
-        assert 'Less logistics.' in response.text
+        assert 'id="track-form"' in response.text
         assert 'id="loginContainer"' not in response.text
-        assert 'href="/login"' in response.text
+        assert 'href="/login?mode=signin"' in response.text
         assert response.headers['cache-control'] == 'no-store'
+    for path in ('/pricing', '/pricing.html'):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert 'id="plans"' in response.text
+        assert 'id="loginContainer"' not in response.text
+        assert response.headers['cache-control'] == 'no-store'
+        assert path not in app.openapi()['paths']
     for path in ('/login', '/workspace', '/workspace.html', '/set-password'):
         response = client.get(path)
         assert response.status_code == 200

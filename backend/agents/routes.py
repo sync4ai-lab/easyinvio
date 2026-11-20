@@ -28,6 +28,9 @@ def build_router(authenticate, rating_model, authenticate_platform_owner):
 
     @router.post('/api/v1/agents/customs/suggest')
     async def customs(body: Description, request: Request, context=Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
+        from backend.entitlements import guard_feature
+        await guard_feature(request.app.state.finance.pool,request.app.state.settings,context.tenant_id,'customs_hs_builder')
         engine = supervisor(request)
         engine.dispatch_permission(context)
         product = None
@@ -45,6 +48,9 @@ def build_router(authenticate, rating_model, authenticate_platform_owner):
 
     @router.post('/api/v1/agents/customs/information')
     async def information(body: CustomsItems, request: Request, context=Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN','DISPATCHER'}:raise HTTPException(403,'Dispatch permission required')
+        from backend.entitlements import guard_feature
+        await guard_feature(request.app.state.finance.pool,request.app.state.settings,context.tenant_id,'customs_hs_builder')
         engine = supervisor(request)
         engine.dispatch_permission(context)
         from pydantic import ValidationError

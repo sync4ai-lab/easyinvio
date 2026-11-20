@@ -151,6 +151,8 @@ class ManifestService:
               JOIN public.tenants t ON t.tenant_id=a.tenant_id WHERE a.tenant_id=$1 AND a.actor_auth_user_id=$2
               AND a.revoked_at IS NULL AND a.expires_at>now() AND t.workspace_status='ACTIVE' LIMIT 1 FOR SHARE OF a,t''',tenant_id,user_id)
         if not row or row['role'] not in DISPATCH_ROLES:raise HTTPException(403,'Active dispatch membership required')
+        from backend.entitlements import enabled,read_subscription,require_subscription_feature
+        if enabled(self.settings):require_subscription_feature(await read_subscription(connection,tenant_id),'eod_manifests')
         if bool(row['is_sandbox']) != (self.settings.provider_environment=='TEST'):
             raise HTTPException(403,'Manifest environment does not match this workspace')
         if ((self.settings.provider_environment=='TEST' and self.settings.database_environment!='SANDBOX')

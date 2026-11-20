@@ -14,7 +14,7 @@ from pathlib import Path
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ('index.html', 'workspace.html', 'tracking.html', 'tracking-workspace.js',
+ASSETS = ('index.html', 'pricing.html', 'workspace.html', 'tracking.html', 'tracking-workspace.js',
           'tracking-public.js', 'tracking-ui.css', 'manifest-workflow.js',
           'help-workspace-bridge.js', 'return-workspace.js',
           'form-feedback.js', 'form-feedback.css', 'workspace-ui.css', 'workspace-ui.js', 'platform-console.css', 'platform-console.js',
@@ -112,7 +112,8 @@ def prepare(root: Path = ROOT, *, write_bundle: bool = False) -> dict[str, int]:
     for name in ASSETS:
         # Keep the workspace source intact; publish the landing page at the root.
         source = root / {'index.html': 'frontend/landing/index.html',
-                         'workspace.html': 'index.html'}.get(name, name)
+                         'workspace.html': 'index.html',
+                         'pricing.html': 'frontend/landing/pricing.html'}.get(name, name)
         checked_file(root, source)
         destination = public / name
         if destination.is_symlink():

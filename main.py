@@ -126,6 +126,14 @@ from backend.runtime_hosting import BackgroundJobs, RuntimeRole, pool_options, r
 from backend.whatsapp_provider import WhatsAppProviderSettings, enabled as whatsapp_enabled, number as whatsapp_number, provider as whatsapp_provider
 
 class Settings(IntegrationSettings, WhatsAppProviderSettings):
+    # Enable only after migrations 050/051; authentication and wallets stay authoritative.
+    subscription_tiers_enabled: bool = False
+    subscription_trial_days: int = Field(default=14, ge=1, le=30)
+    subscription_price_ids: dict[str, str] = Field(default_factory=dict)
+    billing_lifecycle_enabled: bool = False
+    billing_statements_enabled: bool = False
+    subscription_wallet_tax_percent: Decimal = Field(default=Decimal('0'),ge=0,le=100)
+    subscription_automatic_tax_enabled: bool = False
     sendcloud_methods: dict[UUID, list[SendcloudMethod]] = Field(default_factory=dict)
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True
@@ -178,6 +186,7 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     twilio_whatsapp_sandbox_enabled: bool = False
     twilio_webhook_url: str = ""
     whatsapp_queue_workers: int = Field(default=2, ge=1, le=8)
+    whatsapp_consumer_cx_enabled: bool = False  # Requires migration 053 on web and worker.
     ideal_postcodes_api_key: SecretStr = SecretStr("")
     logistics_media_bucket: str = 'easyinvio-logistics'
     tracking_polling_enabled: bool = False
@@ -771,6 +780,14 @@ class SupabaseRepository:
             filters.pop('is_active',None)
             filters['id']='eq.'+str(historical_account_id)
             filters['limit']='1'
+        elif getattr(self.settings,'subscription_tiers_enabled',False):
+            from backend.entitlements import Subscription,require_subscription_feature
+            plan_rows=await self.select('tenants',{'select':'subscription_plan,plan_status,plan_period_start,plan_period_end,plan_enforcement_enabled','tenant_id':f'eq.{context.tenant_id}','limit':'1'},context,backend=True)
+            if len(plan_rows)!=1:raise HTTPException(403,'Active workspace required')
+            try:require_subscription_feature(Subscription.model_validate(plan_rows[0]),'byoc_carrier_accounts')
+            except HTTPException as error:
+                if error.status_code!=402:raise
+                filters['platform_connection_id']='not.is.null'
         rows = await self.select("carrier_accounts", filters, context, backend=True)
         if len(rows) > self.settings.max_accounts_per_tenant:
             raise HTTPException(503, "Carrier account capacity exceeded")
@@ -1413,13 +1430,22 @@ class FinanceEngine:
                     require_prepaid_funds(wallet, amount, currency)
                 elif plan != "POSTPAID_30_DAY":
                     raise HTTPException(403, "Unsupported billing plan")
+                else:
+                    from backend.entitlements import enabled,read_subscription,require_subscription_feature
+                    if enabled(self.settings):require_subscription_feature(await read_subscription(connection,context.tenant_id),'postpaid_billing')
                 # Active postpaid tenants bypass wallet funding checks.
-                reservation = await connection.fetchrow(
-                    """INSERT INTO public.wallet_reservations
-                       (tenant_id,shipment_id,billing_plan,amount,currency)
-                       VALUES ($1,$2,$3,$4,$5) RETURNING id""",
-                    context.tenant_id, shipment_id, plan, amount, currency,
-                )
+                try:
+                    reservation = await connection.fetchrow(
+                        """INSERT INTO public.wallet_reservations
+                           (tenant_id,shipment_id,billing_plan,amount,currency)
+                           VALUES ($1,$2,$3,$4,$5) RETURNING id""",
+                        context.tenant_id, shipment_id, plan, amount, currency,
+                    )
+                except asyncpg.RaiseError as error:
+                    from backend.entitlements import database_plan_error
+                    commercial=database_plan_error(error)
+                    if commercial:raise commercial from None
+                    raise
                 if wallet is not None:
                     reserved = wallet["reserved_balance"] + amount
                     await connection.execute(
@@ -1831,6 +1857,11 @@ class WhatsAppService:
         }, self.settings.quote_link_secret.get_secret_value(), algorithm="HS256")
 
     async def process(self, context: TenantContext, message_sid: str, body: str, sender_e164: str | None = None, *, conversational: bool = False, preparsed: ParsedQuote | None = None) -> str:
+        from backend.entitlements import guard_feature
+        try:await guard_feature(self.pool,self.settings,context.tenant_id,'whatsapp_bot')
+        except HTTPException as error:
+            if error.status_code!=402:raise
+            return twiml('WhatsApp booking unlocks on Velocity. See '+self.settings.booking_page_url.rstrip('/')+'/pricing')
         async with self.pool.acquire() as connection:
             # READ COMMITTED sees a competing receipt after the advisory lock
             # wait. A repeatable-read snapshot taken before that wait would
@@ -1992,6 +2023,10 @@ async def deterministic_lifespan(application: FastAPI):
                 if settings.stripe_enabled and await connection.fetchval("SELECT to_regclass('public.payment_carts')") is None:
                     raise RuntimeError('Apply migration 030_card_checkout.sql before enabling card checkout')
                 if whatsapp_enabled(settings):
+                    if settings.whatsapp_consumer_cx_enabled:
+                        for table in ('whatsapp_consumer_sessions','whatsapp_consumer_messages','whatsapp_consumer_return_policies'):
+                            if await connection.fetchval('SELECT to_regclass($1)', 'public.' + table) is None:
+                                raise RuntimeError('Apply migration 053_whatsapp_consumer_cx.sql before enabling consumer CX')
                     for table in ('whatsapp_inbound_queue', 'whatsapp_reply_outbox', 'whatsapp_delivery_attempts', 'whatsapp_delivery_events'):
                         if await connection.fetchval('SELECT to_regclass($1)', 'public.' + table) is None:
                             raise RuntimeError('Apply migrations through 049_whatsapp_providers.sql before enabling WhatsApp')
@@ -2003,8 +2038,19 @@ async def deterministic_lifespan(application: FastAPI):
                 await connection.execute("SELECT stripe_payment_intent_id FROM public.wallet_ledger LIMIT 0")
                 await connection.execute("SELECT proof_of_delivery_url FROM public.shipments LIMIT 0")
                 await connection.execute("SELECT billing_plan,cargo_type,min_volume_m3,max_volume_m3 FROM public.margin_rules LIMIT 0")
+                if settings.subscription_tiers_enabled:
+                    await connection.execute('SELECT subscription_plan,plan_version FROM public.tenants LIMIT 0')
+                    await connection.execute('SELECT * FROM public.v_tenant_monthly_usage LIMIT 0')
+                    if await connection.fetchval("SELECT to_regprocedure('public.guard_subscription_commercial_feature()')") is None:
+                        raise RuntimeError('Apply migration 051 before enabling subscription tiers')
+                if settings.billing_lifecycle_enabled:
+                    if not settings.subscription_tiers_enabled:raise RuntimeError('Billing lifecycle requires subscription tiers')
+                if settings.billing_lifecycle_enabled or settings.billing_statements_enabled:
+                    await connection.execute('SELECT pending_plan,cancellation_effective_at FROM public.tenants LIMIT 0')
+                    for relation in ('subscription_operations','subscription_change_events','billing_statements','subscription_refunds'):
+                        if await connection.fetchval('SELECT to_regclass($1)','public.'+relation) is None:raise RuntimeError('Apply migration 052 before enabling billing statements or lifecycle')
             repository = SupabaseRepository(http_client, settings)
-            configure_pricing_pool(pool)
+            configure_pricing_pool(pool,settings)
             rating = RatingService(http_client, repository, settings, pool=pool)
             stripe_http = stripe.HTTPXClient(timeout=20)
             try:
@@ -2037,7 +2083,7 @@ async def deterministic_lifespan(application: FastAPI):
                 application.state.csv_orders=CSVOrderService(pool,application.state.automation_freight)
                 from backend.ecommerce_connectors import StoreConnectorSettings
                 application.state.ecommerce = EcommerceService(pool,client=http_client,
-                    connectors=StoreConnectorSettings().ecommerce_connectors, credential_keys=settings.credential_keys)
+                    connectors=StoreConnectorSettings().ecommerce_connectors, credential_keys=settings.credential_keys,settings=settings)
                 from backend.tracking_and_support import load_tracking_settings
                 application.state.tracking_support = TrackingSupportService(pool, load_tracking_settings())
                 from backend.tracking_workspace import TrackingWorkspace
@@ -2050,7 +2096,10 @@ async def deterministic_lifespan(application: FastAPI):
                     application.state.tracking_support).worker(), enabled=application.state.tracking_workspace.ready and settings.tracking_polling_enabled)
                 application.state.support_delivery = SupportDelivery(pool,http_client,settings,DeliverySettings())
                 application.state.sandbox_billing = SandboxBillingService(application.state.finance, settings) if settings.stripe_enabled else None
-                application.state.admin_portal = AdminService(pool)
+                application.state.admin_portal = AdminService(pool,settings)
+                from backend.subscription_lifecycle import SubscriptionLifecycle
+                application.state.subscription_lifecycle=SubscriptionLifecycle(application.state.finance,settings)
+                jobs.start('subscription-lifecycle',application.state.subscription_lifecycle.worker,enabled=settings.billing_lifecycle_enabled)
                 application.state.whatsapp = WhatsAppService(pool, settings, rating)
                 application.state.twilio_validator = RequestValidator(settings.twilio_auth_token.get_secret_value()) if settings.twilio_account_sid and settings.twilio_auth_token.get_secret_value() else None
                 from backend.whatsapp_queue import WhatsAppQueue
@@ -2144,6 +2193,15 @@ async def lifespan(application: FastAPI):
 
 
 app = FastAPI(title="EasyInvio.com Backend", version="1.0.0", lifespan=lifespan)
+
+@app.exception_handler(asyncpg.RaiseError)
+async def subscription_database_error(request:Request,error:asyncpg.RaiseError):
+    from backend.entitlements import database_plan_error
+    from fastapi.responses import JSONResponse
+    commercial=database_plan_error(error)
+    if commercial:return JSONResponse(status_code=commercial.status_code,content={'detail':commercial.detail})
+    return JSONResponse(status_code=503,content={'detail':'The database operation could not be completed. Contact support.'})
+
 from dotenv import dotenv_values
 try:
     _origin_values = os.environ.get("FRONTEND_ALLOWED_ORIGINS", dotenv_values(".env").get("FRONTEND_ALLOWED_ORIGINS"))
@@ -2322,6 +2380,13 @@ async def health(request: Request) -> dict[str, str]:
 @app.get("/index.html", include_in_schema=False)
 async def public_frontend():
     return FileResponse(Path(__file__).parent / "frontend" / "landing" / "index.html",
+                        media_type="text/html", headers={'Cache-Control': 'no-store'})
+
+
+@app.get("/pricing", include_in_schema=False)
+@app.get("/pricing.html", include_in_schema=False)
+async def public_pricing():
+    return FileResponse(Path(__file__).parent / "frontend" / "landing" / "pricing.html",
                         media_type="text/html", headers={'Cache-Control': 'no-store'})
 
 
@@ -2539,6 +2604,10 @@ async def stripe_webhook(request: Request) -> dict[str, bool]:
         raise HTTPException(400, "Invalid Stripe webhook signature") from None
     if event.get("livemode") is not settings.stripe_livemode:
         raise HTTPException(400, "Stripe environment mismatch")
+    # Subscription events have their own receipts and never credit postage wallets.
+    from backend.subscription_billing import receive_verified_event
+    if await receive_verified_event(request,event):
+        return {"received": True, "credited": False}
     if event.get("type") not in {"checkout.session.completed", "checkout.session.async_payment_succeeded"}:
         return {"received": True, "credited": False}
     event_id = event.get("id")
@@ -2628,6 +2697,11 @@ from backend.help_center import router as help_center_router
 app.include_router(help_center_router)
 from backend.identity import router as identity_router
 app.include_router(identity_router)
+from backend.subscription_api import build_router as subscription_router
+from backend.admin_portal import authenticate_platform_owner
+app.include_router(subscription_router(authenticate, authenticate_platform_owner))
+from backend.billing_api import build_router as billing_router
+app.include_router(billing_router(authenticate))
 app.include_router(sandbox_router(authenticate, RatingRequest))
 app.include_router(ecommerce_router(authenticate))
 app.include_router(hubspot_router(authenticate))
@@ -2752,3 +2826,5 @@ from backend.whatsapp_queue import build_media_status_router
 app.include_router(build_media_status_router())
 from backend.gupshup_ingress import build_router as gupshup_router
 app.include_router(gupshup_router())
+from backend.whatsapp_consumer import build_router as consumer_cx_router
+app.include_router(consumer_cx_router(authenticate))

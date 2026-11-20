@@ -263,8 +263,9 @@ def decode_json(value):
 
 
 class AdminService:
-    def __init__(self, pool: Any):
+    def __init__(self, pool: Any, settings: Any = None):
         self.pool = pool
+        self.settings = settings
 
     @staticmethod
     def fingerprint(body: InputModel) -> str:
@@ -331,6 +332,9 @@ class AdminService:
                     await connection.execute(
                         """INSERT INTO public.users (id,tenant_id,auth_user_id,role,is_active)
                            VALUES ($1,$2,$3,'OWNER',true)""", uuid4(), tenant_id, body.owner_auth_user_id)
+                from backend.entitlements import enabled,seed_subscription
+                if enabled(self.settings):
+                    await seed_subscription(connection,tenant_id,'STARTER','MONTHLY',sandbox=body.is_sandbox)
                 response = TenantCreated(request_id=body.request_id, tenant_id=tenant_id,
                                          company_profile=body.company_profile, billing_plan=body.billing_plan,
                                          default_currency=body.default_currency, owner_auth_user_id=body.owner_auth_user_id,
@@ -395,12 +399,14 @@ class PricingScope:
 _scope: ContextVar[PricingScope | None] = ContextVar("veloce_pricing_scope", default=None)
 _borrowed_connection: ContextVar[Any] = ContextVar("veloce_borrowed_pricing_connection", default=None)
 _pool: Any = None
+_subscription_settings: Any = None
 
 
-def configure_pricing_pool(pool: Any) -> None:
+def configure_pricing_pool(pool: Any, settings: Any = None) -> None:
     """Bind during application startup; clear with None during shutdown."""
-    global _pool
+    global _pool, _subscription_settings
     _pool = pool
+    _subscription_settings = settings
 
 
 @contextmanager
@@ -520,6 +526,12 @@ async def get_client_calibrated_rate(
                 return calculate_calibrated_price(base_wholesale_cost, {
                     'markup_type': 'PERCENTAGE', 'markup_value': strict_decimal(policy['markup_percent']),
                     'minimum_markup': ZERO})
+            from backend.entitlements import enabled,read_subscription,capabilities,Plan
+            subscription = await read_subscription(connection,tenant_id) if enabled(_subscription_settings) else None
+            if subscription and subscription.plan_enforcement_enabled and subscription.effective()!=Plan.COMMAND:
+                return calculate_calibrated_price(base_wholesale_cost, {
+                    'markup_type':'PERCENTAGE','markup_value':capabilities(subscription.effective()).default_markup_percent,
+                    'minimum_markup':ZERO})
             rule = await connection.fetchrow(
                 """SELECT * FROM public.margin_rules
                    WHERE tenant_id=$1 AND currency=$2 AND is_active=true
@@ -552,6 +564,8 @@ async def get_client_calibrated_rate(
                 tenant.get('billing_plan'), scope.cargo_type, scope.volume_m3)
             if rule is not None and rule["tenant_id"] != tenant_id:
                 raise ValueError("Stored pricing tenant mismatch")
+            if rule is None and subscription and subscription.plan_enforcement_enabled:
+                rule={'markup_type':'PERCENTAGE','markup_value':capabilities(subscription.effective()).default_markup_percent,'minimum_markup':ZERO}
             return calculate_calibrated_price(base_wholesale_cost, rule)
     except (asyncpg.PostgresError, OSError, TimeoutError, ValueError, ArithmeticError):
         logger.error("Calibrated pricing unavailable tenant=%s", tenant_id)
@@ -569,6 +583,9 @@ def service_for(request: Request) -> AdminService:
 
 
 def database_error(exc: Exception) -> HTTPException:
+    from backend.entitlements import database_plan_error
+    commercial=database_plan_error(exc)
+    if commercial:return commercial
     if isinstance(exc, asyncpg.InsufficientPrivilegeError):
         return HTTPException(403, 'Credential identity is locked. Sign in again as a platform administrator and use a replacement connection.')
     if isinstance(exc, asyncpg.UniqueViolationError):
@@ -598,6 +615,8 @@ async def create_tenant(body: TenantCreate, request: Request, actor: PlatformOwn
 
 @router.post("/margins", response_model=MarginCreated, status_code=status.HTTP_201_CREATED)
 async def create_margin(body: MarginCreate, request: Request, actor: PlatformOwner = Depends(authenticate_platform_owner)):
+    from backend.entitlements import guard_feature
+    await guard_feature(request.app.state.finance.pool,request.app.state.settings,body.tenant_id,'custom_margin_rules')
     try:
         return await service_for(request).create_margin(body, actor)
     except (asyncpg.PostgresError, OSError, TimeoutError) as exc:
