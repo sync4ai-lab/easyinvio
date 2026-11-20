@@ -20,6 +20,84 @@ void labels, authorize a refund, or edit a wallet through these additions.
    signing secret, return warehouse, eligible plan/carrier and payment configuration
    remain prerequisites. Provider acceptance is not proof of delivery.
 
+### Configure approved Gupshup templates
+
+`SUPPORT_WHATSAPP_ENABLED=true` and `RETURN_WHATSAPP_ENABLED=true` are correct
+boolean settings. They enable the workers, but do not create or approve templates.
+Also enable `WHATSAPP_CONSUMER_CX_ENABLED=true` after migration 053 on the web and
+worker environment. A Vercel environment-variable change applies to a new
+deployment; changing local `.env` does not update an existing hosted process.
+
+`GUPSHUP_TEMPLATES.SUPPORT` and `.RETURN` mean entries inside **one JSON variable
+named `GUPSHUP_TEMPLATES`**, not two environment-variable names containing dots.
+The entries must identify approved templates belonging to the same Gupshup app
+as your business number. A template name, Twilio Content SID, or made-up ID is not
+a replacement for the approved Gupshup template ID.
+
+In the Gupshup dashboard, select the EasyInvio WhatsApp app, open **Templates**,
+then **Create Template**. Use category **Utility**, a text-only template and the
+English language variant supported by your app. Supply synthetic sample values,
+submit for approval, then copy the approved template ID and exact language code.
+Approval is controlled by Gupshup/Meta. If it is approved as Marketing, do not map
+it as Utility: correct the template/category before activation. See the
+[official template creation guide](https://docs.gupshup.io/docs/create-template).
+
+The current adapter sends ordered **body parameters**. Use these drafts without
+dynamic buttons or required media headers; the current RETURN sender provides
+the document/payment URL as body variable 3.
+
+**SUPPORT** — suggested template name `easyinvio_support_update_v1`:
+
+```text
+EasyInvio shipping support update.
+{{1}}
+This is a service notification about a shipment or support case in your workspace. Sign in to EasyInvio to review the details.
+```
+
+Sample for variable 1: `Case DEMO-1042: a damaged parcel was reported. Please review the customer request.`
+Mapping order: `parameters: ["body"]`.
+
+**RETURN** — suggested template name `easyinvio_return_update_v1`:
+
+```text
+EasyInvio return update: {{1}}
+{{2}}
+Open the secure page for this requested return: {{3}}
+Follow the selected carrier's return instructions.
+```
+
+Samples: variable 1 `Your return label is ready`; variable 2 `Return for DEMO-1042. Your selected service requires a printed label.`;
+variable 3 `https://uat.easyinvio.com/track` (a synthetic sample for approval, not an actual payment/document capability).
+Mapping order: `parameters: ["heading", "body", "link"]`.
+
+After approval, use this shape with the actual IDs and language codes. **Do not
+activate the placeholder values below.** Preserve any existing SHIPMENT entry.
+
+```json
+{
+  "SUPPORT": {"provider_id": "REPLACE_WITH_APPROVED_SUPPORT_ID", "language": "en", "category": "UTILITY", "parameters": ["body"]},
+  "RETURN": {"provider_id": "REPLACE_WITH_APPROVED_RETURN_ID", "language": "en", "category": "UTILITY", "parameters": ["heading", "body", "link"]}
+}
+```
+
+For local `.env`, put the JSON on one line with single quotes around the whole
+value: `GUPSHUP_TEMPLATES='{"SUPPORT":{...},"RETURN":{...}}'` (replace the
+ellipsis with the complete objects above). For Vercel, create/edit the variable
+`GUPSHUP_TEMPLATES` and paste the raw JSON object **without** the outer single
+quotes. Assign it to the environment used by the final deployment, and any
+Preview environment you actually test. JSON uses double quotes internally.
+
+Shipment milestone notifications have a separate approved SHIPMENT mapping and
+`SHIPMENT_WHATSAPP_NOTIFICATIONS_ENABLED` flag; enabling SUPPORT and RETURN does
+not enable sender milestone alerts. For initial verification, retain UAT mode
+and a consenting test-recipient allowlist. `WHATSAPP_OUTBOUND_PAUSED=true` blocks
+all WhatsApp sending. Unpause only for the intended test/live sending window.
+Merchant OWNER/ADMIN alert recipients still need a verified binding and opt-in.
+
+No merchant return-policy row is created by migration 053. The authenticated
+merchant policy API below must be used to explicitly authorize automatic returns;
+until then consumer return requests are recorded for retailer review.
+
 ## Consumer use
 
 Send `Track link <token>` or paste the merchant's HTTPS tracking URL. The
@@ -85,3 +163,25 @@ Durable consumer message receipts fence duplicate/uncertain actions. Interrupted
 processing requires review rather than replaying a purchase. Old cached QR
 responses cannot bypass an expired or revoked capability. No hosted migration,
 real payment, live carrier purchase or WhatsApp send is part of offline tests.
+
+## Git integration and one manual production release
+
+Completed changes are integrated and pushed to `origin/main` after checks. The
+repository sets `git.deploymentEnabled=false` in `vercel.json`, so ordinary Git
+pushes do not automatically start deployments. It does not stop existing workers
+or remove charges for services that are already running. See
+[Vercel Git configuration](https://vercel.com/docs/project-configuration/git-configuration).
+
+At the end of the day:
+
+1. In Vercel project settings, confirm the Production Branch is `main` and the
+   production variables include the approved JSON template mappings and feature flags.
+2. Open **Deployments → Create Deployment** (sometimes under the page's menu),
+   enter the latest `main` commit SHA or the `main` branch, and select the
+   Production/main branch configuration if prompted. Check the source commit.
+3. Create that deployment once and verify the production domain after it succeeds.
+
+Use a **new deployment from the latest Git reference**, rather than Redeploy on an
+old deployment: redeploy rebuilds an existing deployment and is not a way to select
+the newest Git commit. See [creating a deployment from a Git reference](https://vercel.com/docs/git#creating-a-deployment-from-a-git-reference).
+No command in this guide deploys automatically or sends a WhatsApp message.
