@@ -545,5 +545,7 @@ class SubscriptionLifecycle:
     async def worker(self):
         while True:
             try:await self.process_due()
-            except (asyncpg.PostgresError,HTTPException,TimeoutError):logger.warning('subscription_lifecycle_storage_unavailable')
+            except (asyncpg.PostgresError,HTTPException,TimeoutError) as error:
+                logger.warning('subscription_lifecycle_storage_unavailable error_type=%s sqlstate=%s status=%s',
+                    type(error).__name__,getattr(error,'sqlstate',None),getattr(error,'status_code',None))
             await asyncio.sleep(20)

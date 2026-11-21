@@ -37,6 +37,16 @@ async def preview(w,action,target=None):
     result=await w.service.command(w.context,action,body)
     return body,result
 
+@pytest.mark.asyncio
+async def test_receipt_reconciliation_repair_handles_older_052_and_reapplication(world):
+    w=world
+    await w.db.execute('ALTER TABLE public.subscription_invoice_receipts DROP COLUMN reconciliation_attempted_at')
+    repair=(ROOT/'migrations/054_subscription_receipt_reconciliation_repair.sql').read_text(encoding='utf-8')
+    for _ in range(2):
+        await w.db.command(repair,mode='exec')
+    await w.db.fetch('SELECT reconciliation_attempted_at FROM public.subscription_invoice_receipts LIMIT 0')
+    assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==0
+
 async def confirm(w,action,body,result):
     return await w.service.command(w.context,action,body.model_copy(update={'confirm':True,'quote_sha256':result['payload_sha256']}))
 

@@ -122,7 +122,8 @@ async def test_timeout_is_uncertain():
     assert result.outcome=='UNCERTAIN' and post.await_count==1
 
 @pytest.mark.asyncio
-async def test_ack_only_persists_and_never_executes_business_actions(monkeypatch):
+async def test_ack_only_persists_and_never_executes_business_actions(monkeypatch,caplog):
+    caplog.set_level('INFO',logger='easyinvio.gupshup')
     monkeypatch.delenv('VERCEL',raising=False)
     app=FastAPI();app.state.settings=settings();app.include_router(build_router())
     q=GupshupQueue.__new__(GupshupQueue);q.enqueue_event=AsyncMock();app.state.whatsapp_queue=q
@@ -136,6 +137,11 @@ async def test_ack_only_persists_and_never_executes_business_actions(monkeypatch
         wrong=event();wrong['app']='wrong'
         assert (await client.post('/api/v1/integrations/whatsapp/gupshup/webhook',json=wrong)).status_code==422
         assert q.enqueue_event.await_count==1
+    assert 'gupshup_callback_received' in caplog.text
+    assert 'gupshup_callback_accepted kind=message' in caplog.text
+    assert 'gupshup_callback_rejected status=422' in caplog.text
+    assert TESTER not in caplog.text and SOURCE not in caplog.text
+    assert event()['payload']['payload']['text'] not in caplog.text
 
 
 def test_configured_custom_header_origin_from_self_service_dashboard():

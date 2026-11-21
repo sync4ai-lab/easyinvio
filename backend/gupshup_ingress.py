@@ -1,6 +1,6 @@
 # Gupshup Self-Service v2 ingress and encrypted queue compatibility boundary.
 from __future__ import annotations
-import asyncio,hashlib,json,re,copy
+import asyncio,hashlib,json,re,copy,logging
 from datetime import datetime,timedelta,timezone
 from urllib.parse import urlencode,parse_qsl
 import asyncpg,httpx
@@ -9,6 +9,9 @@ from starlette.datastructures import FormData
 from backend.whatsapp_provider import authenticate_gupshup_origin,account,number,provider,recipient_error,paused
 from backend.whatsapp_queue import WhatsAppQueue,OutboundPart,inbound_digest,process_inbound
 from backend.whatsapp_dispatch import send_selected,reconcile_events
+
+logger = logging.getLogger('easyinvio.gupshup')
+logger.setLevel(logging.INFO)  # Serverless imports do not run main's CLI logging setup.
 
 def event_time(value):
     if isinstance(value,bool) or not isinstance(value,(int,float)):raise ValueError('Missing event time')
@@ -140,13 +143,25 @@ class GupshupQueue(WhatsAppQueue):
                 await self.stage(row['id'],parts)
             await self.dispatch(row)
         except asyncio.CancelledError:raise
-        except Exception:await self.mark(row['id'],'REVIEW_REQUIRED','PROCESSING_UNCONFIRMED')
+        except Exception as error:
+            logger.warning('gupshup_job_needs_review queue_id=%s error_type=%s sqlstate=%s',
+                           row['id'],type(error).__name__,getattr(error,'sqlstate',None))
+            await self.mark(row['id'],'REVIEW_REQUIRED','PROCESSING_UNCONFIRMED')
         return True
 
 def build_router():
     router=APIRouter(tags=['Gupshup self-service WhatsApp'])
     @router.post('/api/v1/integrations/whatsapp/gupshup/webhook')
     async def ingress(request:Request):
+        # Deliberately exclude headers, payloads, phone numbers and provider IDs.
+        logger.info('gupshup_callback_received')
+        try:
+            return await accept_callback(request)
+        except HTTPException as error:
+            logger.warning('gupshup_callback_rejected status=%s',error.status_code)
+            raise
+
+    async def accept_callback(request:Request):
         selected=request.app.state.settings
         s=copy.copy(selected)
         s.whatsapp_provider='GUPSHUP'  # Original provider identity for late callbacks after rollback.
@@ -183,5 +198,6 @@ def build_router():
                         await c.execute('''INSERT INTO public.whatsapp_delivery_events(provider,provider_account,event_sha256,external_id,whatsapp_id,recipient_e164,status,occurred_at)
                             VALUES('GUPSHUP',$1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING''',account(s),digest,value['external'],value['whatsapp'],value['recipient'],value['status'],received)
         except (TimeoutError,asyncpg.PostgresError):raise HTTPException(503,'Callback storage busy; retry delivery') from None
+        logger.info('gupshup_callback_accepted kind=%s',kind)
         return Response(status_code=200)
     return router

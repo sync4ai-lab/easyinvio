@@ -100,6 +100,33 @@ until then consumer return requests are recorded for retailer review.
 
 ## Consumer use
 
+### Diagnose a silent WhatsApp conversation
+
+The custom domain name (including `uat`) does not determine the Vercel
+environment. Verify which deployment owns the domain. Web callback logs and
+`logistics-worker` logs are separate sources.
+
+After deploying the diagnostics update, search web-function logs for
+`gupshup_callback_received`, then `gupshup_callback_accepted kind=message`
+or `gupshup_callback_rejected status=...`. A received message is accepted into
+the queue before the worker constructs a reply. These diagnostics omit tokens,
+message bodies and phone numbers. Worker processing failures record
+`gupshup_job_needs_review` with a queue ID and exception type; uncertain jobs
+must not be reset/replayed blindly because they may have financial side effects.
+
+An empty authenticated event returns 422 and validates only authentication.
+An intentionally ignored v2 user event returning 200 also validates configured
+app/source identity; neither test proves Gupshup is forwarding real messages.
+If real messages produce no callback log, request Gupshup's callback delivery
+attempt timestamp, HTTP status and response. Confirm the sender/message appears
+in Gupshup before investigating EasyInvio conversation behavior.
+
+If a database that applied an earlier revision of migration 052 is missing
+`subscription_invoice_receipts.reconciliation_attempted_at`, apply
+`054_subscription_receipt_reconciliation_repair.sql`. This fixes the billing
+worker's missing-column warning; it does not activate WhatsApp callbacks.
+Do not rerun 052. No automatic migration or live send is performed by this guide.
+
 Send `Track link <token>` or paste the merchant's HTTPS tracking URL. The
 tracking capability is validated and its encrypted 15-minute session is keyed
 by provider/app, sender and business receiver. Every subsequent turn rechecks
