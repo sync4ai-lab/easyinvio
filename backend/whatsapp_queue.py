@@ -154,6 +154,14 @@ async def process_inbound(request: Request, form: FormData, received_at: datetim
         return reply_parts(message_xml('This number is not registered to an active EasyInvio workspace. Ask your owner to verify it, or send Register.'))
     if form['NumMedia'] != '0':
         return reply_parts(message_xml('Please send text, for example: Quote 4.5kg from GB to US.'))
+    # Welcome/help never interprets a greeting as a quote field or charges an AI
+    # call. Resolved merchant actions still go through the entitlement/RBAC gate.
+    from backend.whatsapp_concierge import social,answer
+    from backend.agents.rag_support import documentation_question
+    from backend.public_experience import needs_workspace
+    if social(form['Body']) or (documentation_question(form['Body']) and not needs_workspace(form['Body'])):
+        text=await answer(request,form,known=True)
+        return reply_parts(message_xml(text)) if text else []
     result = await ConversationalActionGateway(request).process(context, ConversationMessage(
         sender_id=sender, message_body=form['Body'], channel='WHATSAPP',
         request_id=uuid5(NAMESPACE_URL, 'twilio:' + form['MessageSid'])), verified_whatsapp=True, received_at=received_at)

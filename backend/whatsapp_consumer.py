@@ -65,6 +65,7 @@ class ConsumerReturnPolicy(BaseModel):
 
 class ConsumerCX:
     def __init__(self, request: Request):
+        self.request = request
         self.state = request.app.state
         self.settings = self.state.settings
         self.pool = self.state.tracking_workspace.pool
@@ -186,8 +187,14 @@ class ConsumerCX:
         else:
             draft = await self.load(sender,receiver)
         if draft is None:
-            return reply('For tracking, returns or delivery help, paste the secure tracking link from your merchant, or send Track link followed by its token.')
+            from backend.whatsapp_concierge import answer
+            text=await answer(self.request,form)
+            return reply(text) if text else []
         link = await self.scope(draft)
+        from backend.whatsapp_concierge import social,answer
+        if social(text):
+            greeting=await answer(self.request,form)
+            return reply(greeting) if greeting else []
         if form.get('NumMedia')!='0':
             return reply('Please describe the issue in text. Send evidence through the retailer’s secure support channel.')
         if text.strip().lower() in {'cancel','start over'}:

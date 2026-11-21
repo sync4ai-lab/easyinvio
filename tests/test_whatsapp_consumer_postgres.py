@@ -72,6 +72,17 @@ async def test_real_migration_encryption_isolation_expiry_and_revocation(world):
 
 
 @pytest.mark.asyncio
+async def test_unbound_greeting_replays_without_creating_parcel_authority(world):
+    w=world;_,s,q,cx,_,_=await setup(w)
+    greeting=form('hello')
+    first=await cx.handle(greeting)
+    assert 'welcome to EasyInvio' in first[0].body
+    assert first==await cx.handle(greeting)
+    assert await w.db.fetchval('SELECT count(*) FROM public.whatsapp_consumer_sessions')==0
+    assert await w.db.fetchval('SELECT count(*) FROM public.support_tickets WHERE cx_request_id IS NOT NULL')==0
+
+
+@pytest.mark.asyncio
 async def test_complaint_transaction_stages_admin_alert_and_duplicate_cannot_repeat(world):
     w=world;_,s,q,cx,_,token=await setup(w)
     await w.db.execute('DELETE FROM public.support_message_outbox')

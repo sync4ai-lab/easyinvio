@@ -224,7 +224,7 @@ class HelpRetriever:
             self.vectors, self.vector_version = vectors, signature
             return vectors
 
-    async def answer(self, context, query):
+    async def answer(self, context, query, *, allow_web=True, concise=False):
         original_query = query
         query = redacted_question(query)
         if len(query) < 3:
@@ -234,7 +234,7 @@ class HelpRetriever:
         named = requested_platform(query)
         if named:
             chunks = [chunk for chunk in chunks if named in (chunk.title + ' ' + chunk.text).lower()]
-        key = self.runtime.key(context.tenant_id, 'help-answer', {'query': query.lower(), 'version': version, 'role': getattr(context, 'role', None), 'policy': 'help-v2'})
+        key = self.runtime.key(context.tenant_id, 'help-answer', {'query': query.lower(), 'version': version, 'role': getattr(context, 'role', None), 'policy': 'help-v2', 'allow_web':allow_web, 'concise':concise})
         cached = self.answers.get(key)
         if cached is not None:
             self.runtime.usage['cache_hits'] += 1
@@ -275,7 +275,7 @@ class HelpRetriever:
             selected = [chunk for chunk in chunks if chunk.source_file == 'docs/status_reference.md'
                         and 'Which Pending' in chunk.title][:1]
         if not selected:
-            web = await search_public_help(self.runtime, context.tenant_id, original_query)
+            web = await search_public_help(self.runtime, context.tenant_id, original_query) if allow_web else None
             if web is not None:
                 web['documentation_version'] = version
                 self.answers.put(key, web)
@@ -296,8 +296,9 @@ class HelpRetriever:
                     'Return only IDs from supplied chunks supporting the answer. If evidence is insufficient, '
                     'say so. Never invent pickup scheduling, holiday adjustment or insurance coverage. '
                     'Answer the actual question directly. For setup/how-to requests give complete numbered steps and a concrete non-secret example. '
-                    'Distinguish merchant steps from platform/AWS administrator work. Do not invent one-click integrations. '
-                    'For short questions be concise; for detailed steps use the needed space, up to 9000 characters. '
+                    'Distinguish merchant steps from platform/AWS administrator work. Do not invent one-click integrations. '+
+                    ('Keep the answer below 900 characters. Give the next useful steps without a long introduction. ' if concise else
+                     'For short questions be concise; for detailed steps use the needed space, up to 9000 characters. ')+
                     'Distinguish a wallet reservation from a completed charge, and a released hold from a bank refund. '
                     'For status questions identify the workflow, explain the state and give the documented next step. '
                     'Ask which screen when a generic Pending, Failed or Received is ambiguous. '
@@ -306,12 +307,12 @@ class HelpRetriever:
                     'Use plain text without headings or HTML; avoid reproducing whole guide sections.',
                     {'question': query, 'documentation_version': version,
                      'chunks': [{'id': chunk.id, 'title': chunk.title, 'text': chunk.text} for chunk in selected]},
-                    output_type=CitedAnswer)
+                    output_type=CitedAnswer,**({'output_token_limit':500} if concise else {}))
                 input_tokens, output_tokens = result.input_tokens, result.output_tokens
                 value = result.value
                 known = {chunk.id: chunk for chunk in selected}
                 if value.insufficient_evidence:
-                    web = await search_public_help(self.runtime, context.tenant_id, original_query)
+                    web = await search_public_help(self.runtime, context.tenant_id, original_query) if allow_web else None
                     if web is not None:
                         web['documentation_version'] = version
                         web['usage']['input_tokens'] += input_tokens

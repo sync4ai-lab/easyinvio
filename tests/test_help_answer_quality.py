@@ -31,6 +31,17 @@ def context():
     return SimpleNamespace(tenant_id=uuid4(), user_id=uuid4(), role='OWNER')
 
 
+@pytest.mark.asyncio
+async def test_whatsapp_no_evidence_does_not_invoke_external_search(monkeypatch):
+    from backend.agents import rag_support
+    search=AsyncMock()
+    monkeypatch.setattr(rag_support,'search_public_help',search)
+    result=await engine().help.answer(SimpleNamespace(tenant_id='public-documentation',role='PUBLIC'),
+        'unrelated xyzzy platypus question',allow_web=False,concise=True)
+    search.assert_not_awaited()
+    assert result['mode']=='NO_EVIDENCE'
+
+
 def web_result(url='https://www.trade.gov/incoterms'):
     text = 'Consult the official Incoterms guidance [source].'
     start = text.index('[source]')

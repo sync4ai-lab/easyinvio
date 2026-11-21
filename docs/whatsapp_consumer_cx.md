@@ -100,6 +100,36 @@ until then consumer return requests are recorded for retailer review.
 
 ## Consumer use
 
+### Welcome, public guidance and merchant access
+
+`Hello` and `Help` welcome the sender with three short paths: shipping quotes /
+booking, parcel delivery help, and setup / store connections. Thanks and greetings
+are local replies with no model call. Verified merchant greetings say welcome
+back; they do not replace role checks or paid-plan enforcement on actions.
+Registration already in progress keeps its existing onboarding flow.
+
+Without a secure parcel session, general how-to questions use the existing
+HelpRetriever with PUBLIC documentation scope, a shared public runtime budget and
+answer cache. This path has no tenant tools and disables external web search.
+Model output is capped at 500 tokens and the WhatsApp response at 1,500 characters
+with at most one published help link. No live public prices are invented.
+
+Public AI guidance stops after 20 inbound messages in 24 hours for the same
+provider/app/sender/receiver; subsequent guidance hands off to Help Centre.
+After 30 inbound messages, one limit notice is returned, then public replies
+stop for the window. Counts are durable and include all inbound messages for that
+identity, not just successful AI answers. Existing merchant actions and secure
+parcel operations keep their own authorization and quota rules. Provider charges
+for incoming messages cannot be prevented by suppressing outgoing replies.
+These limits reduce exposure; they are not a global monetary spending guarantee.
+
+Anyone can receive a welcome or general guidance. Parcel-specific tracking,
+returns and complaints require the existing secure capability and return-policy
+checks. Merchant WhatsApp execution remains Velocity/Command when subscription
+enforcement applies, with verified bindings and role checks. Existing grandfathered
+tenants retain their established entitlement behavior. A public welcome never
+grants a merchant role or activates a paid plan. No new migration is required.
+
 ### Diagnose a silent WhatsApp conversation
 
 The custom domain name (including `uat`) does not determine the Vercel

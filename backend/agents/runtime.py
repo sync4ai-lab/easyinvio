@@ -87,11 +87,13 @@ class AgentRuntime:
         logger.info('agent_usage worker=%s input_tokens=%d output_tokens=%d cached_tokens=%d',
                     worker, input_tokens, output_tokens, cached_tokens)
 
-    async def run(self, tenant, worker, instructions, payload, output_type=None, tools=None):
+    async def run(self, tenant, worker, instructions, payload, output_type=None, tools=None, output_token_limit=None):
         if not self.available:
             raise HTTPException(503, 'AI assistance is not configured. Standard shipping tools remain available.')
         help_run = worker == 'HelpSupportAgent'
         output_limit = self.settings.logistics_help_output_tokens if help_run else self.settings.logistics_agent_output_tokens
+        if output_token_limit is not None:
+            output_limit = min(output_limit,max(1,int(output_token_limit)))
         timeout = self.settings.logistics_help_timeout_seconds if help_run else self.settings.logistics_agent_timeout_seconds
         key = self.key(tenant, worker, {'payload': payload, 'instructions': instructions, 'output_limit': output_limit})
         cached = self.cache.get(key)
