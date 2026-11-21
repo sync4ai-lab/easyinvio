@@ -16,3 +16,24 @@ def test_help_explains_modes_without_requiring_credentials():
     result=subprocess.run([sys.executable,str(ROOT/'scripts/dev.py'),'--help'],capture_output=True,text=True)
     assert result.returncode==0
     for name in ['--preview','--lan','--public-url','--whatsapp','--env-file']:assert name in result.stdout
+
+
+# Local links must stay on the developer's machine. Public callbacks remain HTTPS.
+import pytest
+from main import Settings
+
+
+@pytest.mark.parametrize('url', ['http://127.0.0.1:8000', 'http://localhost:8000', 'http://[::1]:8000', 'https://uat.easyinvio.com'])
+def test_booking_links_accept_loopback_and_https(url):
+    assert Settings.booking_origin(url) == url
+
+
+@pytest.mark.parametrize('url', ['http://easyinvio.com', 'http://192.168.1.2:8000', 'http://localhost.evil.test', 'https://user:password@example.test', 'http://localhost:8000?redirect=evil', 'http://localhost:8000#fragment'])
+def test_booking_links_reject_public_http_credentials_and_redirect_fragments(url):
+    with pytest.raises(ValueError):
+        Settings.booking_origin(url)
+
+
+def test_public_webhook_still_requires_https():
+    with pytest.raises(ValueError):
+        Settings.fixed_https_url('http://127.0.0.1:8000/api/v1/integrations/whatsapp/webhook')

@@ -265,7 +265,7 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
             raise ValueError('Use a fixed HTTPS checkout return URL, or loopback HTTP for local testing')
         return value
 
-    @field_validator("twilio_webhook_url", "booking_page_url")
+    @field_validator("twilio_webhook_url")
     @classmethod
     def fixed_https_url(cls, value: str) -> str:
         if not value:
@@ -276,6 +276,18 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
             or parts.password or parts.query or parts.fragment
         ):
             raise ValueError("Configure a fixed HTTPS URL without query/fragment")
+        return value
+
+    @field_validator("booking_page_url")
+    @classmethod
+    def booking_origin(cls, value: str) -> str:
+        if not value:
+            return value
+        parts = urlsplit(value)
+        loopback = parts.scheme == "http" and parts.hostname in {"localhost", "127.0.0.1", "::1"}
+        if ((parts.scheme != "https" and not loopback) or not parts.hostname
+            or parts.username or parts.password or parts.query or parts.fragment):
+            raise ValueError("Use a fixed HTTPS booking URL, or loopback HTTP for local testing")
         return value
 
     @field_validator("credential_keys")

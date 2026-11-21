@@ -159,3 +159,9 @@ this guide or the local launcher. Existing schema through 054 remains required.
 
 References: [Vercel environments](https://vercel.com/docs/deployments/environments),
 [assigning a domain to a branch](https://vercel.com/docs/domains/working-with-domains/assign-domain-to-a-git-branch).
+
+## Private import files and release settings
+
+See [private_environment_files.md](private_environment_files.md) for the generated
+Local/UAT files, bulk import steps, missing provider values and Production launch
+checklist. Environment files remain private and are never committed.
