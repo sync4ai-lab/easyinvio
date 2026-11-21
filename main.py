@@ -146,6 +146,7 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     database_ca_file: str | None = None
     database_tls_strict: bool = True
     runtime_role: RuntimeRole = 'AUTO'
+    background_job_mode: Literal['ALL','WHATSAPP_ONLY','NONE'] = 'ALL'
     worker_db_pool_max_size: int = Field(default=8, ge=4, le=20)
     automation_purchase_enabled: bool = False
     partner_document_allowed_hosts: list[str] = ['easypost-files.s3.amazonaws.com', 'easypost-files.s3.us-west-2.amazonaws.com', 'deliver.goshippo.com',
@@ -1983,7 +1984,7 @@ async def deterministic_lifespan(application: FastAPI):
     application.state.local_preview = False
     settings = Settings()
     role = resolve_role(settings.runtime_role, os.environ)
-    jobs = BackgroundJobs(role in {'COMBINED', 'WORKER'})
+    jobs = BackgroundJobs(role in {'COMBINED', 'WORKER'}, mode=settings.background_job_mode)
     application.state.runtime_role = role
     application.state.background_jobs = jobs
     from backend.whatsapp_bot import initialize_whatsapp

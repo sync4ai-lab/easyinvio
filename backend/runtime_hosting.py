@@ -29,13 +29,16 @@ def pool_options(role: RuntimeRole, configured_max: int, worker_max: int) -> dic
 class BackgroundJobs:
     """Do not even construct worker coroutines in web processes."""
 
-    def __init__(self, enabled: bool):
+    def __init__(self, enabled: bool, mode: str = 'ALL'):
         self.enabled = enabled
+        if mode not in {'ALL','WHATSAPP_ONLY','NONE'}:raise ValueError('Invalid background job mode')
+        self.mode = mode
         self.tasks: list[asyncio.Task[None]] = []
 
     def start(self, name: str, factory: Callable[[], Coroutine[Any, Any, None]],
               *, enabled: bool = True) -> None:
-        if self.enabled and enabled:
+        selected=self.mode=='ALL' or (self.mode=='WHATSAPP_ONLY' and name.startswith('whatsapp-queue-'))
+        if self.enabled and enabled and selected:
             self.tasks.append(asyncio.create_task(factory(), name=name))
 
     async def close(self) -> None:

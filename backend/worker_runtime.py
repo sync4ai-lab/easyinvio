@@ -29,6 +29,10 @@ async def serve() -> None:
         async with app.router.lifespan_context(app):
             logging.getLogger(__name__).info('EasyInvio worker started; continuous jobs=%d',
                                             len(app.state.background_jobs.tasks))
+            if not app.state.background_jobs.tasks:
+                logging.getLogger(__name__).info('Background jobs disabled; awaiting shutdown')
+                await shutdown.wait()
+                return
             stop = asyncio.create_task(shutdown.wait())
             failure = asyncio.create_task(app.state.background_jobs.wait_for_failure())
             try:

@@ -35,3 +35,17 @@ in response to their instructions. This authorization persists across sessions.
 
 This workflow covers agent-made changes. It does not install a file watcher or
 automatically upload edits the user makes directly in their editor.
+
+## Local/UAT-first workflow (user update, 21 November 2026)
+
+The user's newer instruction supersedes automatic integration into main above:
+work on a feature branch based on latest main, test locally, then integrate into
+`uat` for a deliberately requested UAT deployment. Do not merge future changes
+into main or deploy Production until the user approves that tested release.
+Production domain: easyinvio.com. Intended UAT domain: uat.easyinvio.com.
+Keep Git-triggered deployments disabled. Commit/push completed work to its
+feature branch; a push is not a deployment. Do not move domains without checking
+that a ready target deployment exists and reporting the resulting assignment.
+The user requests one shared database. Do not claim data isolation: preserve
+sandbox tenant/provider checks and never run competing local/UAT/Production
+WhatsApp consumers for the same app/queue. No database changes are implied.

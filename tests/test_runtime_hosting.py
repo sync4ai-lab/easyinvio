@@ -63,6 +63,18 @@ def test_disabled_optional_worker_is_not_constructed():
     assert not jobs.tasks
 
 
+@pytest.mark.parametrize('mode,expected',[('ALL',2),('WHATSAPP_ONLY',1),('NONE',0)])
+def test_shared_database_worker_modes_do_not_construct_disabled_jobs(mode,expected):
+    async def scenario():
+        jobs=BackgroundJobs(True,mode=mode)
+        async def wait():await asyncio.sleep(60)
+        jobs.start('whatsapp-queue-0',wait)
+        jobs.start('subscription-lifecycle',wait)
+        assert len(jobs.tasks)==expected
+        await jobs.close()
+    asyncio.run(scenario())
+
+
 def test_web_sessions_close_only_on_release_and_local_pool_is_preserved():
     options = pool_options('WEB', 10, 8)
     assert options['min_size'] == 0 and options['max_size'] == 2

@@ -86,7 +86,7 @@
   "backend/return_ingress.py": "4a4e04b1177a18e156b967a17fd2559b67d7e392c64ef6a7237d8d1108d6a646",
   "backend/return_review.py": "8b01ed38a5be23014fd5a6d03ad5ae94832d40f51105632e11ac4a75ad396b22",
   "backend/reverse_logistics.py": "41a27760245d540b1cd06c991b8c7be9a9a0d18d98bc32743ffc36b4ebe6460b",
-  "backend/runtime_hosting.py": "49cf047c759bce56a8c788fce19f52b2bc3f2d83c75090f5be915e2b8265dc83",
+  "backend/runtime_hosting.py": "f3df8fac9e8a499128c41267faf2bf8635f50afff2497398ba5160bf8bc229ca",
   "backend/sandbox_hooks.py": "fe3e46e5378911d39eb894591edfe007ff5eab00283c882f10726e9fa1da61cd",
   "backend/seed_rigorous_data.py": "4dca38318e92884db14c754caf32c7a075bf325504ee4d0192109961002d1a32",
   "backend/sendcloud_adapter.py": "4d2ee6c7243ba2be3d0eeedb85b35ff6380e86f92e0f63032ff46276e09744a3",
@@ -123,7 +123,7 @@
   "backend/whatsapp_onboarding.py": "c0be73fe515729433bf5d9492e21cc3e2825fbe73af13eade8dba513d9d48cdc",
   "backend/whatsapp_provider.py": "7a40928ff94294431a0484056710b4c2f5f4796da4a41bab05e0c2f5af331259",
   "backend/whatsapp_queue.py": "a1da6f0e077556551b14c0ab73aa645e0952293c94662583b97f3346b4fec2bd",
-  "backend/worker_runtime.py": "03242405564cdef9111d404b01dbc1ed5a408ba9caafdbab717b3d203c56ae67",
+  "backend/worker_runtime.py": "cf0442bd397abb4f643965c7b56e88953a0e9e3ce47d2f51f7976de4bd7c2cbc",
   "backend/workspace_personas.py": "0b896ee3033d8fcd27941ef91ef46649f57e495fa196185f55f9f71e99e41f5c",
   "backend/workspace_settings.py": "c49ff1f59912e6f1dfd440f75f5a8b0ed0ad4ae5e6172492c7213d6cdd5a29d5",
   "backend/xcover_claims.py": "3d5bd35996edee6ca05c5cd858c18cb289f10470a7a481c89d3a3f442422aec7",
@@ -141,7 +141,7 @@
   "frontend/components/SupportHub.html": "37821c371e788148474b2bf0fecb116986604b45fa57d395b3669b0759119613",
   "frontend/components/support.css": "cac06eec53a50e4d5facb393cf6a52d7c5b10b2b78ca6f399d58b5af926bc1b2",
   "frontend/components/support.js": "427975ec86ccf700da07782b98763c2e10d522b0805d0a7a34bdf152aa4b8577",
-  "main.py": "4a55b77fe5cd34d8a3d23bdc061aaa49917745063eb1a2a47cca65cb008cb0d3",
+  "main.py": "39844c5e99493e43ea054ce03a4efe267b91a54fa4ec888deb74dca7644bc0bc",
   "requirements.lock.txt": "300c619fdf9efa94a8e96f8360187988d6bedb8adc8dc5cb09d749f38c60be45",
   "requirements.txt": "f847e7ee5ea0a909408135db9d2cb7feea94441d8d639a927b03088b61f0611e"
 }
