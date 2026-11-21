@@ -57,7 +57,7 @@
   "backend/ecommerce_sync.py": "88da8cece576d5aa0c5681f1d5b65966ac779c907f60cdb9bb50b8c4e7936026",
   "backend/email_delivery.py": "1b2523146b7f7020ba588705851ef86caea8127aa0a3e79362894c8bb5b16a20",
   "backend/entitlements.py": "e2e49ed60252133440644ebcf24dbdef604b4faeeade38b78742909a68a880a7",
-  "backend/gupshup_ingress.py": "c277e20ac7de260ceff04cb72de5b85344567dbb1cec42fd8bf093e68818489b",
+  "backend/gupshup_ingress.py": "7245a6fbe884e0e3f60501a96ada7627380c40218fef01662a7a6ffefa20a04b",
   "backend/help_center.py": "96941b2e847b97bd2ce46d2846700422bb64885c1f0b7251c5549a09f93a56a3",
   "backend/hubspot_crm.py": "88683c9938eb3f47f3f90acf1a26e45f9d8f7568adaa7fd70542977f94353459",
   "backend/hubspot_provisioning.py": "8205244ce5cc58b03637256ea577dc565687edea5fa1e6fedbc91021ea0fc7dc",

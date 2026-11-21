@@ -2,7 +2,9 @@
 from datetime import datetime,timedelta,timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-import json
+import json,asyncio
+from contextlib import asynccontextmanager
+import asyncpg
 import httpx
 import pytest
 from fastapi import FastAPI,HTTPException,Request
@@ -142,6 +144,38 @@ async def test_ack_only_persists_and_never_executes_business_actions(monkeypatch
     assert 'gupshup_callback_rejected status=422' in caplog.text
     assert TESTER not in caplog.text and SOURCE not in caplog.text
     assert event()['payload']['payload']['text'] not in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('storage_error',[False,True])
+async def test_callback_fresh_connection_budget_and_storage_diagnostics(monkeypatch,caplog,storage_error):
+    monkeypatch.delenv('VERCEL',raising=False)
+    caplog.set_level('INFO',logger='easyinvio.gupshup')
+    s=settings();app=FastAPI();app.state.settings=s;app.include_router(build_router())
+    c=AsyncMock()
+    from backend.whatsapp_queue import inbound_digest
+    from urllib.parse import urlencode
+    _,form,_,_=parse_event(event(),s)
+    c.fetchrow.return_value={'input_sha256':inbound_digest(urlencode(dict(form)).encode())}
+    @asynccontextmanager
+    async def acquire(*,timeout):
+        async with asyncio.timeout(timeout):
+            await asyncio.sleep(.15)  # Reproduces the former 100 ms acquisition failure.
+            if storage_error:raise asyncpg.UndefinedColumnError('synthetic private database detail')
+            yield c
+    c.transaction=lambda:acquire_transaction()
+    @asynccontextmanager
+    async def acquire_transaction():yield
+    q=GupshupQueue.__new__(GupshupQueue)
+    q.settings=s;q.pool=SimpleNamespace(acquire=acquire);q.key_id='synthetic';q.encrypt=lambda _:b'encrypted'
+    app.state.whatsapp_queue=q
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app,client=('192.0.2.10',1)),base_url='https://app.example.test') as client:
+        response=await client.post('/api/v1/integrations/whatsapp/gupshup/webhook',json=event())
+    assert response.status_code==(503 if storage_error else 200)
+    if storage_error:
+        assert 'error_type=UndefinedColumnError sqlstate=42703' in caplog.text
+        assert 'synthetic private database detail' not in caplog.text+response.text
+    else:assert c.fetchrow.await_count==1
 
 
 def test_configured_custom_header_origin_from_self_service_dashboard():

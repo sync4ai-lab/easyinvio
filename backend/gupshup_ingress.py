@@ -13,6 +13,11 @@ from backend.whatsapp_dispatch import send_selected,reconcile_events
 logger = logging.getLogger('easyinvio.gupshup')
 logger.setLevel(logging.INFO)  # Serverless imports do not run main's CLI logging setup.
 
+# WEB pools close connections on release. Include DNS/TLS/authentication in the
+# callback budget; 100 ms acquisition rejected healthy fresh connections.
+CALLBACK_CONNECTION_TIMEOUT = 2.0
+CALLBACK_STORAGE_TIMEOUT = 3.0
+
 def event_time(value):
     if isinstance(value,bool) or not isinstance(value,(int,float)):raise ValueError('Missing event time')
     stamp=datetime.fromtimestamp(value/1000,timezone.utc)
@@ -67,7 +72,7 @@ class GupshupQueue(WhatsAppQueue):
         self.http=getattr(getattr(application.state,'rating',None),'client',None)
     async def enqueue_event(self,form,external,received):
         raw=urlencode(dict(form)).encode();digest=inbound_digest(raw)
-        async with self.pool.acquire(timeout=.1) as c:
+        async with self.pool.acquire(timeout=CALLBACK_CONNECTION_TIMEOUT) as c:
             async with c.transaction():
                 await c.execute("SET LOCAL lock_timeout='80ms'")
                 await c.execute("SET LOCAL statement_timeout='200ms'")
@@ -187,17 +192,20 @@ def build_router():
             if q is None:raise HTTPException(503,'Messaging queue unavailable for receipt storage')
             q=GupshupQueue(q.pool,s,request.app)
         try:
-            async with asyncio.timeout(.7):
+            async with asyncio.timeout(CALLBACK_STORAGE_TIMEOUT):
                 if kind=='message':
                     reason=recipient_error(s,value['From'].removeprefix('whatsapp:'))
                     if reason:raise HTTPException(409,reason)
                     await q.enqueue_event(value,external,received)
                 elif kind=='receipt':
                     digest=hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
-                    async with q.pool.acquire(timeout=.1) as c:
+                    async with q.pool.acquire(timeout=CALLBACK_CONNECTION_TIMEOUT) as c:
                         await c.execute('''INSERT INTO public.whatsapp_delivery_events(provider,provider_account,event_sha256,external_id,whatsapp_id,recipient_e164,status,occurred_at)
                             VALUES('GUPSHUP',$1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING''',account(s),digest,value['external'],value['whatsapp'],value['recipient'],value['status'],received)
-        except (TimeoutError,asyncpg.PostgresError):raise HTTPException(503,'Callback storage busy; retry delivery') from None
+        except (TimeoutError,asyncpg.PostgresError) as error:
+            logger.warning('gupshup_callback_storage_unavailable error_type=%s sqlstate=%s',
+                           type(error).__name__,getattr(error,'sqlstate',None))
+            raise HTTPException(503,'Callback storage busy; retry delivery') from None
         logger.info('gupshup_callback_accepted kind=%s',kind)
         return Response(status_code=200)
     return router

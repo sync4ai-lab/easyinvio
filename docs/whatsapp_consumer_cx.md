@@ -114,6 +114,13 @@ message bodies and phone numbers. Worker processing failures record
 `gupshup_job_needs_review` with a queue ID and exception type; uncertain jobs
 must not be reset/replayed blindly because they may have financial side effects.
 
+Callback persistence allows up to two seconds to acquire a fresh database
+connection, within a three-second overall storage deadline. Serverless web pools
+close connections on release, so the former 100 ms acquisition deadline could
+reject healthy connections. SQL lock/statement limits remain short. Storage
+failures log `gupshup_callback_storage_unavailable` with exception type and
+SQLSTATE (not raw database messages); a 503 still asks the provider to retry.
+
 An empty authenticated event returns 422 and validates only authentication.
 An intentionally ignored v2 user event returning 200 also validates configured
 app/source identity; neither test proves Gupshup is forwarding real messages.
