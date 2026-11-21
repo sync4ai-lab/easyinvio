@@ -83,6 +83,31 @@ async def test_unbound_greeting_replays_without_creating_parcel_authority(world)
 
 
 @pytest.mark.asyncio
+async def test_progressive_guest_drafts_and_opt_in_public_projection(world):
+    w=world;_,s,q,cx,_,_=await setup(w)
+    await w.db.command((ROOT/'migrations/055_whatsapp_progressive_assistant.sql').read_text(),mode='exec')
+    s.whatsapp_progressive_enabled=True
+    first=await cx.handle(form('Quote to London GB'))
+    assert 'weight' in first[0].body and 'pickup' in first[0].body
+    saved=await w.db.fetchrow('SELECT * FROM public.whatsapp_guest_drafts')
+    assert b'London' not in bytes(saved['payload_ciphertext'])
+    result=await cx.handle(form('2kg from Leeds GB to London GB, 30x20x10 cm'))
+    assert 'Illustrative UK estimate' in result[0].body and 'quick_quote=' in result[0].body
+    assert len(result)==1 and len(result[0].body)<1450
+    assert await w.db.fetchval('SELECT count(*) FROM public.whatsapp_guest_drafts')==0
+    await w.db.execute("UPDATE public.shipments SET tracking_number='TEST-TRACK-0001' WHERE id=$1",w.shipments[0])
+    assert 'send the full carrier tracking number' in (await cx.handle(form('Track')))[0].body
+    hidden=(await cx.handle(form('TEST-TRACK-0001')))[0].body
+    assert 'couldn’t find a publicly available status' in hidden
+    await w.db.execute('UPDATE public.tenants SET public_status_lookup_enabled=true WHERE tenant_id=$1',w.tenants[0])
+    visible=(await cx.handle(form('TEST-TRACK-0001')))[0].body
+    assert 'Public parcel status' in visible and 'ORDER-0' not in visible
+    await w.db.execute('UPDATE public.tenants SET public_status_lookup_enabled=false WHERE tenant_id=$1',w.tenants[0])
+    assert 'couldn’t find a publicly available status' in (await cx.handle(form('TEST-TRACK-0001')))[0].body
+    assert await w.db.fetchval('SELECT count(*) FROM public.whatsapp_consumer_sessions')==0
+
+
+@pytest.mark.asyncio
 async def test_complaint_transaction_stages_admin_alert_and_duplicate_cannot_repeat(world):
     w=world;_,s,q,cx,_,token=await setup(w)
     await w.db.execute('DELETE FROM public.support_message_outbox')

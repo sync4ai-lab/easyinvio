@@ -17,6 +17,8 @@ class LogisticsSupervisor:
         self.invoice = InvoiceSurchargeAuditorAgent(self.runtime)
         self.support = ProactiveClaimsSupportAgent(self.runtime)
         self.help = HelpRetriever(self.runtime)
+        from backend.agents.logistics_advisor import LogisticsAdvisorAgent
+        self.advisor = LogisticsAdvisorAgent()
         from backend.agents.margin_optimizer import MarginOptimizerAgent
         self.optimizer = MarginOptimizerAgent(self.runtime)
 

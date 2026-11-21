@@ -18,6 +18,11 @@ class IngestionWorkerAgent:
         self.runtime = runtime
 
     async def conversation(self, context, text):
+        from backend.agents.shipping_intents import classify
+        explicit=classify(text)
+        if explicit.intent in {'QUOTE','BOOK_SELECTION'} and explicit.facts is not None:
+            self.runtime.usage['deterministic_calls']+=1
+            return self.validate_intent(explicit.facts)
         from backend.agents.status_guidance import status_question
         if status_question(text):
             return ConversationalIntent(intent='HELP')
@@ -90,6 +95,9 @@ class IngestionWorkerAgent:
 
     @staticmethod
     def ground_quote(intent, text):
+        if isinstance(intent,ConversationalIntent) and intent.dimensions_cm is not None:
+            size=re.search(r'\b(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*cm\b',text,re.I)
+            intent=intent.model_copy(update={'dimensions_cm':[Decimal(x) for x in size.groups()] if size else None})
         if intent.intent == 'QUOTE' and intent.weight_kg is not None:
             weights = [Decimal(value.replace(',', '.')) for value in re.findall(r'(?<![\w.,])(\d+(?:[.,]\d+)?)\s*(?:kg|kilograms?)\b', text, re.I)]
             if Decimal(intent.weight_kg) not in weights:

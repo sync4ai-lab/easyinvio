@@ -17,6 +17,19 @@ logger = logging.getLogger("easyinvio.whatsapp")
 WEBHOOK_PATH = "/api/v1/integrations/whatsapp/webhook"
 
 
+def format_reply(text: str, limit: int = 1440) -> str:
+    """One compact reply; preserve a complete final action URL, never split it."""
+    text=re.sub(r'[ \t]+',' ',text).strip()
+    text=re.sub(r'\n{3,}','\n\n',text)
+    if len(text)<=limit:return text
+    links=re.findall(r'https?://\S+',text)
+    link=links[-1] if links else ''
+    suffix=('\nContinue: '+link) if link and len(link)<limit-150 else '\nOpen your workspace for the full details.'
+    prose=re.sub(r'https?://\S+','',text)
+    budget=limit-len(suffix)-2
+    return prose[:budget].rsplit(' ',1)[0].rstrip()+'…'+suffix
+
+
 from backend.whatsapp_provider import WhatsAppProviderSettings
 
 class WhatsAppConfiguration(WhatsAppProviderSettings):

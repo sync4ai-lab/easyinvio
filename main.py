@@ -188,6 +188,7 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     twilio_webhook_url: str = ""
     whatsapp_queue_workers: int = Field(default=2, ge=1, le=8)
     whatsapp_consumer_cx_enabled: bool = False  # Requires migration 053 on web and worker.
+    whatsapp_progressive_enabled: bool = False  # Requires 055 on web and worker.
     ideal_postcodes_api_key: SecretStr = SecretStr("")
     logistics_media_bucket: str = 'easyinvio-logistics'
     tracking_polling_enabled: bool = False
@@ -2024,6 +2025,10 @@ async def deterministic_lifespan(application: FastAPI):
                 if settings.stripe_enabled and await connection.fetchval("SELECT to_regclass('public.payment_carts')") is None:
                     raise RuntimeError('Apply migration 030_card_checkout.sql before enabling card checkout')
                 if whatsapp_enabled(settings):
+                    if settings.whatsapp_progressive_enabled:
+                        await connection.execute('SELECT public_status_lookup_enabled FROM public.tenants LIMIT 0')
+                        if await connection.fetchval("SELECT to_regclass('public.whatsapp_guest_drafts')") is None:
+                            raise RuntimeError('Apply migration 055 before enabling progressive WhatsApp')
                     if settings.whatsapp_consumer_cx_enabled:
                         for table in ('whatsapp_consumer_sessions','whatsapp_consumer_messages','whatsapp_consumer_return_policies'):
                             if await connection.fetchval('SELECT to_regclass($1)', 'public.' + table) is None:
@@ -2827,5 +2832,7 @@ from backend.whatsapp_queue import build_media_status_router
 app.include_router(build_media_status_router())
 from backend.gupshup_ingress import build_router as gupshup_router
 app.include_router(gupshup_router())
+from backend.whatsapp_progressive import build_router as progressive_whatsapp_router
+app.include_router(progressive_whatsapp_router(authenticate))
 from backend.whatsapp_consumer import build_router as consumer_cx_router
 app.include_router(consumer_cx_router(authenticate))

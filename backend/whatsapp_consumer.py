@@ -187,6 +187,12 @@ class ConsumerCX:
         else:
             draft = await self.load(sender,receiver)
         if draft is None:
+            if getattr(self.settings,'whatsapp_progressive_enabled',False):
+                from backend.whatsapp_progressive import GuestShippingAssistant
+                try:value=await GuestShippingAssistant(self.request).handle(form)
+                except ValueError:
+                    return reply('Please check the packed weight, countries and box dimensions. Example: Quote 2kg from Leeds GB to London GB, 30x20x10 cm. No booking has been made.')
+                if value is not None:return reply(value) if value else []
             from backend.whatsapp_concierge import answer
             text=await answer(self.request,form)
             return reply(text) if text else []

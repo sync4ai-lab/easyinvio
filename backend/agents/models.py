@@ -34,6 +34,15 @@ class ConversationalIntent(StrictOutput):
     monetary_amount: Decimal | None = Field(default=None, ge=1, le=10000, decimal_places=2, allow_inf_nan=False)
     selection_index: int | None = Field(default=None, ge=1, le=10, strict=True)
     description_notes: str | None = Field(default=None, max_length=2000)
+    cargo_type: Literal['PARCEL','PALLET','OVERLAND_FREIGHT'] = 'PARCEL'
+    dimensions_cm: list[Decimal] | None = Field(default=None,min_length=3,max_length=3)
+    knowledge_kind: Literal['APP_FAQ','LOGISTICS_ADVICE'] | None = None
+
+    @field_validator('dimensions_cm')
+    @classmethod
+    def dimensions_valid(cls,value):
+        if value is not None and any(not x.is_finite() or x<=0 or x>1000 for x in value):raise ValueError('Use three positive dimensions up to 1000 cm')
+        return value
 
     @field_validator('monetary_amount', mode='before')
     @classmethod
@@ -45,6 +54,13 @@ class ConversationalIntent(StrictOutput):
         if not re.fullmatch(r'[0-9]+(?:\.[0-9]{1,2})?', str(value)):
             raise ValueError('Use a positive amount with at most two decimal places')
         return Decimal(value)
+
+
+class ShippingIntent(StrictOutput):
+    """Shared UX taxonomy; existing execution intents remain backward compatible."""
+    intent: Literal['QUOTE','BOOK_SELECTION','TRACK','CHANGE_ADDRESS','RETURN_REQUEST','REFUND_OR_CLAIM','COMPLAINT_OR_SUPPORT','KNOWLEDGE_QUERY']
+    knowledge_kind: Literal['APP_FAQ','LOGISTICS_ADVICE'] | None = None
+    facts: ConversationalIntent | None = None
 
 
 class ColumnMapping(StrictOutput):

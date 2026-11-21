@@ -12,7 +12,7 @@ def cx_intent(text: str) -> ConversationalIntent | None:
         action = 'REFUND_INQUIRY'
     elif re.search(r'\b(?:complaint|complain|damaged|missing|delayed|missed delivery|lost)\b', text, re.I):
         action = 'COMPLAINT'
-    elif re.search(r'\b(?:service request|support|address change|change (?:my |the )?address|billing issue)\b', text, re.I):
+    elif re.search(r'\b(?:service request|support|address change|(?:change|update|redirect|amend) (?:my |the )?(?:delivery |shipping )?address|billing issue)\b', text, re.I):
         action = 'SERVICE_REQUEST'
     else:
         return None

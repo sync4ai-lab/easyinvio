@@ -53,7 +53,9 @@ def inbound_digest(raw: bytes) -> str:
 
 
 def reply_parts(xml: str, media_url: str | None = None, *, fallback_view_url: str | None = None) -> list[OutboundPart]:
-    parts = [OutboundPart(body=node.text or '') for node in fromstring(xml).findall('Message')]
+    from backend.whatsapp_bot import format_reply
+    nodes=fromstring(xml).findall('Message')
+    parts = [OutboundPart(body=format_reply('\n'.join(node.text or '' for node in nodes)))] if nodes else []
     if not parts or len(parts) > 32:
         raise ValueError('Invalid reply part count')
     if media_url:
@@ -154,6 +156,10 @@ async def process_inbound(request: Request, form: FormData, received_at: datetim
         return reply_parts(message_xml('This number is not registered to an active EasyInvio workspace. Ask your owner to verify it, or send Register.'))
     if form['NumMedia'] != '0':
         return reply_parts(message_xml('Please send text, for example: Quote 4.5kg from GB to US.'))
+    if getattr(state.settings,'whatsapp_progressive_enabled',False):
+        from backend.whatsapp_progressive import feature_handoff
+        handoff=await feature_handoff(request,context,form['Body'])
+        if handoff:return reply_parts(message_xml(handoff))
     # Welcome/help never interprets a greeting as a quote field or charges an AI
     # call. Resolved merchant actions still go through the entitlement/RBAC gate.
     from backend.whatsapp_concierge import social,answer

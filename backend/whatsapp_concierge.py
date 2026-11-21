@@ -49,6 +49,14 @@ async def answer(request,form,*,known=False):
     if form.get('NumMedia')!='0':return 'Please send your question as text so I can help. Share parcel evidence through the retailer’s secure support channel.'
     if text.lower() in {'1','2','3'}:return 'Please tell me what you need in a few words, such as “get a shipping quote”, “track my parcel” or “connect Shopify”.'
     from backend.agents.rag_support import documentation_question
+    from backend.agents.shipping_intents import classify
+    if classify(text).intent=='CHANGE_ADDRESS':
+        return ('Before booking, review the address and get a fresh quote in your workspace. After booking, changes need carrier review. '
+                'Paste your secure tracking link for parcel help, or open '+base+'/workspace. No address has been changed.')
+    if classify(text).knowledge_kind=='LOGISTICS_ADVICE':
+        if count>20:return 'For more guidance today, please open '+base+'/help'
+        from backend.agents.logistics_advisor import advice
+        return await advice(request,text)
     from backend.cx_intents import cx_intent
     # Private actions never reach public retrieval, even if phrased politely.
     if needs_workspace(text) or (cx_intent(text) and not documentation_question(text)) or re.search(r'\b(?:track|tracking|complaint|damaged|missing parcel|my return|my refund)\b',text,re.I) and not documentation_question(text):

@@ -144,7 +144,15 @@ def collect_reply(draft, text, *, require_paf=False):
     """Consume only the field format that was explicitly requested last turn."""
     from main import Address, Dimensions
     field = draft.waiting_for
-    if field == 'postcodes':
+    if field == 'quote_details':
+        from backend.agents.shipping_intents import classify
+        proposed=classify('Quote '+text).facts
+        if proposed is None:raise ValueError('Send weight, route and box size together')
+        merge_quote(draft,proposed)
+        if proposed.dimensions_cm:
+            draft.dimensions=Dimensions(**dict(zip(('length_cm','width_cm','height_cm'),proposed.dimensions_cm))).model_dump(mode='json')
+        draft.waiting_for=''
+    elif field == 'postcodes':
         parts = [part.strip() for part in text.split(',')]
         if len(parts) != 2 or any(not value or len(value) > 30 for value in parts):
             raise ValueError('Reply with Origin Postcode, Destination Postcode.')

@@ -163,6 +163,10 @@ class ConversationalActionGateway:
         return {'status': status, 'conversational_reply': text, 'action_taken': action, **details}
 
     async def interpret(self, context, text):
+        if getattr(self.state.settings,'whatsapp_progressive_enabled',False):
+            from backend.agents.shipping_intents import classify
+            routed=classify(text)
+            if routed.intent in {'QUOTE','BOOK_SELECTION'} and routed.facts is not None:return routed.facts
         from backend.cx_intents import cx_intent
         proposed = cx_intent(text)
         # Preserve the established explicit insurance-claim command.
@@ -224,7 +228,7 @@ class ConversationalActionGateway:
             raise HTTPException(403, 'An active registered workspace session is required')
         if body.channel == 'WHATSAPP' and not verified_whatsapp:
             raise HTTPException(403, 'WhatsApp actions require the signed Twilio webhook')
-        if body.channel == 'WHATSAPP':
+        if body.channel == 'WHATSAPP' and not getattr(self.state.settings,'whatsapp_progressive_enabled',False):
             from backend.entitlements import guard_feature
             try:await guard_feature(self.pool,self.state.settings,context.tenant_id,'whatsapp_bot')
             except HTTPException as error:
@@ -288,6 +292,19 @@ class ConversationalActionGateway:
                 await self.store.finish(context, message_id, result)
                 return self.public(result)
             try:
+                if body.channel=='WHATSAPP' and getattr(self.state.settings,'whatsapp_progressive_enabled',False) and intent.intent not in {'HELP','TRACK_PACKAGE'}:
+                    from backend.entitlements import guard_feature
+                    try:await guard_feature(self.pool,self.state.settings,context.tenant_id,'whatsapp_bot')
+                    except HTTPException as error:
+                        if error.status_code!=402:raise
+                        link=self.state.settings.booking_page_url.rstrip('/')
+                        text='Full WhatsApp booking and paperless returns unlock on Velocity. Compare plans: '+link+'/pricing'
+                        if intent.intent=='QUOTE':
+                            from backend.whatsapp_progressive import quote_link
+                            text='Continue this quote in your workspace: '+quote_link(self.state.settings,intent)+'\n'+text
+                        result=self.reply('HELP',text)
+                        await self.store.finish(context,message_id,result)
+                        return self.public(result)
                 result = await self.execute(context, body, intent, message_id)
                 if status_help and self.draft:
                     result['_pending'] = self.draft.model_dump(mode='json')
@@ -317,6 +334,7 @@ class ConversationalActionGateway:
                 + '\n'.join(f'{index}: {option.label}' for index, option in enumerate(options, draft.paf_offset + 1))
                 + '\nReply with a displayed number, More, Back or Cancel.')
         prompts = {
+            'quote_details':'Please send the missing weight, pickup and delivery postcodes/countries, and measured box size together. Example: 2kg from SW1A 1AA GB to LS1 1UR GB, 30x20x10 cm. I will then check the exact UK premises.',
             'postcodes': 'I can check that quote for you. Please reply with Origin Postcode, Destination Postcode.',
             'countries': 'Please confirm the two countries as Origin Country, Destination Country, for example GB, FR. A postcode alone can be ambiguous.',
             'weight': 'What is the packed parcel weight in kg?',
@@ -344,7 +362,7 @@ class ConversationalActionGateway:
         if intent.intent == 'BOOK_RESERVATION':
             if context.role not in DISPATCH_ROLES:
                 raise HTTPException(403, 'A dispatch role is required to book shipments')
-            explicit = re.fullmatch(r'\s*(?:book|confirm)\s+option\s+(10|[1-9])\s*', body.message_body, re.I)
+            explicit = re.fullmatch(r'\s*(?:book|confirm|select)(?:\s+option)?\s+(10|[1-9])\s*', body.message_body, re.I)
             if not explicit or int(explicit[1]) != intent.selection_index:
                 return self.reply(intent.intent, 'To confirm a displayed price, send: Book option 1. Otherwise review the quote in Create a shipment.', status='NEEDS_INPUT')
             quote = await self.store.latest_quote(context, body.channel)
@@ -444,6 +462,9 @@ class ConversationalActionGateway:
 
     async def quote(self, context, body, intent, message_id):
         from main import Address, Dimensions, RatingRequest, get_rates
+        if intent.cargo_type!='PARCEL':
+            from backend.whatsapp_progressive import quote_link
+            return self.reply('QUOTE','Pallet/freight services need the full cargo form. Continue with your saved details: '+quote_link(self.state.settings,intent),status='NEEDS_INPUT')
         draft = self.draft or ConversationDraft(action='QUOTE', intent=intent,
             assistance_id=str(context.assistance_session_id) if context.assistance_session_id else None)
         self.draft = draft
@@ -463,6 +484,8 @@ class ConversationalActionGateway:
             else:
                 draft.intent = intent.model_copy(update={'route_code': None})
                 intent = draft.intent
+        if intent.dimensions_cm and draft.dimensions is None:
+            draft.dimensions=Dimensions(**dict(zip(('length_cm','width_cm','height_cm'),intent.dimensions_cm))).model_dump(mode='json')
         if rating is None:
             if draft.waiting_for == 'paf_selection' and draft.paf_options:
                 return self.pending_reply(draft, self.draft_prompt(draft))
@@ -478,6 +501,10 @@ class ConversationalActionGateway:
                 ('origin_address', draft.origin_address is None),
                 ('destination_address', draft.destination_address is None),
             ]
+            basic_missing=sum(bool(missing) for field,missing in required if field in {'postcodes','countries','weight','dimensions'})
+            if getattr(self.state.settings,'whatsapp_progressive_enabled',False) and basic_missing>1:
+                draft.waiting_for='quote_details'
+                return self.pending_reply(draft,self.draft_prompt(draft))
             for field, missing in required:
                 if missing:
                     if (field in {'origin_address', 'destination_address'} and body.channel == 'WHATSAPP'
@@ -516,7 +543,7 @@ class ConversationalActionGateway:
         choices = []
         async with self.pool.acquire() as connection:
             async with connection.transaction():
-                for index, rate in enumerate(result.rates[:10], 1):
+                for index, rate in enumerate(result.rates[:3] if body.channel=='WHATSAPP' else result.rates[:10], 1):
                     choice_id = uuid4()
                     await connection.execute('''INSERT INTO public.whatsapp_quote_choices
                         (id,tenant_id,auth_user_id,rating_request,selected_rate,expires_at)
@@ -525,7 +552,7 @@ class ConversationalActionGateway:
                     choices.append(str(choice_id))
                     delivery = f' | estimated {rate.delivery_days} days' if rate.delivery_days is not None else ''
                     lines.append(f'{index}. {rate.carrier_code} {rate.service_code}: {rate.client_price_ex_tax:.2f} {rate.currency}{delivery}')
-                    if self.whatsapp and self.state.settings.booking_page_url:
+                    if (body.channel!='WHATSAPP' or index==1) and self.whatsapp and self.state.settings.booking_page_url:
                         from urllib.parse import urlencode
                         lines.append(self.state.settings.booking_page_url + '?' + urlencode({
                             't': str(context.tenant_id), 'quote': self.whatsapp.sign_choice(context, choice_id, result.expires_at)}))
@@ -649,6 +676,11 @@ class ConversationalActionGateway:
         async with self.pool.acquire() as c:
             async with c.transaction():
                 row=await c.fetchrow('SELECT status,manifest_id FROM public.shipments WHERE tenant_id=$1 AND id=$2 FOR SHARE',context.tenant_id,shipment['id'])
+                if intent.issue_category=='ADDRESS_CHANGE':
+                    if context.role not in DISPATCH_ROLES:raise HTTPException(403,'A dispatch role is required for delivery-address requests')
+                    if row and row['status'] in {'DRAFT','QUOTED'} and row['manifest_id'] is None:
+                        return self.reply(intent.intent,'This shipment is not booked. Review the address and request a fresh quote in your workspace: '+self.state.settings.booking_page_url.rstrip('/')+'/workspace'+'\nNo address has been changed.',_last_reference=reference)
+                    notice='A carrier-intercept/address review is recorded. Delivery changes depend on carrier approval; no address has been changed.'
                 if intent.intent=='REFUND_INQUIRY':
                     if context.role not in DISPATCH_ROLES:
                         raise HTTPException(403,'A dispatch role is required for a label void review')
