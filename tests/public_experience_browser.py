@@ -20,7 +20,7 @@ async def main():
     requests=[]
     profile={'user_id':'00000000-0000-4000-8000-000000000001','email':'tester@example.invalid','role':'SUPER_ADMIN','full_name':'Test Operator','phone_e164':None}
     async with async_playwright() as driver:
-        browser=await driver.chromium.launch()
+        browser=await driver.chromium.launch(channel=os.getenv('BROWSER_CHANNEL') or None)
         context=await browser.new_context(viewport={'width':1440,'height':1000})
         page=await context.new_page()
         page.on('pageerror',lambda error:errors.append(str(error)))
@@ -250,17 +250,16 @@ async def main():
         await page.goto('https://experience.test/')
         await page.locator('#public-register').click()
         await expect(page.locator('#identity-signup-form')).to_be_visible()
-        await expect(page.locator('#identity-onboarding-intent')).to_have_value('')
-        await expect(page.locator('#identity-onboarding-hint')).to_contain_text('change your workflow')
+        assert await page.locator('#identity-onboarding-intent').count()==0
         # URL intent never controls the Business/Personal account type or authorizes work.
         await expect(page.locator('[data-signup-persona="BUSINESS"]')).to_have_attribute('aria-pressed','true')
         await expect(page.locator('#loginContainer h1')).to_have_text('Create an account')
         await expect(page.locator('#identity-login-form')).to_be_hidden()
-        await page.locator('#identity-signup-back').click()
+        await page.locator('#identity-signin-top').click()
         await page.goto('https://experience.test/login?mode=signup&persona=%3Cscript%3Ebad%3C/script%3E')
         await expect(page.locator('#identity-signup-form')).to_be_visible()
-        await expect(page.locator('#identity-onboarding-intent')).to_have_value('')
-        assert await page.locator('#identity-onboarding-hint script').count()==0
+        assert await page.locator('#identity-onboarding-intent').count()==0
+        assert await page.locator('#identity-signup-form script').count()==0
         await page.goto('https://experience.test/login?mode=signin&persona=dispatch')
         await expect(page.locator('#identity-signup-form')).to_be_hidden()
         await expect(page.locator('#loginContainer')).to_be_visible()

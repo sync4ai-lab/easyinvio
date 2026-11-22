@@ -12,22 +12,25 @@ from playwright.async_api import async_playwright
 async def run():
     html = Path('index.html').read_text(encoding='utf-8')
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch()
+        browser = await playwright.chromium.launch(channel=os.getenv('BROWSER_CHANNEL') or None)
         page = await browser.new_page(viewport={'width':1100,'height':950})
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
 
         async def route(request_route):
             request = request_route.request
-            if request.url.startswith('http://personas.test/'):
+            if request.url.startswith('https://personas.test/'):
                 if urlsplit(request.url).path == '/':
                     return await request_route.fulfill(content_type='text/html',body=html)
+                asset=Path(urlsplit(request.url).path.lstrip('/'))
+                if asset.parent==Path('.') and asset.suffix in {'.js','.css','.svg'} and asset.is_file():
+                    return await request_route.fulfill(path=str(asset))
                 data = {'mode':'local-preview'} if urlsplit(request.url).path == '/api/v1/config' else {}
                 return await request_route.fulfill(content_type='application/json',body=json.dumps(data))
             await request_route.abort()
 
         await page.route('**/*',route)
-        await page.goto('http://personas.test/',wait_until='domcontentloaded')
+        await page.goto('https://personas.test/',wait_until='domcontentloaded')
         await page.evaluate('''() => {
             window.personaRequests=[];
             api=async(path,options)=>{
@@ -64,7 +67,21 @@ async def run():
         assert 'Business: 4' in text and 'Personal: 2' in text
         await page.locator('#identity-signup-open').click()
         assert await page.locator('#identity-signup-corporate').is_visible()
-        assert await page.locator('#identity-signup-corporate input:enabled').count() == 7
+        assert await page.locator('#identity-signup-corporate input:enabled').count() == 6
+        assert await page.locator('#identity-signup-corporate select:enabled').count() == 1
+        for name,value in {'full_name':'Business Sender','email':'business@example.test','phone':'+447700900124','password':'synthetic-password-only','company_name':'Test Business','registration':'12345678','street':'1 Test Road','city':'Leeds','postcode':'LS12 6EJ'}.items():
+            await page.locator(f'#identity-signup-form input[name="{name}"]').fill(value)
+        await page.locator('#identity-signup-form select[name=country]').select_option(label='United Kingdom')
+        await page.locator('#identity-signup-form button[type=submit]').click()
+        await page.wait_for_function('signupReceipt !== null')
+        business = (await page.evaluate('personaRequests[2]'))['body']
+        assert business['workspace_type'] == 'BUSINESS'
+        assert business['profile']['country_code'] == 'GB'
+        assert await page.locator('#identity-signup-form select[name=country]').is_disabled()
+        await page.locator('#identity-signin-top').click()
+        await page.locator('#identity-signup-open').click()
+        assert await page.locator('#identity-signup-form select[name=country]').is_enabled()
+        assert await page.locator('#identity-signup-form select[name=country]').input_value() == ''
         assert not errors, errors
         await browser.close()
     print('PASS: personal and business masking, verified signup requests, cleared secrets and separate cohort bars. Offline only.')

@@ -47,6 +47,17 @@ def run():
             page.wait_for_function("document.querySelector('#qq-weight')?.value==='2' && !window.easyinvioIdentityPending")
             assert 'quick_quote' not in page.url
             assert page.locator('#identity-signin-top').is_visible()
+            assert page.locator('#identity-signup-back').count() == 0
+            assert page.locator('#identity-onboarding-intent').count() == 0
+            assert page.locator('#identity-signup-form [name=phone]').input_value() == ''
+            assert page.locator('#identity-signup-form [name=phone]').get_attribute('placeholder') == 'Your phone number'
+            country=page.locator('#identity-signup-form select[name=country]')
+            country.select_option(label='United Kingdom')
+            assert country.input_value() == 'GB'
+            page.locator('[data-signup-persona=INDIVIDUAL]').click()
+            assert country.is_disabled()
+            page.locator('[data-signup-persona=BUSINESS]').click()
+            assert country.is_enabled()
             position = page.locator('#identity-signin-top').bounding_box()
             assert position and position['y'] < 110
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

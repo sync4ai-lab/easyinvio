@@ -218,3 +218,14 @@ login and session restoration, shipment visibility and account contact prefill.
 All HTTP requests are intercepted, with no provider calls or real login. Reloading
 an already scrubbed URL does not retain the in-memory draft; reopen the original
 WhatsApp link (within its expiry) to start again. No deployment is needed locally.
+
+
+Signup starts with Business / Personal account selection. The unused primary
+workflow dropdown, hints and URL persona handling have been removed; they did
+not grant roles or configure integrations. A single top-right Sign in control
+replaces the duplicate bottom button. The phone field is blank with a descriptive
+placeholder, not a made-up number; WhatsApp sender identity is not placed in the
+public quote token. Business registration shows country names and submits the
+selected two-letter code. Personal registration excludes business address fields.
+Offline mobile, business/personal registration and public navigation checks cover
+these changes, including GB submission and country reset/verification state.

@@ -8781,23 +8781,22 @@ else if(!state.session)resetSessionForms();
 <script>
 $('#identity-login-form').insertAdjacentHTML('afterend', `<button type="button" id="identity-signup-open" class="secondary full" style="margin-top:12px">Create an account</button>
 <form id="identity-signup-form" hidden style="margin-top:20px"><h2>Your account details</h2><p id="identity-plan-hint" class="subtle" hidden></p>
-<label for="identity-onboarding-intent">Your primary workflow<select id="identity-onboarding-intent"><option value="">Choose a workflow (optional)</option><option value="ecommerce">E-commerce brands</option><option value="dispatch">Warehouses & dispatch teams</option><option value="mobile">Mobile & independent sellers</option></select></label><p id="identity-onboarding-hint" class="subtle" role="status"></p>
 <div class="persona-switch" role="group" aria-label="Account type"><button type="button" data-signup-persona="BUSINESS" aria-pressed="true">&#128084; Business Account</button><button type="button" data-signup-persona="INDIVIDUAL" aria-pressed="false">&#128100; Personal Account</button></div>
 <label>Name<input name="full_name" autocomplete="name" minlength="2" maxlength="200" required></label>
 <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254"></label>
-<label>Phone<input name="phone" type="tel" autocomplete="tel" placeholder="+447700900123" pattern="\\+[1-9][0-9]{7,14}" required></label>
+<label>Phone (include your country calling code)<input name="phone" type="tel" autocomplete="tel" placeholder="Your phone number" pattern="\\+[1-9][0-9]{7,14}" required></label>
 <label>Password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
 <div id="identity-signup-corporate"><label>Company name<input name="company_name" maxlength="200" required></label>
 <label>Registration number<input name="registration" maxlength="100" required></label><label>Tax / VAT number (optional)<input name="tax_id" maxlength="100"></label>
-<label>Billing street<input name="street" maxlength="200" required></label><label>City<input name="city" maxlength="100" required></label><label>Postcode<input name="postcode" maxlength="30" required></label><label>Country code<input name="country" maxlength="2" value="GB" required></label></div>
+<label>Billing street<input name="street" maxlength="200" required></label><label>City<input name="city" maxlength="100" required></label><label>Postcode<input name="postcode" maxlength="30" required></label><label>Country<select name="country" autocomplete="country" required><option value="">Choose country</option>${shippingCountries.map(country=>`<option value="${country.code}">${escapeHTML(country.name)}</option>`).join('')}</select></label></div>
 <label id="identity-signup-code" hidden>Email verification code<input name="code" inputmode="numeric" pattern="[0-9]{6,10}" autocomplete="one-time-code" disabled></label>
-<button class="primary full" type="submit">Send verification code</button><button class="outline full" type="button" id="identity-signup-back">Back to sign in</button><p role="status" class="footnote" aria-live="polite"></p></form>`);
+<button class="primary full" type="submit">Send verification code</button><p role="status" class="footnote" aria-live="polite"></p></form>`);
 let signupPersona = 'BUSINESS', signupReceipt = null;
 function setSignupPersona(persona) {
   if (signupReceipt) return;
   signupPersona = persona;
   $('#identity-signup-corporate').hidden = persona === 'INDIVIDUAL';
-  $('#identity-signup-corporate').querySelectorAll('input').forEach(input => input.disabled = persona === 'INDIVIDUAL');
+  $('#identity-signup-corporate').querySelectorAll('input,select').forEach(input => input.disabled = persona === 'INDIVIDUAL');
   $$('[data-signup-persona]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.signupPersona === persona)));
 }
 $$('[data-signup-persona]').forEach(button => button.addEventListener('click', () => setSignupPersona(button.dataset.signupPersona)));
@@ -8814,11 +8813,8 @@ $('#identity-signup-open').addEventListener('click', () => {
   $('#identity-signup-form').hidden = false;
   $('#identity-signup-form input').focus();
 });
-// Untrusted URL hints may customize copy only. Registration and authorization stay server-owned.
-const onboardingHints={ecommerce:'Start with supported store connections and order imports.',dispatch:'Start with parcel workflows, wallets and authorized team access.',mobile:'Start with WhatsApp pairing and eligible paperless services.'};
-function updateOnboardingHint(){const value=$('#identity-onboarding-intent').value;$('#identity-onboarding-hint').textContent=Object.hasOwn(onboardingHints,value)?onboardingHints[value]:'You can change your workflow later. Connections and access require separate setup.';}
-$('#identity-onboarding-intent').addEventListener('change',updateOnboardingHint);
-const onboardingParams=new URLSearchParams(location.search),onboardingMode=onboardingParams.get('mode'),onboardingIntent=onboardingParams.get('persona');
+// URL plan hints never assign account type or permissions.
+const onboardingParams=new URLSearchParams(location.search),onboardingMode=onboardingParams.get('mode');
 // Public signed facts are suggestions only. Never decode unverified JWT claims
 // in the browser, persist account tokens, or submit a rate/purchase automatically.
 const quickQuoteToken=onboardingParams.get('quick_quote');
@@ -8892,19 +8888,12 @@ if(Object.hasOwn(pricingPlanNames,pricingPlan)){
   hint.hidden=false;
 }
 
-if(Object.hasOwn(onboardingHints,onboardingIntent)){
-  // Existing anonymous/session cleanup resets all forms. Keep only this public,
-  // allowlisted preference as a form default; sensitive fields still reset normally.
-  for(const option of $('#identity-onboarding-intent').options)option.defaultSelected=option.value===onboardingIntent;
-}
-$('#identity-signup-form').addEventListener('reset',()=>queueMicrotask(updateOnboardingHint));
-updateOnboardingHint();
 if(!identityRecoveryHash&&!identityInviteToken&&(onboardingMode==='signup'||(!onboardingMode&&onboardingParams.get('signup')==='1')))$('#identity-signup-open').click();
 function resetPersonaSignup() {
   signupReceipt = null;
   const form = $('#identity-signup-form');
   form.reset();
-  form.querySelectorAll('input').forEach(input => input.disabled = false);
+  form.querySelectorAll('input,select').forEach(input => input.disabled = false);
   form.elements.code.disabled = true;
   form.elements.code.required = false;
   $('#identity-signup-code').hidden = true;
@@ -8913,9 +8902,9 @@ function resetPersonaSignup() {
   form.querySelector('[role=status]').textContent = '';
   setSignupPersona('BUSINESS');
 }
-$('#identity-signup-back').addEventListener('click', () => { resetPersonaSignup(); identityRecoveryView('login'); $('#identity-email').focus(); });
+function returnToIdentitySignIn(){resetPersonaSignup();identityRecoveryView('login');$('#identity-email').focus();}
 // Switch in place: the verified WhatsApp draft and any edits stay in memory.
-$('#identity-signin-top').addEventListener('click', () => $('#identity-signup-back').click());
+$('#identity-signin-top').addEventListener('click',returnToIdentitySignIn);
 $('#identity-signup-form').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.target, button = form.querySelector('[type=submit]'), status = form.querySelector('[role=status]');
@@ -8931,7 +8920,7 @@ $('#identity-signup-form').addEventListener('submit', async event => {
       signupReceipt = await api('/api/v1/auth/register', {method:'POST',body:{workspace_type:signupPersona,profile,
         plan:Object.hasOwn(pricingPlanNames,pricingPlan)?pricingPlan.toUpperCase():'STARTER',
         cycle:(onboardingParams.get('cycle')==='annual'||onboardingParams.get('billing')==='annual')?'ANNUAL':'MONTHLY'}});
-      form.querySelectorAll('input:not([name=password]):not([name=code])').forEach(input => input.disabled = true);
+      form.querySelectorAll('input:not([name=password]):not([name=code]),select').forEach(input => input.disabled = true);
       $$('[data-signup-persona]').forEach(control => control.disabled = true);
       $('#identity-signup-code').hidden = false;
       fields.code.disabled = false;
@@ -8942,7 +8931,7 @@ $('#identity-signup-form').addEventListener('submit', async event => {
     } else {
       const result = await api('/api/v1/auth/register/verify', {method:'POST',body:{registration_id:signupReceipt.registration_id,
         registration_secret:signupReceipt.registration_secret,code:fields.code.value,password:fields.password.value}});
-      $('#identity-signup-back').click();
+      returnToIdentitySignIn();
       $('#identity-login-status').textContent = result.message;
     }
   } catch (error) { status.textContent = error.message; }
