@@ -214,7 +214,7 @@ class MatrixRepository:
         for index in range(2):
             self.account_list.append(main.CarrierAccount(
                 id=uuid4(), tenant_id=TENANT_A, provider='REGIONAL',
-                base_url='https://api.goshippo.com' if index == 0 else 'https://panel.sendcloud.sc/api/v2',
+                base_url='https://api.goshippo.com' if index == 0 else 'https://panel.sendcloud.sc/api/v3',
                 upstream_account_id=None, timeout_seconds=5, api_key='synthetic-non-secret-fixture',
             ))
 

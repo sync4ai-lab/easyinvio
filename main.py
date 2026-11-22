@@ -73,7 +73,7 @@ from backend.admin_portal import (
     AdminService, calibrated_pricing_scope, configure_pricing_pool, borrowed_pricing_connection,
     get_client_calibrated_rate, router as admin_router,
 )
-from backend.sendcloud_adapter import SendcloudMethod, quote_sendcloud, quote_sendcloud_v3
+from backend.sendcloud_adapter import quote_sendcloud_v3
 from backend.aggregator_registry import identify_aggregator
 from backend.sandbox_hooks import (
     SandboxBillingService, authenticated_twilio_form, require_prepaid_funds,
@@ -134,7 +134,6 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     billing_statements_enabled: bool = False
     subscription_wallet_tax_percent: Decimal = Field(default=Decimal('0'),ge=0,le=100)
     subscription_automatic_tax_enabled: bool = False
-    sendcloud_methods: dict[UUID, list[SendcloudMethod]] = Field(default_factory=dict)
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True
     )
@@ -1117,21 +1116,12 @@ class RegionalStrategy(RateStrategy):
 
 
 class SendcloudStrategy(RateStrategy):
-    def __init__(self,client,account,methods):
-        super().__init__(client,account)
-        self.methods=methods
-
-    async def rates(self,request):
-        if self.account.base_url == 'https://panel.sendcloud.sc/api/v2' and not self.methods:
-            raise ProviderFailure('SENDCLOUD_METHODS_NOT_CONFIGURED')
+    async def rates(self, request: RatingRequest) -> list[WholesaleRate]:
         try:
-            rows = (await quote_sendcloud_v3(self.client,self.account,request)
-                    if self.account.base_url == 'https://panel.sendcloud.sc/api/v3'
-                    else await quote_sendcloud(self.client,self.account,request,self.methods))
+            rows = await quote_sendcloud_v3(self.client, self.account, request)
             return [WholesaleRate.model_validate(row) for row in rows]
-        except (ValueError,KeyError,TypeError):
+        except (ValueError, KeyError, TypeError):
             raise ProviderFailure('SENDCLOUD_CONFIGURATION_OR_PRICE_UNAVAILABLE') from None
-
 
 
 class RatingService:
@@ -1151,7 +1141,7 @@ class RatingService:
             if not integration_enabled(endpoint, self.settings):
                 raise ProviderFailure('PROVIDER_DISABLED')
             known=bool(identify_aggregator(endpoint))
-            if len(request.weights_kg)>1 and (not known or endpoint.rstrip('/')=='https://panel.sendcloud.sc/api/v2'):
+            if len(request.weights_kg)>1 and not known:
                 raise ProviderFailure('MULTIPIECE_ADAPTER_NOT_CONFIGURED')
             if known and request.cargo_type in {'PALLET','OVERLAND_FREIGHT'}:
                 raise ProviderFailure('FREIGHT_ADAPTER_CONTRACT_NOT_CONFIGURED')
@@ -1246,7 +1236,7 @@ class RatingService:
             elif getattr(account,'base_url',None) in ADAPTERS:
                 strategies.append(NativeRateStrategy(self.client, account, WholesaleRate, getattr(self.settings,'provider_environment','TEST')))
             elif (identify_aggregator(getattr(account,'base_url',None)) and identify_aggregator(account.base_url).code.startswith('SENDCLOUD')):
-                strategies.append(SendcloudStrategy(self.client,account,getattr(self.settings,'sendcloud_methods',{}).get(account.id,getattr(self.settings,'sendcloud_methods',{}).get(account.platform_connection_id,[]))))
+                strategies.append(SendcloudStrategy(self.client,account))
             else:
                 strategies.append((EasyPostStrategy if account.provider == 'EASYPOST' else RegionalStrategy)(self.client,account))
         if not strategies:

@@ -2,17 +2,14 @@ import json
 import unittest
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import httpx
-from cryptography.fernet import Fernet
 from fastapi import HTTPException
-from pydantic import SecretStr
 
 import main
 from backend.automation_three_partners import ShippoRateStrategy
-from backend.platform_carriers import upgrade_sendcloud
 from backend.rate_diagnostics import RateCurrencyUnavailable, RateHTTPRejected, no_rates_message
 from tests.test_logistics import payload
 
@@ -94,30 +91,3 @@ class RateDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(RateCurrencyUnavailable) as error:
                 await strategy.rates(main.RatingRequest.model_validate({**payload(), 'currency': 'EUR'}))
         self.assertEqual(error.exception.available_currencies, ['GBP'])
-
-    async def test_upgrade_refuses_unverified_credentials_without_database_writes(self):
-        identifier, key = uuid4(), Fernet.generate_key()
-        source = {'id': identifier, 'api_base_url': 'https://panel.sendcloud.sc/api/v2', 'environment': 'TEST',
-                  'credential_key_id': 'v1', 'timeout_seconds': 5,
-                  'credentials_ciphertext': Fernet(key).encrypt(json.dumps({'platform_id': str(identifier),
-                      'api_key': json.dumps({'public_key': 'fixture', 'secret_key': 'fixture'})}).encode())}
-        connection = SimpleNamespace(fetchrow=AsyncMock(return_value=source), execute=AsyncMock())
-        class Pool:
-            @asynccontextmanager
-            async def acquire(self):
-                yield connection
-        request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(
-            settings=SimpleNamespace(provider_environment='TEST', credential_keys={'v1': SecretStr(key.decode())}),
-            finance=SimpleNamespace(pool=Pool()))))
-        real = httpx.AsyncClient
-        with patch('httpx.AsyncClient', side_effect=lambda **kwargs: real(transport=httpx.MockTransport(
-                lambda req: httpx.Response(401)), **kwargs)):
-            with self.assertRaises(HTTPException) as error:
-                await upgrade_sendcloud(identifier, request, SimpleNamespace(user_id=uuid4()))
-        self.assertEqual(error.exception.status_code, 409)
-        connection.execute.assert_not_awaited()
-
-    def test_upgrade_requires_platform_owner_authentication(self):
-        from fastapi.testclient import TestClient
-        self.assertEqual(TestClient(main.app).post('/api/v1/admin/platform-carriers/' + str(uuid4()) +
-                         '/upgrade-sendcloud').status_code, 401)

@@ -17,7 +17,6 @@ from backend.ecommerce_connectors import StoreConnector,ShopifyFulfillment,norma
 from backend.ecommerce_sync import build_router
 from backend.ecommerce_sync import EcommerceService
 from backend.admin_portal import MarginCreate
-from backend.sendcloud_adapter import SendcloudMethod,quote_sendcloud
 
 
 class ConnectorTests(unittest.TestCase):
@@ -153,44 +152,6 @@ class ShopifyTests(unittest.IsolatedAsyncioTestCase):
         async with httpx.AsyncClient(transport=httpx.MockTransport(merchant)) as client:
             result=await ShopifyFulfillment(client,config).deliver({'store_order_id':'123','tracking_number':'TRACK1','carrier_name':'UPS'})
         self.assertTrue(result['replayed'])
-
-
-class SendcloudTests(unittest.IsolatedAsyncioTestCase):
-    async def test_real_wire_format_exact_money_and_contract_dimensions(self):
-        from main import RatingRequest
-        from tests.test_logistics import payload
-        account=SimpleNamespace(id=uuid4(),base_url='https://panel.sendcloud.sc/api/v2',
-            api_key=json.dumps({'public_key':'fake-public','secret_key':'fake-secret'}),timeout_seconds=5)
-        body=payload();body['destination']=body['origin'].copy();body['currency']='GBP'
-        request=RatingRequest.model_validate(body)
-        method=SendcloudMethod(method_id=123,carrier_code='DPD',origin_country='GB',destination_countries=['GB'],
-            max_weight_kg='20',max_length_cm='100',max_width_cm='100',max_height_cm='100')
-        calls=[]
-        async def provider(http_request):
-            calls.append(http_request)
-            self.assertEqual(http_request.method,'GET')
-            self.assertEqual(http_request.url.params['shipping_method_id'],'123')
-            self.assertTrue(http_request.headers['authorization'].startswith('Basic '))
-            return httpx.Response(200,json=[{'price':'6.50','currency':'GBP','to_country':'GB'}])
-        async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
-            rates=await quote_sendcloud(client,account,request,[method])
-            self.assertEqual(rates[0]['wholesale_cost'],Decimal('6.50'))
-            method.max_length_cm=Decimal('1')
-            self.assertEqual(await quote_sendcloud(client,account,request,[method]),[])
-            with self.assertRaises(ValueError):await quote_sendcloud(client,account,request,[])
-        self.assertEqual(len(calls),1)
-
-    async def test_missing_price_is_never_invented(self):
-        from main import RatingRequest
-        from tests.test_logistics import payload
-        body=payload();body['destination']=body['origin'].copy()
-        request=RatingRequest.model_validate(body)
-        account=SimpleNamespace(id=uuid4(),base_url='https://panel.sendcloud.sc/api/v2',
-            api_key=json.dumps({'public_key':'fake','secret_key':'fake'}),timeout_seconds=5)
-        method=SendcloudMethod(method_id=123,carrier_code='DPD',origin_country='GB',destination_countries=['GB'],
-            max_weight_kg='20',max_length_cm='100',max_width_cm='100',max_height_cm='100')
-        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _:httpx.Response(200,json=[{'price':None,'currency':None,'to_country':'GB'}]))) as client:
-            self.assertEqual(await quote_sendcloud(client,account,request,[method]),[])
 
 
 if __name__=='__main__':unittest.main()

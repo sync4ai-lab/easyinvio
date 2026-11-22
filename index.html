@@ -4089,7 +4089,6 @@ function providerDisplayName(connection) {
   return ({
     'https://api.easypost.com/v2': 'EasyPost',
     'https://panel.sendcloud.sc/api/v3': 'Sendcloud',
-    'https://panel.sendcloud.sc/api/v2': 'Sendcloud legacy',
     'https://api.goshippo.com': 'Shippo'
   })[connection.api_base_url] || (connection.aggregator === 'EASYPOST' ? 'EasyPost' : connection.regional_provider_code || 'Custom regional connector');
 }
@@ -4117,7 +4116,7 @@ function renderEnterpriseTables() {
   const filter = $('#margin-tenant-filter').value;
   $('#margin-tenant-filter').innerHTML = tenantOptions(true);
   $('#margin-tenant-filter').value = filter;
-  $('#carrier-rows').innerHTML = enterprise.carriers.filter(c => ((c.platform_owned ? !c.retired_at : c.is_active) || $('#carrier-show-removed').checked) && (!state.session || c.platform_owned || $('#carrier-show-legacy').checked)).map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(providerDisplayName(c))}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions">${c.platform_owned ? `<button class="secondary" data-carrier-verify="${escapeHTML(c.id)}">Verify Connection</button><button class="secondary" data-quote-diagnostics="${escapeHTML(c.id)}">Capabilities &amp; quote diagnostics</button>${c.api_base_url==='https://panel.sendcloud.sc/api/v2'?`<button class="secondary" data-sendcloud-upgrade="${escapeHTML(c.id)}">Upgrade Sendcloud to v3</button>`:""}${enterprise.providerProfiles.some(p=>p.endpoint===c.api_base_url&&p.label_purchase)?`<button class="secondary" data-native-settings="${escapeHTML(c.id)}">Orders &amp; Webhooks</button>`:""}` : ""}<button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Edit Settings</button><button class="secondary" data-carrier-disable="${escapeHTML(c.id)}" ${!c.is_active?'disabled':''}>Disable</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
+  $('#carrier-rows').innerHTML = enterprise.carriers.filter(c => ((c.platform_owned ? !c.retired_at : c.is_active) || $('#carrier-show-removed').checked) && (!state.session || c.platform_owned || $('#carrier-show-legacy').checked)).map(c => `<tr><td><b>${escapeHTML(c.account_name)}</b><p class="subtle">${escapeHTML(c.company_name)}</p></td><td>${escapeHTML(providerDisplayName(c))}</td><td><span class="tag">${escapeHTML(c.environment)}</span></td><td>${c.is_active ? '<span class="tag green">ACTIVE</span>' : '<span class="tag">DISABLED</span>'}<br>Priority ${c.priority}</td><td><div class="actions">${c.platform_owned ? `<button class="secondary" data-carrier-verify="${escapeHTML(c.id)}">Verify Connection</button><button class="secondary" data-quote-diagnostics="${escapeHTML(c.id)}">Capabilities &amp; quote diagnostics</button>${enterprise.providerProfiles.some(p=>p.endpoint===c.api_base_url&&p.label_purchase)?`<button class="secondary" data-native-settings="${escapeHTML(c.id)}">Orders &amp; Webhooks</button>`:""}` : ""}<button class="secondary" data-carrier-edit="${escapeHTML(c.id)}">Edit Settings</button><button class="secondary" data-carrier-disable="${escapeHTML(c.id)}" ${!c.is_active?'disabled':''}>Disable</button></div></td></tr>`).join('') || '<tr><td colspan="5">No configured carrier accounts.</td></tr>';
   $('#margin-rows').innerHTML = enterprise.margins.filter(m => !filter || m.tenant_id === filter).map(m => `<tr><td><b>${escapeHTML(m.company_name || enterprise.tenants.find(t => t.tenant_id === m.tenant_id)?.company_name || m.tenant_id)}</b><p class="subtle">${escapeHTML(m.rule_name || m.id)}</p></td><td>${escapeHTML(m.origin_country || 'ANY')} → ${escapeHTML(m.destination_country || 'ANY')}<br><span class="subtle">${escapeHTML(m.carrier_code || 'Any carrier')} ? ${escapeHTML(m.cargo_type || 'Any cargo')} ? ${escapeHTML(m.billing_plan || 'Any tier')}<br>Volume: ${escapeHTML(m.min_volume_m3 ?? '0')}?${escapeHTML(m.max_volume_m3 ?? 'unlimited')} m?</span></td><td class="finance-value">${escapeHTML(m.markup_value)} ${m.markup_type === 'PERCENTAGE' ? '%' : escapeHTML(m.currency)}</td><td>${m.priority}</td><td><span class="tag ${m.is_active ? 'green' : ''}">${m.is_active ? 'ACTIVE' : 'RETIRED'}</span></td><td><div class="actions"><button class="secondary" data-margin-edit="${escapeHTML(m.id)}">Edit</button><button class="secondary" data-margin-retire="${escapeHTML(m.id)}">Delete</button></div></td></tr>`).join('') || '<tr><td colspan="6">No pricing rules for this selection.</td></tr>';
   $('#transaction-rows').innerHTML = enterprise.transactions.map(t => `<tr><td>${escapeHTML(t.company_name)}${typeof t.is_sandbox==='boolean'?`<p class="subtle">${t.is_sandbox?'SANDBOX':'PRODUCTION'}</p>`:''}</td><td><span class="tag">${escapeHTML(t.entry_type)}</span><p class="subtle">${escapeHTML(ledgerEntryLabel(t.entry_type))}</p></td><td class="finance-value">${money(t.balance_delta, t.currency)}</td><td>${money(t.reserved_delta, t.currency)}</td><td>${t.balance_after==null?'Not recorded':money(t.balance_after,t.currency)}</td><td>${t.reserved_after==null?'Not recorded':money(t.reserved_after,t.currency)}</td><td>${escapeHTML(new Date(t.created_at).toLocaleString())}</td></tr>`).join('') || '<tr><td colspan="7">No ledger entries available in this view.</td></tr>';
 }
@@ -4327,7 +4326,7 @@ $('#carrier-admin-form [name="api_base_url"]').addEventListener('blur', () => {
   const form = $('#carrier-admin-form');
   if (!form.dataset.addAggregator || $('#carrier-format').value !== 'AUTO') return;
   const endpoint = form.elements.api_base_url.value.trim().replace(/\/+$/, '');
-  const spec = enterprise.providerProfiles.find(p => p.endpoint === endpoint && p.code !== 'SENDCLOUD_V2');
+  const spec = enterprise.providerProfiles.find(p => p.endpoint === endpoint);
   if (spec) openNewAggregatorForm(spec.code, {
     name: form.elements.account_name.value,
     environment: form.elements.environment.value,
@@ -4338,7 +4337,7 @@ $('#carrier-show-removed').addEventListener('change', renderEnterpriseTables);
 $('#carrier-show-legacy').addEventListener('change', renderEnterpriseTables);
 
 function renderProviderCatalogue() {
-  const available = enterprise.providerProfiles.filter(p => p.code !== 'SENDCLOUD_V2');
+  const available = enterprise.providerProfiles;
   $('#carrier-format').innerHTML = '<option value="AUTO">Detect from API endpoint</option>' + available.map(p => '<option value="' + escapeHTML(p.code) + '">' + escapeHTML(p.name) + ' API format</option>').join('') + '<option value="REGIONAL">EasyInvio-compatible /rates API (quotes only)</option>';
   $('#provider-catalogue').innerHTML = available.map(p => `<article class="card"><span class="tag green">${p.label_purchase?'NATIVE LIFECYCLE ADAPTER':'QUOTE ADAPTER'}</span><h2>${escapeHTML(p.name)}</h2><p class="subtle">Configure EasyInvio's shared connection. Endpoint and identifier are automatic; credentials remain private.</p>${p.code==='SENDCLOUD_V3'?'<p class="subtle">Ordinary TEST accounts remain quotes-only because carrier labels can be billed.</p>':''}<button class="primary" id="${p.code==='SENDCLOUD_V3'?'sendcloud':p.code.toLowerCase()}-setup" data-provider-setup="${escapeHTML(p.code)}">Set Up</button></article>`).join('');
 }
@@ -4692,34 +4691,6 @@ clearSession = function() {
   return diagnosticsClearSessionBase.apply(this, arguments);
 };
 
-// A replacement keeps every historical shipment linked to its original provider.
-document.body.insertAdjacentHTML('beforeend', '<dialog id="sendcloud-upgrade-dialog"><button class="close" data-enterprise-close="sendcloud-upgrade-dialog">Close</button><h2>Upgrade Sendcloud rate discovery</h2><p>Verify the existing credentials against Sendcloud v3, create a replacement connection, and disable the legacy connection for future quotes. Historical shipments keep their original connection for tracking and refunds.</p><p>No labels are purchased. Native order and webhook settings for the new connection must be configured separately.</p><button class="primary full" id="sendcloud-upgrade-confirm">Verify &amp; upgrade connection</button></dialog>');
-document.addEventListener('click', event => {
-  const b = event.target.closest('[data-sendcloud-upgrade]');
-  if (!b) return;
-  enterpriseAdminGuard();
-  $('#sendcloud-upgrade-confirm').dataset.connectionId = b.dataset.sendcloudUpgrade;
-  $('#sendcloud-upgrade-dialog').showModal();
-});
-$('#sendcloud-upgrade-confirm').addEventListener('click', event => busy(event.target, async () => {
-  enterpriseAdminGuard();
-  const session = state.session;
-  if (!session) throw Error('Sign in as the platform owner.');
-  await api('/api/v1/admin/platform-carriers/' + encodeURIComponent(event.target.dataset.connectionId) + '/upgrade-sendcloud', {
-    method: 'POST',
-    auth: true
-  });
-  if (state.session !== session) throw Error('Session changed. Sign in again.');
-  $('#sendcloud-upgrade-dialog').close();
-  await loadEnterpriseView('admin-carriers');
-  notify('Sendcloud v3 connection ready. Request fresh rates; historical shipments retain the original connection.');
-}));
-const sendcloudUpgradeClearSessionBase = clearSession;
-clearSession = function() {
-  $('#sendcloud-upgrade-dialog').close();
-  delete $('#sendcloud-upgrade-confirm').dataset.connectionId;
-  return sendcloudUpgradeClearSessionBase.apply(this, arguments);
-};
 </script>
 <script>
 // Embedded in index.html: complete CSV order import and customs-review controls.

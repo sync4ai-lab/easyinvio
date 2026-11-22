@@ -49,7 +49,7 @@ class SendcloudV3Tests(unittest.IsolatedAsyncioTestCase):
  def test_capabilities_report_native_lifecycle_and_order_management(self):
   capability=identify_aggregator(V3_ENDPOINT)
   self.assertTrue(capability.rate_lookup);self.assertTrue(capability.label_purchase);self.assertTrue(capability.order_management);self.assertTrue(capability.returns)
-  self.assertEqual(len(public_capabilities()),4)
+  self.assertEqual({p['code'] for p in public_capabilities()},{'EASYPOST','SENDCLOUD_V3','SHIPPO'})
 if __name__=='__main__':unittest.main()
 
 class ConnectionVerificationTests(unittest.IsolatedAsyncioTestCase):
@@ -78,3 +78,27 @@ class ConnectionVerificationTests(unittest.IsolatedAsyncioTestCase):
   self.assertNotIn('fixture-secret',json.dumps(result));self.assertEqual(calls[0].method,'GET');self.assertTrue(str(calls[0].url).endswith('/user/auth/metadata'))
   with self.assertRaises(HTTPException) as error:await verify_connection(uuid4(),request,SimpleNamespace())
   self.assertEqual(error.exception.status_code,503)
+
+
+class SupportedEndpointTests(unittest.TestCase):
+ def test_retired_versions_cannot_fall_through_to_generic_regional(self):
+  from backend.integration_policy import integration_enabled
+  from backend.admin_management import validate_endpoint
+  from fastapi import HTTPException
+  settings=SimpleNamespace(integration_regional_enabled=True,integration_sendcloud_enabled=True,
+      regional_allowed_origins=['https://panel.sendcloud.sc'])
+  for version in ('v1','v2','v4'):
+   endpoint='https://panel.sendcloud.sc/api/'+version
+   self.assertFalse(integration_enabled(endpoint,settings))
+   with self.assertRaises(HTTPException) as error:validate_endpoint('REGIONAL',endpoint,settings)
+   self.assertEqual(error.exception.status_code,422)
+  self.assertTrue(integration_enabled(V3_ENDPOINT,settings))
+  validate_endpoint('REGIONAL',V3_ENDPOINT,settings)
+
+ def test_no_retired_setup_or_upgrade_ui_remains(self):
+  from pathlib import Path
+  root=Path(__file__).resolve().parents[1]
+  for name in ('index.html','frontend/enterprise_controls.js'):
+   source=(root/name).read_text(encoding='utf-8')
+   self.assertNotIn('sendcloud-upgrade',source)
+   self.assertNotIn('SENDCLOUD_V2',source)

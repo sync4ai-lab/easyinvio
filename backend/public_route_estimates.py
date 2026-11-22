@@ -18,7 +18,7 @@ from backend.agents.models import ConversationalIntent
 from backend.entitlements import Plan, capabilities
 from backend.integration_policy import integration_enabled
 from backend.paf_lookup import PAFLookupUnavailable, uk_postcode, official_postcode_location
-from backend.sendcloud_adapter import ENDPOINT, V3_ENDPOINT, quote_sendcloud, quote_sendcloud_v3
+from backend.sendcloud_adapter import V3_ENDPOINT, quote_sendcloud_v3
 
 if TYPE_CHECKING:
     import httpx
@@ -137,10 +137,10 @@ class PublicRouteEstimates:
             rows = await connection.fetch('''SELECT id,aggregator,api_base_url,credentials_ciphertext,
                 credential_key_id,upstream_account_id,timeout_seconds FROM public.platform_carrier_connections
                 WHERE is_active AND retired_at IS NULL AND environment=$1
-                ORDER BY CASE WHEN api_base_url=$2 THEN 0 WHEN api_base_url=$3 THEN 1 ELSE 2 END,
-                priority,id LIMIT 8''', self.settings.provider_environment, V3_ENDPOINT, ENDPOINT)
+                ORDER BY CASE WHEN api_base_url=$2 THEN 0 ELSE 1 END,
+                priority,id LIMIT 8''', self.settings.provider_environment, V3_ENDPOINT)
         result: list[PublicCarrierAccount] = []
-        allowed = {V3_ENDPOINT, ENDPOINT, 'https://api.easypost.com/v2', 'https://api.goshippo.com'}
+        allowed = {V3_ENDPOINT, 'https://api.easypost.com/v2', 'https://api.goshippo.com'}
         for row in rows:
             endpoint = row['api_base_url'].rstrip('/')
             if endpoint not in allowed or not integration_enabled(endpoint, self.settings):
@@ -157,23 +157,6 @@ class PublicRouteEstimates:
     async def rates(self, account: PublicCarrierAccount, request: RatingRequest) -> list[PublicRate]:
         if account.base_url == V3_ENDPOINT:
             rows = await quote_sendcloud_v3(self.client, account, request)
-        elif account.base_url == ENDPOINT:
-            methods = self.settings.sendcloud_methods.get(account.id, [])
-            # Legacy methods require administrator-verified limits and real service names.
-            from backend.package_sets import package_charge
-            charge = package_charge(request.dimensions, request.weights_kg)
-            charged_request = request.model_copy(update={'weights_kg':[Decimal(piece['billable_weight_kg']) for piece in charge['packages']]})
-            rows = await quote_sendcloud(self.client, account, charged_request, methods)
-            if rows and any(not method.service_name for method in methods):
-                from backend.sendcloud_adapter import sendcloud_credentials
-                response = await self.client.get(ENDPOINT+'/shipping_methods', auth=sendcloud_credentials(account.api_key), timeout=3, follow_redirects=False)
-                if response.status_code != 200 or len(response.content) > 1_000_000:
-                    raise EstimateUnavailable('Carrier service names are unavailable')
-                names = {str(method['id']):str(method['name']) for method in response.json().get('shipping_methods',[])[:1000]}
-                for row in rows:
-                    identity = row['upstream_rate_id']
-                    if identity in names:
-                        row.setdefault('execution_details',{})['display_service_name']=names[identity]
         else:
             from main import EasyPostStrategy, WholesaleRate
             from backend.automation_three_partners import NativeRateStrategy

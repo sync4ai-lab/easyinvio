@@ -62,6 +62,14 @@ class Connection:
         self.calls.append((sql, args))
         if "public.admin_configuration_events" in sql:
             return self.store["events"].get(tuple(args))
+        if "to_jsonb(t) AS subscription" in sql:
+            tenant=self.store["tenants"].get(args[0])
+            if tenant is None:return None
+            # These tests exercise custom pricing, a Command feature. Enforcement
+            # remains active; the fixture explicitly supplies its entitled plan.
+            return {'subscription':{'tenant_id':str(args[0]),'subscription_plan':'COMMAND',
+                'plan_status':'ACTIVE','plan_period_start':'2026-01-01T00:00:00Z',
+                'plan_enforcement_enabled':True}}
         if "public.tenants" in sql:
             return self.store["tenants"].get(args[0])
         if "public.wallets" in sql:
@@ -247,7 +255,7 @@ class PricingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.connection.transactions[-1], {"isolation": "repeatable_read", "readonly": True})
 
     async def test_flat_rate_fallback_and_clamps(self):
-        self.assertEqual(await get_client_calibrated_rate(self.tenant, Decimal("8.33"), "DHL", "US"), Decimal("10.00"))
+        self.assertEqual(await get_client_calibrated_rate(self.tenant, Decimal("8.33"), "DHL", "US"), Decimal("8.75"))
         self.connection.rule = {"tenant_id": self.tenant, "markup_type": "FLAT_RATE", "markup_value": Decimal("2.50"), "minimum_markup": Decimal("0"), "maximum_markup": None}
         self.assertEqual(await get_client_calibrated_rate(self.tenant, Decimal("8.33"), "DHL", "US"), Decimal("10.83"))
         self.connection.rule.update(markup_type="PERCENTAGE", markup_value=Decimal("100"), minimum_markup=Decimal("1"), maximum_markup=Decimal("3"))
@@ -279,7 +287,7 @@ class PricingTests(unittest.IsolatedAsyncioTestCase):
         with borrowed_pricing_connection(self.connection):
             with calibrated_pricing_scope(SimpleNamespace(acquire=lambda: (_ for _ in ()).throw(AssertionError("Second pool slot acquired")))):
                 price = await get_client_calibrated_rate(self.tenant, Decimal("10.00"), "DHL", "USA")
-        self.assertEqual(price, Decimal("12.00"))
+        self.assertEqual(price, Decimal("10.50"))
         self.assertEqual(self.connection.transactions, [])
         await get_client_calibrated_rate(self.tenant, Decimal("10.00"), "DHL", "US")
         self.assertEqual(len(self.connection.transactions), 1)

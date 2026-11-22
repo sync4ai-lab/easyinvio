@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 from urllib.parse import urlsplit
 import asyncpg
 from cryptography.fernet import Fernet, InvalidToken
+from backend.aggregator_registry import supported_provider_endpoint
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import Field, SecretStr, model_validator
 from backend.admin_portal import InputModel, MarginCreate, authenticate_platform_owner, authenticate_platform_operator, database_error
@@ -145,7 +146,9 @@ class CarrierUpdate(InputModel):
     timeout_seconds: int=Field(default=30,ge=1,le=120,strict=True)
 
 def validate_endpoint(provider, endpoint, settings):
-    from backend.aggregator_registry import identify_aggregator
+    from backend.aggregator_registry import identify_aggregator, supported_provider_endpoint
+    if not supported_provider_endpoint(endpoint):
+        raise HTTPException(422,'Use the supported Sendcloud v3 endpoint')
     parsed=urlsplit(endpoint)
     if provider=='EASYPOST':
         if endpoint!='https://api.easypost.com/v2': raise HTTPException(422,'Use the official EasyPost v2 endpoint')
@@ -163,8 +166,8 @@ async def carriers(request: Request, owner=owner_dependency):
             FROM public.carrier_accounts a JOIN public.tenants t USING(tenant_id)
             WHERE a.platform_connection_id IS NULL
             ORDER BY a.is_active DESC,t.company_name,a.priority LIMIT 500''')
-    return {'connections':[public_record(r) for r in rows], 'supported':['EASYPOST','REGIONAL'],
-            'notice':'Connections are tenant-assigned. Sendcloud read-only rating uses REGIONAL, its official endpoint and SENDCLOUD_METHODS limits. Purchase requires a separate adapter.', 'limit':500}
+    return {'connections':[public_record(r) for r in rows if supported_provider_endpoint(r['api_base_url'])], 'supported':['EASYPOST','REGIONAL'],
+            'notice':'Connections are tenant-assigned. Sendcloud v3 uses its native rate and order adapters. Direct carrier transport requires a certified contract.', 'limit':500}
 
 @router.post('/carriers',status_code=201)
 async def add_carrier(body: CarrierCreate, request: Request, owner=owner_dependency):

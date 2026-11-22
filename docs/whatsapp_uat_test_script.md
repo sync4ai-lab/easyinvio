@@ -15,7 +15,7 @@ modules. Secret values were neither printed nor included here.
 
 | Connection | Switch | Platform database record | Credential check | Quote readiness |
 |---|---|---|---|---|
-| Sendcloud v3 | Enabled | Active, TEST, not retired | Decrypts; identity binding and public/secret fields present | Real HTTP rate adapter; no `SENDCLOUD_METHODS` needed |
+| Sendcloud v3 | Enabled | Active, TEST, not retired | Decrypts; identity binding and public/secret fields present | Native dynamic HTTP rate adapter |
 | Sendcloud v2 | Enabled | Inactive, TEST, not retired | Decrypts; required fields present | Not selected; no verified method configuration exists |
 | EasyPost | Enabled | Active, TEST, not retired | Decrypts; identity-bound nonempty key | Real HTTP rate adapter; provider permissions, route and currency still determine results |
 | Shippo | Enabled | Active, TEST, not retired | Decrypts; identity-bound nonempty key | Real HTTP rate adapter; provider permissions, route and currency still determine results |
@@ -43,9 +43,8 @@ The deployed Vercel variable values were not inspected in this audit.
   uncovered services. In this configuration there are no active direct providers.
 - Sendcloud v3 calls `/shipping-options` with `calculate_quotes=true`. It accepts
   priced eligible services, not missing prices or estimated surcharges.
-- Sendcloud v2 needs verified method IDs, countries and package limits in
-  `SENDCLOUD_METHODS`. That map is empty. Keep v2 inactive unless deliberately
-  configuring that older adapter; it is not a fix needed for v3.
+- Sendcloud supports v3 only. Retired rate adapters and upgrade UI have been removed;
+  stored historical connection records are retained for audit.
 - Guest UK estimates prefer v3, attempt at most two eligible platform accounts,
   and stop at the first successful provider. Their top two services are **not a
   comparison across every aggregator**. Shippo can be available in workspace
@@ -320,8 +319,7 @@ Useful log strings:
 - `Provider failed ... code=...`: authenticated per-provider failure.
   Guest lookup failures use `guest_rate_unavailable` / `guest_estimate_unavailable`.
   Guest logs may require INFO logging to be visible.
-- `SENDCLOUD_METHODS_NOT_CONFIGURED` is a v2 configuration issue;
-  `UPSTREAM_AUTHENTICATION_REJECTED`, `NO_ELIGIBLE_PRICED_SERVICES`,
+- `UPSTREAM_AUTHENTICATION_REJECTED`, `NO_ELIGIBLE_PRICED_SERVICES`,
   `NO_RATES_IN_REQUESTED_CURRENCY`, `UPSTREAM_TIMEOUT` distinguish different failures.
 
 In Supabase SQL Editor run read-only queries. Do not select raw encrypted payloads,

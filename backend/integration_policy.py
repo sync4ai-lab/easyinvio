@@ -4,7 +4,7 @@ from urllib.parse import urlsplit
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from backend.aggregator_registry import identify_aggregator
+from backend.aggregator_registry import identify_aggregator, supported_provider_endpoint
 
 
 class IntegrationSettings(BaseSettings):
@@ -35,6 +35,8 @@ def integration_code(endpoint: str) -> str:
 
 
 def integration_enabled(endpoint: str, settings: Any = None) -> bool:
+    if not supported_provider_endpoint(endpoint):
+        return False
     policy = settings if settings is not None else IntegrationSettings()
     code = integration_code(endpoint)
     default = code not in {'royal_mail', 'evri'}

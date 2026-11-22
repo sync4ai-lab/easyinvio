@@ -25,7 +25,7 @@ def option(name, code, cost, days=48):
 def fixture_service(client):
     identifier=uuid4();key=Fernet.generate_key()
     settings=NS(provider_environment='TEST',integration_sendcloud_enabled=True,
-        sendcloud_methods={},credential_keys={'test':SecretStr(key.decode())},
+        credential_keys={'test':SecretStr(key.decode())},
         booking_page_url='https://uat.easyinvio.com',quote_link_secret=SecretStr('synthetic-quote-signing-secret-at-least-32'))
     row={'id':identifier,'aggregator':'REGIONAL','api_base_url':'https://panel.sendcloud.sc/api/v3',
         'credential_key_id':'test','credentials_ciphertext':Fernet(key).encrypt(json.dumps({'platform_id':str(identifier),

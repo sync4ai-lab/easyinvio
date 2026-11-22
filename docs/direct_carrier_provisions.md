@@ -29,8 +29,7 @@ INTEGRATION_ROYAL_MAIL_ENABLED=false
 INTEGRATION_EVRI_ENABLED=false
 ```
 
-Restart **all** API and worker processes after changing a switch. Both Sendcloud
-v2 and v3 use the Sendcloud switch. Regional controls other approved regional
+Restart **all** API and worker processes after changing a switch. Sendcloud v3 uses the Sendcloud switch. Regional controls other approved regional
 connections. Existing aggregator defaults are preserved. No credentials are
 introduced into the example file. No new broker dependency is added.
 

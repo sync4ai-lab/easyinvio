@@ -69,18 +69,12 @@ References: [Shopify webhook authentication](https://shopify.dev/docs/api/webhoo
 
 ## Sendcloud and letter verification
 
-Register a REGIONAL account with `https://panel.sendcloud.sc/api/v2`, approve
-`https://panel.sendcloud.sc` in REGIONAL_ALLOWED_ORIGINS, and use the protected
-credential controller to encrypt JSON containing `public_key` and `secret_key`.
-`SENDCLOUD_METHODS` maps that account UUID to verified method definitions:
-`method_id`, `carrier_code`, `cargo_type`, `origin_country`,
-`destination_countries`, `min_weight_kg`, exclusive `max_weight_kg`, and maximum
-length/width/height in cm. Requests are bounded to four concurrent reads and
-100 configured methods. Unknown tariffs, null prices, out-of-bounds dimensions
-and mismatched currencies do not become invented quotes. This is a read-only
-v2 adapter; assess v3 for new accounts before activation. No Sendcloud parcel or
-label is purchased. Letters are excluded until an AVS contract is available.
-Reference: [Sendcloud rates](https://sendcloud.dev/api/v2/shipping-prices/retrieve-a-shipping-price).
+Register Sendcloud with `https://panel.sendcloud.sc/api/v3` using the protected
+public/secret credential controller. Its native shipping-options adapter discovers
+real eligible rates dynamically. Missing prices and mismatched currencies do not
+become invented quotes. Older Sendcloud rate adapters have been removed. Letters
+remain excluded until the supported address-verification contract is available.
+See [current Sendcloud setup](../sendcloud_setup.md).
 
 EasyPost LETTER requests enable strict AVS for both embedded addresses and
 require successful delivery-verification flags in the response. The regional

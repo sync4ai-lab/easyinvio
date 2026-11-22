@@ -42,7 +42,7 @@ def no_rates_message(request, issues):
     codes = {issue.code for issue in issues}
     if codes & {'UPSTREAM_AUTHENTICATION_REJECTED'}:
         return 'A connected provider rejected its credentials. Platform support must verify the API key and account permissions; no eligible quotes were returned by the other connections.'
-    if codes & {'SENDCLOUD_METHODS_NOT_CONFIGURED', 'SENDCLOUD_CONFIGURATION_OR_PRICE_UNAVAILABLE'}:
+    if codes & {'SENDCLOUD_CONFIGURATION_OR_PRICE_UNAVAILABLE'}:
         return 'A rate connection needs platform configuration. No eligible quotes were returned by the other connections. Platform support should check the configured rate adapter and enabled carrier contracts.'
     if codes & {'UPSTREAM_TIMEOUT', 'UPSTREAM_UNAVAILABLE'}:
         return 'A provider could not be reached or timed out. Retry the quote; platform support can verify the affected connection if this continues.'

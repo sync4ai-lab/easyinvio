@@ -28,9 +28,9 @@ platform owners can create, edit, rotate or retire the shared connection.
   Provider identity and official endpoint are supplied automatically. No client,
   provider or regional-code dropdown is shown.
 - Sendcloud: public/secret API keys, environment and active switch. Its endpoint
-  and internal adapter identifier are supplied automatically. Pricing still
-  requires verified `SENDCLOUD_METHODS`; maps can use the platform connection UUID
-  and are inherited by tenant projections. Native label purchase remains disabled.
+  and internal adapter identifier are supplied automatically. The v3 adapter discovers
+  priced services dynamically; native lifecycle actions use the existing explicit
+  purchase, environment and provider-contract checks.
 - LocalRegional: its API key, approved HTTPS endpoint and provider identifier.
   Different regional services actually have different hosts and identifiers.
 - Advanced settings remain collapsed by default. A blank key during editing keeps

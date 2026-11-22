@@ -1,6 +1,6 @@
 ﻿# Sendcloud and additional aggregator setup
 
-EasyInvio now supports Sendcloud **v3 dynamic rate discovery** alongside EasyPost. The old v2 method-limit adapter remains available for existing connections. New Sendcloud setup defaults to `https://panel.sendcloud.sc/api/v3`, uses public/secret Basic Auth, sends origin/destination addresses and package dimensions/weights to `/shipping-options` with `calculate_quotes=true`, and maps actual quotes through the shared tenant margin pipeline. No manual `SENDCLOUD_METHODS` list is required for v3.
+EasyInvio now supports Sendcloud **v3 dynamic rate discovery** alongside EasyPost. Retired Sendcloud adapters and their upgrade UI have been removed. Only v3 is supported. New Sendcloud setup defaults to `https://panel.sendcloud.sc/api/v3`, uses public/secret Basic Auth, sends origin/destination addresses and package dimensions/weights to `/shipping-options` with `calculate_quotes=true`, and maps actual quotes through the shared tenant margin pipeline. Rates are discovered dynamically; manual method lists are not used.
 
 ## Obtain Sendcloud keys
 
@@ -27,16 +27,19 @@ Quote API/schema: https://sendcloud.dev/api/v3/shipping-options/return-a-list-of
 - V3 parcels: dynamically discovers carriers/options activated in the upstream account; Decimal costs, tenant-isolated markup, timeout/response-size limits, currency matching and option deduplication.
 - Missing prices, unknown currencies, unmatched weight bands, service-point-only/return services and estimated extra surcharges are not turned into invented all-inclusive offers.
 - Letters and industrial pallets/freight require their own verified provider contracts; this parcel adapter rejects them.
-- Sendcloud native label purchasing, Orders API management, Returns API automation and Ship-an-Order are **not implemented** by this quote adapter. Do not mistake the Set Up/Verify actions for support for those workflows. The capability catalogue explicitly reports these as false.
+- This rate adapter does not create labels. Separate native lifecycle, order and return adapters are implemented in `backend/automation_three_partners.py`; purchase still requires the provider/environment/payment checks. Ordinary Sendcloud TEST label purchases remain blocked.
 - Existing EasyPost and regional providers remain available; no migrations or existing connector changes are required.
 
 ## Common interface versus provider protocol
 
 `backend/aggregator_registry.py` documents recognized provider/version capabilities. `GET /api/v1/admin/platform-carriers/capabilities` and `POST /api/v1/admin/platform-carriers/{id}/verify` are owner-only. New providers need an explicit adapter mapping their authentication, rates, service identities, cargo limits, label idempotency/reconciliation and webhook signatures to the common application model. Adding a random URL/key is not enough. The approved LocalRegional protocol remains available for compatible vendors.
 
-For a third aggregator, supply its name/documentation and obtain its company-owned credentials. Multiple Sendcloud carriers already provide additional shipping choices, but Sendcloud v2 and v3 are versions of one aggregator, not two separate providers.
+For a third aggregator, supply its name/documentation and obtain its company-owned credentials. Multiple Sendcloud carriers provide additional choices within one aggregator.
 
-## Verification
+## Historical initial verification
+
+The observations below describe the original adapter rollout. For the current provider audit and setup requirements, see [provider onboarding](provider_onboarding.md).
+
 
 222 regression test executions passed, including seven new Sendcloud/credential-verification checks. Enterprise browser checks passed with no JavaScript errors. These are controlled protocol tests, not genuine Sendcloud account verification: no Sendcloud keys have been supplied yet.
 
