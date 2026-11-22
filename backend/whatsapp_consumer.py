@@ -58,9 +58,9 @@ def tracking_token(text: str, base: str) -> tuple[str | None, str]:
 class ConsumerReturnPolicy(BaseModel):
     model_config = ConfigDict(extra='forbid')
     enabled: bool = Field(default=False, strict=True)
-    window_days: int = Field(default=30, ge=1, le=90)
-    charge_bearer: Literal['RETAILER_PAY','CUSTOMER_PAY'] = 'RETAILER_PAY'
-    maximum_price_gbp: Decimal = Field(default=Decimal('10'), gt=0, le=100, decimal_places=2)
+    window_days: int = Field(default=14, ge=1, le=90)
+    charge_bearer: Literal['RETAILER_PAY','CUSTOMER_PAY'] = 'CUSTOMER_PAY'
+    maximum_price_gbp: Decimal = Field(default=Decimal('10'), gt=0, le=50, decimal_places=2)
 
 
 class ConsumerCX:
@@ -201,6 +201,11 @@ class ConsumerCX:
         if social(text):
             greeting=await answer(self.request,form)
             return reply(greeting) if greeting else []
+        if getattr(self.settings,'cx_automation_enabled',False):
+            from backend.cx_chat import consumer_claim
+            claim_reply=await consumer_claim(self,draft,text,identity,form)
+            if claim_reply is not None:
+                return reply(claim_reply)
         if form.get('NumMedia')!='0':
             return reply('Please describe the issue in text. Send evidence through the retailer’s secure support channel.')
         if text.strip().lower() in {'cancel','start over'}:

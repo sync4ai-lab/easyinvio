@@ -60,7 +60,7 @@ class Subscription(BaseModel):
     plan_status:Literal['ACTIVE','TRIALING','PAST_DUE','CANCELLED','PENDING_CANCELLATION']='ACTIVE'
     plan_period_start:datetime
     plan_period_end:datetime|None=None
-    plan_enforcement_enabled:bool=False
+    plan_enforcement_enabled:bool=True
     subscription_complimentary:bool=False
     plan_version:int=1
     is_sandbox:bool=False
@@ -81,7 +81,8 @@ class Subscription(BaseModel):
         return self.subscription_plan if valid else Plan.STARTER
 
 def enabled(settings)->bool:
-    return bool(getattr(settings,'subscription_tiers_enabled',False))
+    # Subscription enforcement is a security boundary, not an environment opt-out.
+    return True
 
 def database_plan_error(error):
     """Translate only our fixed SQL messages; never expose arbitrary database diagnostics."""
@@ -101,7 +102,6 @@ async def read_subscription(connection,tenant_id:UUID,*,lock=False)->Subscriptio
 
 def allowed(subscription:Subscription,feature:Feature|str,now=None)->bool:
     feature=Feature(feature)
-    if not subscription.plan_enforcement_enabled:return True
     return capabilities(subscription.effective(now)).features[feature]
 
 def require_subscription_feature(subscription:Subscription,feature:Feature|str):
@@ -144,7 +144,7 @@ async def check_quota(connection,tenant_id:UUID,quota_type:Literal['USERS','STOR
         used=await connection.fetchval('SELECT parcels FROM public.v_tenant_monthly_usage WHERE tenant_id=$1',tenant_id) or 0
         limit=policy.included_monthly_parcels
     over=max(0,int(used)+additional-limit)
-    if subscription.plan_enforcement_enabled and over and (quota_type!='MONTHLY_PARCELS' or subscription.effective()==Plan.STARTER):
+    if over and (quota_type!='MONTHLY_PARCELS' or subscription.effective()==Plan.STARTER):
         raise HTTPException(402,{'code':'PLAN_QUOTA_EXCEEDED','quota':quota_type,'used':int(used),'limit':limit,
             'current_plan':subscription.effective().value,'pricing_url':'/pricing'})
     return {'quota':quota_type,'used':int(used),'limit':limit,'projected_overage':over,
@@ -152,7 +152,7 @@ async def check_quota(connection,tenant_id:UUID,quota_type:Literal['USERS','STOR
 
 async def seed_subscription(connection,tenant_id,plan:Plan|str,cycle:str,*,sandbox=False,trial_days=14):
     """Only verified provisioning calls this. A paid choice creates a bounded trial, not ACTIVE access."""
-    plan=Plan.COMMAND if sandbox else Plan(plan)
+    plan=Plan(plan)
     status='TRIALING' if plan!=Plan.STARTER and not sandbox else 'ACTIVE'
     await connection.execute("""UPDATE public.tenants SET subscription_plan=$2,billing_cycle=$3,plan_status=$4::text,
         plan_period_start=now(),plan_period_end=CASE WHEN $4::text='TRIALING' THEN now()+make_interval(days=>$5) END,

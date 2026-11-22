@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AgentSettings(BaseSettings):
-    subscription_tiers_enabled: bool = False
+    subscription_tiers_enabled: bool = True
     model_config = SettingsConfigDict(env_file='.env', extra='ignore', hide_input_in_errors=True, env_ignore_empty=True)
     logistics_agents_enabled: bool = False
     openai_api_key: SecretStr = SecretStr('')

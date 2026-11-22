@@ -163,6 +163,13 @@ class ConversationalActionGateway:
         return {'status': status, 'conversational_reply': text, 'action_taken': action, **details}
 
     async def interpret(self, context, text):
+        if getattr(self.state.settings,'cx_automation_enabled',False):
+            if re.match(r'\s*confirm policy\b',text,re.I):
+                return ConversationalIntent(intent='POLICY_CONFIRM')
+            if re.match(r'\s*(?:set|change|update|draft)\b.*\breturn policy\b',text,re.I):
+                return ConversationalIntent(intent='POLICY_PROPOSE')
+            if re.match(r'\s*claim update\b',text,re.I):
+                return ConversationalIntent(intent='CLAIM_UPDATE')
         if getattr(self.state.settings,'whatsapp_progressive_enabled',False):
             from backend.agents.shipping_intents import classify
             routed=classify(text)
@@ -351,6 +358,15 @@ class ConversationalActionGateway:
         return prompts[draft.waiting_for]
 
     async def execute(self, context, body, intent, message_id):
+        if getattr(self.state.settings,'cx_automation_enabled',False):
+            if intent.intent in {'POLICY_PROPOSE','POLICY_CONFIRM'}:
+                from backend.cx_chat import policy_chat
+                result=await policy_chat(self.state,context,body.message_body,message_id)
+                return self.reply(intent.intent,result['message'],policy=result)
+            if intent.intent in {'FILE_CLAIM','CLAIM_UPDATE'} or (intent.intent=='COMPLAINT' and re.search(r'damag|\blost\b',body.message_body,re.I)):
+                from backend.cx_chat import merchant_claim
+                result=await merchant_claim(self.state,context,body.message_body,message_id,intent.target_reference_id,intent.description_notes)
+                return self.reply('FILE_CLAIM',result['message'],claim_dossier=result)
         if intent.intent in {'SERVICE_REQUEST','COMPLAINT','REFUND_INQUIRY'}:
             return await self.support_request(context, body, intent, message_id)
         if intent.intent in {'CLOSE_MANIFEST','MANIFEST_STATUS'}:

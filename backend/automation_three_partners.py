@@ -461,7 +461,11 @@ class NativePartnerService:
             secret=SecretStr(secret),pod_allowed_hosts=decode_json(source['pod_allowed_hosts']))
         # Retain the pre-045 receipt digest contract for delayed native retries.
         canonical=json.dumps(event.model_dump(mode='json',include={'event_id','tracking_number','status','occurred_at','raw_error','proof_of_delivery_url'}),sort_keys=True,separators=(',',':')).encode()
-        return await self.tracking.ingest('native:'+str(source_id),key,event,hashlib.sha256(canonical).hexdigest())
+        result=await self.tracking.ingest('native:'+str(source_id),key,event,hashlib.sha256(canonical).hexdigest())
+        if getattr(self.automation.settings,'cx_automation_enabled',False):
+            async with self.pool.acquire() as connection:
+                await connection.execute("UPDATE public.connector_tracking_setup SET state='READY',verified_at=now(),error_code=NULL,updated_at=now() WHERE platform_connection_id=$1",source_id)
+        return result
 
 
 async def wake_exception_delivery(application):

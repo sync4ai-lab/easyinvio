@@ -16,6 +16,10 @@ class LogisticsSupervisor:
         self.customs = CustomsHarmonizerAgent(self.runtime)
         self.invoice = InvoiceSurchargeAuditorAgent(self.runtime)
         self.support = ProactiveClaimsSupportAgent(self.runtime)
+        from backend.cx_policies import ReturnPolicyCopilotAgent
+        from backend.cx_delay import ProactiveDelaySentinelAgent
+        self.return_policy = ReturnPolicyCopilotAgent(self.runtime)
+        self.delay_sentinel = ProactiveDelaySentinelAgent()
         self.help = HelpRetriever(self.runtime)
         from backend.agents.logistics_advisor import LogisticsAdvisorAgent
         self.advisor = LogisticsAdvisorAgent()

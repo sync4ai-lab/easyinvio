@@ -278,6 +278,13 @@ class ProactiveClaimsSupportAgent:
     def __init__(self, runtime):
         self.runtime = runtime
 
+    async def intake(self, state, context, body):
+        from backend.cx_claims import ClaimTriageService
+        self.runtime.usage['deterministic_calls'] += 1
+        service = ClaimTriageService(state)
+        scope = await service.merchant_scope(context, body.reference)
+        return await service.create(scope, body)
+
     async def receive_tracking(self, request, native_service):
         self.runtime.usage['deterministic_calls'] += 1
         # Authentication and tenant binding run before any exception can be staged.

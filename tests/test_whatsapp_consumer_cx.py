@@ -1,5 +1,6 @@
 """Offline tests only: synthetic data, fake provider endpoints, disposable SQL."""
 from datetime import datetime, timedelta, timezone
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4, UUID
@@ -80,7 +81,7 @@ async def test_return_reuses_review_and_attaches_qr_only_after_booking(payer,sta
         'rates':[dict(offer_id=str(offer),carrier_code='EVRI',currency='GBP',client_price_ex_tax='4.25')]}),
         select=AsyncMock(return_value=dict(status=status,shipment_id=str(child),qr_path='/document',checkout_url='https://checkout.stripe.com/c/pay/synthetic')))
     settings=SimpleNamespace(booking_page_url='https://app.example.test',supabase_url='https://storage.example.test',logistics_media_bucket='private-logistics')
-    service=SimpleNamespace(pool=object(),settings=settings,state=SimpleNamespace(partner_lifecycle=object()))
+    service=SimpleNamespace(pool=PaidPolicyPool(),settings=settings,state=SimpleNamespace(partner_lifecycle=object()))
     image=f'https://storage.example.test/storage/v1/object/sign/private-logistics/{d.tenant_id}/{child}/verified.png?token=synthetic'
     with patch('backend.consumer_returns.authority',AsyncMock(return_value=(policy,{}))), \
          patch('backend.return_review.ReturnReviewService',return_value=review), \
@@ -103,7 +104,7 @@ async def test_policy_cap_stops_selection():
     review=SimpleNamespace(context=AsyncMock(return_value={'destination':{'country_code':'GB'},'edits':{'cargo':dict(cargo_type='PARCEL',actual_weight_kg='1',length_cm='10',width_cm='10',height_cm='10'),'items':[]}}),
         prepare=AsyncMock(return_value={'rates':[dict(offer_id=str(uuid4()),carrier_code='EVRI',currency='GBP',client_price_ex_tax='12')]}),select=AsyncMock())
     policy=dict(authorized_by=uuid4(),role='OWNER',version=1,charge_bearer='RETAILER_PAY',maximum_price_gbp=10)
-    service=SimpleNamespace(pool=object(),settings=SimpleNamespace(),state=SimpleNamespace(partner_lifecycle=object()))
+    service=SimpleNamespace(pool=PaidPolicyPool(),settings=SimpleNamespace(),state=SimpleNamespace(partner_lifecycle=object()))
     with patch('backend.consumer_returns.authority',AsyncMock(return_value=(policy,{}))),patch('backend.return_review.ReturnReviewService',return_value=review):
         parts=await execute_return(service,d,uuid4(),uuid4(),reply_parts,message_xml)
     review.select.assert_not_awaited()
@@ -155,3 +156,11 @@ async def test_label_refund_is_review_only_and_refuses_dispatch_or_manifest(fixt
         assert 'only after the carrier confirms' in result['conversational_reply']
     state.partner_lifecycle.confirm.assert_not_awaited()
     state.finance.create_checkout.assert_not_awaited()
+
+
+class PaidPolicyPool:
+    @asynccontextmanager
+    async def acquire(self):yield self
+    async def fetchrow(self,sql,*args):
+        assert 'to_jsonb(t) AS subscription' in sql
+        return {'subscription':{'subscription_plan':'COMMAND','plan_status':'ACTIVE','plan_period_start':datetime.now(timezone.utc).isoformat(),'plan_enforcement_enabled':True}}

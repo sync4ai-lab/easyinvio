@@ -99,7 +99,9 @@ async def save(body, request, actor, connection_id=None):
                     body.upstream_account_id,body.environment,cipher,key_id,body.priority,body.timeout_seconds,body.is_active)
                 snapshot = body.model_dump(mode='json', exclude={'api_key','tenant_id','request_id'})
                 await c.execute("INSERT INTO public.platform_carrier_events(actor_auth_user_id,connection_id,action,snapshot) VALUES($1,$2,'SAVE',$3::jsonb)",actor.user_id,identifier,json.dumps(snapshot))
-        return {'id':str(identifier),'platform_owned':True,'is_active':body.is_active}
+        # Migration 056 queues webhook setup transactionally through propagation.
+        return {'id':str(identifier),'platform_owned':True,'is_active':body.is_active,
+                'tracking_setup':'QUEUED' if body.is_active and getattr(settings,'cx_automation_enabled',False) else 'NOT_RUNNING'}
     except asyncpg.PostgresError as exc:
         raise database_error(exc) from None
 

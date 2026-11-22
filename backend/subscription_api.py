@@ -36,7 +36,9 @@ def plain(value):
 
 def ready(request):
     if not enabled(request.app.state.settings):raise HTTPException(503,'Subscription tiers are not enabled on this deployment')
-    return request.app.state.finance.pool
+    pool=getattr(getattr(request.app.state,'finance',None),'pool',None)
+    if pool is None:raise HTTPException(503,'Subscription storage is unavailable')
+    return pool
 
 def period(start:datetime|None,end:datetime|None):
     now=datetime.now(timezone.utc)
@@ -105,7 +107,7 @@ def build_router(authenticate,authenticate_platform_owner):
         policy=capabilities(subscription.effective())
         return plain({'plan':subscription.subscription_plan.value,'effective_plan':subscription.effective().value,
             'billing_cycle':subscription.billing_cycle,'status':subscription.plan_status,'expires_at':subscription.plan_period_end,
-            'version':subscription.plan_version,'grandfathered':not subscription.plan_enforcement_enabled,
+            'version':subscription.plan_version,'grandfathered':False,
             'capabilities':policy.model_dump(exclude={'default_markup_percent'}),'usage':dict(usage) if usage else {},
             'automatic_overage_charge':False,'can_manage_subscription':context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
             'dedicated_account_manager':subscription.dedicated_account_manager})

@@ -15,7 +15,17 @@
   async function load() {
     if (refresh.disabled) return;
     refresh.disabled = true;
-    if (!/^[A-Za-z0-9_-]{40,100}$/.test(token)) { message.textContent = 'Open the complete tracking link from your retailer. A tracking or order number alone cannot unlock shipment information.'; return; }
+    if (!/^[A-Za-z0-9_-]{40,100}$/.test(token)) {
+      refresh.hidden=true;
+      message.textContent='Enter your carrier tracking number for published status, or open your retailer’s secure link for parcel help.';
+      const form=document.createElement('form');
+      form.innerHTML='<label>Carrier tracking number<input name="reference" required minlength="8" maxlength="100" pattern="[A-Za-z0-9_-]+" autocomplete="off"></label><button type="submit">Check status</button><p role="status" aria-live="polite"></p>';
+      form.addEventListener('submit',async event=>{
+        event.preventDefault();const button=form.querySelector('button'),status=form.querySelector('[role=status]');button.disabled=true;
+        try{const response=await fetch(apiBase+'/api/v1/public/tracking/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:form.elements.reference.value.trim()}),credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(10000)});const result=await response.json();if(!response.ok)throw Error(typeof result.detail==='string'?result.detail:'Tracking is temporarily unavailable');status.textContent=result.message;}
+        catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+      });content.replaceChildren(form);return;
+    }
     message.textContent = 'Loading recorded carrier updates…';
     const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 15000);
     try {

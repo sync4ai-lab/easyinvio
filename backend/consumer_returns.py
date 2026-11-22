@@ -36,6 +36,8 @@ async def authority(service: ConsumerCX, draft: ConsumerDraft) -> tuple[Record, 
             or order.get('destination',{}).get('country_code')!='GB'
             or order.get('origin',{}).get('country_code')!='GB' or row['currency']!='GBP'):
         raise HTTPException(409,'Recipient verification or international/customs review is required by the retailer.')
+    if order.get('origin',{}).get('country_code') not in policy.get('allowed_countries',['GB']) or order.get('destination',{}).get('country_code') not in policy.get('allowed_countries',['GB']):
+        raise HTTPException(409,'This route is outside the merchant return policy')
     return policy,row
 
 
@@ -58,7 +60,7 @@ async def execute_return(service: ConsumerCX, draft: ConsumerDraft, request_id: 
         if facts['destination']['country_code']!='GB':
             raise HTTPException(409,'An international return warehouse requires retailer customs review.')
         body=ReviewRequest(request_id=request_id,shipment_id=draft.shipment_id,
-            charge_bearer=policy['charge_bearer'],edits=ReturnEdits.model_validate(facts['edits']),
+            charge_bearer=policy['charge_bearer'],paperless_requested=policy.get('paperless_preferred',True),edits=ReturnEdits.model_validate(facts['edits']),
             delivery=ReturnDelivery(whatsapp=True,customer_permission_confirmed=True))
         prepared=await review.prepare(actor,body)
         rates=ordered_rates(prepared.get('rates',[]))

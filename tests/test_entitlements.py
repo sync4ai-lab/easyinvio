@@ -50,8 +50,8 @@ def test_expired_and_unbounded_trials_fail_closed():
         assert subscription('COMMAND',plan_status='TRIALING',plan_period_end=end).effective()==Plan.STARTER
     assert subscription('VELOCITY',plan_status='TRIALING',plan_period_end=datetime.now(timezone.utc)+timedelta(days=14)).effective()==Plan.VELOCITY
 
-def test_grandfathered_access_preserved_and_unknown_feature_rejected():
-    assert allowed(subscription(plan_enforcement_enabled=False),'customs_hs_builder')
+def test_legacy_flag_cannot_bypass_plan_and_unknown_feature_rejected():
+    assert not allowed(subscription(plan_enforcement_enabled=False),'customs_hs_builder')
     with pytest.raises(ValueError):allowed(subscription(),'made_up_feature')
 
 @pytest.mark.parametrize('quota,plan,count,additional,blocked',[
@@ -81,10 +81,10 @@ def test_only_verified_seed_creates_bounded_trial_without_role_or_credit_changes
         assert len([sql for sql,_ in c.calls if 'INSERT INTO public.margin_rules' in sql])==3
     asyncio.run(run())
 
-def test_sandbox_seed_is_explicitly_complimentary_command():
+def test_sandbox_seed_preserves_selected_tier_and_is_complimentary():
     async def run():
         c=Connection();await seed_subscription(c,uuid4(),'STARTER','MONTHLY',sandbox=True)
-        assert c.calls[0][1][1:]==('COMMAND','MONTHLY','ACTIVE',14,True)
+        assert c.calls[0][1][1:]==('STARTER','MONTHLY','ACTIVE',14,True)
     asyncio.run(run())
 
 @pytest.mark.parametrize('role',['DISPATCHER','ACCOUNTANT','ADMIN'])

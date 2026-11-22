@@ -528,7 +528,7 @@ async def get_client_calibrated_rate(
                     'minimum_markup': ZERO})
             from backend.entitlements import enabled,read_subscription,capabilities,Plan
             subscription = await read_subscription(connection,tenant_id) if enabled(_subscription_settings) else None
-            if subscription and subscription.plan_enforcement_enabled and subscription.effective()!=Plan.COMMAND:
+            if subscription and subscription.effective()!=Plan.COMMAND:
                 return calculate_calibrated_price(base_wholesale_cost, {
                     'markup_type':'PERCENTAGE','markup_value':capabilities(subscription.effective()).default_markup_percent,
                     'minimum_markup':ZERO})
@@ -564,7 +564,7 @@ async def get_client_calibrated_rate(
                 tenant.get('billing_plan'), scope.cargo_type, scope.volume_m3)
             if rule is not None and rule["tenant_id"] != tenant_id:
                 raise ValueError("Stored pricing tenant mismatch")
-            if rule is None and subscription and subscription.plan_enforcement_enabled:
+            if rule is None and subscription:
                 rule={'markup_type':'PERCENTAGE','markup_value':capabilities(subscription.effective()).default_markup_percent,'minimum_markup':ZERO}
             return calculate_calibrated_price(base_wholesale_cost, rule)
     except (asyncpg.PostgresError, OSError, TimeoutError, ValueError, ArithmeticError):

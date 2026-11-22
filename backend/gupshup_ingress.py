@@ -43,12 +43,16 @@ def parse_event(data,settings):
         if payload.get('sender',{}).get('phone') and phone(payload['sender']['phone'])!=sender:raise ValueError('Sender mismatch')
         if payload.get('destination') and phone(payload['destination'])!=number(settings):raise ValueError('Receiver mismatch')
         media=payload.get('type')!='text'
-        body=payload.get('payload',{}).get('text','') if not media else ''
+        body=payload.get('payload',{}).get('text','') if not media else payload.get('payload',{}).get('caption','') or ''
         if not isinstance(body,str) or len(body)>1600:raise ValueError('Invalid text')
         internal='gs:'+hashlib.sha256((account(settings)+':'+external).encode()).hexdigest()
         form=FormData({'AccountSid':account(settings),'From':'whatsapp:'+sender,'To':'whatsapp:'+number(settings),
             'MessageSid':internal,'Body':body,'NumMedia':'1' if media else '0',
             'ProviderContentHash':hashlib.sha256(json.dumps(payload,sort_keys=True,separators=(',',':')).encode()).hexdigest()})
+        if media and (payload.get('type')=='image' or payload.get('type')=='file' and payload.get('payload',{}).get('contentType') in {'image/png','image/jpeg'}):
+            url=payload.get('payload',{}).get('url')
+            if isinstance(url,str) and len(url)<=4096:
+                form=FormData(dict(form,MediaUrl0=url,MediaContentType0=payload.get('payload',{}).get('contentType','')))
         return 'message',form,external,received
     if kind=='message-event':
         status={'enqueued':'ACCEPTED','sent':'SENT','delivered':'DELIVERED','read':'READ','failed':'FAILED'}.get(payload.get('type'))

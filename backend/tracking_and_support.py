@@ -261,6 +261,12 @@ class TrackingSupportService:
                 for event in events:
                     shipment = await connection.fetchrow("SELECT status,tracking_number FROM public.shipments WHERE tenant_id=$1 AND id=$2 FOR SHARE", event["tenant_id"], event["shipment_id"])
                     resolved = shipment is None or shipment["status"] == "DELIVERED"
+                    if getattr(self,'cx_automation_enabled',False):
+                        await connection.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',f"cx-delay-shipment:{event['tenant_id']}:{event['shipment_id']}")
+                        existing=await connection.fetchval("SELECT EXISTS(SELECT 1 FROM public.cx_delay_incidents i JOIN public.support_tickets t ON t.id=i.ticket_id WHERE i.tenant_id=$1 AND i.shipment_id=$2 AND t.status IN ('OPEN','IN_REVIEW'))",event['tenant_id'],event['shipment_id'])
+                        if existing:
+                            await connection.execute('UPDATE public.tracking_events SET support_pending=false WHERE tenant_id=$1 AND id=$2',event['tenant_id'],event['id'])
+                            continue
                     ticket_id = uuid4()
                     summary = draft_remedy(event["raw_error"])
                     await connection.execute("""INSERT INTO public.support_tickets
@@ -354,6 +360,8 @@ def build_router(authenticate):
         service = getattr(request.app.state, "tracking_support", None)
         if service is None:
             raise HTTPException(503, "Tracking integration unavailable")
+        if request.query_params.get('source'):
+            return await request.app.state.native_partners.receive_tracking(request)
         if 'x-hmac-signature' in request.headers:
             return await native_easypost_webhook(request, service)
         key_id = request.headers.get("x-veloce-key-id", "")

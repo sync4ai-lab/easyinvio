@@ -65,6 +65,8 @@ class Storage:
         raise AssertionError(sql)
 
     async def fetchrow(self, sql, *args):
+        if 'to_jsonb(t) AS subscription' in sql:
+            return {'subscription':{'subscription_plan':'COMMAND','plan_status':'ACTIVE','plan_period_start':datetime.now(timezone.utc).isoformat(),'plan_enforcement_enabled':True}}
         self.calls.append((sql, args))
         if 'FROM public.admin_client_assistance_sessions' in sql:
             return {'role': 'OWNER'} if getattr(self, 'assistance_id', None) == args[2] else None
@@ -381,3 +383,20 @@ async def test_whatsapp_selection_hands_off_signed_choice_without_purchase(fixtu
     missing = await gateway.process(context, ConversationMessage(channel='WHATSAPP', message_body='book option 3'), verified_whatsapp=True)
     assert missing['status'] == 'NEEDS_INPUT' and 'checkout_url' not in missing
     state.partner_lifecycle.confirm.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_unified_policy_chat_routes_to_shared_confirmed_service(fixture):
+    context,storage,state,gateway,app=fixture
+    state.settings.cx_automation_enabled=True
+    state.settings.whatsapp_progressive_enabled=True
+    service=SimpleNamespace(propose=AsyncMock(return_value={'message':'Preview only. Confirm policy to apply.'}),confirm=AsyncMock(return_value={'message':'Policy saved.'}))
+    with patch('backend.cx_chat.PolicyService',return_value=service):
+        result=await gateway.process(context,ConversationMessage(channel='WHATSAPP',message_body='Set a 30-day free return policy for UK orders'),verified_whatsapp=True)
+        assert result['action_taken']=='POLICY_PROPOSE'
+        service.propose.assert_awaited_once()
+        service.confirm.assert_not_awaited()
+        proposal_id=uuid4()
+        result=await gateway.process(context,ConversationMessage(channel='WHATSAPP',message_body='Confirm policy '+str(proposal_id)),verified_whatsapp=True)
+        assert result['action_taken']=='POLICY_CONFIRM'
+        service.confirm.assert_awaited_once_with(context,proposal_id)

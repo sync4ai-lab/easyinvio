@@ -24,8 +24,10 @@ def main():
     parser.add_argument('--preview',action='store_true',help='Layout only: no sign-in or database')
     parser.add_argument('--public-url',help='Your trusted Wi-Fi URL or HTTPS tunnel origin, without a path')
     parser.add_argument('--whatsapp',action='store_true',help='Run only the WhatsApp queue in addition to the web app')
+    parser.add_argument('--cx-automation',action='store_true',help='With --whatsapp, run tracking, connector setup, delay alerts and support delivery only; migration 056 required')
     parser.add_argument('--hosted-whatsapp-paused',action='store_true',help='Confirm hosted consumers for the same Gupshup app are paused')
     args=parser.parse_args()
+    if args.cx_automation and not args.whatsapp:parser.error('--cx-automation requires --whatsapp and the hosted-consumer pause acknowledgement')
     if args.whatsapp and not args.hosted_whatsapp_paused:
         parser.error('Pause hosted WhatsApp consumers first, then add --hosted-whatsapp-paused. The database/queue is shared.')
     os.chdir(ROOT);sys.path.insert(0,str(ROOT))
@@ -69,14 +71,30 @@ def main():
             async with original(application):
                 queue=getattr(application.state,'whatsapp_queue',None)
                 if queue is None:raise RuntimeError('Enable the configured WhatsApp provider first')
-                task=asyncio.create_task(queue.worker())
-                try:yield
+                tasks=[asyncio.create_task(queue.worker())]
+                try:
+                    if args.cx_automation:
+                        if not application.state.settings.cx_automation_enabled:raise RuntimeError('Set CX_AUTOMATION_ENABLED=true only after migration 056')
+                        async with application.state.finance.pool.acquire() as connection:
+                            ready=await connection.fetchval("SELECT to_regclass('public.cx_claim_dossiers') IS NOT NULL")
+                        if not ready:raise RuntimeError('Apply migration 056 before starting CX automation')
+                        from backend.cx_connectors import ConnectorSetupWorker
+                        from backend.cx_delay import DelaySentinel
+                        from backend.tracking_refresh import TrackingRefreshWorker
+                        if not application.state.settings.tracking_polling_enabled:raise RuntimeError('Set TRACKING_POLLING_ENABLED=true for CX tracking recovery')
+                        tasks.extend([asyncio.create_task(ConnectorSetupWorker(application.state).worker()),
+                            asyncio.create_task(DelaySentinel(application.state.finance.pool,application.state.settings.provider_environment,application.state).worker()),
+                            asyncio.create_task(TrackingRefreshWorker(application.state.tracking_workspace,application.state.tracking_support).worker()),
+                            asyncio.create_task(application.state.support_delivery.worker())])
+                        application.state.cx_tracking_worker_running=True
+                    yield
                 finally:
-                    task.cancel()
-                    with suppress(asyncio.CancelledError):await task
+                    application.state.cx_tracking_worker_running=False
+                    for task in tasks:task.cancel()
+                    await asyncio.gather(*tasks,return_exceptions=True)
         app.router.lifespan_context=local_whatsapp
     print('Landing: '+base+'/\nSign in: '+base+'/login\nWorkspace: '+base+'/workspace\nPricing: '+base+'/pricing',flush=True)
-    print('Background jobs: '+('WhatsApp only (shared queue)' if args.whatsapp else 'off'),flush=True)
+    print('Background jobs: '+('WhatsApp + selected CX automation (shared queues)' if args.cx_automation else 'WhatsApp only (shared queue)' if args.whatsapp else 'off'),flush=True)
     import uvicorn
     uvicorn.run(app,host='0.0.0.0' if args.lan else '127.0.0.1',port=args.port,access_log=False,proxy_headers=False)
 

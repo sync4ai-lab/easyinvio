@@ -127,7 +127,7 @@ from backend.whatsapp_provider import WhatsAppProviderSettings, enabled as whats
 
 class Settings(IntegrationSettings, WhatsAppProviderSettings):
     # Enable only after migrations 050/051; authentication and wallets stay authoritative.
-    subscription_tiers_enabled: bool = False
+    subscription_tiers_enabled: bool = True
     subscription_trial_days: int = Field(default=14, ge=1, le=30)
     subscription_price_ids: dict[str, str] = Field(default_factory=dict)
     billing_lifecycle_enabled: bool = False
@@ -191,7 +191,11 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     whatsapp_progressive_enabled: bool = False  # Requires 055 on web and worker.
     ideal_postcodes_api_key: SecretStr = SecretStr("")
     logistics_media_bucket: str = 'easyinvio-logistics'
-    tracking_polling_enabled: bool = False
+    tracking_polling_enabled: bool = True
+    cx_automation_enabled: bool = False
+    cx_delay_llm_enabled: bool = False
+    tracking_webhook_base_url: str = ''
+    whatsapp_evidence_allowed_hosts: list[str] = ['filemanager.gupshup.io']
     booking_page_url: str = ""
     quote_link_secret: SecretStr = SecretStr("")
     whatsapp_deadline_seconds: int = Field(default=12, ge=5, le=12)
@@ -794,7 +798,7 @@ class SupabaseRepository:
             filters.pop('is_active',None)
             filters['id']='eq.'+str(historical_account_id)
             filters['limit']='1'
-        elif getattr(self.settings,'subscription_tiers_enabled',False):
+        else:
             from backend.entitlements import Subscription,require_subscription_feature
             plan_rows=await self.select('tenants',{'select':'subscription_plan,plan_status,plan_period_start,plan_period_end,plan_enforcement_enabled','tenant_id':f'eq.{context.tenant_id}','limit':'1'},context,backend=True)
             if len(plan_rows)!=1:raise HTTPException(403,'Active workspace required')
@@ -2104,6 +2108,7 @@ async def deterministic_lifespan(application: FastAPI):
                     connectors=StoreConnectorSettings().ecommerce_connectors, credential_keys=settings.credential_keys,settings=settings)
                 from backend.tracking_and_support import load_tracking_settings
                 application.state.tracking_support = TrackingSupportService(pool, load_tracking_settings())
+                application.state.tracking_support.cx_automation_enabled=settings.cx_automation_enabled
                 from backend.tracking_workspace import TrackingWorkspace
                 from backend.tracking_refresh import TrackingRefreshWorker
                 application.state.tracking_workspace = TrackingWorkspace(pool,settings,repository=repository,client=http_client)
@@ -2112,6 +2117,12 @@ async def deterministic_lifespan(application: FastAPI):
                     application.state.tracking_support.workspace = application.state.tracking_workspace
                 jobs.start('tracking-refresh', lambda: TrackingRefreshWorker(application.state.tracking_workspace,
                     application.state.tracking_support).worker(), enabled=application.state.tracking_workspace.ready and settings.tracking_polling_enabled)
+                application.state.cx_tracking_worker_running = bool(jobs.enabled and jobs.mode=='ALL' and settings.tracking_polling_enabled)
+                if settings.cx_automation_enabled:
+                    from backend.cx_connectors import ConnectorSetupWorker
+                    from backend.cx_delay import DelaySentinel
+                    jobs.start('connector-tracking-setup', lambda: ConnectorSetupWorker(application.state).worker())
+                    jobs.start('delay-sentinel', lambda: DelaySentinel(pool,settings.provider_environment,application.state).worker())
                 application.state.support_delivery = SupportDelivery(pool,http_client,settings,DeliverySettings())
                 application.state.sandbox_billing = SandboxBillingService(application.state.finance, settings) if settings.stripe_enabled else None
                 application.state.admin_portal = AdminService(pool,settings)
@@ -2426,6 +2437,7 @@ async def public_tracking_page():
 
 @app.get('/tracking-workspace.js',include_in_schema=False)
 @app.get('/tracking-public.js',include_in_schema=False)
+@app.get('/cx-automation.js',include_in_schema=False)
 @app.get('/tracking-ui.css',include_in_schema=False)
 @app.get('/manifest-workflow.js',include_in_schema=False)
 @app.get('/help-workspace-bridge.js',include_in_schema=False)
@@ -2848,3 +2860,5 @@ from backend.whatsapp_progressive import build_router as progressive_whatsapp_ro
 app.include_router(progressive_whatsapp_router(authenticate))
 from backend.whatsapp_consumer import build_router as consumer_cx_router
 app.include_router(consumer_cx_router(authenticate))
+from backend.cx_automation import build_router as cx_automation_router
+app.include_router(cx_automation_router(authenticate, authenticate_platform_owner))

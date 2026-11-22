@@ -36,8 +36,8 @@ class TrackingRateLimited(Exception):
 
 CAPABILITIES={
     'https://api.easypost.com/v2':TrackingCapabilities(True,True),
-    'https://panel.sendcloud.sc/api/v3':TrackingCapabilities(True,False),
-    'https://api.goshippo.com':TrackingCapabilities(True,False),
+    'https://panel.sendcloud.sc/api/v3':TrackingCapabilities(True,True),
+    'https://api.goshippo.com':TrackingCapabilities(True,True),
 }
 
 
@@ -93,18 +93,19 @@ class EasyPostTrackingAdapter:
 class TrackingRefreshWorker:
     def __init__(self, workspace, tracking):
         self.workspace,self.tracking=workspace,tracking
+        self.instance_id=uuid4()
 
     async def seed(self):
         engine=self.workspace
-        if not integration_enabled('https://api.easypost.com/v2',engine.settings):return
         async with engine.pool.acquire() as connection:
             await connection.execute('''INSERT INTO public.tracking_refresh_jobs(tenant_id,shipment_id,requested_by)
                 SELECT s.tenant_id,s.id,u.auth_user_id FROM public.shipments s
                 JOIN public.users u ON u.tenant_id=s.tenant_id AND u.id=s.created_by_user_id AND u.is_active
                 JOIN public.tenants t ON t.tenant_id=s.tenant_id AND t.workspace_status='ACTIVE'
                 JOIN public.carrier_accounts a ON a.tenant_id=s.tenant_id AND a.id=s.carrier_account_id AND a.is_active
-                WHERE a.api_base_url='https://api.easypost.com/v2' AND a.environment=$1 AND u.role IN ('OWNER','ADMIN','DISPATCHER')
+                WHERE a.api_base_url IN ('https://api.easypost.com/v2','https://panel.sendcloud.sc/api/v3','https://api.goshippo.com') AND a.environment=$1 AND u.role IN ('OWNER','ADMIN','DISPATCHER')
                 AND s.status::text IN ('BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION') AND s.created_at>now()-interval '90 days'
+                AND coalesce(s.last_tracking_event_at,s.booked_at,s.created_at)<now()-interval '4 hours'
                 AND NOT EXISTS(SELECT 1 FROM public.tracking_refresh_jobs j WHERE j.tenant_id=s.tenant_id AND j.shipment_id=s.id)
                 ORDER BY s.created_at DESC LIMIT 100 ON CONFLICT(tenant_id,shipment_id) DO NOTHING''',engine.settings.provider_environment)
 
@@ -146,6 +147,7 @@ class TrackingRefreshWorker:
                 job=await connection.fetchrow('''SELECT j.*,s.carrier_account_id FROM public.tracking_refresh_jobs j
                     JOIN public.shipments s ON s.tenant_id=j.tenant_id AND s.id=j.shipment_id
                     WHERE j.state='DUE' AND j.next_attempt_at<=now() AND j.attempts<5
+                    AND (s.status::text IN ('DELIVERED','CANCELLED','FAILED') OR coalesce(s.last_tracking_event_at,s.booked_at,s.created_at)<now()-interval '4 hours')
                     ORDER BY j.next_attempt_at FOR UPDATE OF j SKIP LOCKED LIMIT 1''')
                 if not job:return None
                 admitted=await connection.fetchval('''INSERT INTO public.tracking_provider_limits(carrier_account_id,next_allowed_at)
@@ -176,7 +178,7 @@ class TrackingRefreshWorker:
                 if member is None and await platform_role(connection,engine.settings,job['requested_by']):
                     if await connection.fetchval("SELECT workspace_status='ACTIVE' FROM public.tenants WHERE tenant_id=$1",job['tenant_id']):
                         member={'role':'ADMIN'}  # Current server allowlist, not a fabricated tenant membership.
-                pref=await engine.preferences(connection,job['tenant_id']);interval=pref.poll_interval_minutes
+                pref=await engine.preferences(connection,job['tenant_id']);interval=max(240,pref.poll_interval_minutes)
             if not shipment or not member or member['role'] not in {'OWNER','ADMIN','DISPATCHER'} or not active:
                 raise PurchaseRejected('TRACKING_SCOPE_OR_CONNECTION_INACTIVE')
             terminal=shipment['status'] in {'DELIVERED','CANCELLED','FAILED'}
@@ -184,10 +186,16 @@ class TrackingRefreshWorker:
                 context=TenantContext(job['tenant_id'],job['requested_by'],member['role'],'')
                 accounts=await engine.repository.accounts(context,historical_account_id=shipment['carrier_account_id'])
                 account=next((item for item in accounts if item.id==shipment['carrier_account_id']),None)
-                if not account or account.base_url!='https://api.easypost.com/v2':raise PurchaseRejected('TRACKING_POLLING_UNSUPPORTED')
+                if not account or account.base_url not in CAPABILITIES:raise PurchaseRejected('TRACKING_POLLING_UNSUPPORTED')
                 if not integration_enabled(account.base_url,engine.settings):raise PurchaseRejected('TRACKING_PROVIDER_DISABLED')
                 async with asyncio.timeout(12):
-                    events=await EasyPostTrackingAdapter().lookup(engine.client,account,shipment,engine.settings.provider_environment)
+                    if account.base_url=='https://api.easypost.com/v2':
+                        events=await EasyPostTrackingAdapter().lookup(engine.client,account,shipment,engine.settings.provider_environment)
+                    else:
+                        from backend.cx_tracking import AggregatorTrackingAdapter
+                        async with engine.pool.acquire() as connection:
+                            options=await connection.fetchrow('SELECT sendcloud_status_map FROM public.partner_provider_options WHERE platform_connection_id=$1',account.platform_connection_id)
+                        events=await AggregatorTrackingAdapter().lookup(engine.client,account,shipment,engine.settings.provider_environment,options)
                     for event in sorted(events,key=lambda item:item.scan_occurred_at or item.occurred_at):
                         canonical=event.model_dump(mode='json')
                         digest=hashlib.sha256(json.dumps(canonical,sort_keys=True,separators=(',',':')).encode()).hexdigest()
@@ -225,6 +233,9 @@ class TrackingRefreshWorker:
             try:
                 if time.monotonic()>=next_seed:
                     await self.seed();next_seed=time.monotonic()+60
+                    if getattr(self.workspace.settings,'cx_automation_enabled',False):
+                        async with self.workspace.pool.acquire() as connection:
+                            await connection.execute("INSERT INTO public.cx_worker_heartbeats(worker_name,environment,instance_id) VALUES('tracking-refresh',$1,$2) ON CONFLICT(worker_name,environment,instance_id) DO UPDATE SET last_seen=now()",self.workspace.settings.provider_environment,self.instance_id)
                 job=await self.claim()
                 if job:await self.process(job)
             except (asyncpg.PostgresError,ValueError,KeyError,TypeError):

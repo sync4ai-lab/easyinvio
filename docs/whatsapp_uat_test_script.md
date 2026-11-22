@@ -1,5 +1,7 @@
 # WhatsApp UAT: provider audit and phone test script
 
+For migration 056 and activation steps, see [Unified CX automation](unified_cx_automation.md). This earlier audit does not imply the shared database or provider settings have changed.
+
 Audited 22 November 2026 against feature branch `feat/whatsapp-progressive-assistant`
 (application commit `14d5aaf`). This is a source/configuration/read-only database
 audit, not a claim that every provider accepted a fresh API request today.

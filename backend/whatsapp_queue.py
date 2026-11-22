@@ -155,6 +155,11 @@ async def process_inbound(request: Request, form: FormData, received_at: datetim
             return reply_parts(await signup.handle(form))
         return reply_parts(message_xml('This number is not registered to an active EasyInvio workspace. Ask your owner to verify it, or send Register.'))
     if form['NumMedia'] != '0':
+        if getattr(state.settings,'cx_automation_enabled',False):
+            from backend.cx_chat import merchant_photo
+            from backend.entitlements import guard_feature
+            await guard_feature(state.finance.pool,state.settings,context.tenant_id,'whatsapp_bot')
+            return reply_parts(message_xml(await merchant_photo(state,context,form)))
         return reply_parts(message_xml('Please send text, for example: Quote 4.5kg from GB to US.'))
     if getattr(state.settings,'whatsapp_progressive_enabled',False):
         from backend.whatsapp_progressive import feature_handoff
