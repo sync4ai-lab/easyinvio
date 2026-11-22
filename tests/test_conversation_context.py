@@ -49,7 +49,7 @@ async def test_complete_dynamic_quote_survives_gateway_recreation_and_has_no_inv
     original = turn('Get a quote for a 3kg parcel from London to Paris')
     with patch('main.get_rates', AsyncMock(return_value=quote_result())) as rates:
         first = await process(gateway, original)
-        assert first['status'] == 'NEEDS_INPUT' and 'Origin Postcode' in first['conversational_reply']
+        assert first['status'] == 'NEEDS_INPUT' and 'pickup town postcode country' in first['conversational_reply']
         assert '_pending' not in first
         assert first == await process(gateway, original)
         turns = [('LS1 2TW, 75001', 'countries')]
@@ -200,3 +200,11 @@ async def test_claim_completion_refuses_an_inactive_actor_before_any_update():
     assert error.value.status_code == 403
     connection.execute.assert_not_awaited()
     connection.fetchval.assert_awaited_once()
+
+
+def test_postcode_followup_accepts_exact_town_postcode_country():
+    from backend.agents.conversation_context import collect_reply
+    draft=ConversationDraft(action='QUOTE',intent=ConversationalIntent(intent='QUOTE'),waiting_for='postcodes')
+    collect_reply(draft,'Leeds LS1 1AA GB, Birmingham B1 1AA GB')
+    assert draft.intent.origin_city=='Leeds' and draft.intent.origin_postal_code=='LS1 1AA'
+    assert draft.intent.destination_city=='Birmingham' and draft.intent.destination_country=='GB'

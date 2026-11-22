@@ -9,6 +9,13 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 
 
+def booking_url(configured: str, public_url: str) -> str:
+    from urllib.parse import urlsplit
+    if configured and urlsplit(configured).hostname not in {'localhost','127.0.0.1','::1'}:
+        return configured
+    return public_url
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--env-file',default=str(ROOT/'.env.local'))
@@ -47,7 +54,7 @@ def main():
     os.environ['CHECKOUT_SUCCESS_URL']=base+'/workspace?payment=success'
     os.environ['CHECKOUT_CANCEL_URL']=base+'/workspace?payment=cancel'
     if args.public_url and args.public_url.startswith('https://'):
-        os.environ['BOOKING_PAGE_URL']=args.public_url
+        os.environ['BOOKING_PAGE_URL']=booking_url(os.environ.get('BOOKING_PAGE_URL',''),args.public_url)
         os.environ['AUTH_RECOVERY_REDIRECT_URL']=args.public_url+'/set-password'
         os.environ['CHECKOUT_SUCCESS_URL']=args.public_url+'/workspace?payment=success'
         os.environ['CHECKOUT_CANCEL_URL']=args.public_url+'/workspace?payment=cancel'

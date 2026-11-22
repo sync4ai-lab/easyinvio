@@ -19,6 +19,8 @@ class SendcloudMethod(BaseModel):
     model_config=ConfigDict(extra='forbid',allow_inf_nan=False)
     method_id: int=Field(gt=0,strict=True)
     carrier_code: str=Field(min_length=1,max_length=100)
+    service_name: str | None=Field(default=None,min_length=1,max_length=100)
+    delivery_days: int | None=Field(default=None,ge=1,le=365)
     cargo_type: Literal['LETTER','PARCEL']='PARCEL'
     origin_country: str=Field(pattern=r'^[A-Z]{2}$')
     destination_countries: list[str]=Field(min_length=1,max_length=250)
@@ -80,7 +82,8 @@ async def quote_sendcloud(client,account,request,methods):
                 result.append({'provider':'REGIONAL','account_id':account.id,
                     'upstream_shipment_id':'sendcloud-rate-only','upstream_rate_id':str(method.method_id),
                     'carrier_code':method.carrier_code.upper(),'service_code':'SENDCLOUD_'+str(method.method_id),
-                    'currency':row['currency'],'wholesale_cost':amount,'delivery_days':None})
+                    'currency':row['currency'],'wholesale_cost':amount,'delivery_days':method.delivery_days,
+                    'execution_details':{'display_service_name':method.service_name or 'SENDCLOUD_'+str(method.method_id)}})
             return result
     if not methods:raise ValueError('Configure verified Sendcloud method limits')
     rates=await asyncio.gather(*(price(method) for method in eligible))
@@ -174,7 +177,9 @@ async def quote_sendcloud_v3(client, account, request):
                 'upstream_shipment_id':'sendcloud-v3-rate-only','upstream_rate_id':code,
                 'carrier_code':carrier.upper(),'service_code':code,'currency':request.currency,
                 'wholesale_cost':cost,'delivery_days':days,
-                'execution_details':{'contract_id':(option.get('contract') or {}).get('id'),
+                'execution_details':{'display_service_name':str(option.get('name') or code)[:100],
+                    'display_carrier_name':str((option.get('carrier') or {}).get('name') or carrier)[:100],
+                    'contract_id':(option.get('contract') or {}).get('id'),
                     'return_paperless_supported':bool(getattr(request,'is_return',False) and functionality.get('labelless') is True)}})
     if not rates and available_currencies:
         from backend.rate_diagnostics import RateCurrencyUnavailable

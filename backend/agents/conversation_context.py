@@ -154,9 +154,15 @@ def collect_reply(draft, text, *, require_paf=False):
         draft.waiting_for=''
     elif field == 'postcodes':
         parts = [part.strip() for part in text.split(',')]
-        if len(parts) != 2 or any(not value or len(value) > 30 for value in parts):
-            raise ValueError('Reply with Origin Postcode, Destination Postcode.')
-        merge_quote(draft, ConversationalIntent(intent='QUOTE', origin_postal_code=parts[0], destination_postal_code=parts[1]))
+        if len(parts) != 2 or any(not value or len(value) > 140 for value in parts):
+            raise ValueError('Reply with pickup town postcode country, delivery town postcode country.')
+        updates = {}
+        for prefix, value in zip(('origin', 'destination'), parts):
+            facts = location(value)
+            if not facts.get('postal_code'):
+                raise ValueError('Include a full postcode for pickup and delivery, with exact town and country.')
+            updates.update({prefix+'_'+key:fact for key,fact in facts.items()})
+        merge_quote(draft, ConversationalIntent(intent='QUOTE', **updates))
     elif field == 'countries':
         parts = [part.strip() for part in text.split(',')]
         if len(parts) != 2:

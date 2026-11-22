@@ -55,7 +55,14 @@ def quote_link(settings:Any,facts:ConversationalIntent)->str:
     # No identity, rates, payment authority or carrier reservation enters this JWT.
     fields=facts.model_dump(mode='json',include={'weight_kg','origin_country','destination_country','origin_city','destination_city','origin_postal_code','destination_postal_code','dimensions_cm','cargo_type'})
     token=jwt.encode({'aud':'easyinvio-quick-quote','purpose':'PREFILL_ONLY','iat':now,'exp':now+timedelta(minutes=15),'facts':fields},settings.quote_link_secret.get_secret_value(),algorithm='HS256')
-    return settings.booking_page_url.rstrip('/')+'/login?'+urlencode({'mode':'signup','quick_quote':token})
+    from urllib.parse import urlsplit
+    base=settings.booking_page_url.rstrip('/')
+    parsed=urlsplit(base)
+    local=parsed.scheme=='http' and parsed.hostname in {'localhost','127.0.0.1','::1'}
+    if ((parsed.scheme!='https' and not local) or not parsed.hostname or parsed.username
+        or parsed.password or parsed.query or parsed.fragment or parsed.path not in {'','/'}):
+        raise ValueError('Configure BOOKING_PAGE_URL explicitly before creating quote links')
+    return base+'/login?'+urlencode({'mode':'signup','quick_quote':token})
 
 
 def verify_quote(settings:Any,token:str)->dict:
@@ -71,8 +78,8 @@ def verify_quote(settings:Any,token:str)->dict:
 def quote_missing(facts:ConversationalIntent)->list[str]:
     missing=[]
     if not facts.weight_kg:missing.append('packed weight in kg')
-    if not facts.origin_country:missing.append('pickup country' if facts.origin_city or facts.origin_postal_code else 'pickup town/postcode and country')
-    if not facts.destination_country:missing.append('delivery country' if facts.destination_city or facts.destination_postal_code else 'delivery town/postcode and country')
+    if not facts.origin_country:missing.append('pickup country' if facts.origin_city or facts.origin_postal_code else 'exact pickup town, postcode and country')
+    if not facts.destination_country:missing.append('delivery country' if facts.destination_city or facts.destination_postal_code else 'exact delivery town, postcode and country')
     return missing
 
 
@@ -82,21 +89,13 @@ def ballpark(settings:Any,facts:ConversationalIntent)->str:
         if missing==['pickup country','delivery country']:
             return ('I have '+str(facts.weight_kg)+' kg, from '+str(facts.origin_city or facts.origin_postal_code)+
                 ' to '+str(facts.destination_city or facts.destination_postal_code)+
-                '. Which countries are pickup and delivery in? If both are in the UK, reply: Both UK. Box dimensions in cm are optional for this sample estimate.')
+                '. Which countries are pickup and delivery in? If both are in the UK, reply: Both UK. Please also send exact pickup and delivery town, postcode and country, plus box dimensions in cm.')
         return 'I still need: '+ '; '.join(missing)+'. Send just the missing details, or the full quote again. Box size is in cm, for example 25x25x10 cm.'
     link=quote_link(settings,facts)
     if facts.origin_country!='GB' or facts.destination_country!='GB' or facts.cargo_type!='PARCEL':
         return 'I have your route and weight. International/freight prices need a live service check; I won’t guess a carrier price. Continue with your saved details: '+link
-    from main import Address,Dimensions,RatingRequest
-    from backend.advanced_logistics import preview_rates
-    dims=facts.dimensions_cm or [Decimal(30),Decimal(20),Decimal(10)]
-    address=Address(name='Illustrative sample',line1='Sample',city='Sample',postal_code='SW1A 1AA',country_code='GB')
-    result=preview_rates(RatingRequest(origin=address,destination=address,weights_kg=[facts.weight_kg],dimensions=[Dimensions(**dict(zip(('length_cm','width_cm','height_cm'),dims)))]))
-    rates=result['rates'][:2]
-    lines=['*Illustrative UK estimate*',f'{facts.weight_kg} kg • '+('box '+ ' x '.join(format(x,'f') for x in facts.dimensions_cm)+' cm' if facts.dimensions_cm else 'assumed 30×20×10 cm box')]
-    lines.extend(f'• Sample option {i}: £{r["client_price_ex_tax"]} excl. VAT' for i,r in enumerate(rates,1))
-    lines.extend(['Examples only—not live carrier offers or guaranteed availability.','Get live rates with your saved details: '+link])
-    return '\n'.join(lines)
+    return 'Continue with your route details for a live carrier quote: '+link
+
 
 
 class GuestShippingAssistant:
@@ -125,6 +124,16 @@ class GuestShippingAssistant:
     async def clear(self,form:Any)->None:
         async with self.pool.acquire() as c:
             await c.execute('DELETE FROM public.whatsapp_guest_drafts WHERE provider=$1 AND provider_account=$2 AND sender_e164=$3 AND receiver_e164=$4',*self.key(form))
+
+    async def live_estimate(self,facts:ConversationalIntent)->str:
+        if getattr(self.state,'local_preview',False):
+            return 'Live carrier estimates are disabled in offline layout preview. Start the configured app to compare carriers.'
+        from backend.public_route_estimates import PublicRouteEstimates
+        service=getattr(self.state,'public_route_estimates',None)
+        if service is None:
+            service=PublicRouteEstimates(self.settings,self.pool,self.state.rating.client,self.state.paf)
+            self.state.public_route_estimates=service
+        return await service.estimate(facts)
 
     async def public_status(self,reference:str)->str:
         if not re.fullmatch(r'[A-Za-z0-9_-]{8,100}',reference):return 'That reference format looks incomplete. Please try the full carrier tracking number, or paste your secure EasyInvio tracking link.'
@@ -204,9 +213,12 @@ class GuestShippingAssistant:
             values.update(proposed.model_dump(exclude_none=True,exclude_defaults=True));values['intent']='QUOTE'
             facts=ConversationalIntent.model_validate(values)
             missing=quote_missing(facts)
-            if missing:await self.save(form,GuestDraft(state='QUOTE',quote=facts,expires_at=draft.expires_at if draft else datetime.now(timezone.utc)+timedelta(minutes=15)))
-            else:await self.clear(form)
-            return ballpark(self.settings,facts)
+            if missing or not facts.dimensions_cm:
+                await self.save(form,GuestDraft(state='QUOTE',quote=facts,expires_at=draft.expires_at if draft else datetime.now(timezone.utc)+timedelta(minutes=15)))
+                if missing:return ballpark(self.settings,facts)
+                return 'What is the packed box size in cm (length x width x height)? Please also send the exact pickup and delivery town, postcode and country for the best estimate.'
+            await self.clear(form)
+            return await self.live_estimate(facts)
         if intent.intent=='TRACK' or draft and draft.state=='AWAITING_TRACKING_REF' and re.fullmatch(r'[A-Za-z0-9_-]{1,100}',text):
             reference=re.sub(r'^(?:track|tracking)(?:\s+(?:number|ref|parcel|shipment))?\s*','',text,flags=re.I).strip()
             if intent.intent=='TRACK' and not re.fullmatch(r'[A-Za-z0-9_-]{8,100}',reference):

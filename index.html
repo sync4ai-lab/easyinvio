@@ -8823,34 +8823,53 @@ const quickQuoteToken=onboardingParams.get('quick_quote');
 if(quickQuoteToken){
   const clean=new URL(location.href);clean.searchParams.delete('quick_quote');history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
   const card=document.createElement('article');card.className='card';card.id='quick-quote-prefill';
-  card.innerHTML='<h2>Your WhatsApp quote</h2><p>Review these details. Sign in or create an account to get live rates. No postage has been purchased.</p><div class="fields"><label>Packed weight (kg)<input id="qq-weight" type="number" min="0.001" max="1000" step="0.001"></label><label>Pickup town/postcode and country<input id="qq-origin" maxlength="140"></label><label>Delivery town/postcode and country<input id="qq-destination" maxlength="140"></label><label>Box size (L × W × H cm)<input id="qq-size" maxlength="60" placeholder="30 x 20 x 10"></label></div><button type="button" class="secondary" id="qq-apply" disabled>Fill shipment form</button><p id="qq-status" role="status">Checking your link…</p>';
+  card.innerHTML='<h2>Your WhatsApp quote details</h2><p>Review your parcel details. Full addresses are checked before booking.</p><div class="grid"><label>Packed weight (kg)<input id="qq-weight" type="number" min="0.001" max="1000" step="0.001"></label><label>Exact pickup town, postcode and country<input id="qq-origin" maxlength="140"></label><label>Exact delivery town, postcode and country<input id="qq-destination" maxlength="140"></label><label>Box size (L x W x H cm)<input id="qq-size" maxlength="60" placeholder="30 x 20 x 10"></label></div><button type="button" class="secondary" id="qq-apply" disabled>Fill shipment form</button><p id="qq-status" role="status">Checking your link...</p>';
   $('#loginContainer').append(card);
-  let verified=null;
+  let verified=null,applying=false,prefillApplied=false;
   const check=async()=>{
     const response=await fetch('/api/v1/public/quick-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:quickQuoteToken})});
     if(!response.ok)throw Error('This quote link has expired or is invalid. Ask WhatsApp for a new quote.');
     return (await response.json()).facts;
   };
-  const move=()=>{if(document.body.classList.contains('auth-ready')&&card.parentNode!==$('#quote-form').parentNode)$('#quote-form').before(card);};
-  new MutationObserver(move).observe(document.body,{attributes:true,attributeFilter:['class']});
-  check().then(facts=>{verified=facts;$('#qq-weight').value=facts.weight_kg||'';for(const prefix of ['origin','destination'])$('#qq-'+prefix).value=[facts[prefix+'_city'],facts[prefix+'_postal_code'],facts[prefix+'_country']].filter(Boolean).join(' ');$('#qq-size').value=(facts.dimensions_cm||[]).join(' x ');$('#qq-status').textContent='Your details are ready. Full addresses and carrier eligibility are checked before live rates.';$('#qq-apply').disabled=false;move();}).catch(error=>{$('#qq-status').textContent=error.message;});
-  $('#qq-apply').addEventListener('click',async()=>{
+  const applyPrefill=async()=>{
+    if(applying)return;
     if(!document.body.classList.contains('auth-ready')){$('#qq-status').textContent='Please sign in or create an account first. Your details will stay here while you do.';return;}
+    applying=true;
     try{
-      await check(); // Recheck expiry after registration/sign-in.
-      const weight=$('#qq-weight').value,dims=$('#qq-size').value.match(/^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*$/i);
+      await check();
+      const weight=$('#qq-weight').value,dims=$('#qq-size').value.match(/^\s*(\d+(?:\.\d+)?)\s*[x\u00d7]\s*(\d+(?:\.\d+)?)\s*[x\u00d7]\s*(\d+(?:\.\d+)?)\s*$/i);
       if(!(Number(weight)>0&&Number(weight)<=1000)||!dims||dims.slice(1).some(x=>!(Number(x)>0&&Number(x)<=1000)))throw Error('Check the weight and enter three positive box dimensions.');
-      $('#weight_kg').value=weight;['length_cm','width_cm','height_cm'].forEach((name,i)=>$('#'+name).value=dims[i+1]);
+      const locations={};
       for(const prefix of ['origin','destination']){
         const entry=$('#qq-'+prefix).value.trim(),country=entry.match(/\b([A-Za-z]{2})$/);
         if(!country)throw Error('End each location with a two-letter country code, for example GB.');
-        $('#'+prefix+'-country_code').value=country[1].toUpperCase();
-        $('#'+prefix+'-city').value=entry.slice(0,country.index).replace(verified[prefix+'_postal_code']||'\u0000','').trim();
-        if(verified[prefix+'_postal_code'])$('#'+prefix+'-postal_code').value=verified[prefix+'_postal_code'];
+        const address=entry.slice(0,country.index).trim();
+        const known=verified[prefix+'_postal_code'];
+        const postal=country[1].toUpperCase()==='GB'?address.match(/\b(?:GIR\s*0AA|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i):(known&&address.includes(known)?[known]:null);
+        locations[prefix]={country:country[1].toUpperCase(),city:postal?address.replace(postal[0],'').trim():address,postcode:postal?postal[0].toUpperCase():''};
       }
-      $('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));$('#qq-status').textContent='Details copied. Add full addresses and goods information, then request live rates.';
-    }catch(error){$('#qq-status').textContent=error.message;}
-  });
+      $('#weight_kg').value=weight;['length_cm','width_cm','height_cm'].forEach((name,i)=>$('#'+name).value=dims[i+1]);
+      for(const prefix of ['origin','destination']){
+        $('#'+prefix+'-country_code').value=locations[prefix].country;
+        $('#'+prefix+'-city').value=locations[prefix].city;
+        $('#'+prefix+'-postal_code').value=locations[prefix].postcode;
+      }
+      $('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));
+      $('#qq-status').textContent='Details copied. Confirm exact town, postcode, country, full addresses and goods information, then request carrier rates.';
+      prefillApplied=true;
+      if(location.pathname==='/login')history.replaceState(null,'','/workspace');
+    }catch(error){$('#qq-status').textContent=error.message;prefillApplied=true;}
+    finally{applying=false;}
+  };
+  const move=()=>{
+    if(document.body.classList.contains('auth-ready')){
+      if(card.parentNode!==$('#quote-form').parentNode)$('#quote-form').before(card);
+      if(verified&&!prefillApplied&&!applying)void applyPrefill();
+    }
+  };
+  new MutationObserver(move).observe(document.body,{attributes:true,attributeFilter:['class']});
+  check().then(facts=>{verified=facts;$('#qq-weight').value=facts.weight_kg||'';for(const prefix of ['origin','destination'])$('#qq-'+prefix).value=[facts[prefix+'_city'],facts[prefix+'_postal_code'],facts[prefix+'_country']].filter(Boolean).join(' ');$('#qq-size').value=(facts.dimensions_cm||[]).join(' x ');$('#qq-status').textContent='Your details are ready. Sign in to continue and confirm your exact addresses.';$('#qq-apply').disabled=false;move();}).catch(error=>{$('#qq-status').textContent=error.message;});
+  $('#qq-apply').addEventListener('click',()=>void applyPrefill());
 }
 const pricingPlanNames={starter:'Starter',velocity:'Velocity',command:'Command'},pricingPlan=onboardingParams.get('plan');
 if(Object.hasOwn(pricingPlanNames,pricingPlan)){

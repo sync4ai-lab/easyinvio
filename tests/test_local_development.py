@@ -37,3 +37,10 @@ def test_booking_links_reject_public_http_credentials_and_redirect_fragments(url
 def test_public_webhook_still_requires_https():
     with pytest.raises(ValueError):
         Settings.fixed_https_url('http://127.0.0.1:8000/api/v1/integrations/whatsapp/webhook')
+
+
+def test_tunnel_preserves_explicit_uat_booking_origin():
+    from scripts.dev import booking_url
+    assert booking_url('https://uat.easyinvio.com','https://tunnel.ngrok-free.dev')=='https://uat.easyinvio.com'
+    assert booking_url('https://easyinvio.com','https://tunnel.ngrok-free.dev')=='https://easyinvio.com'
+    assert booking_url('http://127.0.0.1:8000','https://tunnel.ngrok-free.dev')=='https://tunnel.ngrok-free.dev'

@@ -334,8 +334,8 @@ class ConversationalActionGateway:
                 + '\n'.join(f'{index}: {option.label}' for index, option in enumerate(options, draft.paf_offset + 1))
                 + '\nReply with a displayed number, More, Back or Cancel.')
         prompts = {
-            'quote_details':'Please send the missing weight, pickup and delivery postcodes/countries, and measured box size together. Example: 2kg from SW1A 1AA GB to LS1 1UR GB, 30x20x10 cm. I will then check the exact UK premises.',
-            'postcodes': 'I can check that quote for you. Please reply with Origin Postcode, Destination Postcode.',
+            'quote_details':'Please send the missing weight, exact pickup and delivery town, postcode and country, and measured box size together. Example: 2kg from London SW1A 1AA GB to Leeds LS1 1UR GB, 30x20x10 cm. I will then check the exact UK premises.',
+            'postcodes': 'Please reply with exact pickup town postcode country, exact delivery town postcode country. Example: Leeds LS1 1AA GB, London SW1A 1AA GB.',
             'countries': 'Please confirm the two countries as Origin Country, Destination Country, for example GB, FR. A postcode alone can be ambiguous.',
             'weight': 'What is the packed parcel weight in kg?',
             'dimensions': 'What are the measured parcel dimensions? Reply length x width x height in cm, for example 30 x 20 x 10.',

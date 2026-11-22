@@ -33,7 +33,7 @@ def test_taxonomy(text,intent,kind):
 def test_natural_send_request_has_no_login_wall_before_estimate():
     facts=classify('I want to send a parcel 2kg from Leeds GB to London GB').facts
     assert facts and facts.weight_kg=='2' and facts.origin_city=='Leeds'
-    assert 'Sample option' in ballpark(settings(),facts)
+    assert 'quick_quote=' in ballpark(settings(),facts) and 'Sample option' not in ballpark(settings(),facts)
 
 
 @pytest.mark.parametrize('message',['Quote 0kg from GB to GB','Quote 1001kg from GB to GB','Quote 2kg from GB to GB 0x20x10 cm'])
@@ -62,7 +62,7 @@ def test_missing_slots_batched_and_instant_sample_link_preserves_facts():
     assert all(x in text for x in ['weight','pickup','country'])
     facts=classify('Quote 2.5kg from Leeds GB to London GB, 30x20x10 cm').facts
     result=ballpark(settings(),facts)
-    assert result.count('Sample option')==2 and 'excl. VAT' in result and 'not live' in result.lower()
+    assert 'quick_quote=' in result and 'Sample option' not in result
     from urllib.parse import urlsplit,parse_qs
     token=parse_qs(urlsplit(quote_link(settings(),facts)).query)['quick_quote'][0]
     decoded=verify_quote(settings(),token)
@@ -162,8 +162,8 @@ def test_phone_dimensions_do_not_become_destination_text(box):
     assert facts.destination_postal_code is None
     assert facts.dimensions_cm==[Decimal('25'),Decimal('25'),Decimal('10')]
     result=ballpark(settings(),facts)
-    assert result.count('Sample option ')==2
-    assert '25 x 25 x 10 cm' in result and 'I still need' not in result
+    assert 'quick_quote=' in result and 'Sample option' not in result
+    assert 'I still need' not in result
 
 
 @pytest.mark.parametrize('box', ['25x25x10 inches','25x25x10 mm','-25x25x10','25x0x10'])
@@ -181,6 +181,10 @@ def guest_conversation():
     async def save(form,draft):state['draft']=draft
     async def clear(form):state['draft']=None
     helper.load=AsyncMock(side_effect=load);helper.save=AsyncMock(side_effect=save);helper.clear=AsyncMock(side_effect=clear)
+    async def live_estimate(facts):
+        return 'Live carrier response for '+str(facts.weight_kg)+' kg\n'+quote_link(helper.settings,facts)
+    helper.live_estimate=AsyncMock(side_effect=live_estimate)
+
     from starlette.datastructures import FormData
     def form(text):return FormData({'From':'whatsapp:+447700900123','To':'whatsapp:+447700900321','Body':text})
     return helper,state,form
@@ -194,7 +198,8 @@ async def test_reported_two_turn_quote_finishes_without_paid_rating_calls():
         assert 'Which countries' in first and '4.5 kg' in first
         assert 'leeds' in first and 'london' in first
         result=await helper.handle(form('Quote 2kg from leeds gb to london gb 25\u00d725\u00d710'))
-        assert result.count('Sample option ')==2 and 'Examples only' in result
+        assert 'Live carrier response' in result
+        helper.live_estimate.assert_awaited_once()
         token=result.split('quick_quote=',1)[1].split()[0]
         facts=verify_quote(helper.settings,token)
         assert facts['weight_kg']=='2' and facts['destination_country']=='GB'
@@ -207,9 +212,9 @@ async def test_reported_two_turn_quote_finishes_without_paid_rating_calls():
 @pytest.mark.parametrize('answer',['Both UK','both are GB','GB to GB','GB, GB'])
 async def test_country_only_followup_keeps_weight_and_cities(answer):
     helper,state,form=guest_conversation()
-    await helper.handle(form('Shipping quote for 4.5 kg from leeds to london'))
+    await helper.handle(form('Shipping quote for 4.5 kg from leeds to london 25x20x10'))
     result=await helper.handle(form(answer))
-    assert result.count('Sample option ')==2 and '4.5 kg' in result
+    assert 'Live carrier response' in result and '4.5 kg' in result
     token=result.split('quick_quote=',1)[1].split()[0]
     facts=verify_quote(helper.settings,token)
     assert facts['origin_city']=='leeds' and facts['destination_city']=='london'
@@ -230,6 +235,6 @@ async def test_corrected_route_discards_corrupt_postcode_from_previous_parser():
 @pytest.mark.asyncio
 async def test_single_missing_country_accepts_country_only_reply():
     helper,state,form=guest_conversation()
-    first=await helper.handle(form('Quote 2kg from leeds GB to london'))
+    first=await helper.handle(form('Quote 2kg from leeds GB to london 25x20x10'))
     assert 'delivery country' in first and 'pickup country' not in first
-    assert (await helper.handle(form('GB'))).count('Sample option ')==2
+    assert 'Live carrier response' in await helper.handle(form('GB'))

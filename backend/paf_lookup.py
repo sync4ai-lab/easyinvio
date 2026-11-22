@@ -74,7 +74,7 @@ class IdealPostcodesClient:
             for page in range(11):
                 response = await self.client.get(
                     'https://api.ideal-postcodes.co.uk/v1/postcodes/' + normalized.replace(' ', ''),
-                    headers={'Authorization': 'Bearer ' + self.api_key.get_secret_value()},
+                    headers={'Authorization': 'api_key="' + self.api_key.get_secret_value() + '"'},
                     params={'page': page, 'dataset': 'paf', 'context': 'GBR'},
                     timeout=4, follow_redirects=False)
                 if response.status_code == 404:
@@ -108,3 +108,29 @@ class IdealPostcodesClient:
             raise ValueError('Too many delivery points')
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
             raise PAFLookupUnavailable('UK address lookup is temporarily unavailable. Retry the lookup before booking.') from None
+
+
+    async def representative_postcode(self, town: str) -> str | None:
+        """One licensed exact-town search; no claim of geographic nearest distance."""
+        if not self.api_key.get_secret_value():
+            raise PAFLookupUnavailable('Town lookup is not configured. Send exact pickup and delivery town, postcode and country.')
+        if not town.strip() or len(town)>100:
+            return None
+        try:
+            response=await self.client.get('https://api.ideal-postcodes.co.uk/v1/addresses',
+                headers={'Authorization':'api_key="'+self.api_key.get_secret_value()+'"'},
+                params={'query':town,'post_town':town,'limit':1,'dataset':'paf','context':'GBR'},
+                timeout=3,follow_redirects=False)
+            if response.status_code==404:return None
+            if response.status_code!=200 or len(response.content)>200000:
+                raise ValueError('Town lookup refused')
+            data=response.json();rows=data['result']
+            if data['code']!=2000 or not isinstance(rows,list) or len(rows)>1:
+                raise ValueError('Invalid town response')
+            for row in rows:
+                if (row.get('post_town','').casefold()==town.casefold()
+                    and row.get('dataset','paf')=='paf' and row.get('country_iso_2','GB')=='GB'):
+                    return uk_postcode(row['postcode'])
+            return None
+        except (httpx.HTTPError,ValueError,KeyError,TypeError):
+            raise PAFLookupUnavailable('Town lookup is temporarily unavailable. Send exact pickup and delivery town, postcode and country.') from None

@@ -30,7 +30,7 @@ def draft():
 async def test_lookup_uses_header_secret_and_preserves_paf_components():
     async def server(request):
         assert request.url.host=='api.ideal-postcodes.co.uk' and request.url.path.endswith('/SW1A2AA')
-        assert request.headers['authorization']=='Bearer synthetic-key'
+        assert request.headers['authorization']=='api_key="synthetic-key"'
         assert 'api_key' not in request.url.params
         return httpx.Response(200,json={'code':2000,'total':1,'result':[dict(udprn=12345,postcode='SW1A 2AA',
             line_1='Flat 1, 10 Downing Street',line_2='Dependent thoroughfare',line_3='Westminster',post_town='LONDON',
