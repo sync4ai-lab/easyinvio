@@ -27,10 +27,16 @@ merchant gateway. It does not create a separate booking/payment engine.
   map in `backend/public_route_estimates.py`. Unknown towns use one bounded
   licensed exact-town Ideal Postcodes search. These are representative routing
   points, not geographically nearest locations or verified customer addresses.
-- Supplied UK postcodes are checked against PAF. A confirmed no-match can use
-  a representative postcode for the supplied town, disclosed in the reply.
-  A PAF outage is not treated as evidence a postcode is wrong. Town/postcode
-  disagreement requests correction. No LLM geocodes or invents an address.
+- Supplied UK postcodes are normalized before PAF lookup (`ls126ej` becomes
+  `LS12 6EJ`). A successful lookup makes the official PAF post town authoritative:
+  a colloquial city such as Birmingham is replaced by the resolved post town,
+  rather than rejected. Provider requests and quick-quote prefill use those same
+  normalized postcodes and official towns. Merchant drafts and selected premises
+  retain the same canonical values.
+- A malformed or nonexistent supplied postcode requests correction and does
+  not silently switch to a city hub. Representative postcodes are available only
+  when no postcode was supplied. A PAF outage remains retryable, not evidence
+  that the postcode is wrong. No LLM geocodes or invents an address.
 - Guest pricing reads only active, non-retired platform connections in the
   server's provider environment. Sendcloud v3 is preferred; configured legacy
   Sendcloud methods or a supported default aggregator can be used as fallback.
@@ -186,3 +192,10 @@ live Sendcloud acceptance test. Test responses include several priced real-
 shaped Sendcloud services and verify the cheapest two, names, transit and
 Starter markup. Provider account existence was checked read-only; no carrier
 rate request was made while implementing the change.
+
+The postcode-authority follow-up passed 101 focused offline tests. Its exact
+regression message is `Quote 2kg from ls126ej, leeds gb to B69 3EB birmingham gb
+25x20x15`. Mocked PAF resolves LEEDS/OLDBURY; the real Sendcloud adapter receives
+LS12 6EJ/B69 3EB with those official towns, and the signed prefill contains the
+same canonical route. Malformed/nonexistent postcode and merchant premise
+selection cases are covered. No real postcode or carrier lookup was made.

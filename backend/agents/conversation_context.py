@@ -8,7 +8,7 @@ from pydantic import Field
 
 from backend.agents.models import ConversationalIntent, StrictOutput
 from backend.ai_engine import country_code, strict_decimal
-from backend.paf_lookup import PAFPremise, uk_postcode
+from backend.paf_lookup import PAFPremise, uk_postcode, official_postcode_location
 from uuid import UUID
 
 
@@ -85,7 +85,10 @@ def location(value):
                 pass
     postal = re.search(r'\b(?:[A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2}|[A-Z][0-9][A-Z]\s*[0-9][A-Z][0-9]|[0-9]{4,10}(?:-[0-9]{3,4})?)\b', value, re.I)
     if postal:
-        result = {'postal_code': postal[0].upper()}
+        postcode = postal[0].upper()
+        if country == 'GB':
+            postcode = uk_postcode(postcode)
+        result = {'postal_code': postcode}
         city = (value[:postal.start()] + value[postal.end():]).strip(' ,')
         if city:
             result['city'] = city
@@ -198,6 +201,8 @@ def collect_reply(draft, text, *, require_paf=False):
             prefix = draft.paf_prefix
             if prefix not in {'origin', 'destination'} or selected.postcode != uk_postcode(getattr(draft.intent, prefix + '_postal_code')):
                 raise ValueError('The address selection has expired. Start a new quote.')
+            postcode, post_town = official_postcode_location(selected.postcode, selected.post_town)
+            draft.intent = draft.intent.model_copy(update={prefix+'_postal_code':postcode, prefix+'_city':post_town})
             setattr(draft, prefix + '_address', selected.address('Contact required').model_dump(mode='json'))
             draft.paf_selected[prefix] = selected.udprn
             draft.paf_options = []

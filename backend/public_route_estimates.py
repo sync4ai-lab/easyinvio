@@ -17,7 +17,7 @@ from cryptography.fernet import Fernet
 from backend.agents.models import ConversationalIntent
 from backend.entitlements import Plan, capabilities
 from backend.integration_policy import integration_enabled
-from backend.paf_lookup import PAFLookupUnavailable, uk_postcode
+from backend.paf_lookup import PAFLookupUnavailable, uk_postcode, official_postcode_location
 from backend.sendcloud_adapter import ENDPOINT, V3_ENDPOINT, quote_sendcloud, quote_sendcloud_v3
 
 if TYPE_CHECKING:
@@ -49,7 +49,6 @@ class EstimateLocation:
     town: str
     postcode: str
     approximate: bool
-    unmatched: bool = False
 
 
 @dataclass(frozen=True)
@@ -103,23 +102,19 @@ class PublicRouteEstimates:
         if cached and cached[0] > time.monotonic():
             return cached[1]
         normalized_town = ' '.join((town or '').strip().split())
-        unmatched = False
         if postcode:
             try:
                 normalized = uk_postcode(postcode)
             except ValueError:
-                unmatched = True
-            else:
-                # Failure to reach PAF is not evidence a customer's postcode is wrong.
-                premises = await self.paf.lookup(normalized)
-                if premises:
-                    post_town = premises[0].post_town
-                    if normalized_town and normalized_town.casefold() != post_town.casefold():
-                        raise EstimateUnavailable('Town and postcode do not match; send the exact town, postcode and country for each end.')
-                    result = EstimateLocation(post_town, normalized, False)
-                    self.remember_location(key, result)
-                    return result
-                unmatched = True
+                raise EstimateUnavailable('That UK postcode is malformed. Send the exact pickup and delivery postcode, town and country.') from None
+            # A lookup outage is retryable, never proof that a postcode is invalid.
+            premises = await self.paf.lookup(normalized)
+            if not premises:
+                raise EstimateUnavailable('That UK postcode could not be found in PAF. Check it and send the exact pickup and delivery postcode, town and country.')
+            normalized, post_town = official_postcode_location(normalized, premises[0].post_town)
+            result = EstimateLocation(post_town, normalized, False)
+            self.remember_location(key, result)
+            return result
         if not normalized_town:
             raise EstimateUnavailable('Send the exact pickup and delivery town, postcode and country.')
         hub = UK_CITY_HUBS.get(normalized_town.casefold())
@@ -128,7 +123,7 @@ class PublicRouteEstimates:
             hub = await self.paf.representative_postcode(normalized_town)
         if not hub:
             raise EstimateUnavailable('Please send the exact town, full postcode and country for pickup and delivery.')
-        result = EstimateLocation(normalized_town, uk_postcode(hub), True, unmatched)
+        result = EstimateLocation(normalized_town, uk_postcode(hub), True)
         self.remember_location(key, result)
         return result
 
@@ -235,7 +230,10 @@ class PublicRouteEstimates:
                             break
                     if not rates:
                         raise EstimateUnavailable('Live carrier rates are unavailable right now. Please try later or use the shipment form.')
-                    handoff = facts.model_copy(update={prefix+'_postal_code':None for prefix,place in [('origin',origin),('destination',destination)] if place.approximate})
+                    handoff = facts.model_copy(update={key:value
+                        for prefix,place in [('origin',origin),('destination',destination)]
+                        for key,value in ((prefix+'_city',place.town),
+                            (prefix+'_postal_code',None if place.approximate else place.postcode))})
                     result = format_estimate(facts, origin, destination, rates, quote_link(self.settings, handoff))
             except (EstimateUnavailable, PAFLookupUnavailable) as exc:
                 result = str(exc)+'\nContinue with your details: '+handoff_link
@@ -257,8 +255,6 @@ def format_estimate(facts: ConversationalIntent, origin: EstimateLocation, desti
     for index, rate in enumerate(list(unique.values())[:2], 1):
         transit = f'{rate.days} day'+('s' if rate.days != 1 else '') if rate.days else 'transit time not supplied'
         lines.append(f'{index}. *{rate.carrier} {rate.service}* - *\u00a3{rate.price:.2f}* excl. VAT ({transit})')
-    if origin.unmatched or destination.unmatched:
-        lines.append('Exact postcode match not found for '+', '.join(place.town for place in (origin,destination) if place.unmatched)+'. Using a representative town postcode for this estimate.')
     if origin.approximate or destination.approximate:
         lines.append(f'Estimated using representative postcodes: {origin.postcode} -> {destination.postcode}.')
     else:

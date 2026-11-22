@@ -68,15 +68,16 @@ async def test_sendcloud_live_response_sorted_and_priced_as_starter_two_real_ser
 
 
 @pytest.mark.asyncio
-async def test_bad_postcode_uses_named_town_hub_without_claiming_geographic_nearest():
-    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r:httpx.Response(200,json={'data':[option('Standard','evri:standard','3.00')]}))) as client:
+async def test_nonexistent_supplied_postcode_requests_correction_without_hub_rating():
+    calls=[]
+    async def provider(request):calls.append(request);return httpx.Response(200,json={'data':[option('Standard','evri:standard','3.00')]})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
         service,_,paf=fixture_service(client);paf.lookup.return_value=[]
         facts=classify('Quote 2kg from Leeds LS1 9ZZ GB to Birmingham GB 25x20x10').facts
         reply=await service.estimate(facts)
-        assert 'Exact postcode match not found' in reply and 'LS1 1AA' in reply
-        assert 'nearest' not in reply.lower()
-        token=parse_qs(urlsplit(reply.splitlines()[-1]).query)['quick_quote'][0]
-        assert 'origin_postal_code' not in verify_quote(service.settings,token)
+        assert 'could not be found in PAF' in reply and 'representative' not in reply
+        assert not calls
+        paf.representative_postcode.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -123,11 +124,12 @@ async def test_no_platform_account_never_uses_a_tenant_connection():
 
 
 @pytest.mark.asyncio
-async def test_mismatched_town_and_postcode_requests_correction_without_rating():
+async def test_valid_postcode_overrides_colloquial_town():
     async with httpx.AsyncClient() as client:
-        service,db,paf=fixture_service(client);paf.lookup.return_value=[NS(post_town='London')]
-        reply=await service.estimate(classify('Quote 2kg from Leeds SW1A 1AA GB to London GB 25x20x10').facts)
-        assert 'Town and postcode do not match' in reply
+        service,db,paf=fixture_service(client);paf.lookup.return_value=[NS(post_town='LONDON')]
+        result=await service.location('Leeds','sw1a1aa')
+        assert result.town=='LONDON' and result.postcode=='SW1A 1AA' and not result.approximate
+        paf.lookup.assert_awaited_once_with('SW1A 1AA')
         db.fetch.assert_not_awaited()
 
 
@@ -164,3 +166,44 @@ def test_links_require_explicit_config_and_never_use_proxy_hosts():
     assert quote_link(settings,facts).startswith('https://uat.easyinvio.com/login?')
     settings.booking_page_url=''
     with pytest.raises(ValueError):quote_link(settings,facts)
+
+
+@pytest.mark.asyncio
+async def test_reported_compact_postcode_and_birmingham_alias_returns_oldbury_rates_and_prefill():
+    calls=[]
+    async def provider(request):
+        calls.append(request)
+        body=json.loads(request.content)
+        assert body['from_address']['postal_code']=='LS12 6EJ'
+        assert body['from_address']['city']=='LEEDS'
+        assert body['to_address']['postal_code']=='B69 3EB'
+        assert body['to_address']['city']=='OLDBURY'
+        return httpx.Response(200,json={'data':[option('Standard','evri:standard','3.00',72),option('Home','dpd:home','4.00',48)]})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
+        service,_,paf=fixture_service(client)
+        async def lookup(postcode):
+            return [NS(post_town={'LS12 6EJ':'LEEDS','B69 3EB':'OLDBURY'}[postcode])]
+        paf.lookup.side_effect=lookup
+        facts=classify('Quote 2kg from ls126ej, leeds gb to B69 3EB birmingham gb 25x20x15').facts
+        assert facts.origin_postal_code=='LS12 6EJ' and facts.origin_city=='leeds'
+        assert facts.destination_postal_code=='B69 3EB' and facts.destination_city=='birmingham'
+        reply=await service.estimate(facts)
+        assert '*Evri Standard*' in reply and '*DPD Home*' in reply
+        assert 'OLDBURY' in reply and 'Town and postcode do not match' not in reply
+        assert len(calls)==1
+        handoff=verify_quote(service.settings,parse_qs(urlsplit(reply.splitlines()[-1]).query)['quick_quote'][0])
+        assert handoff['origin_postal_code']=='LS12 6EJ' and handoff['origin_city']=='LEEDS'
+        assert handoff['destination_postal_code']=='B69 3EB' and handoff['destination_city']=='OLDBURY'
+        assert handoff['dimensions_cm']==['25','20','15']
+        paf.representative_postcode.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_malformed_supplied_postcode_never_uses_a_city_hub():
+    from backend.public_route_estimates import EstimateUnavailable
+    async with httpx.AsyncClient() as client:
+        service,_,paf=fixture_service(client)
+        with pytest.raises(EstimateUnavailable,match='malformed'):
+            await service.location('Leeds','not-a-postcode')
+        paf.lookup.assert_not_awaited()
+        paf.representative_postcode.assert_not_awaited()

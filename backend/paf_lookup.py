@@ -23,6 +23,19 @@ def uk_postcode(value: str) -> str:
     return compact[:-3] + ' ' + compact[-3:]
 
 
+def official_postcode_location(postcode: str, post_town: str) -> tuple[str, str]:
+    """Canonical route facts after PAF has resolved a postcode/premise.
+
+    A colloquial city is never grounds to reject an existing UK postcode.
+    This helper does not itself establish that a postcode exists in PAF.
+    """
+    normalized = uk_postcode(postcode)
+    town = ' '.join(post_town.split())
+    if not town or len(town)>100:
+        raise PAFLookupUnavailable('The official post town is unavailable. Retry the postcode lookup.')
+    return normalized, town
+
+
 class PAFPremise(BaseModel):
     model_config = ConfigDict(extra='forbid', frozen=True)
     udprn: str = Field(pattern=r'^\d{1,12}$')

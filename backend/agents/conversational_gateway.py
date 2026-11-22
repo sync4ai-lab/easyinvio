@@ -572,7 +572,7 @@ class ConversationalActionGateway:
         return self.reply('QUOTE', '\n'.join(lines), _choices=choices)
 
     async def collect_uk_premise(self, draft: ConversationDraft, prefix: str):
-        from backend.paf_lookup import PAFLookupUnavailable, uk_postcode
+        from backend.paf_lookup import PAFLookupUnavailable, uk_postcode, official_postcode_location
         try:
             postcode = uk_postcode(getattr(draft.intent, prefix + '_postal_code'))
             client = getattr(self.state, 'paf', None)
@@ -581,7 +581,9 @@ class ConversationalActionGateway:
             options = await client.lookup(postcode)
             if not options:
                 draft.waiting_for = 'postcodes'
-                return self.pending_reply(draft, 'No PAF premises were found for that UK postcode. Check it and reply with Origin Postcode, Destination Postcode.')
+                return self.pending_reply(draft, 'No PAF premises were found for that UK postcode. Check it and reply with exact pickup town postcode country, exact delivery town postcode country.')
+            postcode, post_town = official_postcode_location(postcode, options[0].post_town)
+            draft.intent = draft.intent.model_copy(update={prefix+'_postal_code':postcode, prefix+'_city':post_town})
             draft.paf_prefix, draft.paf_options, draft.paf_offset = prefix, options, 0
             draft.waiting_for = 'paf_selection'
             return self.pending_reply(draft, self.draft_prompt(draft))
@@ -590,7 +592,7 @@ class ConversationalActionGateway:
             return self.pending_reply(draft, str(error))
         except ValueError:
             draft.waiting_for = 'postcodes'
-            return self.pending_reply(draft, 'Enter a complete UK postcode. Reply with Origin Postcode, Destination Postcode.')
+            return self.pending_reply(draft, 'Enter a complete UK postcode. Reply with exact pickup town postcode country, exact delivery town postcode country.')
 
     async def trigger_return(self, context, body, intent, message_id):
         if context.role not in DISPATCH_ROLES:

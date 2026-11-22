@@ -208,3 +208,20 @@ def test_postcode_followup_accepts_exact_town_postcode_country():
     collect_reply(draft,'Leeds LS1 1AA GB, Birmingham B1 1AA GB')
     assert draft.intent.origin_city=='Leeds' and draft.intent.origin_postal_code=='LS1 1AA'
     assert draft.intent.destination_city=='Birmingham' and draft.intent.destination_country=='GB'
+
+
+@pytest.mark.asyncio
+async def test_merchant_paf_lookup_adopts_official_town_before_premise_selection(fixture):
+    from backend.paf_lookup import PAFPremise
+    context,storage,state,gateway,app=fixture
+    state.paf=SimpleNamespace(lookup=AsyncMock(return_value=[PAFPremise(udprn='12345',postcode='B69 3EB',
+        line1='1 Test Street',post_town='OLDBURY',building_number='1')]))
+    draft=ConversationDraft(action='QUOTE',intent=ConversationalIntent(intent='QUOTE',destination_country='GB',
+        destination_postal_code='b693eb',destination_city='birmingham'))
+    await gateway.collect_uk_premise(draft,'destination')
+    state.paf.lookup.assert_awaited_once_with('B69 3EB')
+    assert draft.intent.destination_postal_code=='B69 3EB' and draft.intent.destination_city=='OLDBURY'
+    assert draft.waiting_for=='paf_selection'
+    from backend.agents.conversation_context import collect_reply
+    collect_reply(draft,'1',require_paf=True)
+    assert draft.destination_address['city']=='OLDBURY' and draft.destination_address['postal_code']=='B69 3EB'
