@@ -199,3 +199,22 @@ regression message is `Quote 2kg from ls126ej, leeds gb to B69 3EB birmingham gb
 LS12 6EJ/B69 3EB with those official towns, and the signed prefill contains the
 same canonical route. Malformed/nonexistent postcode and merchant premise
 selection cases are covered. No real postcode or carrier lookup was made.
+
+
+## Existing customers opening a WhatsApp quote
+
+The signup screen has a top-right Sign in button. It switches the existing
+page in place, retaining the verified quote and edits without storing its token
+in browser storage. Signing in (or restoring an existing session) automatically
+opens Create shipment with the parcel weight, dimensions and canonical route.
+Blank sender contact fields receive editable suggestions from the signed-in
+identity. Recipient details are not inferred; billing addresses are not treated
+as pickup addresses. Customers can choose an authorized saved address using the
+existing picker and must review full addresses before requesting rates.
+
+`BROWSER_CHANNEL=msedge python tests/quick_quote_signin_browser.py` checks the
+390x844 mobile layout, both authentication views, retained draft edits, mocked
+login and session restoration, shipment visibility and account contact prefill.
+All HTTP requests are intercepted, with no provider calls or real login. Reloading
+an already scrubbed URL does not retain the in-memory draft; reopen the original
+WhatsApp link (within its expiry) to start again. No deployment is needed locally.

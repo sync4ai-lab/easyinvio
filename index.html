@@ -5648,6 +5648,7 @@ body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-na
 #loginContainer{min-height:100dvh;display:grid;place-items:center;padding:24px;color:#f1f5f9;background:radial-gradient(ellipse at 50% 20%,#25245666,transparent 60%),#0f172a}
 #loginContainer[hidden]{display:none}.identity-login-card{width:100%;max-width:440px;background:#020617;border:1px solid #1e293b;border-radius:24px;padding:32px;box-shadow:0 0 50px #4f46e526;animation:identityFade .35s ease-out}
 
+.identity-auth-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.identity-auth-header a{color:#a5b4fc}.identity-auth-header button{min-height:44px;white-space:nowrap}.identity-auth-header button[hidden]{display:none}
 label[for="identity-email"],label[for="identity-recovery-email"]{margin-bottom:10px}#identity-reset-email{margin-top:10px}
 .identity-input{display:flex;align-items:center;gap:10px;background:#0f172a;border:1px solid #334155;border-radius:12px;padding:0 12px;margin-bottom:18px}.identity-input input{border:0;background:transparent;min-width:0;color:#f1f5f9;flex:1}.identity-input svg{width:20px;height:20px;color:#818cf8;flex-shrink:0}.identity-input:has(.lucide)>.icon-fallback{display:none}
 #identity-login-submit{width:100%;background:#4f46e5;color:#f1f5f9;border:0;border-radius:12px;padding:14px;font-weight:800;cursor:pointer}#identity-login-submit:hover{background:#6366f1}
@@ -5662,7 +5663,7 @@ body.auth-ready>.app-shell{animation:identityFade .3s ease-out}@keyframes identi
 </style>`);
 document.body.insertAdjacentHTML('afterbegin', `<section id="loginContainer" aria-label="EasyInvio sign in">
 <div class="identity-login-card bg-slate-950 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
- <a href="/" style="display:block;text-align:center;margin-bottom:18px;color:#a5b4fc">Back to EasyInvio</a><div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"><span class="brand-copy" aria-hidden="true"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></div>
+ <div class="identity-auth-header"><a href="/">Back to EasyInvio</a><button type="button" class="outline" id="identity-signin-top" hidden>Sign in</button></div><div class="identity-logo"><img class="brand-mark" src="/brand-mark.svg" alt="EasyInvio.com" width="96" height="112"><span class="brand-copy" aria-hidden="true"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></div>
  <h1 style="font-size:26px;margin-top:24px">Sign in to your workspace</h1><p class="subtle">Your verified identity controls access to shipments, billing and administration.</p>
  <form id="identity-login-form" style="margin-top:24px"><label for="identity-email">Email</label><div class="identity-input"><i data-lucide="mail"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg><input id="identity-email" type="email" autocomplete="username" required maxlength="254"></div>
  <label for="identity-password">Password</label><div class="identity-input"><i data-lucide="lock"></i><svg class="icon-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg><input id="identity-password" type="password" autocomplete="current-password" required maxlength="4096"></div>
@@ -8804,6 +8805,7 @@ const personaRecoveryViewBase = identityRecoveryView;
 identityRecoveryView = function(view) {
   $('#loginContainer h1').textContent=view==='signup'?'Create an account':'Sign in to your workspace';
   $('#identity-signup-form').hidden = true;
+  $('#identity-signin-top').hidden = view !== 'signup';
   $('#identity-signup-open').hidden = view !== 'login';
   personaRecoveryViewBase(view);
 };
@@ -8823,6 +8825,7 @@ const quickQuoteToken=onboardingParams.get('quick_quote');
 if(quickQuoteToken){
   const clean=new URL(location.href);clean.searchParams.delete('quick_quote');history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
   const card=document.createElement('article');card.className='card';card.id='quick-quote-prefill';
+  card.tabIndex=-1;
   card.innerHTML='<h2>Your WhatsApp quote details</h2><p>Review your parcel details. Full addresses are checked before booking.</p><div class="grid"><label>Packed weight (kg)<input id="qq-weight" type="number" min="0.001" max="1000" step="0.001"></label><label>Exact pickup town, postcode and country<input id="qq-origin" maxlength="140"></label><label>Exact delivery town, postcode and country<input id="qq-destination" maxlength="140"></label><label>Box size (L x W x H cm)<input id="qq-size" maxlength="60" placeholder="30 x 20 x 10"></label></div><button type="button" class="secondary" id="qq-apply" disabled>Fill shipment form</button><p id="qq-status" role="status">Checking your link...</p>';
   $('#loginContainer').append(card);
   let verified=null,applying=false,prefillApplied=false;
@@ -8835,8 +8838,10 @@ if(quickQuoteToken){
     if(applying)return;
     if(!document.body.classList.contains('auth-ready')){$('#qq-status').textContent='Please sign in or create an account first. Your details will stay here while you do.';return;}
     applying=true;
+    const session=state.session;
     try{
       await check();
+      if(session!==state.session||!document.body.classList.contains('auth-ready'))return;
       const weight=$('#qq-weight').value,dims=$('#qq-size').value.match(/^\s*(\d+(?:\.\d+)?)\s*[x\u00d7]\s*(\d+(?:\.\d+)?)\s*[x\u00d7]\s*(\d+(?:\.\d+)?)\s*$/i);
       if(!(Number(weight)>0&&Number(weight)<=1000)||!dims||dims.slice(1).some(x=>!(Number(x)>0&&Number(x)<=1000)))throw Error('Check the weight and enter three positive box dimensions.');
       const locations={};
@@ -8854,8 +8859,16 @@ if(quickQuoteToken){
         $('#'+prefix+'-city').value=locations[prefix].city;
         $('#'+prefix+'-postal_code').value=locations[prefix].postcode;
       }
+      // Account contact suggestions are editable; billing addresses are not assumed to be pickup addresses.
+      if(identityProfile&&!isPlatformStaff())for(const [field,value] of Object.entries({name:identityProfile.full_name,phone:identityProfile.phone_e164,email:identityProfile.email})){
+        const input=$('#origin-'+field);
+        if(input&&!input.value.trim()&&value)input.value=value;
+      }
       $('#quote-form').dispatchEvent(new Event('input',{bubbles:true}));
-      $('#qq-status').textContent='Details copied. Confirm exact town, postcode, country, full addresses and goods information, then request carrier rates.';
+      setView('dispatch');
+      card.focus({preventScroll:true});
+      card.scrollIntoView({block:'start',behavior:'instant'});
+      $('#qq-status').textContent='Details copied. Your account contact details are suggested for the sender; edit them or choose a saved address if needed. Confirm exact town, postcode, country, full addresses and goods information, then request carrier rates.';
       prefillApplied=true;
       if(location.pathname==='/login')history.replaceState(null,'','/workspace');
     }catch(error){$('#qq-status').textContent=error.message;prefillApplied=true;}
@@ -8868,6 +8881,7 @@ if(quickQuoteToken){
     }
   };
   new MutationObserver(move).observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('easyinvio-session-ready',move);
   check().then(facts=>{verified=facts;$('#qq-weight').value=facts.weight_kg||'';for(const prefix of ['origin','destination'])$('#qq-'+prefix).value=[facts[prefix+'_city'],facts[prefix+'_postal_code'],facts[prefix+'_country']].filter(Boolean).join(' ');$('#qq-size').value=(facts.dimensions_cm||[]).join(' x ');$('#qq-status').textContent='Your details are ready. Sign in to continue and confirm your exact addresses.';$('#qq-apply').disabled=false;move();}).catch(error=>{$('#qq-status').textContent=error.message;});
   $('#qq-apply').addEventListener('click',()=>void applyPrefill());
 }
@@ -8899,7 +8913,9 @@ function resetPersonaSignup() {
   form.querySelector('[role=status]').textContent = '';
   setSignupPersona('BUSINESS');
 }
-$('#identity-signup-back').addEventListener('click', () => { resetPersonaSignup(); identityRecoveryView('login'); });
+$('#identity-signup-back').addEventListener('click', () => { resetPersonaSignup(); identityRecoveryView('login'); $('#identity-email').focus(); });
+// Switch in place: the verified WhatsApp draft and any edits stay in memory.
+$('#identity-signin-top').addEventListener('click', () => $('#identity-signup-back').click());
 $('#identity-signup-form').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.target, button = form.querySelector('[type=submit]'), status = form.querySelector('[role=status]');
