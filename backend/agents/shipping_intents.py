@@ -15,7 +15,11 @@ def classify(text: str) -> ShippingIntent:
     if selection:return ShippingIntent(intent='BOOK_SELECTION',facts=ConversationalIntent(intent='BOOK_RESERVATION',selection_index=int(selection[1])))
     wants_quote=re.search(r'\b(?:quote|rates?|shipping price)\b',value,re.I) or re.search(r'\b(?:send|ship|post)\b.{0,40}\b(?:parcel|package|kg|to)\b',value,re.I)
     if wants_quote and not re.match(r'\s*(?:how|why|explain)\b',value,re.I):
-        size=re.search(r'\b(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*cm\b',value,re.I)
+        # Phone keyboards use both x and multiplication signs. Bare triplets
+        # mean centimetres; disclose that unit in the estimate, never in a booking.
+        size=re.search(r'(?<![\w.])(-?\d+(?:\.\d+)?)\s*[x\u00d7]\s*(-?\d+(?:\.\d+)?)\s*[x\u00d7]\s*(-?\d+(?:\.\d+)?)(?![\d.])(?:\s*(cm|mm|inches|inch|in|ft|feet|m)\b)?',value,re.I)
+        if size and size[4] and size[4].lower()!='cm':
+            raise ValueError('Please give the box dimensions in cm')
         clean=(value[:size.start()]+value[size.end():]).strip(' ,;') if size else value
         weight=re.search(r'\b\d+(?:\.\d+)?\s*(?:kg|kilograms?)\b',clean,re.I)
         route_text=re.sub(r'\b\d+(?:\.\d+)?\s*(?:kg|kilograms?)\b','',clean,flags=re.I)
@@ -25,7 +29,7 @@ def classify(text: str) -> ShippingIntent:
             destination=re.search(r'\bto\s+(.+)$',route_text,re.I)
             if destination:facts=facts.model_copy(update={'destination_'+k:v for k,v in location(destination[1]).items()})
         if size:
-            dims=[Decimal(x) for x in size.groups()]
+            dims=[Decimal(x) for x in size.groups()[:3]]
             if any(x<=0 or x>1000 for x in dims):raise ValueError('Use positive dimensions up to 1000 cm')
             facts=facts.model_copy(update={'dimensions_cm':dims})
         if facts.weight_kg and not Decimal('0')<Decimal(facts.weight_kg)<=Decimal('1000'):raise ValueError('Use a packed weight between 0 and 1000 kg')

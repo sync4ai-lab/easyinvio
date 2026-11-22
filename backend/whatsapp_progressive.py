@@ -11,6 +11,7 @@ from fastapi import APIRouter,Depends,HTTPException,Request,Response
 from pydantic import BaseModel,ConfigDict,Field
 from backend.agents.models import ConversationalIntent
 from backend.agents.shipping_intents import classify
+from backend.agents.conversation_context import explicit_country
 from backend.whatsapp_provider import provider,account
 
 
@@ -70,14 +71,19 @@ def verify_quote(settings:Any,token:str)->dict:
 def quote_missing(facts:ConversationalIntent)->list[str]:
     missing=[]
     if not facts.weight_kg:missing.append('packed weight in kg')
-    if not facts.origin_country:missing.append('pickup town/postcode and country')
-    if not facts.destination_country:missing.append('delivery town/postcode and country')
+    if not facts.origin_country:missing.append('pickup country' if facts.origin_city or facts.origin_postal_code else 'pickup town/postcode and country')
+    if not facts.destination_country:missing.append('delivery country' if facts.destination_city or facts.destination_postal_code else 'delivery town/postcode and country')
     return missing
 
 
 def ballpark(settings:Any,facts:ConversationalIntent)->str:
     missing=quote_missing(facts)
-    if missing:return 'To estimate your shipping, send together: '+ '; '.join(missing)+'. Include box dimensions if known. Example: Quote 2kg from Leeds GB to London GB, 30x20x10 cm.'
+    if missing:
+        if missing==['pickup country','delivery country']:
+            return ('I have '+str(facts.weight_kg)+' kg, from '+str(facts.origin_city or facts.origin_postal_code)+
+                ' to '+str(facts.destination_city or facts.destination_postal_code)+
+                '. Which countries are pickup and delivery in? If both are in the UK, reply: Both UK. Box dimensions in cm are optional for this sample estimate.')
+        return 'I still need: '+ '; '.join(missing)+'. Send just the missing details, or the full quote again. Box size is in cm, for example 25x25x10 cm.'
     link=quote_link(settings,facts)
     if facts.origin_country!='GB' or facts.destination_country!='GB' or facts.cargo_type!='PARCEL':
         return 'I have your route and weight. International/freight prices need a live service check; I won’t guess a carrier price. Continue with your saved details: '+link
@@ -87,7 +93,7 @@ def ballpark(settings:Any,facts:ConversationalIntent)->str:
     address=Address(name='Illustrative sample',line1='Sample',city='Sample',postal_code='SW1A 1AA',country_code='GB')
     result=preview_rates(RatingRequest(origin=address,destination=address,weights_kg=[facts.weight_kg],dimensions=[Dimensions(**dict(zip(('length_cm','width_cm','height_cm'),dims)))]))
     rates=result['rates'][:2]
-    lines=['*Illustrative UK estimate*',f'{facts.weight_kg} kg • '+('your supplied box size' if facts.dimensions_cm else 'assumed 30×20×10 cm box')]
+    lines=['*Illustrative UK estimate*',f'{facts.weight_kg} kg • '+('box '+ ' x '.join(format(x,'f') for x in facts.dimensions_cm)+' cm' if facts.dimensions_cm else 'assumed 30×20×10 cm box')]
     lines.extend(f'• Sample option {i}: £{r["client_price_ex_tax"]} excl. VAT' for i,r in enumerate(rates,1))
     lines.extend(['Examples only—not live carrier offers or guaranteed availability.','Get live rates with your saved details: '+link])
     return '\n'.join(lines)
@@ -168,6 +174,33 @@ class GuestShippingAssistant:
             proposed=(intent.facts if intent.intent=='QUOTE' else classify('Quote '+text).facts)
             if proposed is None:return None
             values=draft.quote.model_dump() if draft and draft.state=='QUOTE' and draft.quote else {'intent':'QUOTE'}
+            # Accept a concise answer to the requested country slots. A city
+            # name alone never establishes a country, even for Leeds/London.
+            if draft and draft.quote:
+                both=re.fullmatch(r'\s*both(?:\s+(?:in|are))?\s+(.+?)\s*[.!]?\s*',text,re.I)
+                pair=re.fullmatch(r'\s*(.+?)\s*(?:,|\bto\b)\s*(.+?)\s*[.!]?\s*',text,re.I)
+                try:
+                    if both:
+                        country=explicit_country(both[1])
+                        proposed=ConversationalIntent(intent='QUOTE',origin_country=country,destination_country=country)
+                    elif pair and 'from' not in text.lower():
+                        proposed=ConversationalIntent(intent='QUOTE',origin_country=explicit_country(pair[1]),destination_country=explicit_country(pair[2]))
+                    elif not proposed.origin_country and not proposed.destination_country:
+                        missing_countries=[prefix for prefix in ('origin','destination') if not values.get(prefix+'_country')]
+                        if len(missing_countries)==1:
+                            proposed=ConversationalIntent(intent='QUOTE',**{missing_countries[0]+'_country':explicit_country(text.strip().rstrip('.!'))})
+                except ValueError:
+                    pass  # Not an explicit country answer; retain parsed quote facts.
+            for prefix in ('origin','destination'):
+                city=getattr(proposed,prefix+'_city');postal=getattr(proposed,prefix+'_postal_code')
+                country=getattr(proposed,prefix+'_country')
+                if city is not None and city!=values.get(prefix+'_city') and postal is None:
+                    values[prefix+'_postal_code']=None
+                if postal is not None and postal!=values.get(prefix+'_postal_code') and city is None:
+                    values[prefix+'_city']=None
+                if country and values.get(prefix+'_country') and country!=values[prefix+'_country']:
+                    if city is None:values[prefix+'_city']=None
+                    if postal is None:values[prefix+'_postal_code']=None
             values.update(proposed.model_dump(exclude_none=True,exclude_defaults=True));values['intent']='QUOTE'
             facts=ConversationalIntent.model_validate(values)
             missing=quote_missing(facts)

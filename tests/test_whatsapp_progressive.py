@@ -1,5 +1,6 @@
 """Offline progressive-disclosure tests: no providers, purchases or hosted DB."""
 from datetime import datetime,timedelta,timezone
+from decimal import Decimal
 from types import SimpleNamespace as NS
 from unittest.mock import AsyncMock,patch
 import jwt,pytest
@@ -151,3 +152,84 @@ async def test_public_lookup_opt_in_rejects_assistance_and_stale_membership(assi
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='https://app.example.test') as client:
         response=await client.put('/api/v1/whatsapp/public-status-policy',json={'enabled':True})
     assert response.status_code==403;db.execute.assert_not_awaited()
+
+
+@pytest.mark.parametrize('box', ['25x25x10', '25X25X10', '25\u00d725\u00d710', '25 x 25 x 10 cm', '25\u00d725\u00d710 CM'])
+def test_phone_dimensions_do_not_become_destination_text(box):
+    facts=classify('Quote 2kg from leeds gb to london gb '+box).facts
+    assert (facts.origin_country,facts.destination_country)==('GB','GB')
+    assert (facts.origin_city,facts.destination_city)==('leeds','london')
+    assert facts.destination_postal_code is None
+    assert facts.dimensions_cm==[Decimal('25'),Decimal('25'),Decimal('10')]
+    result=ballpark(settings(),facts)
+    assert result.count('Sample option ')==2
+    assert '25 x 25 x 10 cm' in result and 'I still need' not in result
+
+
+@pytest.mark.parametrize('box', ['25x25x10 inches','25x25x10 mm','-25x25x10','25x0x10'])
+def test_phone_dimensions_do_not_silently_treat_other_units_or_negative_sizes_as_cm(box):
+    with pytest.raises(ValueError):
+        classify('Quote 2kg from leeds gb to london gb '+box)
+
+
+def guest_conversation():
+    db=AsyncMock();db.__aenter__.return_value=db;db.fetchval.return_value=1
+    helper=GuestShippingAssistant.__new__(GuestShippingAssistant);helper.pool=NS(acquire=lambda:db)
+    helper.settings=NS(**vars(settings()),whatsapp_provider='GUPSHUP',gupshup_app_id='synthetic')
+    state={'draft':None}
+    async def load(form):return state['draft']
+    async def save(form,draft):state['draft']=draft
+    async def clear(form):state['draft']=None
+    helper.load=AsyncMock(side_effect=load);helper.save=AsyncMock(side_effect=save);helper.clear=AsyncMock(side_effect=clear)
+    from starlette.datastructures import FormData
+    def form(text):return FormData({'From':'whatsapp:+447700900123','To':'whatsapp:+447700900321','Body':text})
+    return helper,state,form
+
+
+@pytest.mark.asyncio
+async def test_reported_two_turn_quote_finishes_without_paid_rating_calls():
+    helper,state,form=guest_conversation()
+    with patch('main.get_rates',AsyncMock()) as live_rates:
+        first=await helper.handle(form('Shipping quote for 4.5 kg from leeds to london..'))
+        assert 'Which countries' in first and '4.5 kg' in first
+        assert 'leeds' in first and 'london' in first
+        result=await helper.handle(form('Quote 2kg from leeds gb to london gb 25\u00d725\u00d710'))
+        assert result.count('Sample option ')==2 and 'Examples only' in result
+        token=result.split('quick_quote=',1)[1].split()[0]
+        facts=verify_quote(helper.settings,token)
+        assert facts['weight_kg']=='2' and facts['destination_country']=='GB'
+        assert facts['dimensions_cm']==['25','25','10']
+        assert state['draft'] is None
+        live_rates.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('answer',['Both UK','both are GB','GB to GB','GB, GB'])
+async def test_country_only_followup_keeps_weight_and_cities(answer):
+    helper,state,form=guest_conversation()
+    await helper.handle(form('Shipping quote for 4.5 kg from leeds to london'))
+    result=await helper.handle(form(answer))
+    assert result.count('Sample option ')==2 and '4.5 kg' in result
+    token=result.split('quick_quote=',1)[1].split()[0]
+    facts=verify_quote(helper.settings,token)
+    assert facts['origin_city']=='leeds' and facts['destination_city']=='london'
+    assert state['draft'] is None
+
+
+@pytest.mark.asyncio
+async def test_corrected_route_discards_corrupt_postcode_from_previous_parser():
+    from backend.agents.models import ConversationalIntent
+    helper,state,form=guest_conversation()
+    state['draft']=GuestDraft(state='QUOTE',quote=ConversationalIntent(intent='QUOTE',weight_kg='2',origin_country='GB',origin_city='leeds',destination_postal_code='LONDON GB 25x25x10'))
+    result=await helper.handle(form('Quote 2kg from leeds gb to london gb 25x25x10'))
+    facts=verify_quote(helper.settings,result.split('quick_quote=',1)[1].split()[0])
+    assert facts['destination_city']=='london'
+    assert 'destination_postal_code' not in facts
+
+
+@pytest.mark.asyncio
+async def test_single_missing_country_accepts_country_only_reply():
+    helper,state,form=guest_conversation()
+    first=await helper.handle(form('Quote 2kg from leeds GB to london'))
+    assert 'delivery country' in first and 'pickup country' not in first
+    assert (await helper.handle(form('GB'))).count('Sample option ')==2

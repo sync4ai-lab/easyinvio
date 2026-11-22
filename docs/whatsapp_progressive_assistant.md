@@ -42,6 +42,24 @@ merchant gateway. It does not create a separate booking/payment engine.
 - Existing secure tracking links retain their own capability checks, revocation,
   expiry and recipient/return-policy rules. Guest state never becomes a role.
 
+## Phone quote input and follow-up replies
+
+Quote dimensions accept `25x25x10`, `25X25X10` and `25?25?10`, with optional
+`cm`. Unitless triplets are treated as centimetres, shown explicitly in the
+sample estimate and editable before any live quote or booking. Other explicit
+units are rejected rather than silently treated as cm.
+
+Cities alone do not establish a country. After `Shipping quote for 4.5 kg from
+Leeds to London`, the assistant retains weight and cities and asks only for
+countries. `Both UK`, `GB to GB` and `GB, GB` complete those country slots.
+A replacement full quote may change weight/size. A corrected city discards a
+stale postcode parsed from an older turn. No city-to-country guess or paid
+rating request is made in the guest sample path.
+
+Guest estimates remain two offline illustrative options. Verified eligible
+merchant conversations use the separate live connected-provider rating path,
+which still requires its usual address, parcel, role and plan checks.
+
 ## Enable optional public reference lookup
 
 A directly signed-in active merchant Owner/Admin may call:
