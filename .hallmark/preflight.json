@@ -1,0 +1,24 @@
+{
+  "scanned": "2026-11-23",
+  "findings": {
+    "fonts": "Inter/system, index.html:39; brand.css:1",
+    "palette": "green #34d399, brand.css:1; dark navy index.html:37",
+    "framework": "FastAPI main.py, static HTML/CSS/JS",
+    "motion": "legacy CSS keyframes; existing reduced motion",
+    "routes": [
+      "/",
+      "/login",
+      "/login?mode=signup",
+      "/workspace"
+    ]
+  },
+  "preserve": [
+    "brand-mark.svg",
+    "all fields, handlers, routes and provider logic"
+  ],
+  "introduce": [
+    "shared tokens",
+    "light surfaces",
+    "responsive existing navigation"
+  ]
+}

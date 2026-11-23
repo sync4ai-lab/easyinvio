@@ -247,3 +247,9 @@
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
+
+// Dismiss the presentation menu; the existing role-based buttons retain their handlers.
+document.addEventListener('click', event => {
+ const button=event.target.closest?.('.mobile-nav button');
+ if(button) button.closest('.mobile-workspace-menu')?.removeAttribute('open');
+});
