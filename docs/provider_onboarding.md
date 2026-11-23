@@ -2,6 +2,8 @@
 
 Reviewed 22 November 2026 on the local feature branch. Sendcloud v3 is active in the shared TEST configuration; the retired Sendcloud connection is inactive. Its runtime adapter, configuration field and upgrade UI have been removed. Stored shipping, financial and audit records are preserved. No provider account has been purchased, activated or changed by this work.
 
+A separate [local simulated Provider Lab](provider_lab.md) is now available to rehearse these journeys with dummy values while onboarding is pending. It does not activate or certify the real providers.
+
 ## What is implemented and what remains
 
 | Provider | Implemented | Still required before activation |
