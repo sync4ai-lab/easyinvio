@@ -46,9 +46,3 @@ output/pdf/
 
 # Prospect research and unsent campaign drafts stay local.
 output/sme_leads/
-
-# Local visual review artifacts, including synthetic browser screenshots.
-output/hallmark-qa/
-.hallmark/manual-before/
-.hallmark/preview/
-output/manifest-workflow-qa/

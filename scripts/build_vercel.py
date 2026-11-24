@@ -18,7 +18,6 @@ ASSETS = ('index.html', 'pricing.html', 'workspace.html', 'tracking.html', 'trac
           'tracking-public.js', 'cx-automation.js', 'tracking-ui.css', 'manifest-workflow.js',
           'help-workspace-bridge.js', 'return-workspace.js',
           'form-feedback.js', 'form-feedback.css', 'workspace-ui.css', 'workspace-ui.js', 'platform-console.css', 'platform-console.js',
-          'tokens.css', 'base.css', 'design-system.css', 'public-redesign.css',
           'brand-mark.svg', 'ask-easyinvio.css', 'brand.css', 'favicon.svg', 'favicon-32.png',
           'apple-touch-icon.png', 'app-icon-192.png', 'app-icon-512.png', 'site.webmanifest')
 RUNTIME_PATTERNS = ('main.py', 'requirements.txt', 'requirements.lock.txt',
