@@ -30,6 +30,17 @@ def period_bounds(start=None,end=None,*,now=None):
         raise HTTPException(422,'Choose a completed period of at most 32 days; use Preview for the current month')
     return start,end
 
+def preview_bounds(start, end, *, now=None):
+    """Read-only range; saved monthly statements retain their narrower boundary."""
+    now=utc(now or datetime.now(timezone.utc))
+    if start is None and end is None:
+        return now.replace(day=1,hour=0,minute=0,second=0,microsecond=0),now
+    if start is None or end is None:raise HTTPException(422,'Supply both activity start and exclusive end')
+    start,end=utc(start),utc(end)
+    if start>=end or (end-start).total_seconds()>366*86400 or end>now:
+        raise HTTPException(422,'Choose an activity range of at most 366 days ending no later than now')
+    return start,end
+
 def build_snapshot(tenant,currency,start,end,opening,ledger,external,invoices,events,disputes,*,reference='PREVIEW',refunds=()):
     opening=money(opening);running=opening;lines=[];carriers={};tax_complete=True
     totals={key:Decimal(0) for key in ('total_topups','subscription_net','shipping_net','refunds_net','tax_total','gross_total','other_wallet_credits','other_wallet_debits','unclassified_gross')}
@@ -156,9 +167,7 @@ class StatementService:
     async def _generate(self,context,start=None,end=None,currency='GBP',*,preview=False):
         self.ready(context)
         if currency not in {'GBP','EUR','USD'}:raise HTTPException(422,'Unsupported statement currency')
-        if preview and start is None and end is None:
-            end=datetime.now(timezone.utc);start=end.replace(day=1,hour=0,minute=0,second=0,microsecond=0)
-        else:start,end=period_bounds(start,end)
+        start,end=preview_bounds(start,end) if preview else period_bounds(start,end)
         async with self.pool.acquire() as c:
             async with c.transaction(isolation='repeatable_read'):
                 if not preview:

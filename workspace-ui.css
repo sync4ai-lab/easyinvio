@@ -112,3 +112,10 @@ main table td{word-break:normal}
 #wallet dialog[aria-label="Wallet transaction details"]{width:min(760px,calc(100vw - 32px))}
 
 #wallet #stripe-topup-open{display:none}
+
+/* Wallet action groups must remain spaced outside the subscription card too. */
+#wallet .billing-toolbar,#wallet .button-row,#manifest .finance-return-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0}
+#wallet .billing-toolbar[hidden],#wallet .button-row[hidden],#manifest .finance-return-actions[hidden]{display:none}
+#wallet .finance-table td:last-child button{margin:4px 8px 4px 0}
+#invoice-disputes-refresh{margin-top:18px}
+#wallet #billing-statements button{margin-right:12px}

@@ -26,7 +26,9 @@ async def main():
                 if path.startswith('/api/v1/billing') and path!='/api/v1/billing/wallet-activity':requests.append((path,route.request.method))
                 if path=='/health':data={'mode':'local-preview','status':'ok'}
                 elif path=='/api/v1/config':data={'mode':'local-preview'}
+                elif path.endswith('/shipments/manifest'):data={'shipments':[]}
                 elif path=='/api/v1/wallet':data={'balance':'100.00','reserved_balance':'0.00','currency':'GBP'}
+                elif path.startswith('/api/v1/billing/topups/') :data={'status':'CREDITED','amount':'100.00','currency':'GBP'}
                 elif path=='/api/v1/billing/wallet-activity':data={'entries':[]}
                 elif path=='/api/v1/billing/wallet-ledger':
                     query=parse_qs(urlsplit(route.request.url).query)
@@ -54,7 +56,9 @@ async def main():
                     if action=='UPGRADE' and body.get('confirm'):current_plan=body['target_plan']
                 elif path=='/api/v1/billing/statements' and route.request.method=='GET':data={'statements':[snapshot]}
                 elif path=='/api/v1/billing/statements':data=snapshot
-                elif path.endswith('/preview') or path.startswith('/api/v1/billing/statements/'):data=snapshot
+                elif path.endswith('/preview'):
+                    query=parse_qs(urlsplit(route.request.url).query);data={**snapshot,'id':None,'preview':True,'period_start':query.get('start',['2026-11-01T00:00:00Z'])[0],'period_end':query.get('end',['2026-11-22T12:00:00Z'])[0]}
+                elif path.startswith('/api/v1/billing/statements/'):data=snapshot
                 else:data={}
                 return await route.fulfill(json=data)
             asset=ROOT/path.lstrip('/')
@@ -115,13 +119,25 @@ async def main():
         await page.locator('#billing-preview').click();await expect(page.locator('#billing-statement-status')).to_contain_text('temporarily unavailable')
         await expect(page.locator('#billing-statement-status')).to_have_attribute('role','alert');await expect(page.locator('#billing-preview')).to_be_enabled()
         statement_failure=False
-        await page.locator('#billing-preview').click();await expect(page.locator('#billing-statement-status')).to_contain_text('Current activity preview')
-        await page.locator('#billing-generate').click();await expect(page.locator('#billing-statement-status')).to_contain_text('created and retained')
+        await page.locator('#billing-preview').click();await expect(page.locator('#billing-statement-status')).to_contain_text('Activity loaded')
+        await page.locator('#billing-from').fill('2026-08-01');await page.locator('#billing-until').fill('2026-10-31')
+        await page.locator('#billing-generate').click();await expect(page.locator('#billing-statement')).to_contain_text('2026-08-01')
+        await expect(page.locator('#billing-statement')).to_contain_text('2026-10-31')
+        await expect(page.locator('[data-billing-export="pdf"]')).to_be_visible();await expect(page.locator('[data-billing-export="csv"]')).to_be_visible()
+        await page.locator('#billing-save').click();await expect(page.locator('#billing-statement-status')).to_contain_text('1 to 32 days')
+        await page.locator('#billing-from').fill('2026-10-01');await page.locator('#billing-save').click();await expect(page.locator('#billing-statement-status')).to_contain_text('created and retained')
+        # Stripe reconciliation, not a return URL, closes the funding dialog.
+        await page.evaluate("async()=>{const original=refreshBookingWallet;refreshBookingWallet=async()=>{};openStripePaymentModal();await verifyStripeCredit('00000000-0000-4000-8000-000000000077',state.session);refreshBookingWallet=original;}")
+        await expect(page.locator('#stripePaymentModal')).not_to_be_visible();await expect(page.locator('#wallet')).to_be_visible()
+        await page.locator('[data-ledger-filter="ALL"]').click();await page.locator('[data-finance-shipment]').first.click()
+        await expect(page.locator('[data-return-wallet]')).to_be_visible();await page.locator('[data-return-wallet]').click();await expect(page.locator('#wallet')).to_be_visible()
+        await page.locator('[data-finance-shipment]').first.click();await page.locator('[data-show-shipments]').click();await expect(page.locator('#manifest-search')).to_have_value('');await page.evaluate("setView('wallet')")
+
         await page.locator('[data-statement-id]').click();await expect(page.locator('#billing-statement')).to_contain_text('<script>bad()</script>');assert await page.locator('#billing-statement script').count()==0
         out=ROOT/'output/subscription-qa/billing';out.mkdir(parents=True,exist_ok=True);await page.locator('#billing-workspace').screenshot(path=str(out/'workspace-owner.png'))
         current_plan='COMMAND';unbounded=True
         await page.locator('#billing-refresh').click();await expect(page.locator('#billing-agreement')).to_contain_text('no paid renewal to cancel')
-        await page.locator('#billing-target').select_option('VELOCITY');await expect(page.locator('#billing-plan-review')).to_be_hidden();await expect(page.locator('#billing-cancel')).to_be_disabled()
+        await expect(page.locator('#billing-target')).to_be_hidden();await expect(page.locator('#billing-plan-review')).to_be_hidden();await expect(page.locator('#billing-cancel')).to_be_hidden()
         count=len(commands);await page.locator('#billing-compare').click();await expect(page.locator('#billing-comparison')).to_be_visible();await page.locator('#billing-comparison-close').click();assert len(commands)==count
         # A response from the previous workspace must be discarded after a role change.
         gate.clear();await page.locator('#billing-refresh').click()

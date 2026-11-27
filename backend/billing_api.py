@@ -54,11 +54,11 @@ def build_router(authenticate):
     async def statements(request:Request,context=Depends(authenticate)):
         _,service=services(request,context);return await service.list(context)
     @router.get('/statements/preview')
-    async def preview(request:Request,currency:Literal['GBP','EUR','USD']='GBP',context=Depends(authenticate)):
-        _,service=services(request,context);return await service.generate(context,currency=currency,preview=True)
+    async def preview(request:Request,currency:Literal['GBP','EUR','USD']='GBP',start:AwareDatetime|None=None,end:AwareDatetime|None=None,context=Depends(authenticate)):
+        _,service=services(request,context);return await service.generate(context,start=start,end=end,currency=currency,preview=True)
     @router.get('/statements/preview/{kind}')
-    async def preview_export(kind:Literal['pdf','csv'],request:Request,currency:Literal['GBP','EUR','USD']='GBP',context=Depends(authenticate)):
-        _,service=services(request,context);data=await service.generate(context,currency=currency,preview=True)
+    async def preview_export(kind:Literal['pdf','csv'],request:Request,currency:Literal['GBP','EUR','USD']='GBP',start:AwareDatetime|None=None,end:AwareDatetime|None=None,context=Depends(authenticate)):
+        _,service=services(request,context);data=await service.generate(context,start=start,end=end,currency=currency,preview=True)
         content=await asyncio.to_thread(statement_pdf if kind=='pdf' else statement_csv,data)
         return Response(content,media_type='application/pdf' if kind=='pdf' else 'text/csv',headers={
             'Cache-Control':'private, no-store','Content-Disposition':f'attachment; filename="EasyInvio-current-preview.{kind}"'})

@@ -55,3 +55,13 @@ tax invoices; the account activity statement is not a replacement.
 No new migration, private environment changes or deployment are required by this
 update. Existing migrations through 058 are assumed applied. Stripe price setup
 still follows `docs/pricing_release.md` before a paid checkout rollout.
+
+
+## Wallet usability follow-up
+
+- Verified CREDITED top-ups close the payment dialog and return to Wallet & Billing. A success URL cannot grant wallet funds.
+- Complimentary describes billing, Command describes feature access. The published price is a reference price, not a charge. Unavailable plan selection/cancellation controls are hidden; contact support for an assigned-plan change. Paid agreements retain review and explicit confirmation.
+- Wallet shipment links include Back to wallet transactions and Show all shipments. Reservation filters show temporary earmarks/releases without changing funds.
+- From/To dates are inclusive UTC calendar dates in the UI. View selected dates creates a read-only activity view up to 366 days (today ends at the request time); its PDF and CSV retain those exact bounds. Save completed monthly statement retains an immutable snapshot up to 32 days. Both paths keep the 10,000-line bound. EI-prefixed references identify saved statements, not individual payments.
+- Invoice checks accept the documented CSV/XLSX schema, not arbitrary invoice PDFs. Surcharge findings compare booked evidence; savings compare saved customer prices and require a comparable EasyInvio shipment ID. Neither operation obtains fresh quotes, proves carrier liability or issues refunds.
+- Saved findings start as billing_disputes DRAFT. Log support dispute case explicitly creates a repeat-safe OPEN support ticket. Existing support intervention/resolve routes record review notes and move tickets through IN_REVIEW to CLOSED. Closing support does not synchronize billing_disputes status. There is no carrier submission or HubSpot support-ticket synchronization here; current HubSpot integration covers companies, contacts, deals and tenant metrics. Placement and CRM lifecycle changes are deferred for product review.

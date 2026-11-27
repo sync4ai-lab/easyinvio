@@ -5451,6 +5451,8 @@ async function verifyStripeCredit(topupId, session) {
         } catch {}
         stripeMessage('Payment verified. ' + money(result.amount, result.currency) + ' credited to your wallet.');
         notify('Stripe payment verified. Wallet balance refreshed.');
+        if (stripeModal.open) stripeModal.close();
+        $('#stripe-checkout-fallback').hidden = true;
         setView('wallet');
         return;
       }

@@ -42,3 +42,13 @@ def test_csv_neutralizes_formulas_and_periods_are_bounded():
     assert "'=HYPERLINK" in csv
     with pytest.raises(HTTPException):period_bounds(NOW,NOW+timedelta(days=35),now=NOW+timedelta(days=60))
     with pytest.raises(ValueError):period_bounds(NOW.replace(tzinfo=None),NOW,now=NOW)
+
+
+def test_activity_ranges_allow_longer_read_only_views_but_saved_periods_stay_monthly():
+    from backend.statements import preview_bounds
+    start=NOW-timedelta(days=90)
+    assert preview_bounds(start,NOW,now=NOW)==(start,NOW)
+    with pytest.raises(HTTPException):period_bounds(start,NOW,now=NOW)
+    for first,last in [(None,NOW),(NOW,NOW),(NOW-timedelta(days=367),NOW),(start,NOW+timedelta(seconds=1))]:
+        with pytest.raises(HTTPException):preview_bounds(first,last,now=NOW)
+    with pytest.raises(ValueError):preview_bounds(start.replace(tzinfo=None),NOW,now=NOW)

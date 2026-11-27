@@ -65,3 +65,21 @@ def test_preview_downloads_are_server_generated_without_persisting(monkeypatch):
         csv=client.get('/api/v1/billing/statements/preview/csv',headers={'X-Role':'ACCOUNTANT'})
         assert csv.status_code==200 and 'text/csv' in csv.headers['content-type']
         assert client.get('/api/v1/billing/statements/preview/pdf').status_code==403
+
+
+def test_range_preview_and_download_keep_same_utc_bounds(monkeypatch):
+    from backend.statements import StatementService
+    from tests.test_billing_statements import snapshot
+    seen=[]
+    async def generate(self,context,**kwargs):
+        seen.append(kwargs)
+        return {**snapshot(),'id':None,'preview':True}
+    monkeypatch.setattr(StatementService,'generate',generate)
+    with TestClient(app(statements=True)) as client:
+        query={'start':'2026-08-01T00:00:00Z','end':'2026-11-01T00:00:00Z','currency':'GBP'}
+        for suffix in ['', '/pdf', '/csv']:
+            response=client.get('/api/v1/billing/statements/preview'+suffix,params=query,headers={'X-Role':'OWNER'})
+            assert response.status_code==200 and response.headers['cache-control']=='private, no-store'
+        assert len(seen)==3 and seen[0]==seen[1]==seen[2]
+        assert seen[0]['start'].month==8 and seen[0]['end'].month==11
+        assert client.get('/api/v1/billing/statements/preview',params={'start':'2026-08-01T00:00:00'},headers={'X-Role':'OWNER'}).status_code==422
