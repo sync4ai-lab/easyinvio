@@ -10,7 +10,7 @@ from decimal import Decimal
 from defusedxml.common import DefusedXmlException
 from xml.etree.ElementTree import ParseError
 from pathlib import PurePath
-from typing import Any
+from typing import Any,Literal
 from uuid import UUID
 
 import asyncpg
@@ -34,6 +34,7 @@ HEADER_ALIASES = {
 
 class StatementLine(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+    easyinvio_shipment_id: UUID | None = None
     upstream_shipment_id: str = Field(min_length=1, max_length=200)
     currency: str
     invoice_weight_kg: Decimal = Field(ge=0, le=1000000, decimal_places=6)
@@ -110,7 +111,7 @@ def parse_statement(raw, filename):
         if len(cells) != len(headers):
             raise HTTPException(422, f'Row {index} has an incorrect column count')
         try:
-            line = StatementLine.model_validate({header: cell for header, cell in zip(headers, cells) if header in HEADERS})
+            line = StatementLine.model_validate({header: cell for header, cell in zip(headers, cells) if header in HEADERS or (header=='easyinvio_shipment_id' and cell not in (None,''))})
         except ValueError:
             raise HTTPException(422, f'Row {index} has an invalid reference, currency or numeric value') from None
         if line.upstream_shipment_id in references:
@@ -133,14 +134,14 @@ def compare_line(line, shipment):
     findings = []
     packages=shipment.get('multi_parcel_dimensions') or []
     if isinstance(packages,str):packages=json.loads(packages)
-    packed_weight=sum((Decimal(str(box['actual_weight_kg'])) for box in packages),Decimal(0)) if packages else shipment['parcel_weight_kg']
+    packed_weight=sum((Decimal(str(box['actual_weight_kg'])) for box in packages),Decimal(0)) if packages else Decimal(str(shipment['parcel_weight_kg']))
     weight_delta = abs(line.invoice_weight_kg - packed_weight)
     if weight_delta > Decimal('0.1'):
         findings.append({'code': 'WEIGHT_DELTA', 'difference_kg': str(weight_delta)})
     residential = line.residential_fee if commercial else Decimal('0')
     if residential > 0:
         findings.append({'code': 'RESIDENTIAL_FEE_ON_VERIFIED_COMMERCIAL_ADDRESS', 'amount': str(residential)})
-    price_delta = max(Decimal('0'), line.wholesale_cost - shipment['wholesale_cost'])
+    price_delta = max(Decimal('0'), line.wholesale_cost - Decimal(str(shipment['wholesale_cost'])))
     if price_delta > 0:
         findings.append({'code': 'WHOLESALE_COST_EXCEEDS_SNAPSHOT', 'amount': str(price_delta)})
     # Residential charges may already be inside the wholesale total: never add twice.
@@ -161,7 +162,7 @@ def build_router(authenticate):
 
     @router.post('/audit-invoice-upload')
     async def upload(request: Request, file: UploadFile = File(...), invoice_reference: str = Form(...),
-                     carrier_account_id: UUID | None = Form(default=None), context: Any = Depends(authenticate)):
+                     carrier_account_id: UUID | None = Form(default=None), mode: Literal['SURCHARGE','SAVINGS'] = Form(default='SURCHARGE'), context: Any = Depends(authenticate)):
         if context.role not in {'OWNER', 'ADMIN', 'ACCOUNTANT'}:
             raise HTTPException(403, 'Financial permission required')
         invoice_reference = invoice_reference.strip()
@@ -174,32 +175,50 @@ def build_router(authenticate):
             lines = await asyncio.to_thread(parse_statement, raw, file.filename)
         finally:
             await file.close()
+        if mode=='SAVINGS':
+            from backend.entitlements import guard_feature,Feature
+            await guard_feature(request.app.state.finance.pool,request.app.state.settings,context.tenant_id,Feature.AUDITS)
+            if any(line.easyinvio_shipment_id is None for line in lines):
+                raise HTTPException(422,'Savings checks require easyinvio_shipment_id for each row: create a comparable EasyInvio quote first, then include its shipment ID. No carrier calls are made during this check.')
         results = []
         try:
             async with request.app.state.finance.pool.acquire() as connection:
                 async with connection.transaction(isolation='repeatable_read'):
                     rows = await connection.fetch('''SELECT id,upstream_shipment_id,currency,wholesale_cost,
-                        parcel_weight_kg,multi_parcel_dimensions,logistics_metadata,booked_at FROM public.shipments
-                        WHERE tenant_id=$1 AND (upstream_shipment_id=ANY($2::text[]) OR logistics_metadata->'automation_label'->>'upstream_id'=ANY($2::text[]))
-                        AND booked_at IS NOT NULL AND ($3::uuid IS NULL OR carrier_account_id=$3)''', context.tenant_id,
-                        [line.upstream_shipment_id for line in lines], carrier_account_id)
+                        parcel_weight_kg,multi_parcel_dimensions,logistics_metadata,booked_at,final_client_price,quote_expires_at FROM public.shipments
+                        WHERE tenant_id=$1 AND (upstream_shipment_id=ANY($2::text[]) OR logistics_metadata->'automation_label'->>'upstream_id'=ANY($2::text[]) OR id::text=ANY($4::text[]))
+                        AND (booked_at IS NOT NULL OR ($5::boolean AND quote_expires_at>now())) AND ($3::uuid IS NULL OR carrier_account_id=$3)''', context.tenant_id,
+                        [line.upstream_shipment_id for line in lines], carrier_account_id,[str(line.easyinvio_shipment_id) for line in lines if line.easyinvio_shipment_id],mode=='SAVINGS')
                     for line in lines:
                         matches = []
                         for row in rows:
                             metadata = json.loads(row['logistics_metadata']) if isinstance(row['logistics_metadata'], str) else row['logistics_metadata']
-                            if row['upstream_shipment_id'] == line.upstream_shipment_id or metadata.get('automation_label', {}).get('upstream_id') == line.upstream_shipment_id:
+                            metadata=metadata or {}
+                            if (mode=='SAVINGS' and str(row['id'])==str(line.easyinvio_shipment_id)) or (mode=='SURCHARGE' and (row['upstream_shipment_id'] == line.upstream_shipment_id or metadata.get('automation_label', {}).get('upstream_id') == line.upstream_shipment_id)):
                                 matches.append(row)
-                        if len(matches) != 1 or not matches[0]['booked_at']:
+                        if len(matches) != 1 or (mode=='SURCHARGE' and not matches[0]['booked_at']):
                             results.append({'upstream_shipment_id': line.upstream_shipment_id, 'status': 'REVIEW_REQUIRED', 'reason': 'No unique confirmed booking matches this carrier reference'})
                             continue
                         shipment = matches[0]
                         if shipment['currency'] != line.currency:
                             results.append({'upstream_shipment_id': line.upstream_shipment_id, 'status': 'REVIEW_REQUIRED', 'reason': 'Invoice currency does not match booking currency'})
                             continue
+                        if mode=='SAVINGS':
+                            _,baseline,_,_=compare_line(line,shipment)
+                            benchmark=Decimal(str(shipment['final_client_price'])) if shipment['final_client_price'] is not None else None
+                            if benchmark is None or Decimal(baseline['parcel_weight_kg'])!=line.invoice_weight_kg:
+                                results.append({'upstream_shipment_id':line.upstream_shipment_id,'status':'REVIEW_REQUIRED','reason':'A comparable priced quote with the same packed weight is required'})
+                                continue
+                            savings=max(Decimal(0),line.wholesale_cost-benchmark)
+                            results.append({'upstream_shipment_id':line.upstream_shipment_id,'status':'SAVINGS' if savings else 'NO_SAVINGS',
+                                'currency':line.currency,'billed_amount':str(line.wholesale_cost),'expected_amount':str(benchmark),
+                                'estimated_overcharge':str(savings),'reason':'Rate savings versus your selected saved EasyInvio quote or booking; same route, package, service scope and tax basis must be confirmed.',
+                                'benchmark_shipment_id':str(shipment['id']),'benchmark_basis':'Saved customer price, excluding VAT; not a new live quote'})
+                            continue
                         engine = getattr(request.app.state, 'logistics_supervisor', None)
                         findings, baseline, estimated, draft = (engine.invoice.compare(line, shipment)
                             if engine is not None else compare_line(line, shipment))
-                        data = line.model_dump(mode='json')
+                        data = line.model_dump(mode='json',exclude_none=True)
                         digest = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
                         dispute_id = None
                         if findings:
@@ -214,6 +233,7 @@ def build_router(authenticate):
                                 raise HTTPException(409, 'This invoice was already audited with different line values; use a revised invoice reference')
                             dispute_id = str(stored['id'])
                         results.append({'upstream_shipment_id': line.upstream_shipment_id, 'shipment_id': str(shipment['id']),
+                            'billed_amount':str(line.wholesale_cost),'expected_amount':str(shipment['wholesale_cost']),
                             'status': 'FLAGGED' if findings else 'MATCHED', 'confidence_level': 100,
                             'confidence_scope': 'Exact comparisons to stored evidence; not certainty of carrier liability',
                             'findings': findings, 'estimated_overcharge': format(estimated, '.2f'), 'currency': line.currency,
@@ -227,7 +247,9 @@ def build_router(authenticate):
         if context.role not in {'OWNER', 'ADMIN', 'ACCOUNTANT'}:
             raise HTTPException(403, 'Financial permission required')
         async with request.app.state.finance.pool.acquire() as connection:
-            rows = await connection.fetch('SELECT id,shipment_id,invoice_reference,findings,estimated_overcharge,currency,email_draft,status,created_at FROM public.billing_disputes WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 100', context.tenant_id)
+            rows = await connection.fetch('SELECT id,shipment_id,invoice_reference,findings,baseline,invoice_line,estimated_overcharge,currency,email_draft,status,created_at FROM public.billing_disputes WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 100', context.tenant_id)
         return {'disputes': [dict(row) for row in rows]}
 
+    from backend.audit_packets import add_routes
+    add_routes(router,authenticate)
     return router

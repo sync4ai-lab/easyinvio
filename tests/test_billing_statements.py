@@ -17,6 +17,8 @@ def test_wallet_funding_is_not_revenue_and_shipping_refund_is_not_double_counted
         dict(id=3,created_at=NOW,entry_type='SHIPMENT_REFUND',balance_delta='12',balance_after='100',shipment_id=str(uuid4()),shipment_gross='12',shipment_tax='2',carrier_code='TEST')]
     data=snapshot(rows)
     assert data['total_topups']=='100.00' and data['closing_balance']=='100.00'
+    assert data['wallet_breakdown']['Shipping charges (gross)']=='12.00'
+    assert data['wallet_breakdown']['Shipping refunds credited']=='12.00'
     assert Decimal(data['gross_total'])==0 and Decimal(data['tax_total'])==0
     assert data['carrier_summary'][0]['parcels']==2 and data['carrier_summary'][0]['refunded_count']==1
 

@@ -44,3 +44,24 @@ def test_statements_can_be_enabled_without_payment_processing():
     with TestClient(app(lifecycle=False,statements=True)) as client:
         data=client.get('/api/v1/billing/capabilities',headers={'X-Role':'OWNER'}).json()
         assert data['statements_enabled'] is True and data['subscription_changes_enabled'] is False
+
+
+def test_plan_is_readable_when_statements_are_disabled():
+    with TestClient(app(lifecycle=False)) as client:
+        assert client.get('/api/v1/billing/subscription',headers={'X-Role':'OWNER'}).status_code==200
+        assert client.get('/api/v1/billing/statements',headers={'X-Role':'OWNER'}).status_code==503
+
+def test_preview_downloads_are_server_generated_without_persisting(monkeypatch):
+    from backend.statements import StatementService
+    from tests.test_billing_statements import snapshot
+    data=snapshot();data.update(preview=True,id=None)
+    async def generate(self,context,**kwargs):
+        assert kwargs['preview'] is True
+        return data
+    monkeypatch.setattr(StatementService,'generate',generate)
+    with TestClient(app(statements=True)) as client:
+        pdf=client.get('/api/v1/billing/statements/preview/pdf',headers={'X-Role':'OWNER'})
+        assert pdf.status_code==200 and pdf.content.startswith(b'%PDF')
+        csv=client.get('/api/v1/billing/statements/preview/csv',headers={'X-Role':'ACCOUNTANT'})
+        assert csv.status_code==200 and 'text/csv' in csv.headers['content-type']
+        assert client.get('/api/v1/billing/statements/preview/pdf').status_code==403

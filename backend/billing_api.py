@@ -39,7 +39,8 @@ def build_router(authenticate):
         except asyncpg.UniqueViolationError:raise HTTPException(409,'A subscription operation is already in progress. Refresh billing before retrying.') from None
     @router.get('/subscription')
     async def subscription(request:Request,context=Depends(authenticate)):
-        lifecycle,_=services(request,context);return await lifecycle.status(context)
+        if context.role not in FINANCE_ROLES:raise HTTPException(403,'Financial permission required')
+        return await request.app.state.subscription_lifecycle.status(context)
     @router.post('/subscription/upgrade')
     async def upgrade(body:ChangeRequest,request:Request,context=Depends(authenticate)):
         return await change(request,context,'UPGRADE',body)
@@ -55,6 +56,12 @@ def build_router(authenticate):
     @router.get('/statements/preview')
     async def preview(request:Request,currency:Literal['GBP','EUR','USD']='GBP',context=Depends(authenticate)):
         _,service=services(request,context);return await service.generate(context,currency=currency,preview=True)
+    @router.get('/statements/preview/{kind}')
+    async def preview_export(kind:Literal['pdf','csv'],request:Request,currency:Literal['GBP','EUR','USD']='GBP',context=Depends(authenticate)):
+        _,service=services(request,context);data=await service.generate(context,currency=currency,preview=True)
+        content=await asyncio.to_thread(statement_pdf if kind=='pdf' else statement_csv,data)
+        return Response(content,media_type='application/pdf' if kind=='pdf' else 'text/csv',headers={
+            'Cache-Control':'private, no-store','Content-Disposition':f'attachment; filename="EasyInvio-current-preview.{kind}"'})
     @router.post('/statements')
     async def generate(body:StatementPeriod,request:Request,context=Depends(authenticate)):
         _,service=services(request,context);return await service.generate(context,body.start,body.end,body.currency)
@@ -70,4 +77,6 @@ def build_router(authenticate):
     async def csv(statement_id:UUID,request:Request,context=Depends(authenticate)):
         _,service=services(request,context);data=await service.detail(context,statement_id)
         return Response(statement_csv(data),media_type='text/csv',headers={'Cache-Control':'private, no-store','Content-Disposition':'attachment; filename="'+data['statement_number']+'.csv"'})
+    from backend.billing_ledger import add_routes
+    add_routes(router,authenticate)
     return router

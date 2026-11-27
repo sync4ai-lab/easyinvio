@@ -708,27 +708,9 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div id="checkout-result">
 </div>
 <p id="topup-note" class="footnote">Integer-pence accounting in this browser session.</p>
-<h3 style="margin-top:24px">Session activity</h3>
+<h3 style="margin-top:24px">Wallet transactions</h3>
 <div id="wallet-history">
 </div>
-</div>
-</div>
-<div class="card">
-<div class="cardhead">
-<div>
-<h2>AI invoice surcharge auditor</h2>
-<p class="subtle">Compare invoices with stored shipment baselines.</p>
-</div>
-<span class="tag">DRAFT ONLY</span>
-</div>
-<form id="audit-form">
-<label for="invoice-json">Carrier invoice · JSON</label>
-<textarea id="invoice-json" class="mono" style="min-height:280px" required>
-</textarea>
-<p class="footnote">Decimal strings required. Live audits require OWNER, ADMIN or ACCOUNTANT permissions.</p>
-<button id="audit-btn" class="primary full" style="margin-top:14px">Audit invoice & draft disputes</button>
-</form>
-<div id="audit-result" aria-live="polite">
 </div>
 </div>
 </div>
@@ -2542,7 +2524,7 @@ function renderWallet() {
   $('#wallet-balance').textContent = money(decimalCents(available), state.walletCurrency);
   $('#wallet-reserved').textContent = 'Reserved: ' + money(decimalCents(state.reserved), state.walletCurrency);
   $('#wallet-tag').textContent = state.mode === 'local-preview' ? 'PREVIEW FUNDS' : 'CONNECTED WALLET';
-  $('#wallet-history').innerHTML = state.history.length ? state.history.slice().reverse().map(row => `<div class="fee"><span>${escapeHTML(row.label)}</span><b>${row.delta>0n?'+':''}${money(decimalCents(row.delta),state.walletCurrency)}</b></div>`).join('') : '<p class="subtle">No wallet transactions recorded.</p>'
+  window.dispatchEvent(new Event('easyinvio-wallet-updated'));
 }
 $('#wallet-refresh').addEventListener('click', () => busy($('#wallet-refresh'), async () => {
   if (state.mode !== 'local-preview') {
@@ -2575,35 +2557,6 @@ $('#topup-form').addEventListener('submit', event => {
     }
   })
 });
-$('#invoice-json').value = JSON.stringify({
-  invoice_reference: 'INV-PREVIEW-1043',
-  lines: [{
-    shipment_id: DEMO_ID,
-    currency: 'GBP',
-    billed_weight_kg: '5.200',
-    base_cost: '18.00',
-    fuel_surcharge: '4.00',
-    residential_fee: '1.50',
-    remote_area_fee: '7.50'
-  }]
-}, null, 2);
-$('#audit-form').addEventListener('submit', event => {
-  event.preventDefault();
-  busy($('#audit-btn'), async () => {
-    let body;
-    try {
-      body = JSON.parse($('#invoice-json').value)
-    } catch {
-      throw Error('Enter a valid JSON invoice.')
-    }
-    const result = await api(`/api/v1/audit/${state.mode==='local-preview'?'preview':'invoice'}`, {
-      method: 'POST',
-      body,
-      auth: state.mode !== 'local-preview' && !!state.session
-    });
-    $('#audit-result').innerHTML = `<div class="notice">${result.simulated?'Preview compares against a server fixture.':'Compared against tenant shipment records.'} No disputes were sent.</div>` + result.results.map(row => `<div class="hs-card"><h3>${escapeHTML(row.shipment_id)}</h3><span class="tag orange">${escapeHTML(row.status)}</span><p>Component overcharges: <b>${row.overcharge==null?'Not calculable':money(row.overcharge,row.currency)}</b></p>${row.findings.map(finding=>`<p class="subtle">${escapeHTML(finding.field)} · recorded ${escapeHTML(finding.expected)} / billed ${escapeHTML(finding.billed)}</p>`).join('')}${row.dispute_draft?`<pre>${escapeHTML(row.dispute_draft)}</pre>`:''}</div>`).join('')
-  })
-});
 $('#account-btn').addEventListener('click', () => $('#account-dialog').showModal());
 
 function renderAccount() {
@@ -2632,7 +2585,7 @@ function clearSession() {
   state.batch = null;
   state.print = null;
   $('#rates').innerHTML = '<div class="empty">Sign in to fetch rates.</div>';
-  ['#audit-result', '#checkout-result', '#batch-result', '#routing-result', '#review-content', '#zpl-preview'].forEach(selector => $(selector).replaceChildren());
+  ['#checkout-result', '#batch-result', '#routing-result', '#review-content', '#zpl-preview'].forEach(selector => $(selector).replaceChildren());
   $('#batch-export').disabled = true;
   $('#review-dialog').close();
   $('#print-dialog').close();
@@ -7337,47 +7290,6 @@ refreshEnterpriseNavigation = function(...args) {
   } else connectDispatchUpdates();
   return result;
 };
-$('#wallet').insertAdjacentHTML('beforeend', `<article class="card" id="invoice-audit-panel" style="margin-top:24px"><h2>Audit a carrier statement</h2><p class="subtle">Compare invoice weights and wholesale charges with confirmed booking snapshots. Commercial-address checks require stored verification evidence.</p><form id="invoice-upload-form"><label>Statement reference<input name="invoice_reference" required maxlength="100" placeholder="INV-2026-10-001"></label><label>CSV or XLSX statement<input name="file" type="file" accept=".csv,.xlsx" required></label><p class="subtle">One worksheet, at most 1,000 rows and 5 MB. Use kg and tax-exclusive wholesale totals. Consolidate split rows by carrier reference; formulas are not accepted.</p><button class="secondary" type="button" id="invoice-template">Download column template</button><button class="primary" type="submit">Audit &amp; save findings</button></form><div id="invoice-audit-result" role="status" style="margin-top:16px"></div><button class="secondary" id="invoice-disputes-refresh">View saved disputes</button></article>`);
-$('#invoice-template').addEventListener('click', () => download('easyinvio-statement-template.csv', 'upstream_shipment_id,currency,invoice_weight_kg,wholesale_cost,residential_fee\n', 'text/csv'));
-$('#invoice-upload-form').addEventListener('submit', event => {
-  event.preventDefault();
-  busy(event.target.querySelector('[type=submit]'), async () => {
-    if (!state.session || !['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal.profile?.workspace_role)) throw Error('Financial permission required.');
-    const session = state.session;
-    const body = new FormData(event.target);
-    const file = body.get('file');
-    if (file.size > 5 * 1024 * 1024) throw Error('Upload a statement smaller than 5 MB.');
-    const response = await fetch(API + '/api/v1/finance/audit-invoice-upload', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + session.access_token
-      },
-      body
-    });
-    const result = await response.json();
-    if (session !== state.session) return;
-    if (!response.ok) throw Error(typeof result.detail === 'string' ? result.detail : 'Statement could not be audited. Check the template and try again.');
-    $('#invoice-audit-result').innerHTML = (result.results || []).map(row => `<article class="notice"><b>${escapeHTML(row.upstream_shipment_id)} · ${escapeHTML(row.status)}</b>${row.reason?`<p>${escapeHTML(row.reason)}</p>`:`<p>Estimated monetary difference: ${escapeHTML(row.estimated_overcharge)} ${escapeHTML(row.currency)}. Comparison confidence: ${row.confidence_level}% against stored evidence.</p>`}${row.email_draft?`<details><summary>Saved complaint draft · not sent</summary><pre style="white-space:pre-wrap">${escapeHTML(row.email_draft)}</pre></details>`:''}</article>`).join('');
-    event.target.reset();
-  });
-});
-$('#invoice-disputes-refresh').addEventListener('click', event => busy(event.target, async () => {
-  const data = await api('/api/v1/finance/billing-disputes', {
-    auth: true
-  });
-  $('#invoice-audit-result').innerHTML = (data.disputes || []).map(row => `<article class="notice"><b>${escapeHTML(row.invoice_reference)} · ${escapeHTML(row.status)}</b><p>${escapeHTML(row.estimated_overcharge)} ${escapeHTML(row.currency)}</p><details><summary>Saved draft · no email sent</summary><pre style="white-space:pre-wrap">${escapeHTML(row.email_draft)}</pre></details></article>`).join('') || '<p class="notice">No saved disputes in this workspace.</p>';
-}));
-const auditNavigationBase = refreshEnterpriseNavigation;
-refreshEnterpriseNavigation = function(...args) {
-  const result = auditNavigationBase(...args);
-  $('#invoice-audit-panel').hidden = !state.session || !['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(portal.profile?.workspace_role);
-  if (!state.session) {
-    $('#invoice-upload-form').reset();
-    $('#invoice-audit-result').replaceChildren();
-  }
-  return result;
-};
-
 window.addEventListener('easyinvio-session-ready', () => {
   const parameters = new URLSearchParams(location.search);
   if (parameters.get('view') === 'manifest' && /^[0-9a-f-]{36}$/i.test(parameters.get('shipment_id') || '')) {
@@ -9044,5 +8956,6 @@ document.addEventListener('pointerdown', event => { if (!overviewInfo.contains(e
 <script src="/help-workspace-bridge.js?v=1"></script>
 <script src="/cx-automation.js"></script>
 <script src="/store-integrations.js"></script>
+<script src="/billing-enterprise.js" defer></script>
 </body>
 </html>

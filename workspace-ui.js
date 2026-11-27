@@ -134,7 +134,7 @@
  const statementButton=button=>['billing-generate','billing-preview'].includes(button.id)||button.hasAttribute('data-statement-id')||button.hasAttribute('data-billing-export');
  function notice(message,button,error=false){const node=$(statementButton(button)?'#billing-statement-status':'#billing-status');node.textContent=message;node.setAttribute('role',error?'alert':'status');if(error){node.scrollIntoView({block:'nearest'});}}
  function statementControls(disabled){for(const id of ['billing-generate','billing-preview'])$('#'+id).disabled=disabled;}
- function reset(){generation++;quote=null;agreement=null;statement=null;capabilities=null;managing=false;statementControls(false);if($('#billing-comparison').open)$('#billing-comparison').close();$('#billing-comparison-content').replaceChildren();$('#billing-target').value='';$('#billing-statement-status').textContent='';$('#billing-agreement').replaceChildren();$('#billing-change').hidden=true;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;$('#billing-statements').replaceChildren();$('#billing-statement').replaceChildren();status('Select Manage your plan to load your plan details.');}
+ function reset(){generation++;quote=null;agreement=null;statement=null;capabilities=null;managing=false;statementControls(false);if($('#billing-comparison').open)$('#billing-comparison').close();$('#billing-comparison-content').replaceChildren();$('#billing-target').value='';$('#billing-statement-status').textContent='';$('#billing-agreement').replaceChildren();$('#billing-change').hidden=true;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;$('#billing-statements').replaceChildren();$('#billing-statement').replaceChildren();status('Your plan details load when you open Wallet & Billing.');}
  function sync(){const next=scope();if(next!==currentScope){currentScope=next;reset();}card.hidden=!next;}
  function valid(key,epoch){return key===scope()&&epoch===generation;}
  async function run(button,fn){sync();if(!currentScope||button.disabled)return;const key=currentScope,epoch=generation;button.disabled=true;
@@ -144,7 +144,7 @@
     const data=await api('/api/v1/billing/capabilities',{auth:true});if(!valid(key,epoch))return;capabilities=data;
     statementControls(data.statements_enabled!==true);
    }
-   if(capabilities.statements_enabled!==true){notice(capabilities.message||'Billing statements are not enabled for this deployment. Contact the platform administrator.',button,true);return;}
+   if(capabilities.statements_enabled!==true&&statementButton(button)){notice(capabilities.message||'Billing statements are not enabled for this deployment. Contact the platform administrator.',button,true);return;}
    await fn(key,epoch);
   }catch(error){if(valid(key,epoch))notice(error.message,button,true);}
   finally{button.disabled=false;if(valid(key,epoch))statementControls(capabilities?.statements_enabled===false);sync();}}
@@ -161,6 +161,7 @@
   $('#billing-manage').hidden=!data.can_manage;
   $('#billing-change').hidden=!managing||!data.can_manage||capabilities?.subscription_changes_enabled===false;
   $('#billing-management-note').textContent=data.management?.reason||'Review your price adjustment and effective date before confirming. Choosing a plan does not charge you.';
+  window.dispatchEvent(new CustomEvent('easyinvio-billing-loaded',{detail:data}));
   selection();
  }
  function selection(){
@@ -173,22 +174,16 @@
  }
  function comparison(){
   const plans=agreement?.plans||[];if(!plans.length)throw Error('Plan comparison is unavailable. Reload billing details and retry.');
-  const features=[['Workspace users',p=>p.max_users],['Included monthly parcels',p=>p.included_monthly_parcels],['Store connections',p=>p.max_store_connections],['WhatsApp booking','whatsapp_bot'],['Paperless returns','paperless_qr_returns'],['AI carrier advisor','ai_carrier_advisor'],['End-of-day manifests','eod_manifests'],['Customs HS builder','customs_hs_builder'],['Custom margin rules','custom_margin_rules'],['Your own carrier contracts','byoc_carrier_accounts'],['Tax and ledger audit exports','tax_ledger_audits'],['Postpaid billing eligibility','postpaid_billing']];
+  const features=[['Workspace users',p=>p.max_users],['Included monthly parcels',p=>p.included_monthly_parcels],['Store connections',p=>p.max_store_connections],['WhatsApp booking','whatsapp_bot'],['Hosted store returns portal & paperless QR returns','paperless_qr_returns'],['24-platform sales directory & tracking write-back','store_integrations'],['Custom Website HMAC API & checkout rates','store_integrations'],['Branded tracking & consented buyer alerts','store_integrations'],['AI Return Policy Copilot','paperless_qr_returns'],['Invoice surcharge auditor','tax_ledger_audits'],['Itemized PDF / CSV statements',p=>'When enabled'],['Public tracking, PAF lookup & CSV batch',p=>'Included'],['Dedicated account manager',p=>p.plan==='COMMAND'?'By agreement':'Not included'],['AI carrier advisor','ai_carrier_advisor'],['End-of-day manifests','eod_manifests'],['Customs HS builder','customs_hs_builder'],['Custom margin rules','custom_margin_rules'],['Your own carrier contracts','byoc_carrier_accounts'],['Tax and ledger audit exports','tax_ledger_audits'],['Postpaid billing eligibility','postpaid_billing']];
   $('#billing-comparison-content').innerHTML=`<div class="responsive-table-scroll" tabindex="0" role="region" aria-label="Plan features"><table><thead><tr><th>Feature</th>${plans.map(p=>`<th>${h(p.plan)}${p.plan===agreement.subscription.subscription_plan?' · Current plan':''}</th>`).join('')}</tr></thead><tbody><tr><th>Monthly price</th>${plans.map(p=>`<td>${h(amount(p.monthly_fee_gbp))}/month</td>`).join('')}</tr><tr><th>Annual price</th>${plans.map(p=>`<td>${h(amount(p.annual_fee_gbp))}/year (${h(amount(p.annual_monthly_fee_gbp))}/month equivalent)</td>`).join('')}</tr>${features.map(([name,key])=>`<tr><th>${h(name)}</th>${plans.map(p=>`<td>${h(typeof key==='function'?key(p):p.features?.[key]?'Included':'Not included')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   $('#billing-comparison').showModal();$('#billing-comparison-close').focus();
  }
  function safeInvoice(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&['invoice.stripe.com','pay.stripe.com'].includes(u.hostname);}catch{return false;}}
- function renderList(data){$('#billing-statements').innerHTML=(data.statements||[]).map(s=>`<p><button type="button" class="secondary" data-statement-id="${h(s.id)}">${h(s.statement_number)}</button> ${h(s.period_start?.slice(0,10))} to ${h(s.period_end?.slice(0,10))} · ${h(s.currency)}</p>`).join('')||'<p class="subtle">No completed statements yet.</p>';}
- function renderStatement(data){statement=data;const rows=data.transactions||[];
-  $('#billing-statement').innerHTML=`<h3>${h(data.statement_number)}</h3><p>${h(data.period_start?.slice(0,10))} to ${h(data.period_end?.slice(0,10))} · ${h(data.currency)}${data.preview?' · Current activity preview':''}</p>
-   <p>Opening wallet: ${h(data.opening_balance)} · Funding: ${h(data.total_topups)} · Closing wallet: ${h(data.closing_balance)}</p>
-   <p>Software net: ${h(data.subscription_net)} · Shipping net: ${h(data.shipping_net)} · Label refund net: ${h(data.refunds_net)} · Recorded tax: ${h(data.tax_total)} · Charges less credits: ${h(data.gross_total)}</p>
-   ${data.tax_complete?'':'<p class="notice">Some tax details are unavailable. Consult the original invoices.</p>'}
-   ${data.preview?'':'<button type="button" class="secondary" data-billing-export="pdf">Download PDF</button> <button type="button" class="secondary" data-billing-export="csv">Download CSV</button>'}
-   <div class="responsive-table-scroll" tabindex="0" role="region" aria-label="Statement transactions"><table><thead><tr><th>Date</th><th>Activity</th><th>Reference / carrier</th><th>Net</th><th>Tax</th><th>Gross</th><th>Wallet balance</th></tr></thead><tbody>${rows.slice(0,100).map(r=>`<tr><td>${h(date(r.occurred_at))}</td><td>${h(r.type)}</td><td>${h(r.reference)} ${h(r.carrier)} ${h(r.tracking_number)}</td><td>${h(r.net_amount??'Unknown')}</td><td>${h(r.tax_amount??'Unknown')}</td><td>${h(r.gross_amount)}</td><td>${h(r.running_wallet_balance)}</td></tr>`).join('')}</tbody></table></div>
-   <p class="footnote">${rows.length>100?'First 100 transactions shown. Download the full statement for all lines. ':''}${h(data.notice)}</p>`;
- }
+ function renderList(data){window.dispatchEvent(new CustomEvent('easyinvio-statements-loaded',{detail:data}));$('#billing-statements').innerHTML=(data.statements||[]).map(s=>`<p><button type="button" class="secondary" data-statement-id="${h(s.id)}">${h(s.statement_number)}</button> ${h(s.period_start?.slice(0,10))} to ${h(s.period_end?.slice(0,10))} · ${h(s.currency)}</p>`).join('')||'<p class="subtle">No completed statements yet.</p>';}
+ function renderStatement(data){statement=data;window.renderEnterpriseStatement($('#billing-statement'),data);}
+
  async function refresh(key,epoch){const data=await api('/api/v1/billing/subscription',{auth:true});if(!valid(key,epoch))return;renderAgreement(data);
+  if(capabilities?.statements_enabled!==true){status(capabilities?.message||'Plan loaded. Statements are not enabled.');return;}
   const list=await api('/api/v1/billing/statements',{auth:true});if(valid(key,epoch)){renderList(list);status((data.operations||[]).some(o=>['AUTHORIZED','PROVIDER_PENDING','PAID'].includes(o.state))?'A request is still processing. Reload billing details shortly to check its status.':'Billing details are up to date.');}}
  $('#billing-refresh').addEventListener('click',e=>run(e.currentTarget,refresh));
  $('#billing-manage').addEventListener('click',e=>run(e.currentTarget,async(key,epoch)=>{if(!agreement)await refresh(key,epoch);if(!valid(key,epoch)||!agreement?.can_manage)return;managing=true;$('#billing-change').hidden=false;selection();$('#billing-change').scrollIntoView({block:'nearest'});status('Choose a plan change, or review cancellation. No changes take effect until you confirm.');}));
@@ -230,9 +225,9 @@
  card.addEventListener('click',e=>{const button=e.target.closest('[data-statement-id],[data-billing-export]');if(!button)return;
   run(button,async(key,epoch)=>{
    if(button.dataset.statementId){const data=await api('/api/v1/billing/statements/'+encodeURIComponent(button.dataset.statementId),{auth:true});if(valid(key,epoch)){renderStatement(data);notice('Statement loaded.',button);}return;}
-   const s=statement,format=button.dataset.billingExport;if(!s?.id||!['pdf','csv'].includes(format))return;
+   const s=statement,format=button.dataset.billingExport;if((!s?.id&&!s?.preview)||!['pdf','csv'].includes(format))return;
    await ensureActiveIdentitySession();if(!valid(key,epoch))return;
-   const response=await fetch(API+'/api/v1/billing/statements/'+encodeURIComponent(s.id)+'/'+format,{headers:{Authorization:'Bearer '+state.session.access_token},cache:'no-store'});
+   const response=await fetch(API+'/api/v1/billing/statements/'+(s.preview?'preview':encodeURIComponent(s.id))+'/'+format+(s.preview?'?currency='+encodeURIComponent(s.currency):''),{headers:{Authorization:'Bearer '+state.session.access_token},cache:'no-store'});
    if(!response.ok)throw Error('The statement export could not be downloaded. Refresh your session and retry.');const blob=await response.blob();if(!valid(key,epoch))return;
    const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='EasyInvio-statement.'+format;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('Statement downloaded.',button);
   });
@@ -240,10 +235,12 @@
  function init(){const wallet=document.getElementById('wallet');if(!wallet)return;wallet.append(card);
   const now=new Date(),end=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1)),start=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-1,1));
   $('#billing-from').value=start.toISOString().slice(0,10);$('#billing-until').value=end.toISOString().slice(0,10);
-  const originalView=setView;setView=function(...args){const result=originalView(...args);sync();return result;};
+  let autoLoading=false;
+  async function autoLoad(){sync();if(!currentScope||autoLoading)return;autoLoading=true;try{await run($('#billing-refresh'),refresh);}finally{autoLoading=false;}}
+  const originalView=setView;setView=function(...args){const result=originalView(...args);sync();if(args[0]==='wallet')autoLoad();return result;};
   const originalClear=clearSession;clearSession=function(...args){currentScope='';reset();card.hidden=true;return originalClear(...args);};
   const originalRefresh=refreshPortal;refreshPortal=async function(...args){try{return await originalRefresh(...args);}finally{sync();}};
-  sync();
+  sync();if(!wallet.hidden)autoLoad();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

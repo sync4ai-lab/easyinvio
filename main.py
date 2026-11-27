@@ -2449,6 +2449,7 @@ async def tracking_asset(request:Request):
 @app.get('/brand.css', include_in_schema=False)
 @app.get('/platform-logos.svg', include_in_schema=False)
 @app.get('/platform-brand.js', include_in_schema=False)
+@app.get('/billing-enterprise.js', include_in_schema=False)
 @app.get('/ask-easyinvio.css', include_in_schema=False)
 @app.get('/favicon.svg', include_in_schema=False)
 @app.get('/favicon-32.png', include_in_schema=False)

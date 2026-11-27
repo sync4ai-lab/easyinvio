@@ -86,7 +86,6 @@ class SubscriptionLifecycle:
 
     async def status(self,context):
         if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Financial permission required')
-        require_statements(self.settings)
         async with self.pool.acquire() as c:
             sub=await read_subscription(c,context.tenant_id)
             tenant=await c.fetchrow('''SELECT tenant_id,subscription_plan,billing_cycle,plan_status,plan_period_start,plan_period_end,stripe_subscription_id,
@@ -95,8 +94,9 @@ class SubscriptionLifecycle:
              FROM public.tenants WHERE tenant_id=$1''',context.tenant_id)
             operations=await c.fetch('''SELECT id,action,state,amount,currency,effective_at,provider_url,error_code,created_at
              FROM public.subscription_operations WHERE tenant_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20''',context.tenant_id)
+            usage=await c.fetchval('SELECT parcels FROM public.v_tenant_monthly_usage WHERE tenant_id=$1',context.tenant_id) or 0
         if not tenant:raise HTTPException(404,'Workspace not found')
-        return document({'subscription':dict(tenant),'operations':[dict(x) for x in operations],
+        return document({'effective_plan':sub.effective().value,'usage':{'parcels':int(usage)},'subscription':dict(tenant),'operations':[dict(x) for x in operations],
             'can_manage':bool(getattr(self.settings,'billing_lifecycle_enabled',False)) and context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
             'management':management_options(sub,self.settings,context),
             'plans':[{'plan':p.value,'annual_fee_gbp':cycle_price(p,'ANNUAL'),**capabilities(p).model_dump()} for p in Plan],

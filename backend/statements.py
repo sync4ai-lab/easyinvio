@@ -108,8 +108,15 @@ def build_snapshot(tenant,currency,start,end,opening,ledger,external,invoices,ev
             if r['net_amount'] is not None:c['net']+=Decimal(r['net_amount'])
             if r['tax_amount'] is not None:c['tax']+=Decimal(r['tax_amount'])
             else:c['tax_complete']=False
+    wallet_breakdown={
+        'Opening balance':opening,'Net top-ups':totals['total_topups'],
+        'Plan fees (gross)':sum((-Decimal(r['wallet_delta']) for r in lines if r['funding']=='WALLET' and r['type']=='SUBSCRIPTION'),Decimal(0)),
+        'Shipping charges (gross)':sum((-Decimal(r['wallet_delta']) for r in lines if r['funding']=='WALLET' and r['type']=='SHIPPING'),Decimal(0)),
+        'Shipping refunds credited':sum((Decimal(r['wallet_delta']) for r in lines if r['funding']=='WALLET' and r['type']=='SHIPPING_REFUND'),Decimal(0)),
+        'Other wallet credits':totals['other_wallet_credits'],'Other wallet debits':totals['other_wallet_debits'],
+        'Closing balance':running}
     return document({'schema_version':1,'statement_number':reference,'tenant_id':tenant['tenant_id'],
-        'workspace_name':tenant['company_name'],'is_sandbox':tenant['is_sandbox'],'currency':currency,
+        'wallet_breakdown':{k:money(v) for k,v in wallet_breakdown.items()},'workspace_name':tenant['company_name'],'is_sandbox':tenant['is_sandbox'],'currency':currency,
         'period_start':start,'period_end':end,'opening_balance':opening,'closing_balance':running,
         **{key:money(value) for key,value in totals.items()},'tax_complete':tax_complete,
         'carrier_summary':[{**r,**{key:money(r[key]) for key in ('net','tax','gross')}} for r in carriers.values()],'transactions':lines,

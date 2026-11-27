@@ -84,3 +84,31 @@ main table td{word-break:normal}
 
 /* Grid gaps provide card spacing; stacked-card margins misalign the first item. */
 #stores .provider-grid > .card{margin-top:0}
+/* Finance tables keep their own scroll region on small screens. */
+#wallet > .grid{display:block}
+#wallet .wallet{display:none}
+.billing-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0}
+.billing-kpis>.card{margin:0;display:flex;flex-direction:column;gap:12px;min-width:0}
+.billing-kpis strong{display:block;font-size:28px;line-height:1.25;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.billing-kpis h2{font-size:16px;margin:0}.billing-kpis p{margin:0}.billing-kpis button{margin-top:auto}
+.billing-kpis progress{width:100%;accent-color:#10b981;height:12px}
+.finance-scroll{max-width:100%;overflow:auto;border:1px solid #334155;border-radius:12px;margin:16px 0}
+.finance-table{width:100%;min-width:760px;border-collapse:collapse;font-size:13px}
+.finance-table th,.finance-table td{padding:12px 14px;text-align:left;border-bottom:1px solid #334155;vertical-align:top;overflow-wrap:anywhere}
+.finance-table th{background:#172235;color:#cbd5e1}.finance-table td:nth-last-child(-n+2){font-variant-numeric:tabular-nums}
+.finance-number{display:block;text-align:right;white-space:nowrap}.finance-number.credit{color:#34d399}.finance-number.debit{color:inherit}
+.finance-pill{display:inline-block;white-space:nowrap;border-radius:20px;background:#1e293b;padding:5px 8px;font-size:11px;font-weight:700}
+.finance-pill[data-type=TOPUP],.finance-pill[data-type=SHIPMENT_REFUND]{background:#064e3b;color:#a7f3d0}
+.finance-pill[data-type=SUBSCRIPTION_DEBIT]{background:#312e81;color:#e0e7ff}
+#invoice-audit-panel{margin-top:24px}#invoice-audit-panel form{display:grid;gap:14px;max-width:850px}
+#invoice-audit-panel .finance-table td:last-child{min-width:200px}#invoice-audit-panel .finance-table button{margin:0 6px 8px 0}
+.enterprise-statement{margin:24px 0;padding:22px;border:1px solid #334155;border-radius:14px}
+.enterprise-statement header{border-bottom:2px solid #10b981;padding-bottom:16px;margin-bottom:20px}
+.enterprise-statement h3{margin:22px 0 12px}
+@media(max-width:900px){.billing-kpis{grid-template-columns:1fr}.enterprise-statement{padding:14px}}
+@media print{.enterprise-statement{color:#000;background:#fff;border:0}.enterprise-statement button,.enterprise-statement .billing-toolbar{display:none}.enterprise-statement .finance-scroll{overflow:visible;border:0}.enterprise-statement .finance-table{min-width:0;font-size:9px}.enterprise-statement th{background:#eee;color:#000}}
+
+#wallet .billing-kpis > .card{margin:0}
+#wallet dialog[aria-label="Wallet transaction details"]{width:min(760px,calc(100vw - 32px))}
+
+#wallet #stripe-topup-open{display:none}
