@@ -163,8 +163,8 @@ async def seed_subscription(connection,tenant_id,plan:Plan|str,cycle:str,*,sandb
 async def seed_margin(connection,tenant_id,plan):
     # A tagged baseline, not a rewrite of approved bespoke business rules or personal pricing.
     for currency in ('GBP','EUR','USD'):
-        await connection.execute("""INSERT INTO public.margin_rules(id,tenant_id,currency,markup_type,markup_value,priority,is_active,valid_from,subscription_baseline)
-            VALUES(gen_random_uuid(),$1,$2,'PERCENTAGE',$3,900000,true,now(),true)
+        await connection.execute("""INSERT INTO public.margin_rules(id,tenant_id,currency,markup_type,markup_value,priority,is_active,valid_from,subscription_baseline,rule_name)
+            VALUES(gen_random_uuid(),$1,$2,'PERCENTAGE',$3,900000,true,now(),true,'EI subscription ' || $1::uuid::text || ' ' || $2::text)
             ON CONFLICT(tenant_id,currency) WHERE subscription_baseline
             DO UPDATE SET markup_value=excluded.markup_value,is_active=true""",
             tenant_id,currency,capabilities(plan).default_markup_percent)

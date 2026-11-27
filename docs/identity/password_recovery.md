@@ -1,4 +1,4 @@
-﻿# Password recovery setup
+# Password recovery setup
 
 The login card includes **Forgot password?**, an email request form and a new-password confirmation screen. Passwords are changed by Supabase Auth, never by directly editing database hashes. Recovery requires a single-use `type=recovery` token hash verified by Supabase before any password update. Existing app sessions are revoked, and global provider sign-out is requested. No auto-login is granted after recovery.
 
@@ -60,7 +60,10 @@ not rewritten. Review provider and Supabase rate limits before client rollout.
 
 Copy the complete [verification email template](email_templates/verification_otp.html)
 into Supabase's **Magic Link** template and **Confirm signup** template, covering
-both existing and newly created Auth identities. Use subject `Your EasyInvio
+both existing and newly created Auth identities. The wording is channel-neutral and
+does not prescribe a six-digit length; Supabase may issue eight-digit codes.
+Editing this repository template does not publish it to Supabase; save both
+hosted templates in the project dashboard. Use subject `Your EasyInvio
 verification code`. The app accepts Supabase email OTP lengths of **6 to 10 digits**; use your configured length and set expiry to
 **900 seconds**. Supabase substitutes `{{ .Token }}`; our application generates
 only the separate WhatsApp challenge. Codes are never sent to an LLM.
@@ -142,3 +145,26 @@ PROVISIONING and RECONCILIATION_REQUIRED records need their existing recovery
 flow or operator review; do not remove these fences or delete Auth users.
 These changes need a backend restart and an updated email template, not a new
 schema migration. No live registration data was changed by the automated tests.
+
+
+## Interrupted web registration
+
+Provisioning seeds uniquely named subscription margin rules, including the required
+`rule_name`. A database failure after email verification rolls back the workspace,
+owner, wallet and pricing rules together. Logs include only SQLSTATE and schema
+identifiers, never raw database exception details or registration credentials.
+
+If the registration page remains open, restart the local backend with its existing
+development command, then retry **Verify email and create account** using the same
+password. A reconciliation retry requires the original private registration secret,
+a fresh Supabase password proof for the confirmed email, an identity created during
+that registration, no existing membership/profile, and matching workspace metadata.
+It is limited to five total attempts and 24 hours from registration start. It never
+reuses a consumed OTP or resets the password. A completed activation is idempotent.
+If the page was closed or that recovery window elapsed, operator review is required;
+starting another registration for the same email does not bypass identity checks.
+
+New registrations still require the full email code within 15 minutes. Test with a
+new email, enter its actual code and chosen password, then sign in: the workspace
+must have one owner and a GBP 0.00 wallet. Never put actual codes or passwords in
+test fixtures, screenshots committed to Git, or logs.

@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import httpx
@@ -149,6 +149,11 @@ class Database:
                 q['attempts'] += 1
             if 'auth_user_id=$2' in sql:
                 q['auth_user_id'] = args[1]
+        elif sql.startswith('UPDATE public.tenants SET subscription_plan='):
+            assert self.depth == 1
+        elif sql.startswith('INSERT INTO public.margin_rules'):
+            assert self.depth == 1
+            assert 'rule_name' in sql
         elif sql.startswith('INSERT INTO public.tenants'):
             assert self.depth == 1
             self.data['tenants'].append(dict(id=args[0], company_reg_number=args[8], country_code=args[7], email_address=args[5], sandbox=args[3],workspace_type=args[9]))
@@ -396,7 +401,9 @@ def test_opt_in_hooks_only_enrol_signed_unregistered_senders(path):
         assert not harness.observed
         manager.handle.reset_mock()
         registered = harness.fields(MessageSid='SM'+uuid4().hex)
-        assert post(registered).status_code == 200
+        # This routing test has no subscription rows; commercial gates are covered separately.
+        with patch('backend.entitlements.guard_feature', AsyncMock()):
+            assert post(registered).status_code == 200
         manager.handle.assert_not_awaited()
         assert len(harness.observed) == 1
     finally:
@@ -592,3 +599,30 @@ async def test_individual_persona_skips_company_and_activates_only_after_both_pr
     assert tenant['company_reg_number'] is None and tenant['country_code'] is None
     assert database.data['wallets'][queue['tenant_id']]['balance'] == Decimal('0.00')
     assert len(database.data['users']) == len(database.data['bindings']) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('outcome', ['valid', 'wrong_password', 'unconfirmed', 'wrong_email', 'unavailable'])
+async def test_registration_resume_uses_password_proof_without_admin_mutation(outcome):
+    identifier = uuid4()
+    calls = []
+    def transport(request):
+        calls.append(request)
+        assert request.url.path == '/auth/v1/token'
+        assert request.url.params['grant_type'] == 'password'
+        if outcome == 'wrong_password': return httpx.Response(400, json={})
+        if outcome == 'unavailable': return httpx.Response(503, json={})
+        return httpx.Response(200, json={'user': {'id': str(identifier),
+            'email': 'other@example.test' if outcome == 'wrong_email' else 'alex@example.test',
+            'email_confirmed_at': None if outcome == 'unconfirmed' else '2026-11-27T00:00:00Z'}})
+    settings = SimpleNamespace(supabase_url='https://auth.example.test', supabase_publishable_key=SecretStr('synthetic-public-key'))
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        provider = SupabaseSignupProvider(settings, client)
+        if outcome == 'unavailable':
+            with pytest.raises(HTTPException) as error:
+                await provider.resume_verified_registration('alex@example.test', 'synthetic-password')
+            assert error.value.status_code == 503
+        else:
+            result = await provider.resume_verified_registration('alex@example.test', 'synthetic-password')
+            assert result == (identifier if outcome == 'valid' else None)
+    assert len(calls) == 1

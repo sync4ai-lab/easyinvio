@@ -154,3 +154,17 @@ async def test_first_quote_uses_tier_margin_and_expired_trial_uses_starter(db):
             result=await get_client_calibrated_rate(t,Decimal('10.00'),'ROYALMAIL','GBR')
             assert result==Decimal(expected) and isinstance(result,Decimal)
     finally:configure_pricing_pool(None)
+
+
+@pytest.mark.asyncio
+async def test_registration_baselines_have_required_unique_names_and_retry_safely(db):
+    first = await tenant(db)
+    second = await tenant(db)
+    await seed_subscription(db, first, 'VELOCITY', 'MONTHLY')
+    rows = await db.fetch('SELECT rule_name,tenant_id,currency,markup_value FROM public.margin_rules ORDER BY rule_name')
+    assert len(rows) == 6
+    assert len({row['rule_name'] for row in rows}) == 6
+    assert all(row['rule_name'].startswith('EI subscription ') for row in rows)
+    assert {row['currency'] for row in rows} == {'GBP', 'EUR', 'USD'}
+    assert all(Decimal(str(row['markup_value'])) == Decimal('9.00') for row in rows if row['tenant_id'] == first)
+    assert all(Decimal(str(row['markup_value'])) == Decimal('18.00') for row in rows if row['tenant_id'] == second)

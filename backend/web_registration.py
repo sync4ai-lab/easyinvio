@@ -4,7 +4,7 @@ import hmac
 import json
 import secrets
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 from uuid import UUID
 
@@ -88,16 +88,23 @@ async def verify_registration(body: RegistrationVerify, request: Request):
                 raise HTTPException(400, 'Invalid verification session')
             if row['state'] == 'VERIFIED':
                 return {'message': 'Account already activated. Sign in with your email and password.'}
-            if row['state'] != 'PENDING_OTP' or row['attempts'] >= 5 or row['expires_at'] <= datetime.now(timezone.utc):
+            resuming = row['state'] == 'RECONCILIATION_REQUIRED'
+            deadline = row['created_at'] + timedelta(hours=24) if resuming else row['expires_at']
+            if row['state'] not in ('PENDING_OTP', 'RECONCILIATION_REQUIRED') or row['attempts'] >= 5 or deadline <= datetime.now(timezone.utc):
                 raise HTTPException(409, 'Verification expired or requires review. Contact support before restarting.')
             await c.execute("UPDATE public.web_registration_sessions SET state='RECONCILIATION_REQUIRED',attempts=attempts+1 WHERE id=$1", row['id'])
     async with httpx.AsyncClient(trust_env=False) as client:
         provider = SupabaseSignupProvider(settings, client)
-        user_id = await provider.verify(row['email_address'], body.code.get_secret_value())
+        # A consumed OTP cannot be reused after Auth succeeded but database provisioning failed.
+        # Resume only with the original private session AND the password already set in Auth.
+        user_id = (await provider.resume_verified_registration(row['email_address'], body.password.get_secret_value())
+            if resuming else await provider.verify(row['email_address'], body.code.get_secret_value()))
         if user_id is None:
             async with pool.acquire() as c:
-                await c.execute("UPDATE public.web_registration_sessions SET state='PENDING_OTP' WHERE id=$1", row['id'])
-            raise HTTPException(400, 'The email verification code was rejected or expired')
+                if not resuming:
+                    await c.execute("UPDATE public.web_registration_sessions SET state='PENDING_OTP' WHERE id=$1", row['id'])
+            raise HTTPException(400, 'Enter the same password you used when registration was interrupted.'
+                if resuming else 'The email verification code was rejected or expired')
         if user_id in settings.platform_admin_user_ids:
             raise HTTPException(409, 'This identity requires administrator review')
         async with pool.acquire() as c:
@@ -105,15 +112,19 @@ async def verify_registration(body: RegistrationVerify, request: Request):
                 OR EXISTS(SELECT 1 FROM public.app_user_profiles WHERE auth_user_id=$1)
                 OR NOT EXISTS(SELECT 1 FROM auth.users WHERE id=$1 AND created_at>=$2
                   AND lower(email)=$3 AND (banned_until IS NULL OR banned_until<now())
-                  AND raw_app_meta_data->>'role' IS NULL AND raw_app_meta_data->>'tenant_id' IS NULL)''',
-                user_id, row['created_at'], row['email_address'])
+                  AND email_confirmed_at IS NOT NULL
+                  AND ((raw_app_meta_data->>'role' IS NULL AND raw_app_meta_data->>'tenant_id' IS NULL)
+                    OR ($4::boolean AND raw_app_meta_data->>'role'='OWNER'
+                        AND raw_app_meta_data->>'tenant_id'=$5::text)))''',
+                user_id, row['created_at'], row['email_address'], resuming, str(row['tenant_id']))
         if blocked:
             raise HTTPException(409, 'This identity is already associated with an account; contact support')
         sandbox = settings.database_environment == 'SANDBOX'
         if settings.provider_environment != ('TEST' if sandbox else 'LIVE'):
             raise HTTPException(403, 'Account environment requires administrator configuration')
         await provider.bind_workspace(user_id, row['tenant_id'], row['email_address'])
-        await provider.request('PUT', 'admin/users/' + str(user_id), {'password': body.password.get_secret_value()}, admin=True)
+        if not resuming:
+            await provider.request('PUT', 'admin/users/' + str(user_id), {'password': body.password.get_secret_value()}, admin=True)
     raw = json.loads(row['profile']) if isinstance(row['profile'], str) else row['profile']
     model = PersonalProfile.model_validate(raw) if row['workspace_type'] == 'INDIVIDUAL' else CompanyProfile.model_validate(raw)
     profile = storage_profile(model)

@@ -181,7 +181,7 @@ class WebDB:
         if 'INSERT INTO public.web_registration_sessions' in sql:
             self.row = {'id':uuid4(),'secret_sha256':args[0],'email_address':args[1],'workspace_type':args[2],
                 'profile':args[3],'state':'SENDING_EMAIL','created_at':datetime.now(timezone.utc),
-                'expires_at':datetime.now(timezone.utc)+timedelta(minutes=15),'attempts':0,'tenant_id':uuid4()}
+                'expires_at':datetime.now(timezone.utc)+timedelta(minutes=15),'attempts':0,'tenant_id':uuid4(),'requested_plan':'STARTER','requested_cycle':'MONTHLY'}
             return self.row
         if 'public.web_registration_sessions' in sql:
             return self.row
@@ -204,7 +204,7 @@ def web_fixture():
     db = WebDB()
     app = FastAPI()
     app.state.finance = SimpleNamespace(pool=db)
-    app.state.settings = SimpleNamespace(platform_admin_user_ids=[],database_environment='SANDBOX',provider_environment='TEST')
+    app.state.settings = SimpleNamespace(platform_admin_user_ids=[],database_environment='SANDBOX',provider_environment='TEST',subscription_trial_days=14)
     request = Request({'type':'http','app':app,'headers':[]})
     provider = SimpleNamespace(send_code=AsyncMock(),verify=AsyncMock(return_value=uuid4()),bind_workspace=AsyncMock(),request=AsyncMock())
     return db,request,provider
@@ -251,3 +251,51 @@ async def test_web_nonce_failures_and_partial_provision_never_activate(web_fixtu
             await verify_registration(verify,request)
         assert db.row['state'] == 'RECONCILIATION_REQUIRED'
         assert not any('INSERT INTO public.tenants' in sql for sql,_ in db.writes)
+
+
+@pytest.mark.asyncio
+async def test_interrupted_activation_requires_nonce_and_password_and_can_resume(web_fixture):
+    db, request, provider = web_fixture
+    provider.resume_verified_registration = AsyncMock(return_value=None)
+    with patch('backend.identity.recovery_limit', AsyncMock()), patch('backend.web_registration.SupabaseSignupProvider', return_value=provider):
+        receipt = await start_registration(RegistrationStart(workspace_type='INDIVIDUAL', profile=personal()), request)
+        body = RegistrationVerify(**receipt_for_verify(receipt), code='12345678', password='synthetic-password-only')
+        db.fail_wallet = True
+        with pytest.raises(HTTPException):
+            await verify_registration(body, request)
+        assert db.row['state'] == 'RECONCILIATION_REQUIRED'
+        # The OTP has expired; the bounded recovery path needs a fresh password proof.
+        db.row['expires_at'] = datetime.now(timezone.utc)-timedelta(minutes=1)
+        with pytest.raises(HTTPException) as error:
+            await verify_registration(body, request)
+        assert error.value.status_code == 400
+        assert db.row['state'] == 'RECONCILIATION_REQUIRED'
+        db.fail_wallet = False
+        provider.resume_verified_registration.return_value = provider.verify.return_value
+        await verify_registration(body, request)
+        assert db.row['state'] == 'VERIFIED'
+        assert provider.verify.await_count == 1  # Never reuse a consumed OTP.
+        assert provider.request.await_count == 1  # Never reset a password on retry.
+        assert len([sql for sql, _ in db.writes if 'INSERT INTO public.tenants' in sql]) == 1
+
+
+def receipt_for_verify(receipt):
+    return {key: receipt[key] for key in ('registration_id', 'registration_secret')}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('failure', ['nonce', 'age', 'attempts', 'existing_membership'])
+async def test_interrupted_activation_cannot_claim_another_identity(web_fixture, failure):
+    db, request, provider = web_fixture
+    provider.resume_verified_registration = AsyncMock(return_value=uuid4())
+    with patch('backend.identity.recovery_limit', AsyncMock()), patch('backend.web_registration.SupabaseSignupProvider', return_value=provider):
+        receipt = await start_registration(RegistrationStart(workspace_type='INDIVIDUAL', profile=personal()), request)
+        db.row['state'] = 'RECONCILIATION_REQUIRED'
+        if failure == 'nonce': receipt['registration_secret'] = 'incorrect-'*5
+        if failure == 'age': db.row['created_at'] -= timedelta(hours=25)
+        if failure == 'attempts': db.row['attempts'] = 5
+        if failure == 'existing_membership': db.blocked = True
+        with pytest.raises(HTTPException):
+            await verify_registration(RegistrationVerify(**receipt_for_verify(receipt), code='12345678', password='synthetic-password-only'), request)
+        assert not any('INSERT INTO public.tenants' in sql for sql, _ in db.writes)
+        if failure != 'existing_membership': provider.resume_verified_registration.assert_not_awaited()

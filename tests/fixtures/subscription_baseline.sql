@@ -10,7 +10,7 @@ CREATE TABLE public.workspace_invitations(id uuid PRIMARY KEY DEFAULT gen_random
  auth_user_id uuid,email text,status text NOT NULL DEFAULT 'SENDING',expires_at timestamptz NOT NULL DEFAULT now()+interval '24 hours');
 CREATE TABLE public.ecommerce_stores(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants,is_active boolean NOT NULL DEFAULT true);
 CREATE TABLE public.web_registration_sessions(id uuid PRIMARY KEY DEFAULT gen_random_uuid());
-CREATE TABLE public.margin_rules(id uuid PRIMARY KEY,tenant_id uuid NOT NULL REFERENCES public.tenants,currency text NOT NULL,
+CREATE TABLE public.margin_rules(id uuid PRIMARY KEY,rule_name text NOT NULL UNIQUE,tenant_id uuid NOT NULL REFERENCES public.tenants,currency text NOT NULL,
  markup_type text NOT NULL,markup_value numeric(18,2) NOT NULL,priority integer NOT NULL,is_active boolean NOT NULL DEFAULT true,valid_from timestamptz NOT NULL);
 CREATE TABLE public.admin_configuration_events(id uuid PRIMARY KEY,actor_auth_user_id uuid NOT NULL,
  operation text NOT NULL CHECK(operation IN ('CREATE_TENANT','CREATE_MARGIN')),request_id uuid NOT NULL,tenant_id uuid NOT NULL,

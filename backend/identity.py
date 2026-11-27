@@ -1,4 +1,5 @@
 """Password-verified, revocable HS256 app sessions around Supabase Auth identity."""
+import logging
 import hashlib
 import json
 import time
@@ -23,7 +24,10 @@ class IdentityRoute(APIRoute):
                 response.headers['Cache-Control']='no-store'
                 response.headers['Pragma']='no-cache'
                 return response
-            except asyncpg.PostgresError:
+            except asyncpg.PostgresError as exc:
+                # No raw exception, SQL arguments, profile, password or verification code.
+                logging.getLogger(__name__).error('Identity storage failure: sqlstate=%s table=%s column=%s constraint=%s',
+                    exc.sqlstate, exc.table_name, exc.column_name, exc.constraint_name)
                 raise HTTPException(503,'Identity storage is temporarily unavailable') from None
             except RequestValidationError as exc:
                 raise HTTPException(422,[{'loc':e['loc'],'msg':e['msg'],'type':e['type']} for e in exc.errors()]) from None
