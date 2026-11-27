@@ -81,3 +81,6 @@ main table td{word-break:normal}
 #store-secret-help{display:block;margin:10px 0;color:#cbd5e1;line-height:1.6}
 #store-connection-form fieldset{margin:18px 0}
 #store-connection-form input[readonly]{font-size:12px}
+
+/* Grid gaps provide card spacing; stacked-card margins misalign the first item. */
+#stores .provider-grid > .card{margin-top:0}
