@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="referrer" content="no-referrer">
 <title>EasyInvio pricing — Start free. Scale with clarity.</title>
-<meta name="description" content="Compare EasyInvio Starter, Velocity and Command plans, model illustrative shipping savings, and understand software fees and shipping charges.">
+<meta name="description" content="Compare EasyInvio Starter, Velocity and Command plans, review included features, and understand software fees and shipping charges.">
 <link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/ask-easyinvio.css">
 <style>
 :root{--ink:#0f172a;--muted:#526174;--line:#dce3ed;--accent:#4f46e5;--green:#10b981;--nav-offset:96px}
@@ -83,29 +83,7 @@ h1{font-size:clamp(36px,4.3vw,58px);line-height:1.08;letter-spacing:-.05em;max-w
 .check{width:16px;height:16px;flex-shrink:0;color:#059669;margin-top:3px}
 .tier li strong{font-weight:650}
 .tier .tier-end{margin-top:auto;padding-top:18px;font-size:11px;line-height:1.7;color:#64748b}
-.soon{display:inline-block;font-size:9px;font-weight:650;padding:3px 6px;border-radius:4px;background:#fff7ed;color:#9a3412;margin:3px 0}
 .tier-section{padding-bottom:60px}
-
-.estimator{background:#0f172a;color:#f1f5f9}
-.estimator .eyebrow{color:#a5b4fc}
-.estimator .intro{color:#b4c5dc}
-.estimate-layout{display:grid;grid-template-columns:1.2fr 1fr;gap:44px;margin-top:30px}
-.range-title{display:flex;justify-content:space-between;align-items:center;gap:20px;font-size:14px}
-.range-title output{font-size:26px;font-weight:700;color:#6ee7b7}
-.range{width:100%;accent-color:#34d399;margin:25px 0 8px;min-height:36px}
-.range-ends{display:flex;justify-content:space-between;color:#94a3b8;font-size:11px}
-.assumptions{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:25px}
-.assumptions label{display:block;font-size:12px;color:#cbd5e1}
-.assumptions input{display:block;width:100%;background:#172238;border:1px solid #475569;border-radius:6px;color:#f1f5f9;padding:11px;margin-top:8px;min-height:44px}
-.estimate-results{padding:26px;background:#101e32;border:1px solid #3c4c68;border-radius:12px;position:relative}
-.estimate-results .tag{color:#c7d2fe;font-size:11px}
-.estimate-results h3{font-size:25px;margin:9px 0 18px}
-.saving{font-size:40px;font-weight:700;color:#6ee7b7;letter-spacing:-.04em;overflow-wrap:anywhere}
-.saving small{display:block;font-size:11px;letter-spacing:0;color:#b4c5dc;font-weight:400;margin-top:6px}
-.estimate-line{display:flex;justify-content:space-between;gap:15px;font-size:12px;color:#cbd5e1;border-top:1px solid #334155;margin-top:14px;padding-top:12px}
-.estimate-results .btn{margin-top:22px;width:100%}
-.estimator .notice{color:#94a3b8;max-width:980px}
-.estimate-error{color:#fda4af;font-size:12px;min-height:20px;margin-top:12px}
 
 .compare-heading{display:flex;align-items:end;justify-content:space-between;gap:30px}
 .compare-heading p{max-width:430px}
@@ -161,14 +139,13 @@ h1{font-size:clamp(36px,4.3vw,58px);line-height:1.08;letter-spacing:-.05em;max-w
 .nav-links{gap:15px}
 .nav .brand-name{font-size:22px}
 .nav .brand-tagline{font-size:6px}
-.estimate-layout{gap:24px}
 .faq-layout{gap:30px}
 }
 
 @media(max-width:800px){.tiers{grid-template-columns:1fr}
 .tier-description,.bill-detail{min-height:0}
 .tier ul{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
-.estimate-layout,.faq-layout{grid-template-columns:1fr}
+.faq-layout{grid-template-columns:1fr}
 .compare-heading{display:block}
 .compare-heading p{max-width:700px}
 .closing-panel{display:block}
@@ -218,6 +195,42 @@ h1{font-size:39px}
 .comparison-table{border-collapse:separate;border-spacing:0}
 .comparison-table thead th{position:sticky;top:0;z-index:3}
 .comparison-table thead th:first-child{top:0;z-index:4}
+</style><style>
+/* Public pricing follows the landing page's slate, indigo and emerald palette. */
+:root{color-scheme:dark;--ink:#f1f5f9;--muted:#b4c5dc;--line:#263249;--accent:#818cf8}
+body{background:#0f172a;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.pricing-hero{padding:54px 0 28px;background:radial-gradient(ellipse at 76% 15%,#28225c44,transparent 55%),#0f172a}
+.pricing-hero .lead,.tier-description,.bill-detail,.trust-strip,.faq-list details p{color:#b4c5dc}
+.eyebrow{color:#a5b4fc}
+.notice,.commercial-note,.compare-hint,.tier .tier-end,.tier-price small,.comparison-table small{color:#94a3b8}
+.btn{background:#172238;border-color:#334155;color:#e2e8f0}
+.btn-indigo,.btn-dark{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.billing-tabs{background:#172238;border-color:#334155}
+.billing-tabs button{color:#b4c5dc}
+.billing-tabs button[aria-pressed=true]{background:#4338ca;color:#fff;box-shadow:none}
+.annual-saving,.allowance-pill{background:#052e2b;border-color:#065f46;color:#6ee7b7}
+.tier-section{padding-bottom:44px}
+.tiers{margin-top:12px}
+.tier{background:#020617;border-color:#27354b}
+.tier.featured{border-color:#818cf8;box-shadow:0 10px 35px #0003}
+.tier .tag{background:#1e1b4b;color:#c7d2fe}
+.tier li{border-color:#263249}
+.check{color:#34d399}
+#compare{background:#020617;padding-block:52px}
+.comparison-scroll{background:#0f172a;border-color:#334155}
+.comparison-table th,.comparison-table td{border-color:#263249}
+.comparison-table td{color:#cbd5e1}
+.comparison-table td:nth-child(3){background:#191d37}
+.comparison-table .category th{background:#172238;color:#a5b4fc}
+.comparison-table tbody tr:not(.category)>th{background:#0f172a;box-shadow:1px 0 #263249}
+#faq{background:#0b1324}
+.faq-list details{background:#101b2e;border-color:#27354b}
+.closing{background:#0f172a}
+.ai-panel{background:#0f172a;color:#f1f5f9}
+.ai-head,.ai-panel form{border-color:#334155}
+.ai-panel textarea{background:#101a2e;border-color:#334155;color:#f1f5f9}
+.badge{background:#1e1b4b;border-color:#4338ca;color:#c7d2fe}
+@media(max-width:720px){.pricing-hero{padding-top:38px}.tier-section{padding-bottom:32px}#compare{padding-block:38px}}
 </style></head><body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav" id="nav"><div class="wrap nav-inner"><a class="wordmark" href="/" aria-label="EasyInvio.com home"><img class="brand-mark" src="/brand-mark.svg" alt="" width="96" height="112"><span class="brand-copy"><span class="brand-name">EasyInvio<em>.com</em></span><span class="brand-tagline">Shipping intelligence platform</span></span></a><button class="btn mobile-toggle" id="menu" aria-expanded="false" aria-controls="nav-links">Menu</button><nav class="nav-links" id="nav-links" aria-label="Main navigation"><a href="/#features">Features</a><a href="/#integrations">Integrations</a><a href="/pricing" aria-current="page">Pricing</a><a href="/login?mode=signin" id="public-signin" hidden>Sign in</a><a class="btn btn-indigo" href="/login?mode=signup" id="public-register" hidden>Create an account</a><span id="public-session-status" class="notice" role="status">Checking account…</span><button type="button" id="public-session-retry" hidden>Retry account check</button><div id="public-account" hidden><details><summary id="public-account-name">Your workspace</summary><div class="account-menu"><a href="/workspace">Open workspace</a><button type="button" id="public-logout">Sign out</button></div></details>
@@ -225,12 +238,10 @@ h1{font-size:39px}
 <main id="main"><section class="pricing-hero"><div class="wrap"><div class="eyebrow">Simple plans. Clear shipping costs.</div><h1>Transparent shipping software pricing that scales with your volume.</h1><p class="lead">Start free forever. Upgrade to unlock wholesale carrier rates, conversational WhatsApp booking, and AI logistics intelligence.</p><div class="billing-control"><div class="billing-tabs" role="group" aria-label="Billing cycle"><button type="button" id="billing-monthly" data-billing="monthly" aria-pressed="true">Monthly</button><button type="button" id="billing-annual" data-billing="annual" aria-pressed="false">Annual</button></div><span class="annual-saving">Save 20% with annual billing</span></div><p class="trust-strip">No hidden per-tracking fees · Cancel anytime with 30-day notice · Wholesale UK &amp; global carrier rates</p><p class="commercial-note">Software prices in GBP, excluding applicable VAT. Shipping and third-party usage are charged separately. Paid plan activation and included allowances are confirmed during onboarding. Choosing a plan does not start a subscription or charge your wallet.</p></div></section>
 <section class="tier-section" aria-label="EasyInvio plans"><div class="wrap"><div class="tiers" id="plans"><article class="tier" aria-labelledby="plan-starter"><div class="tier-top"><h2 id="plan-starter">Starter</h2><span class="tag">Forever free</span></div><p class="tier-description">A clear starting point for occasional dispatch.</p><p class="allowance-pill">150 parcels/mo included · £0.15 published overage/parcel</p><div class="tier-price"><span data-plan-price="starter">£0</span><small> / month</small></div><p class="bill-detail" data-bill-detail="starter">£0 software subscription, forever.</p><a class="btn " data-plan-link="starter" href="/login?mode=signup&amp;plan=starter">Start Free <span aria-hidden="true">↗</span></a><ul><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span><strong>Up to 150 parcels / month</strong></span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>1 workspace user</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Multi-carrier live rate comparison &amp; configured UK PAF lookup</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Core parcel tracking &amp; secure public tracking portal</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Prepaid Stripe wallet with a double-entry ledger</span></li></ul><p class="tier-end">Shipping, address lookup and third-party usage charges may apply separately.</p></article>
 <article class="tier featured" aria-labelledby="plan-velocity"><div class="tier-top"><h2 id="plan-velocity">Velocity</h2><span class="tag">Recommended</span></div><p class="tier-description">Connected dispatch for a growing shipping operation.</p><p class="allowance-pill">2,000 parcels/mo included · £0.05 published overage/parcel</p><div class="tier-price"><span data-plan-price="velocity">£25</span><small> / month</small></div><p class="bill-detail" data-bill-detail="velocity">£25 billed monthly.</p><a class="btn btn-indigo" data-plan-link="velocity" href="/login?mode=signup&amp;plan=velocity">Choose Velocity <span aria-hidden="true">↗</span></a><ul><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span><strong>Up to 2,000 parcels / month included</strong></span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Up to 3 workspace users: Owner, Dispatcher and Accountant roles</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Eligible discounted wholesale carrier rates</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>2 connected stores from our 24-platform directory; native APIs or signed bridges</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Conversational WhatsApp booking &amp; eligible paperless QR drop-off</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Hosted store-branded returns portal &amp; authorized paperless WhatsApp returns</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>AI Carrier Advisor, Return Policy Copilot &amp; recorded delay-risk alerts</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>End-of-day collection manifests where supported</span></li><li><span>Custom Website HMAC REST API &amp; checkout rates</span></li><li><span>Merchant-branded tracking &amp; consented buyer milestone alerts</span></li><li><span>Itemized monthly PDF &amp; CSV billing statements</span></li></ul><p class="tier-end">Services require approved connections. New Admin invitations are not offered; existing legacy Admin access remains unchanged.</p></article>
-<article class="tier" aria-labelledby="plan-command"><div class="tier-top"><h2 id="plan-command">Command</h2><span class="tag">Scale with control</span></div><p class="tier-description">More capacity, integrations and operational control.</p><p class="allowance-pill">4,000 parcels/mo included · £0.02 published overage/parcel</p><div class="tier-price"><span data-plan-price="command">£75</span><small> / month</small></div><p class="bill-detail" data-bill-detail="command">£75 billed monthly.</p><a class="btn " data-plan-link="command" href="/login?mode=signup&amp;plan=command">Choose Command <span aria-hidden="true">↗</span></a><ul><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span><strong>4,000 parcels / month included; higher volume by agreement</strong></span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Up to 10 workspace users with role-based governance</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Eligible direct-carrier rates &amp; bring your own carrier contract</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>5 connected stores from our 24-platform directory; live write-back where supported</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Full configured AI suite, custom margin rules &amp; review-required HS guidance</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Available ledger exports; comprehensive tax exports <span class="soon">Planned</span></span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>30-day postpaid billing <span class="soon">Planned · not available at signup</span></span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Dedicated account manager &amp; priority onboarding by agreement</span></li><li><span>Custom Website HMAC REST API &amp; checkout rates</span></li><li><span>Merchant-branded tracking &amp; consented buyer milestone alerts</span></li><li><span>Itemized monthly PDF &amp; CSV billing statements</span></li></ul><p class="tier-end">Direct-carrier access and account support are confirmed during onboarding. Postpaid service requires a separate future credit agreement.</p></article>
+<article class="tier" aria-labelledby="plan-command"><div class="tier-top"><h2 id="plan-command">Command</h2><span class="tag">Scale with control</span></div><p class="tier-description">More capacity, integrations and operational control.</p><p class="allowance-pill">4,000 parcels/mo included · £0.02 published overage/parcel</p><div class="tier-price"><span data-plan-price="command">£75</span><small> / month</small></div><p class="bill-detail" data-bill-detail="command">£75 billed monthly.</p><a class="btn " data-plan-link="command" href="/login?mode=signup&amp;plan=command">Choose Command <span aria-hidden="true">↗</span></a><ul><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span><strong>4,000 parcels / month included; higher volume by agreement</strong></span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Up to 10 workspace users with role-based governance</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Eligible direct-carrier rates &amp; bring your own carrier contract</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>5 connected stores from our 24-platform directory; live write-back where supported</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Full configured AI suite, custom margin rules &amp; review-required HS guidance</span></li><li><svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span>Dedicated account manager &amp; priority onboarding by agreement</span></li><li><span>Custom Website HMAC REST API &amp; checkout rates</span></li><li><span>Merchant-branded tracking &amp; consented buyer milestone alerts</span></li><li><span>Itemized monthly PDF &amp; CSV billing statements</span></li></ul><p class="tier-end">Direct-carrier access and account support are confirmed during onboarding. Postpaid service requires a separate future credit agreement.</p></article>
 </div><p class="notice" style="margin-top:20px">Allowances shown are the commercial plan specification, confirmed on activation. Carrier eligibility, approved API access and sufficient recorded history determine available services. Tracking refresh follows carrier events and enabled polling; it is not a guaranteed continuous live feed.</p></div></section>
 
-<section class="section estimator" id="estimator" aria-labelledby="estimator-title"><div class="wrap"><div class="eyebrow">Model your own assumptions</div><h2 id="estimator-title">Find your fit.<br>Make the numbers visible.</h2><p class="intro">Adjust monthly volume and assumed average postage costs to model a plan. This illustration does not query carriers, promise discounts or offer bookable rates.</p><div class="estimate-layout"><div><div class="range-title"><label for="parcel-volume">Monthly parcel volume</label><output id="volume-output" for="parcel-volume">500 parcels</output></div><input class="range" id="parcel-volume" type="range" min="50" max="6000" step="1" value="500"><div class="range-ends"><span>50 parcels</span><span>6,000 parcels</span></div><div class="assumptions"><label for="retail-price">Assumed retail postage / parcel (£)<input id="retail-price" type="number" inputmode="decimal" min="0" max="1000" step="0.01" value="5.00"></label><label for="connected-price">Assumed connected rate / parcel (£)<input id="connected-price" type="number" inputmode="decimal" min="0" max="1000" step="0.01" value="4.50"></label></div><p class="estimate-error" id="estimate-error" role="status"></p></div><div class="estimate-results" id="estimate-results" aria-live="polite" aria-atomic="true"><span class="tag">Suggested volume fit</span><h3 id="recommended-plan">Velocity</h3><div class="saving"><span id="net-saving">£225.00</span><small id="saving-label">Illustrative net monthly saving after software fee</small></div><div class="estimate-line"><span>Assumed postage difference</span><strong id="gross-saving">£250.00</strong></div><div class="estimate-line"><span id="fee-label">Monthly software + overage</span><strong id="software-fee">£25.00</strong></div><p class="notice" id="capacity-note">Up to 2,000 parcels / month, subject to plan activation.</p><a class="btn btn-indigo" id="estimate-cta" href="/login?mode=signup&amp;plan=velocity">Explore Velocity <span aria-hidden="true">↗</span></a></div></div><p class="notice" style="margin-top:24px">Illustrative calculation: (your retail assumption − your connected-rate assumption) × monthly parcels − the selected plan's software fee and per-parcel overage. Annual plans use the monthly equivalent, paid upfront for the year. Inputs are examples, not confirmed retail averages or EasyInvio rates. Overage is modeled at published rates; collection requires activation and Starter currently has a 150-parcel limit. VAT, surcharges, messaging, customs, duties, address lookup and optional services are excluded. A negative result means higher modeled cost, not a saving. Actual results depend on your parcel mix and contracts.</p></div></section>
-
-<section class="section" id="compare" aria-labelledby="compare-title"><div class="wrap"><div class="compare-heading"><div><div class="eyebrow">The detail, side by side</div><h2 id="compare-title">Compare every part<br>of the shipping workflow.</h2></div><p class="intro">Check the plan scope, not just the headline price. Planned services are clearly marked and cannot be activated by choosing a plan.</p></div><div class="comparison-scroll" tabindex="0" role="region" aria-label="Plan feature comparison, horizontally scrollable"><table class="comparison-table"><caption class="sr-only">Starter, Velocity and Command feature comparison</caption><thead><tr><th scope="col">Feature</th><th scope="col">Starter (£0)</th><th scope="col">Velocity (<span data-compare-price="velocity">£25</span>/mo)</th><th scope="col">Command (<span data-compare-price="command">£75</span>/mo)</th></tr></thead><tbody>
+<section class="section" id="compare" aria-labelledby="compare-title"><div class="wrap"><div class="compare-heading"><div><div class="eyebrow">The detail, side by side</div><h2 id="compare-title">Compare every part<br>of the shipping workflow.</h2></div><p class="intro">Compare the features and allowances included in each plan.</p></div><div class="comparison-scroll" tabindex="0" role="region" aria-label="Plan feature comparison, horizontally scrollable"><table class="comparison-table"><caption class="sr-only">Starter, Velocity and Command feature comparison</caption><thead><tr><th scope="col">Feature</th><th scope="col">Starter (£0)</th><th scope="col">Velocity (<span data-compare-price="velocity">£25</span>/mo)</th><th scope="col">Command (<span data-compare-price="command">£75</span>/mo)</th></tr></thead><tbody>
 <tr class="category"><th colspan="4" scope="colgroup">Shipping, Rating &amp; Labels</th></tr>
 <tr><th scope="row">Included parcels / month</th><td>150</td><td>2,000</td><td>4,000; higher volume available</td></tr>
 <tr><th scope="row">Published per-parcel overage</th><td>£0.15</td><td>£0.05</td><td>£0.02</td></tr>
@@ -270,7 +281,7 @@ h1{font-size:39px}
 <tr><th scope="row">Stripe prepaid wallet &amp; ledger</th><td>Included</td><td>Included</td><td>Included</td></tr>
 <tr><th scope="row">Itemized monthly PDF / CSV statements</th><td>When statement access enabled</td><td>When statement access enabled</td><td>When statement access enabled</td></tr>
 <tr><th scope="row">Custom margin rules</th><td>—</td><td>—</td><td>By agreement</td></tr>
-<tr><th scope="row">VAT / tax ledger audit exports</th><td>—</td><td>—</td><td>Available ledger exports; full tax suite planned</td></tr>
+
 <tr><th scope="row">Dedicated account manager</th><td>—</td><td>—</td><td>By agreement</td></tr>
 </tbody></table></div><p class="compare-hint">On smaller screens, swipe the table or focus it and use the arrow keys. Shipping, messaging and third-party usage charges are separate from software fees.</p></div></section>
 
@@ -318,28 +329,10 @@ async function run(form,id,work){const btn=form.querySelector('button[type=submi
 $('menu').onclick=()=>{const open=$('menu').getAttribute('aria-expanded')!=='true';$('menu').setAttribute('aria-expanded',String(open));$('nav-links').classList.toggle('open',open);};
 $('nav-links').addEventListener('click',event=>{if(event.target.closest('a')){$('menu').setAttribute('aria-expanded','false');$('nav-links').classList.remove('open');}});
 $('year').textContent=new Date().getFullYear();
-const planPrices=Object.freeze({starter:{name:'Starter',monthly:0,annual:0,included:150,overagePence:15},velocity:{name:'Velocity',monthly:25,annual:20,included:2000,overagePence:5},command:{name:'Command',monthly:75,annual:60,included:4000,overagePence:2}});
+const planPrices=Object.freeze({starter:{monthly:0,annual:0},velocity:{monthly:25,annual:20},command:{monthly:75,annual:60}});
 let billing='monthly';
 const money=value=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(value);
 function planHref(key){return '/login?mode=signup&plan='+key+'&cycle='+billing;}
-function calculateEstimate(){
- const volume=Number($('parcel-volume').value),retail=Number($('retail-price').value),connected=Number($('connected-price').value);
- $('volume-output').textContent=volume.toLocaleString('en-GB')+' parcels';
- const invalid=['retail-price','connected-price'].some(id=>$(id).value.trim()===''||!$(id).validity.valid)||![volume,retail,connected].every(Number.isFinite);
- $('estimate-error').textContent=invalid?'Enter valid postage assumptions between £0 and £1,000.':'';
- $('estimate-results').hidden=invalid;if(invalid)return;
- const key=volume<=150?'starter':volume<=2000?'velocity':'command',plan=planPrices[key];
- const overagePence=Math.max(0,volume-plan.included)*plan.overagePence,fee=(plan[billing]*100+overagePence)/100;
- // Penny arithmetic; this is a local illustration, not a quote or financial ledger.
- const gross=(Math.round(retail*100)-Math.round(connected*100))*volume/100,net=gross-fee;
- $('recommended-plan').textContent=plan.name;
- $('gross-saving').textContent=money(gross);$('software-fee').textContent=money(fee);
- $('fee-label').textContent=billing==='annual'?'Software + overage (monthly equivalent)':'Monthly software + overage';
- $('net-saving').textContent=money(Math.abs(net));
- $('saving-label').textContent=net<0?'Illustrative additional monthly cost after software fee':'Illustrative net monthly saving after software fee';
- $('capacity-note').textContent=plan.included.toLocaleString('en-GB')+' included parcels; '+Math.max(0,volume-plan.included).toLocaleString('en-GB')+' extra at '+money(plan.overagePence/100)+' each ('+money(overagePence/100)+' overage).';
- const cta=$('estimate-cta');cta.href=planHref(key);cta.textContent='Explore '+plan.name+' ↗';
-}
 function setBilling(cycle){
  billing=cycle;
  document.querySelectorAll('[data-billing]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.billing===cycle)));
@@ -349,10 +342,8 @@ function setBilling(cycle){
   document.querySelector('[data-bill-detail="'+key+'"]').textContent=key==='starter'?'£0 software subscription, forever.':cycle==='annual'?money(plan.annual*12)+' billed annually · '+((1-plan.annual/plan.monthly)*100).toFixed(1)+'% less than monthly billing.':money(plan.monthly)+' billed monthly.';
   document.querySelectorAll('[data-plan-link="'+key+'"]').forEach(link=>link.href=planHref(key));
  }
- calculateEstimate();
 }
 document.querySelectorAll('[data-billing]').forEach(button=>button.onclick=()=>setBilling(button.dataset.billing));
-['parcel-volume','retail-price','connected-price'].forEach(id=>$(id).addEventListener('input',calculateEstimate));
 setBilling('monthly');
 document.querySelectorAll('.faq-list details').forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.open)document.querySelectorAll('.faq-list details').forEach(other=>{if(other!==detail)other.open=false;});}));
 let previousFocus;function closeAI(){$('ai-panel').hidden=true;$('ai-backdrop').hidden=true;$('ai-open').setAttribute('aria-expanded','false');document.body.style.overflow='';$('main').inert=false;$('nav').inert=false;document.querySelector('footer').inert=false;previousFocus?.focus();}
