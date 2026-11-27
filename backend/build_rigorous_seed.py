@@ -184,9 +184,7 @@ BEGIN
         CASE WHEN is_customs THEN uid END,CASE WHEN is_customs THEN occur-interval '30 minutes' END,
         CASE WHEN j IN (3,4,5,6) THEN occur END,CASE WHEN j IN (4,5,6) THEN occur+interval '1 hour' END,
         CASE WHEN j=5 THEN occur+interval '2 days' END,CASE WHEN j IN (4,5,6) THEN occur+interval '2 days' END,
-        jsonb_build_object('fixture_batch','veloce-rigorous-v1','synthetic',true,'carrier',CASE WHEN j IN (4,7) THEN 'LOCAL_SEED' ELSE (ARRAY['DHL','UPS','DPD'])[1+(i+j)%3] END,'destination',dest,'stackable',cargo<>'PALLET',
-          'invoice_baseline',jsonb_build_object('currency',cur,'billable_weight_kg',CASE cargo WHEN 'LETTER' THEN '0.100' WHEN 'PALLET' THEN '700.000' WHEN 'OVERLAND_FREIGHT' THEN '900.000' ELSE '4.800' END,
-            'base_cost',(base-3.50-CASE WHEN dest='US' THEN 2.00 ELSE 0 END)::text,'fuel_surcharge','2.50','remote_area_fee',CASE WHEN dest='US' THEN '2.00' ELSE '0.00' END,'residential_fee','1.00')),
+        jsonb_build_object('fixture_batch','veloce-rigorous-v1','synthetic',true,'carrier',CASE WHEN j IN (4,7) THEN 'LOCAL_SEED' ELSE (ARRAY['DHL','UPS','DPD'])[1+(i+j)%3] END,'destination',dest,'stackable',cargo<>'PALLET'),
         md5('veloce-rigorous-v1:store:'||i||':'||(1+(j-1)%3))::uuid,'SEED24-STORE-ORDER-'||i||'-'||j,md5(sid::text)||md5(sid::text),cargo,
         CASE WHEN j=5 THEN 'https://seed-pod.example.invalid/'||sid||'.jpg' END,occur-interval '2 hours');
     END LOOP;
@@ -290,9 +288,7 @@ DO $$ DECLARE n int; BEGIN
     RAISE EXCEPTION 'Wallet/ledger/reservation reconciliation failed';
   END IF;
   IF EXISTS(SELECT 1 FROM public.shipments s WHERE s.logistics_metadata->>'fixture_batch'='veloce-rigorous-v1'
-    AND (s.final_client_price<>s.wholesale_cost+s.profit_markup+s.tax_amount OR NOT veloce_private.valid_customs_items(s.customs_items)
-      OR (s.logistics_metadata->'invoice_baseline'->>'base_cost')::numeric+(s.logistics_metadata->'invoice_baseline'->>'fuel_surcharge')::numeric+
-         (s.logistics_metadata->'invoice_baseline'->>'remote_area_fee')::numeric+(s.logistics_metadata->'invoice_baseline'->>'residential_fee')::numeric<>s.wholesale_cost)) THEN RAISE EXCEPTION 'Financial/customs validation failed'; END IF;
+    AND (s.final_client_price<>s.wholesale_cost+s.profit_markup+s.tax_amount OR NOT veloce_private.valid_customs_items(s.customs_items))) THEN RAISE EXCEPTION 'Financial/customs validation failed'; END IF;
   -- Negative test: a cross-tenant carrier must be rejected by its composite FK.
   BEGIN
     UPDATE public.shipments SET carrier_account_id=md5('veloce-rigorous-v1:account:2:1')::uuid WHERE id=md5('veloce-rigorous-v1:shipment:1:1')::uuid;

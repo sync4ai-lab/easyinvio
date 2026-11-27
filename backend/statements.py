@@ -26,9 +26,17 @@ def period_bounds(start=None,end=None,*,now=None):
         end=first;start=(first.replace(year=first.year-1,month=12) if first.month==1 else first.replace(month=first.month-1))
     elif start is None or end is None:raise HTTPException(422,'Supply both period start and exclusive end')
     start,end=utc(start),utc(end)
-    if start>=end or (end-start).total_seconds()>32*86400 or end>now:
-        raise HTTPException(422,'Choose a completed period of at most 32 days; use Preview for the current month')
+    if start!=start.replace(day=1,hour=0,minute=0,second=0,microsecond=0):raise HTTPException(422,'Choose a completed calendar month')
+    next_month=start.replace(year=start.year+1,month=1) if start.month==12 else start.replace(month=start.month+1)
+    if end!=next_month or end>now:
+        raise HTTPException(422,'Choose a completed calendar month; use the activity view for custom dates')
     return start,end
+
+def statement_reference(start: datetime | str, end: datetime | str) -> str:
+    from datetime import timedelta
+    if isinstance(start,str):start=datetime.fromisoformat(start)
+    if isinstance(end,str):end=datetime.fromisoformat(end)
+    return 'EI-'+utc(start).strftime('%d%m%Y')+'-'+(utc(end)-timedelta(microseconds=1)).strftime('%d%m%Y')
 
 def preview_bounds(start, end, *, now=None):
     """Read-only range; saved monthly statements retain their narrower boundary."""
@@ -41,7 +49,7 @@ def preview_bounds(start, end, *, now=None):
         raise HTTPException(422,'Choose an activity range of at most 366 days ending no later than now')
     return start,end
 
-def build_snapshot(tenant,currency,start,end,opening,ledger,external,invoices,events,disputes,*,reference='PREVIEW',refunds=()):
+def build_snapshot(tenant,currency,start,end,opening,ledger,external,invoices,events,*,reference='PREVIEW',refunds=()):
     opening=money(opening);running=opening;lines=[];carriers={};tax_complete=True
     totals={key:Decimal(0) for key in ('total_topups','subscription_net','shipping_net','refunds_net','tax_total','gross_total','other_wallet_credits','other_wallet_debits','unclassified_gross')}
     def line(identifier,at,kind,gross,net,tax,wallet_delta=0,**extra):
@@ -132,7 +140,7 @@ def build_snapshot(tenant,currency,start,end,opening,ledger,external,invoices,ev
         **{key:money(value) for key,value in totals.items()},'tax_complete':tax_complete,
         'carrier_summary':[{**r,**{key:money(r[key]) for key in ('net','tax','gross')}} for r in carriers.values()],'transactions':lines,
         'plan_and_proration':[{**{k:row[k] for k in ('event_type','amount','effective_at','created_at')},'breakdown':decoded(row['breakdown'])} for row in events],
-        'disputes':disputes,'notice':'Account activity statement, not a VAT invoice. Recorded tax only; missing tax is not treated as zero. Top-ups fund your wallet and are not purchases. Stripe subscription charges do not debit your wallet. Dispute estimates and projected overages are not refunds or charges. Late postings appear in the period they are recorded.'})
+        'notice':'Activity summary, not a VAT invoice. VAT is shown where recorded.'})
 
 class StatementService:
     def __init__(self,pool,settings):self.pool=pool;self.settings=settings
@@ -144,8 +152,8 @@ class StatementService:
         self.ready(context)
         async with self.pool.acquire() as c:
             rows=await c.fetch('''SELECT id,statement_number,period_start,period_end,currency,gross_total,closing_balance,created_at
-             FROM public.billing_statements WHERE tenant_id=$1 ORDER BY period_start DESC,id DESC LIMIT 100''',context.tenant_id)
-        return {'statements':document([dict(r) for r in rows])}
+             FROM public.billing_statements WHERE tenant_id=$1 AND period_start=date_trunc('month',period_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AND period_end=(date_trunc('month',period_start AT TIME ZONE 'UTC')+interval '1 month') AT TIME ZONE 'UTC' ORDER BY period_start DESC,id DESC LIMIT 100''',context.tenant_id)
+        return {'statements':document([{**dict(r),'display_reference':statement_reference(r['period_start'],r['period_end'])} for r in rows])}
 
     async def detail(self,context,statement_id):
         self.ready(context)
@@ -154,7 +162,7 @@ class StatementService:
         snapshot=decoded(row['statement_snapshot'])
         if hashlib.sha256(json.dumps(snapshot,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=row['snapshot_sha256']:
             raise HTTPException(409,'Statement integrity requires review')
-        return snapshot
+        return {**snapshot,'display_reference':statement_reference(datetime.fromisoformat(snapshot['period_start']),datetime.fromisoformat(snapshot['period_end']))}
 
     async def generate(self,context,start=None,end=None,currency='GBP',*,preview=False):
         # A stable database snapshot keeps balances and transaction rows coherent.
@@ -200,13 +208,11 @@ class StatementService:
                 refunds=await c.fetch("SELECT * FROM public.subscription_refunds WHERE tenant_id=$1 AND state='SUCCEEDED' AND settled_at>=$2 AND settled_at<$3 ORDER BY settled_at,id LIMIT 10001",context.tenant_id,start,end) if currency=='GBP' else []
                 events=await c.fetch('''SELECT event_type,amount,effective_at,breakdown,created_at FROM public.subscription_change_events
                  WHERE tenant_id=$1 AND created_at>=$2 AND created_at<$3 ORDER BY created_at,id LIMIT 10001''',context.tenant_id,start,end) if currency=='GBP' else []
-                disputes=await c.fetch('''SELECT status,count(*) AS count,sum(estimated_overcharge)::text AS estimated_overcharge
-                 FROM public.billing_disputes WHERE tenant_id=$1 AND currency=$2 AND created_at>=$3 AND created_at<$4 GROUP BY status''',context.tenant_id,currency,start,end)
                 if len(ledger)+len(external)+len(invoices)+len(refunds)>LIMIT or len(events)>LIMIT:raise HTTPException(422,'Choose a shorter statement period; maximum 10,000 financial lines')
-                sid=uuid4();reference='PREVIEW' if preview else 'EI-'+start.strftime('%Y%m')+'-'+sid.hex[:20].upper()
+                sid=uuid4();reference=statement_reference(start,end) if preview else 'EI-'+start.strftime('%Y%m')+'-'+sid.hex[:20].upper()
                 snapshot=build_snapshot(dict(tenant),currency,start,end,opening,[dict(r) for r in ledger],[dict(r) for r in external],
-                    [dict(r) for r in invoices],[dict(r) for r in events],[dict(r) for r in disputes],reference=reference,refunds=[dict(r) for r in refunds])
-                snapshot['id']=str(sid) if not preview else None;snapshot['preview']=preview
+                    [dict(r) for r in invoices],[dict(r) for r in events],reference=reference,refunds=[dict(r) for r in refunds])
+                snapshot['id']=str(sid) if not preview else None;snapshot['preview']=preview;snapshot['display_reference']=statement_reference(start,end)
                 snapshot['wallet_currency_applicable']=bool(wallet and wallet['currency']==currency)
                 if not preview:
                     canonical=json.dumps(snapshot,sort_keys=True,separators=(',',':'));digest=hashlib.sha256(canonical.encode()).hexdigest()
@@ -217,6 +223,7 @@ class StatementService:
                 return snapshot
 
 def statement_csv(snapshot):
+    snapshot={**snapshot,'statement_number':snapshot.get('display_reference') or statement_reference(datetime.fromisoformat(snapshot['period_start']),datetime.fromisoformat(snapshot['period_end']))}
     stream=io.StringIO(newline='');w=csv.writer(stream)
     w.writerow(['Statement',snapshot['statement_number']]);w.writerow(['Currency',snapshot['currency']])
     w.writerow(['Date UTC','Type','Reference','Shipment','Tracking','Carrier','Route','Net','Tax','Gross','Wallet change','Wallet balance','Funding'])
@@ -229,6 +236,7 @@ def statement_csv(snapshot):
     return stream.getvalue().encode('utf-8-sig')
 
 def statement_pdf(snapshot):
+    snapshot={**snapshot,'statement_number':snapshot.get('display_reference') or statement_reference(datetime.fromisoformat(snapshot['period_start']),datetime.fromisoformat(snapshot['period_end']))}
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle

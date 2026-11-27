@@ -100,8 +100,6 @@ main table td{word-break:normal}
 .finance-pill{display:inline-block;white-space:nowrap;border-radius:20px;background:#1e293b;padding:5px 8px;font-size:11px;font-weight:700}
 .finance-pill[data-type=TOPUP],.finance-pill[data-type=SHIPMENT_REFUND]{background:#064e3b;color:#a7f3d0}
 .finance-pill[data-type=SUBSCRIPTION_DEBIT]{background:#312e81;color:#e0e7ff}
-#invoice-audit-panel{margin-top:24px}#invoice-audit-panel form{display:grid;gap:14px;max-width:850px}
-#invoice-audit-panel .finance-table td:last-child{min-width:200px}#invoice-audit-panel .finance-table button{margin:0 6px 8px 0}
 .enterprise-statement{margin:24px 0;padding:22px;border:1px solid #334155;border-radius:14px}
 .enterprise-statement header{border-bottom:2px solid #10b981;padding-bottom:16px;margin-bottom:20px}
 .enterprise-statement h3{margin:22px 0 12px}
@@ -117,5 +115,4 @@ main table td{word-break:normal}
 #wallet .billing-toolbar,#wallet .button-row,#manifest .finance-return-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0}
 #wallet .billing-toolbar[hidden],#wallet .button-row[hidden],#manifest .finance-return-actions[hidden]{display:none}
 #wallet .finance-table td:last-child button{margin:4px 8px 4px 0}
-#invoice-disputes-refresh{margin-top:18px}
 #wallet #billing-statements button{margin-right:12px}

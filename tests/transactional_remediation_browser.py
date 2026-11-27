@@ -49,22 +49,14 @@ async def run():
         prior=counts['orders'];sockets[-1].send(json.dumps({'type':'shipment_changed','shipment_id':str(uuid4()),'status':'EXCEPTION'}))
         await page.wait_for_timeout(700);assert counts['orders']>prior
         await page.evaluate("setView('wallet');refreshEnterpriseNavigation()")
-        await expect(page.locator('#invoice-audit-panel')).to_be_visible()
-        await page.locator('#invoice-upload-form [name=invoice_reference]').fill('QA-STATEMENT-1')
-        await page.locator('#invoice-upload-form [name=file]').set_input_files({'name':'statement.csv','mimeType':'text/csv','buffer':b'upstream_shipment_id,currency,invoice_weight_kg,wholesale_cost,residential_fee\nQA-NATIVE-1,GBP,1.2,20,3\n'})
-        await page.locator('#invoice-upload-form [type=submit]').click()
-        await expect(page.locator('#invoice-audit-result')).to_contain_text('FLAGGED')
-        assert counts['uploads']==1
-        await page.locator('#invoice-disputes-refresh').click()
-        await expect(page.locator('#invoice-audit-result')).to_contain_text('QA-STATEMENT-1')
+        assert await page.locator('#invoice-audit-panel').count()==0
         for width in [375,768,1366]:
             await page.set_viewport_size({'width':width,'height':1000})
             assert await page.evaluate('document.documentElement.scrollWidth-innerWidth')<=1
         await page.evaluate("state.session=null;portal.profile=null;refreshEnterpriseNavigation()")
         assert await page.evaluate('dispatchLive.socket===null')
-        assert await page.locator('#invoice-audit-result').inner_text()==''
         assert not errors,errors
         await browser.close()
-    print('Authenticated WebSocket contract, live inbox refresh, multipart audit, saved disputes, responsive layouts and logout clearing passed.')
+    print('Authenticated WebSocket contract, live inbox refresh, responsive layouts and logout clearing passed.')
 
 asyncio.run(run())

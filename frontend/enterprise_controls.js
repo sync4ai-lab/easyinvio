@@ -48,7 +48,7 @@ document.body.insertAdjacentHTML('beforeend', `
 </form></dialog>
 <dialog id="store-admin-dialog"><button class="close" data-enterprise-close="store-admin-dialog" aria-label="Close store form">×</button><h2>Register a workspace store</h2><form id="store-admin-form"><label>Display name<input name="display_name" required maxlength="200"></label><label>Platform<select name="platform"><option>SHOPIFY</option><option>WOOCOMMERCE</option><option>AMAZON</option></select></label><button class="primary full">Register store</button></form></dialog>
 <dialog id="retire-admin-dialog"><button class="close" data-enterprise-close="retire-admin-dialog" aria-label="Close retirement review">×</button><h2>Review configuration removal</h2><p id="retire-context" class="subtle"></p><p class="notice">This removes the configuration from active selection and preserves historical shipment references.</p><button id="retire-confirm" class="primary full">Retire configuration</button></dialog>
-<dialog id="exception-sheet" class="exception-sheet"><button class="close" data-enterprise-close="exception-sheet" aria-label="Close">×</button><div class="eyebrow">Proactive exception support</div><h2 id="exception-title"></h2><div class="notice" id="exception-summary"></div><div class="actions"><button class="secondary" id="exception-pod">View POD Token</button><button class="primary" id="exception-dispute">Auto-Draft Surcharge Dispute Ticket</button></div><p class="footnote">Review drafts before submission. No WhatsApp message or dispute is sent.</p></dialog>
+<dialog id="exception-sheet" class="exception-sheet"><button class="close" data-enterprise-close="exception-sheet" aria-label="Close">×</button><div class="eyebrow">Proactive exception support</div><h2 id="exception-title"></h2><div class="notice" id="exception-summary"></div><div class="actions"><button class="secondary" id="exception-pod">View POD Token</button></div><p class="footnote">Review drafts before submission. No WhatsApp message or dispute is sent.</p></dialog>
 `);
 const personaControls = $('#role-admin').parentElement;
 personaControls.classList.add('header-personas');
@@ -439,7 +439,6 @@ $('#manifest-body').addEventListener('click', event => {
         };
         $('#exception-title').textContent = (row.reference || row.id) + ' · EXCEPTION';
         $('#exception-summary').textContent = activeExceptionTicket.ai_summary;
-        $('#exception-dispute').hidden = portal.profile?.workspace_role === 'DISPATCHER';
         $('#exception-sheet').showModal();
     });
 });
@@ -448,7 +447,6 @@ $('#exception-pod').addEventListener('click', () => {
     $('#pod-content').innerHTML = url ? `<a class="primary" href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">Open carrier delivery proof</a>` : '<div class="notice">No carrier POD signature or photo has been supplied.</div>';
     $('#pod-dialog').showModal();
 });
-$('#exception-dispute').addEventListener('click', () => { $('#exception-sheet').close(); openDispute(activeExceptionTicket); });
 $('#hs-results').addEventListener('click', event => {
     const b = event.target.closest('[data-use-hs]'); if (!b) return;
     $('#qc-hs').value = b.dataset.useHs; $('#decl-hs').value = b.dataset.useHs;

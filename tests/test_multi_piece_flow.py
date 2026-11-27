@@ -104,12 +104,8 @@ class MultiPieceTests(unittest.IsolatedAsyncioTestCase):
 
     def test_duplicate_group_tracking_and_invoice_mass(self):
         from backend.multi_label import bundle_labels
-        from backend.invoice_upload import StatementLine,compare_line
         pieces=[{'upstream_id':str(index),'tracking_number':'DUPLICATE','label_url':'https://files.example.com/'+str(index)+'.pdf'} for index in range(2)]
         with self.assertRaises(PurchaseUncertain):bundle_labels(pieces,'group')
-        line=StatementLine(upstream_shipment_id='order_fixture',currency='GBP',invoice_weight_kg=Decimal('5.5'),wholesale_cost=Decimal('18'),residential_fee=Decimal('0'))
-        findings,baseline,amount,draft=compare_line(line,{'parcel_weight_kg':Decimal('3'),'multi_parcel_dimensions':boxes(),'wholesale_cost':Decimal('18'),'currency':'GBP','logistics_metadata':{}})
-        self.assertEqual(findings,[]);self.assertEqual(Decimal(baseline['parcel_weight_kg']),Decimal('5.5'))
 
     def test_reauthentication_requires_recent_verified_method_not_fresh_iat(self):
         request=SimpleNamespace(state=SimpleNamespace(platform_auth_claims={'iat':time.time()}))

@@ -112,23 +112,23 @@
  };
  let currentScope='',generation=0,quote=null,agreement=null,statement=null,capabilities=null,managing=false;
  const card=document.createElement('div');card.id='billing-workspace';card.className='card';card.hidden=true;
- card.innerHTML=`<h2>Your plan & billing</h2><p>See your current plan, review a change before confirming, and download statements.</p>
- <div class="billing-toolbar"><button type="button" class="primary" id="billing-manage">Manage your plan</button><button type="button" class="secondary" id="billing-compare">Compare plans</button><button type="button" class="secondary" id="billing-refresh">Reload billing details</button></div><p id="billing-status" role="status" aria-live="polite"></p>
+ card.innerHTML=`<h2>Your plan & billing</h2><p>Manage your plan and download statements.</p>
+ <div class="billing-toolbar"><button type="button" class="primary" id="billing-manage">Change plan</button><button type="button" class="secondary" id="billing-compare">Compare plans</button><button type="button" class="secondary" id="billing-refresh">Reload billing details</button></div><p id="billing-status" role="status" aria-live="polite"></p>
  <div id="billing-agreement"></div><div id="billing-change" hidden>
- <div class="billing-toolbar"><h3>Change or cancel your subscription</h3><button type="button" class="secondary" id="billing-management-close">Close plan details</button></div><p id="billing-management-note"></p>
+ <div class="billing-toolbar"><h3>Change plan</h3><button type="button" class="secondary" id="billing-management-close">Back</button></div><p id="billing-management-note"></p>
  <label for="billing-target">Choose a different plan<select id="billing-target"><option value="">Choose a plan…</option><option value="STARTER">Starter</option><option value="VELOCITY">Velocity</option><option value="COMMAND">Command</option></select></label>
  <p id="billing-selection-note" class="footnote"></p>
  <div class="billing-toolbar"><button type="button" class="primary" id="billing-plan-review" data-billing-action="UPGRADE" hidden>Review upgrade</button>
  <button type="button" class="secondary" id="billing-cancel" data-billing-action="CANCEL">Cancel current subscription</button></div>
  <div id="billing-quote" class="notice" hidden></div><button type="button" class="primary" id="billing-confirm" hidden>Confirm these terms</button></div>
  <dialog id="billing-comparison" aria-labelledby="billing-comparison-title"><div class="billing-toolbar"><h2 id="billing-comparison-title">Compare plans</h2><button type="button" id="billing-comparison-close" class="secondary">Close comparison</button></div><p>Compare features here. To change your subscription, use Manage your plan and review the exact price and effective date before confirming.</p><p class="footnote">On smaller screens, swipe the table sideways to see all three plans.</p><div id="billing-comparison-content"></div><p class="footnote">Software prices exclude applicable tax. Shipping and third-party usage are charged separately. Postpaid billing requires separate credit approval.</p></dialog>
- <h3>Itemized statements</h3><p class="footnote">Preview this month’s activity or download a completed-period statement. Statements summarize wallet funding, charges and refunds; use the original invoices for VAT.</p>
+ <h3>Itemized statements</h3><p class="footnote">View activity or download a monthly statement.</p>
  <div class="grid"><label>From (UTC)<input id="billing-from" type="date"></label><label>To (inclusive, UTC)<input id="billing-until" type="date"></label>
  <label>Currency<select id="billing-currency"><option>GBP</option><option>EUR</option><option>USD</option></select></label></div>
- <p class="footnote">View up to 366 days of activity and download PDF or CSV. Saved statements are fixed snapshots of completed periods, limited to 32 days to keep monthly reconciliation and exports manageable. Both views are limited to 10,000 transactions; use a shorter range for larger accounts.</p>
- <div class="button-row"><button type="button" class="secondary" id="billing-generate">View selected dates</button><button type="button" class="secondary" id="billing-save">Save completed monthly statement</button><button type="button" class="secondary" id="billing-preview">Preview current month</button></div>
+ <div class="button-row"><button type="button" class="primary" id="billing-generate">View date range</button><button type="button" class="secondary" id="billing-preview">Current month</button></div>
+ <details id="billing-previous"><summary>Previous Statements</summary><div class="billing-toolbar"><label>Month<input type="month" id="billing-month"></label><button type="button" class="secondary" id="billing-save">View monthly statement</button></div><div id="billing-statements"></div></details>
  <p id="billing-statement-status" role="status" aria-live="polite" tabindex="-1"></p>
- <div id="billing-statements"></div><div id="billing-statement"></div>`;
+ <div id="billing-statement"></div>`;
  const $=selector=>card.querySelector(selector);
  const status=message=>{$('#billing-status').textContent=message;};
  const statementButton=button=>['billing-generate','billing-preview','billing-save'].includes(button.id)||button.hasAttribute('data-statement-id')||button.hasAttribute('data-billing-export');
@@ -153,8 +153,8 @@
  const planName=value=>String(value??'').charAt(0)+String(value??'').slice(1).toLowerCase();
  function renderAgreement(data){agreement=data;quote=null;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;
   const s=data.subscription;
-  $('#billing-agreement').innerHTML=`<h3>Current plan: ${h(planName(s.subscription_plan))} · ${s.billing_cycle==='ANNUAL'?'Annual':'Monthly'}</h3><p>${h({ACTIVE:'Active',TRIALING:'Trial',PAST_DUE:'Payment overdue',CANCELLED:'Cancelled',PENDING_CANCELLATION:'Cancellation scheduled'}[s.plan_status]||s.plan_status)}${s.subscription_complimentary?' · Complimentary access':''}</p><p>${s.plan_period_end?'Current period: '+h(date(s.plan_period_start))+' to '+h(date(s.plan_period_end))+'.':'No paid renewal date is recorded for this account.'}</p>
-   ${data.management?.reason?`<p class="notice">${h(data.management.reason)}</p>`:''}
+  $('#billing-agreement').innerHTML=`<h3>Current plan: ${h(planName(s.subscription_plan))} · ${s.billing_cycle==='ANNUAL'?'Annual':'Monthly'}</h3><p>${h({ACTIVE:'Active',TRIALING:'Trial',PAST_DUE:'Payment overdue',CANCELLED:'Cancelled',PENDING_CANCELLATION:'Cancellation scheduled'}[s.plan_status]||s.plan_status)}${s.subscription_complimentary?(data.is_sandbox?' · Test workspace — no subscription charge':' · No subscription charge'):''}</p><p>${s.plan_period_end?'Current period: '+h(date(s.plan_period_start))+' to '+h(date(s.plan_period_end))+'.':''}</p>
+
    ${s.pending_plan?`<p>Scheduled ${h(s.pending_plan)} from ${h(date(s.pending_plan_effective_at))}.</p>`:''}
    ${s.cancellation_effective_at?`<p>Service ends ${h(date(s.cancellation_effective_at))}. Final notice amount: ${h(amount(s.final_notice_prorated_amount))} before applicable tax.</p>`:''}
    ${(data.operations||[]).filter(o=>['AUTHORIZED','PROVIDER_PENDING','PAID','SCHEDULED','REVIEW','FAILED'].includes(o.state)).map(o=>`<p>${h(o.action.toLowerCase().replaceAll('_',' '))}: ${h({AUTHORIZED:'Request received',PROVIDER_PENDING:'Awaiting payment or processing',PAID:'Payment received; applying change',SCHEDULED:'Scheduled',REVIEW:'Finance review needed',FAILED:'Not completed'}[o.state])}${safeInvoice(o.provider_url)?` · <a href="${h(o.provider_url)}" target="_blank" rel="noopener noreferrer">Review secure Stripe invoice</a>`:''}</p>`).join('')}`;
@@ -162,28 +162,28 @@
   $('#billing-change').hidden=!managing||!data.can_manage||capabilities?.subscription_changes_enabled===false;
   $('#billing-management-note').textContent=data.management?.reason||'Review your price adjustment and effective date before confirming. Choosing a plan does not charge you.';
   window.dispatchEvent(new CustomEvent('easyinvio-billing-loaded',{detail:data}));
-  const m=data.management||{},available=(m.upgrade_targets?.length||m.downgrade_targets?.length);
-  $('#billing-target').closest('label').hidden=!available;
-  $('#billing-cancel').hidden=!m.can_cancel;
+  const m=data.management||{},available=(m.upgrade_targets?.length||m.downgrade_targets?.length||m.activation_targets?.length);
+  $('#billing-target').closest('label').hidden=!available;for(const option of $('#billing-target').options)if(option.value)option.disabled=m.activation_targets?.length?!m.activation_targets.includes(option.value):false;
+  $('#billing-cancel').hidden=false;$('#billing-cancel').title=m.can_cancel?'Review cancellation':'No paid subscription to cancel';
   $('#billing-selection-note').hidden=!available;
   selection();
  }
  function selection(){
   quote=null;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;
   const target=$('#billing-target').value,m=agreement?.management,s=agreement?.subscription,button=$('#billing-plan-review');
-  const action=m?.upgrade_targets?.includes(target)?'UPGRADE':m?.downgrade_targets?.includes(target)?'DOWNGRADE':null;
-  button.hidden=!action;button.disabled=!action;if(action){button.dataset.billingAction=action;button.textContent='Review '+action.toLowerCase()+' to '+target.charAt(0)+target.slice(1).toLowerCase();}
+  const action=m?.activation_targets?.includes(target)?'ACTIVATE':m?.upgrade_targets?.includes(target)?'UPGRADE':m?.downgrade_targets?.includes(target)?'DOWNGRADE':null;
+  button.hidden=!action;button.disabled=!action;if(action){button.dataset.billingAction=action;button.textContent='Review '+(action==='ACTIVATE'?'subscription':action.toLowerCase())+' to '+target.charAt(0)+target.slice(1).toLowerCase();}
   $('#billing-cancel').disabled=!m?.can_cancel;
-  $('#billing-selection-note').textContent=!target?'Choose a plan to see the available action.':target===s?.subscription_plan?'You are already on this plan.':m?.reason||(!action?'This change is not available for the current agreement.':'You will see the amount and timing before confirming.');
+  $('#billing-selection-note').textContent=!target?'Choose a plan to see the available action.':target===s?.subscription_plan&&!m?.activation_targets?.includes(target)?'You are already on this plan.':m?.reason||(!action?'This change is not available for the current agreement.':'You will see the amount and timing before confirming.');
  }
  function comparison(){
   const plans=agreement?.plans||[];if(!plans.length)throw Error('Plan comparison is unavailable. Reload billing details and retry.');
-  const features=[['Workspace users',p=>p.max_users],['Included monthly parcels',p=>p.included_monthly_parcels],['Store connections',p=>p.max_store_connections],['WhatsApp booking','whatsapp_bot'],['Hosted store returns portal & paperless QR returns','paperless_qr_returns'],['24-platform sales directory & tracking write-back','store_integrations'],['Custom Website HMAC API & checkout rates','store_integrations'],['Branded tracking & consented buyer alerts','store_integrations'],['AI Return Policy Copilot','paperless_qr_returns'],['Invoice surcharge auditor','tax_ledger_audits'],['Itemized PDF / CSV statements',p=>'When enabled'],['Public tracking, PAF lookup & CSV batch',p=>'Included'],['Dedicated account manager',p=>p.plan==='COMMAND'?'By agreement':'Not included'],['AI carrier advisor','ai_carrier_advisor'],['End-of-day manifests','eod_manifests'],['Customs HS builder','customs_hs_builder'],['Custom margin rules','custom_margin_rules'],['Your own carrier contracts','byoc_carrier_accounts'],['Tax and ledger audit exports','tax_ledger_audits'],['Postpaid billing eligibility','postpaid_billing']];
+  const features=[['Workspace users',p=>p.max_users],['Included monthly parcels',p=>p.included_monthly_parcels],['Store connections',p=>p.max_store_connections],['WhatsApp booking','whatsapp_bot'],['Hosted store returns portal & paperless QR returns','paperless_qr_returns'],['24-platform sales directory & tracking write-back','store_integrations'],['Custom Website HMAC API & checkout rates','store_integrations'],['Branded tracking & consented buyer alerts','store_integrations'],['AI Return Policy Copilot','paperless_qr_returns'],['Itemized PDF / CSV statements',p=>'When enabled'],['Public tracking, PAF lookup & CSV batch',p=>'Included'],['Dedicated account manager',p=>p.plan==='COMMAND'?'By agreement':'Not included'],['AI carrier advisor','ai_carrier_advisor'],['End-of-day manifests','eod_manifests'],['Customs HS builder','customs_hs_builder'],['Custom margin rules','custom_margin_rules'],['Your own carrier contracts','byoc_carrier_accounts'],['Tax and ledger audit exports','tax_ledger_audits'],['Postpaid billing eligibility','postpaid_billing']];
   $('#billing-comparison-content').innerHTML=`<div class="responsive-table-scroll" tabindex="0" role="region" aria-label="Plan features"><table><thead><tr><th>Feature</th>${plans.map(p=>`<th>${h(p.plan)}${p.plan===agreement.subscription.subscription_plan?' · Current plan':''}</th>`).join('')}</tr></thead><tbody><tr><th>Monthly price</th>${plans.map(p=>`<td>${h(amount(p.monthly_fee_gbp))}/month</td>`).join('')}</tr><tr><th>Annual price</th>${plans.map(p=>`<td>${h(amount(p.annual_fee_gbp))}/year (${h(amount(p.annual_monthly_fee_gbp))}/month equivalent)</td>`).join('')}</tr>${features.map(([name,key])=>`<tr><th>${h(name)}</th>${plans.map(p=>`<td>${h(typeof key==='function'?key(p):p.features?.[key]?'Included':'Not included')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   $('#billing-comparison').showModal();$('#billing-comparison-close').focus();
  }
  function safeInvoice(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&['invoice.stripe.com','pay.stripe.com'].includes(u.hostname);}catch{return false;}}
- function renderList(data){window.dispatchEvent(new CustomEvent('easyinvio-statements-loaded',{detail:data}));$('#billing-statements').innerHTML=(data.statements||[]).map(s=>`<p><button type="button" class="secondary" data-statement-id="${h(s.id)}">${h(s.period_start?.slice(0,10))} through ${h(new Date(Date.parse(s.period_end)-1).toISOString().slice(0,10))}</button> Statement ${h(s.statement_number)} · ${h(s.currency)}</p>`).join('')||'<p class="subtle">No completed statements yet.</p>';}
+ function renderList(data){window.dispatchEvent(new CustomEvent('easyinvio-statements-loaded',{detail:data}));$('#billing-statements').innerHTML=(data.statements||[]).map(s=>`<p><button type="button" class="secondary" data-statement-id="${h(s.id)}">${h(new Date(s.period_start).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}))}</button> Statement ${h(s.display_reference||s.statement_number)} · ${h(s.currency)}</p>`).join('')||'<p class="subtle">No completed statements yet.</p>';}
  function renderStatement(data){statement=data;window.renderEnterpriseStatement($('#billing-statement'),data);$('#billing-statement').querySelector('[data-statement-close]').onclick=()=>{statement=null;$('#billing-statement').replaceChildren();$('#billing-generate').focus();};}
 
  async function refresh(key,epoch){const data=await api('/api/v1/billing/subscription',{auth:true});if(!valid(key,epoch))return;renderAgreement(data);
@@ -199,6 +199,14 @@
   if(!agreement?.can_manage)return;
   const action=button.dataset.billingAction,request={request_id:crypto.randomUUID(),funding:agreement.subscription.stripe_subscription_id?'STRIPE':'WALLET'};
   const m=agreement.management,target=$('#billing-target').value;
+  if(action==='ACTIVATE'){
+   if(!m.activation_targets?.includes(target))throw Error('Choose an available subscription.');
+   const plan=agreement.plans.find(p=>p.plan===target),cycle=agreement.subscription.billing_cycle||'MONTHLY';
+   const price=cycle==='ANNUAL'?plan.annual_fee_gbp:plan.monthly_fee_gbp;
+   quote={action,request:{request_id:crypto.randomUUID(),plan:target,cycle}};
+   $('#billing-quote').innerHTML=`<h3>${h(planName(target))} — ${h(amount(price))}/${cycle==='ANNUAL'?'year':'month'}</h3><p>New subscription; no previous subscription payment to prorate. Tax and final terms appear at secure checkout.${agreement.is_sandbox?' Test payments only for this sandbox workspace.':''}</p>`;
+   $('#billing-quote').hidden=false;$('#billing-confirm').hidden=false;$('#billing-confirm').textContent='Continue to secure checkout';$('#billing-confirm').disabled=agreement.activation_checkout_available?.[target]===false;status($('#billing-confirm').disabled?'Preview ready. Contact support to activate subscription billing.':'Review the new subscription. No payment has been made.');return;
+  }
   if(action==='CANCEL'?!m?.can_cancel:!(action==='UPGRADE'?m?.upgrade_targets:m?.downgrade_targets)?.includes(target))throw Error(m?.reason||'Choose an available change for this subscription.');
   if(action!=='CANCEL')request.target_plan=$('#billing-target').value;
   quote=null;$('#billing-confirm').hidden=true;
@@ -209,12 +217,16 @@
    ${action==='DOWNGRADE'?`<p>Current features remain until the period ends. Next period price: ${h(amount(b.next_period_price))} before applicable tax.${b.next_period_total?' Wallet total including configured tax: '+h(amount(b.next_period_total))+'.':''}</p>`:''}
    ${a?`<p>Annual discount removed. Elapsed usage at monthly prices: ${h(amount(a.usage_at_monthly_price))}. 30-day notice at monthly prices: ${h(amount(a.notice_at_monthly_price))}. Verified prepaid net: ${h(amount(a.verified_annual_prepaid_net))}.</p><p>Refund after service ends: ${h(amount(a.net_refund))} net, plus the corresponding original tax. Additional balance: ${h(amount(a.additional_balance_for_review))} net. Refunds go to the original payment source.</p>`:''}
    <p>Confirm only after reviewing these terms. Stripe charges require payment of the secure invoice; available wallet funds are debited for wallet-funded charges.</p>`;
-  $('#billing-quote').hidden=false;$('#billing-confirm').hidden=false;
+  $('#billing-quote').hidden=false;$('#billing-confirm').hidden=false;$('#billing-confirm').disabled=false;
   $('#billing-confirm').textContent=action==='CANCEL'?'Confirm cancellation':action==='DOWNGRADE'?'Confirm scheduled downgrade':'Confirm upgrade and payment terms';
   status(action==='CANCEL'?'Review the service end date and any notice charge or refund. Your subscription has not been cancelled yet.':'Review only. Your plan has not changed and no charge has been made.');
  })));
  $('#billing-confirm').addEventListener('click',e=>run(e.currentTarget,async(key,epoch)=>{
   const chosen=quote;if(!chosen)return;
+  if(chosen.action==='ACTIVATE'){
+   const data=await api('/api/v1/workspace/subscription/checkout',{method:'POST',auth:true,body:chosen.request});if(!valid(key,epoch))return;
+   const url=new URL(data.checkout_url);if(url.protocol!=='https:'||url.hostname!=='checkout.stripe.com'||url.username||url.password)throw Error('Unexpected checkout destination.');location.assign(url.href);return;
+  }
   const data=await api('/api/v1/billing/subscription/'+chosen.action.toLowerCase(),{method:'POST',auth:true,body:{...chosen.request,confirm:true,quote_sha256:chosen.data.payload_sha256}});
   if(!valid(key,epoch))return;quote=null;$('#billing-confirm').hidden=true;
   const confirmed=['APPLIED','SCHEDULED'].includes(data.state);
@@ -224,20 +236,19 @@
  for(const id of ['billing-generate','billing-preview','billing-save'])$('#'+id).addEventListener('click',e=>run(e.currentTarget,async(key,epoch)=>{
   const currency=$('#billing-currency').value;let data;
   if(id==='billing-preview')data=await api('/api/v1/billing/statements/preview?currency='+encodeURIComponent(currency),{auth:true});
-  else {
+  else if(id==='billing-save'){
+   const value=$('#billing-month').value;if(!/^\d{4}-\d{2}$/.test(value))throw Error('Choose a month.');
+   const [year,month]=value.split('-').map(Number);
+   data=await api('/api/v1/billing/statements/monthly',{auth:true,method:'POST',body:{year,month,currency}});
+  }else{
    const from=$('#billing-from').value,to=$('#billing-until').value,now=new Date();
    const start=Date.parse(from+'T00:00:00Z'),end=Date.parse(to+'T00:00:00Z')+86400000,days=(end-start)/86400000;
    if(!from||!to||!Number.isFinite(days)||days<1||days>366)throw Error('Choose a date range of 1 to 366 days.');
-   if(to>now.toISOString().slice(0,10))throw Error('Choose an end date no later than today (UTC).');
-   if(id==='billing-save'){
-    if(days>32||end>now.getTime())throw Error('Saved monthly statements need a completed range of 1 to 32 days. Use View selected dates for longer ranges or today.');
-    data=await api('/api/v1/billing/statements',{auth:true,method:'POST',body:{start:new Date(start).toISOString(),end:new Date(end).toISOString(),currency}});
-   }else{
-    const query=new URLSearchParams({currency,start:new Date(start).toISOString(),end:new Date(Math.min(end,now.getTime())).toISOString()});
-    data=await api('/api/v1/billing/statements/preview?'+query,{auth:true});
-   }
+   if(to>now.toISOString().slice(0,10))throw Error('Choose an end date no later than today.');
+   data=await api('/api/v1/billing/statements/preview?'+new URLSearchParams({currency,start:new Date(start).toISOString(),end:new Date(Math.min(end,now.getTime())).toISOString()}),{auth:true});
+   if(Date.parse(data.period_start)!==start||Date.parse(data.period_end)!==Math.min(end,now.getTime()))throw Error('Restart the local server to load date-range support, then retry.');
   }
-  if(valid(key,epoch)){if(id==='billing-preview'){$('#billing-from').value=data.period_start.slice(0,10);$('#billing-until').value=new Date(Date.parse(data.period_end)-1).toISOString().slice(0,10);}renderStatement(data);notice(id==='billing-save'?'Statement created and retained. Reload billing details to update the saved list.':'Activity loaded for the displayed dates. Download PDF or CSV below.',$('#'+id));$('#billing-statement').scrollIntoView({block:'start'});}
+  if(valid(key,epoch)){if(id==='billing-preview'){$('#billing-from').value=data.period_start.slice(0,10);$('#billing-until').value=new Date(Date.parse(data.period_end)-1).toISOString().slice(0,10);}renderStatement(data);notice(id==='billing-save'?'Monthly statement ready.':'Activity ready.',$('#'+id));$('#billing-statement').scrollIntoView({block:'start'});}
  }));
  card.addEventListener('click',e=>{const button=e.target.closest('[data-statement-id],[data-billing-export]');if(!button)return;
   run(button,async(key,epoch)=>{
@@ -251,7 +262,7 @@
  });
  function init(){const wallet=document.getElementById('wallet');if(!wallet)return;wallet.append(card);
   const now=new Date(),end=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1)),start=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-1,1));
-  $('#billing-from').value=start.toISOString().slice(0,10);$('#billing-until').value=new Date(end.getTime()-86400000).toISOString().slice(0,10);$('#billing-from').max=$('#billing-until').max=now.toISOString().slice(0,10);
+  $('#billing-month').value=start.toISOString().slice(0,7);$('#billing-month').max=start.toISOString().slice(0,7);$('#billing-from').value=start.toISOString().slice(0,10);$('#billing-until').value=new Date(end.getTime()-86400000).toISOString().slice(0,10);$('#billing-from').max=$('#billing-until').max=now.toISOString().slice(0,10);
   let autoLoading=false;
   async function autoLoad(){sync();if(!currentScope||autoLoading)return;autoLoading=true;try{await run($('#billing-refresh'),refresh);}finally{autoLoading=false;}}
   const originalView=setView;setView=function(...args){const result=originalView(...args);sync();if(args[0]==='wallet')autoLoad();return result;};

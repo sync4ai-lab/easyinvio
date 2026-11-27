@@ -123,7 +123,7 @@ async def run():
         await page.evaluate("setView('manifest')")
         await page.locator('[data-exception-sheet]').click()
         assert await page.locator('#exception-sheet').is_visible()
-        assert await page.locator('#exception-dispute').is_visible()
+        assert await page.locator('#exception-dispute').count()==0
         await page.locator('[data-enterprise-close="exception-sheet"]').click()
         checks.append('Manifest exception opens bottom-sheet remedy, POD and surcharge draft actions.')
         # Verify computed native control styles, including the date input and options.

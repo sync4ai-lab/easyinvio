@@ -5,7 +5,7 @@ from backend.agents.config import AgentSettings
 from backend.agents.models import Workflow, State
 from backend.agents.runtime import AgentRuntime
 from backend.agents.workers import (IngestionWorkerAgent, CustomsHarmonizerAgent,
-    InvoiceSurchargeAuditorAgent, ProactiveClaimsSupportAgent)
+    ProactiveClaimsSupportAgent)
 from backend.agents.rag_support import HelpRetriever, documentation_question
 
 
@@ -14,7 +14,6 @@ class LogisticsSupervisor:
         self.runtime = runtime or AgentRuntime(settings or AgentSettings())
         self.ingestion = IngestionWorkerAgent(self.runtime)
         self.customs = CustomsHarmonizerAgent(self.runtime)
-        self.invoice = InvoiceSurchargeAuditorAgent(self.runtime)
         self.support = ProactiveClaimsSupportAgent(self.runtime)
         from backend.cx_policies import ReturnPolicyCopilotAgent
         from backend.cx_delay import ProactiveDelaySentinelAgent

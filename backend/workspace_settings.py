@@ -1,4 +1,4 @@
-"""Tenant-owned settings, verified email invitations and durable dispute drafts."""
+"""Tenant-owned settings, verified email invitations."""
 from uuid import UUID,uuid4
 from urllib.parse import urlsplit
 import asyncpg,httpx,hashlib
@@ -26,10 +26,6 @@ class CompanyUpdate(BaseModel):
     company_name:str=Field(min_length=1,max_length=200)
     workspace_name:str=Field(min_length=1,max_length=200)
     billing_email:str=Field(max_length=254,pattern=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-class Draft(BaseModel):
-    model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
-    content:str=Field(min_length=10,max_length=12000)
-
 def owner(context):
     if context.role != 'OWNER':raise HTTPException(403,'Workspace owner permission required')
 async def invitation_limit(pool,tenant_id):
@@ -166,21 +162,6 @@ def build_router(authenticate):
                     logging.getLogger(__name__).warning('Invitation accepted; provider sign-out could not be confirmed')
         except (httpx.HTTPError,ValueError,KeyError):raise HTTPException(503,'Invitation activation is temporarily unavailable; retry the same verified session') from None
         return {'message':'Workspace access activated. Sign in with your email and new password.'}
-    @router.get('/shipments/{shipment_id}/dispute-draft')
-    async def get_draft(shipment_id:UUID,request:Request,context:Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Financial permission required')
-        async with request.app.state.finance.pool.acquire() as c:
-            row=await c.fetchrow('SELECT content,updated_at FROM public.shipment_dispute_drafts WHERE tenant_id=$1 AND shipment_id=$2',context.tenant_id,shipment_id)
-        return {'draft':dict(row) if row else None}
-    @router.put('/shipments/{shipment_id}/dispute-draft')
-    async def save_draft(shipment_id:UUID,body:Draft,request:Request,context:Any=Depends(authenticate)):
-        if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Financial permission required')
-        async with request.app.state.finance.pool.acquire() as c:
-            async with c.transaction():
-                exists=await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.shipments WHERE tenant_id=$1 AND id=$2 AND booked_at IS NOT NULL AND tracking_number IS NOT NULL)",context.tenant_id,shipment_id)
-                if not exists:raise HTTPException(409,'A confirmed shipment is required for a surcharge dispute')
-                await c.execute('INSERT INTO public.shipment_dispute_drafts(tenant_id,shipment_id,content,updated_by) VALUES($1,$2,$3,$4) ON CONFLICT(tenant_id,shipment_id) DO UPDATE SET content=excluded.content,updated_by=excluded.updated_by,updated_at=now()',context.tenant_id,shipment_id,body.content,context.user_id)
-        return {'saved':True,'sent_to_carrier':False}
     from backend.admin_portal import authenticate_platform_owner
     from types import SimpleNamespace
     @router.get('/admin/platform-carriers/{connection_id}/quote-diagnostics')
@@ -209,10 +190,4 @@ def build_router(authenticate):
             'freight':'No verified industrial freight booking contract/adapter implemented for the three native providers',
             'recent_saved_offer_count':count,'carriers':sorted(carriers),'failure_codes':sorted(codes),
             'scope':'Last 100 saved quotes across platform workspaces; this read-only check makes no external API requests. Failed requests without a saved quote are not included.'}
-    @router.get('/admin/shipments/{shipment_id}/dispute-draft')
-    async def admin_get_draft(shipment_id:UUID,tenant_id:UUID,request:Request,admin:Any=Depends(authenticate_platform_owner)):
-        return await get_draft(shipment_id,request,SimpleNamespace(tenant_id=tenant_id,user_id=admin.user_id,role='OWNER'))
-    @router.put('/admin/shipments/{shipment_id}/dispute-draft')
-    async def admin_save_draft(shipment_id:UUID,tenant_id:UUID,body:Draft,request:Request,admin:Any=Depends(authenticate_platform_owner)):
-        return await save_draft(shipment_id,body,request,SimpleNamespace(tenant_id=tenant_id,user_id=admin.user_id,role='OWNER'))
     return router

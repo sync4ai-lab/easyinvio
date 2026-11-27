@@ -22,7 +22,7 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from backend.ai_engine import country_code, predict_hs_code, strict_decimal, record_invoice_baseline
+from backend.ai_engine import country_code, predict_hs_code, strict_decimal
 
 EU_CUSTOMS_AREA = frozenset('AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE'.split())
 _scope: ContextVar[tuple[Any, UUID] | None] = ContextVar('automation_customs_scope', default=None)
@@ -481,20 +481,8 @@ class AutomationService:
                     snapshot=json.dumps({'markup_type':'MANUAL','markup_value':format(markup,'.2f'),'currency':order.currency,'selected_rate':rate.model_dump(mode='json')})
                     await lock.execute("""UPDATE public.shipments SET status='QUOTED',carrier_account_id=$3,wholesale_cost=$4,profit_markup=$5,
                         tax_amount=0,pricing_snapshot=$6::jsonb,quoted_at=$7,quote_expires_at=$8,
-                        logistics_metadata=logistics_metadata-'invoice_baseline',
                         carrier_code=$9,service_code=$10,upstream_shipment_id=$11,upstream_rate_id=$12 WHERE tenant_id=$1 AND id=$2""",
                         context.tenant_id,shipment_id,rate.account_id,wholesale,markup,snapshot,quote_result.quoted_at,quote_result.expires_at,rate.carrier_code,rate.service_code,rate.upstream_shipment_id,rate.upstream_rate_id)
-                    if rate.fee_breakdown.get('source')=='provider':
-                        charge=calculate_cargo_charge(order.cargo,
-                            kg_per_m3=getattr(self.settings,'freight_kg_per_m3',Decimal('333')),
-                            kg_per_loading_metre=getattr(self.settings,'freight_kg_per_loading_metre',Decimal('1750')),
-                            deck_width_m=getattr(self.settings,'freight_deck_width_m',Decimal('2.4')))
-                        if order.packages:
-                            from backend.package_sets import package_charge
-                            charge=package_charge(order.packages,[box.actual_weight_kg for box in order.packages])
-                        await record_invoice_baseline(lock,context.tenant_id,shipment_id,
-                            {key:rate.fee_breakdown[key] for key in ('base_cost','fuel_surcharge','residential_fee','remote_area_fee')}|
-                            {'currency':rate.currency,'billable_weight_kg':charge['billable_weight_kg']})
                     if mode=='QUOTE_ONLY':
                         await lock.executemany('''INSERT INTO public.partner_shipping_offers
                             (tenant_id,offer_id,shipment_id,rate_snapshot,expires_at)

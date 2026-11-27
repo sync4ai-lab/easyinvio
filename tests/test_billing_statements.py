@@ -9,7 +9,7 @@ NOW=datetime(2026,11,1,tzinfo=timezone.utc)
 TENANT={'tenant_id':uuid4(),'company_name':'=untrusted <workspace>','is_sandbox':True}
 
 def snapshot(ledger=(),invoices=(),refunds=()):
-    return build_snapshot(TENANT,'GBP',NOW,NOW+timedelta(days=30),'0',ledger,[],invoices,[],[],refunds=refunds)
+    return build_snapshot(TENANT,'GBP',NOW,NOW+timedelta(days=30),'0',ledger,[],invoices,[],refunds=refunds)
 
 def test_wallet_funding_is_not_revenue_and_shipping_refund_is_not_double_counted():
     rows=[dict(id=1,created_at=NOW,entry_type='TOPUP',balance_delta='100',balance_after='100'),
@@ -52,3 +52,26 @@ def test_activity_ranges_allow_longer_read_only_views_but_saved_periods_stay_mon
     for first,last in [(None,NOW),(NOW,NOW),(NOW-timedelta(days=367),NOW),(start,NOW+timedelta(seconds=1))]:
         with pytest.raises(HTTPException):preview_bounds(first,last,now=NOW)
     with pytest.raises(ValueError):preview_bounds(start.replace(tzinfo=None),NOW,now=NOW)
+
+
+@pytest.mark.parametrize('start,end',[('2024-02-01','2024-03-01'),('2025-02-01','2025-03-01'),('2026-04-01','2026-05-01'),('2026-01-01','2026-02-01')])
+def test_saved_statements_use_real_calendar_months(start,end):
+    from backend.statements import statement_reference
+    first,last=[datetime.fromisoformat(x).replace(tzinfo=timezone.utc) for x in (start,end)]
+    assert period_bounds(first,last,now=NOW)==(first,last)
+    assert statement_reference(first.isoformat(),last.isoformat())==statement_reference(first,last)
+    assert statement_reference(first,last)=='EI-'+first.strftime('%d%m%Y')+'-'+(last-timedelta(days=1)).strftime('%d%m%Y')
+    with pytest.raises(HTTPException):period_bounds(first+timedelta(days=1),last,now=NOW)
+
+def test_activation_is_available_for_unpaid_owner_but_not_a_second_paid_subscription():
+    from backend.entitlements import Subscription
+    from backend.subscription_lifecycle import management_options
+    from types import SimpleNamespace as NS
+    settings=NS(billing_lifecycle_enabled=True)
+    sub=Subscription(subscription_plan='COMMAND',plan_period_start=NOW,subscription_complimentary=True,is_sandbox=True)
+    assert management_options(sub,settings,NS(role='OWNER'),now=NOW)['activation_targets']==['VELOCITY','COMMAND']
+    assert management_options(sub,settings,NS(role='ACCOUNTANT'),now=NOW)['activation_targets']==[]
+    assert management_options(sub,settings,NS(role='OWNER',assistance_session_id='assisting'),now=NOW)['activation_targets']==[]
+    paid=sub.model_copy(update={'stripe_subscription_id':'sub_synthetic','plan_period_end':NOW+timedelta(days=30),'subscription_complimentary':False})
+    options=management_options(paid,settings,NS(role='OWNER'),now=NOW)
+    assert options['activation_targets']==[] and options['can_cancel'] and options['downgrade_targets']==['STARTER','VELOCITY']

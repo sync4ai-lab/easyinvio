@@ -19,7 +19,6 @@ from backend.agents.routes import build_router
 from backend.agents.rag_support import HelpRetriever, redacted_question
 from backend.order_csv import CSV_FIELDS
 from backend.automation_three_partners import BookingRequest
-from backend.invoice_upload import StatementLine, compare_line
 
 
 def settings(enabled=False, **values):
@@ -176,11 +175,6 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
             await self.engine.support.receive_tracking(object(), native)
         self.assertEqual(self.engine.runtime.usage['model_calls'], 0)
 
-    async def test_invoice_exact_existing_comparisons_without_model(self):
-        line = StatementLine(upstream_shipment_id='original-ref', currency='GBP', invoice_weight_kg='3', wholesale_cost='12', residential_fee='0')
-        shipment = {'parcel_weight_kg': Decimal('2'), 'wholesale_cost': Decimal('10'), 'currency': 'GBP', 'logistics_metadata': {}, 'multi_parcel_dimensions': []}
-        self.assertEqual(self.engine.invoice.compare(line, shipment), compare_line(line, shipment))
-        self.assertEqual(self.engine.runtime.usage['model_calls'], 0)
 
     async def test_document_fallback_citations_and_cache_are_local(self):
         response = await self.engine.help.answer(self.context, 'wallet card payment')

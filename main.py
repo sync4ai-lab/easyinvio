@@ -2026,7 +2026,7 @@ async def deterministic_lifespan(application: FastAPI):
                 for table in ("tenants", "users", "carrier_accounts", "margin_rules", "shipments",
                               "wallets", "wallet_topups", "wallet_reservations", "wallet_ledger",
                               "whatsapp_bindings", "whatsapp_routes", "whatsapp_quote_choices", "whatsapp_receipts",
-                              "individual_pricing_settings", "individual_pricing_events", "web_registration_sessions", "admin_configuration_events", "ecommerce_stores", "ecommerce_tracking_outbox", "workspace_store_connections", "workspace_dispatch_events", "billing_disputes", "amazon_order_notifications",
+                              "individual_pricing_settings", "individual_pricing_events", "web_registration_sessions", "admin_configuration_events", "ecommerce_stores", "ecommerce_tracking_outbox", "workspace_store_connections", "workspace_dispatch_events", "amazon_order_notifications",
                               "tracking_events", "support_tickets", "support_message_outbox"):
                     if await connection.fetchval("SELECT to_regclass($1)", f"public.{table}") is None:
                         raise RuntimeError(f"Required migration table is missing: public.{table}")
@@ -2826,8 +2826,7 @@ app.add_middleware(ClientAssistanceMiddleware)
 from backend.public_experience import router as public_experience_router
 app.include_router(public_experience_router)
 
-from backend.invoice_upload import build_router as invoice_upload_router
-app.include_router(invoice_upload_router(authenticate))
+
 from backend.ecommerce_inbound import build_router as ecommerce_inbound_router
 app.include_router(ecommerce_inbound_router())
 from backend.dispatch_realtime import build_router as realtime_router

@@ -1779,8 +1779,7 @@ class PartnerLifecycleService:
                                 'selected_rate': stored_rate}
                     await lock.execute('''UPDATE public.shipments SET carrier_account_id=$3,wholesale_cost=$4,
                         profit_markup=$5,tax_amount=0,currency=$6,pricing_snapshot=$7::jsonb,
-                        carrier_code=$8,service_code=$9,upstream_shipment_id=$10,upstream_rate_id=$11,quote_expires_at=$12,
-                        logistics_metadata=logistics_metadata-'invoice_baseline'
+                        carrier_code=$8,service_code=$9,upstream_shipment_id=$10,upstream_rate_id=$11,quote_expires_at=$12
                         WHERE tenant_id=$1 AND id=$2 AND status='QUOTED' ''', context.tenant_id, row['id'], rate.account_id,
                         wholesale, markup, rate.currency, json.dumps(selected), rate.carrier_code, rate.service_code,
                         rate.upstream_shipment_id, rate.upstream_rate_id, offer['expires_at'])

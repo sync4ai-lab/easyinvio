@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 from fastapi import APIRouter,Depends,HTTPException,Request,Response
-from pydantic import BaseModel,ConfigDict,AwareDatetime
+from pydantic import BaseModel,ConfigDict,AwareDatetime,Field
 from backend.subscription_lifecycle import ChangeRequest,statements_enabled,require_statements
 from backend.statements import StatementService,statement_pdf,statement_csv,FINANCE_ROLES
 
@@ -13,6 +13,12 @@ class StatementPeriod(BaseModel):
     model_config=ConfigDict(extra='forbid')
     start:AwareDatetime|None=None
     end:AwareDatetime|None=None
+    currency:Literal['GBP','EUR','USD']='GBP'
+
+class StatementMonth(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    year:int=Field(ge=2000,le=2100)
+    month:int=Field(ge=1,le=12)
     currency:Literal['GBP','EUR','USD']='GBP'
 
 def services(request,context):
@@ -65,6 +71,13 @@ def build_router(authenticate):
     @router.post('/statements')
     async def generate(body:StatementPeriod,request:Request,context=Depends(authenticate)):
         _,service=services(request,context);return await service.generate(context,body.start,body.end,body.currency)
+    @router.post('/statements/monthly')
+    async def monthly(body:StatementMonth,request:Request,context=Depends(authenticate)):
+        from datetime import timezone
+        start=datetime(body.year,body.month,1,tzinfo=timezone.utc)
+        end=start.replace(year=start.year+1,month=1) if body.month==12 else start.replace(month=start.month+1)
+        _,service=services(request,context)
+        return await service.generate(context,start,end,body.currency)
     @router.get('/statements/{statement_id}')
     async def detail(statement_id:UUID,request:Request,context=Depends(authenticate)):
         _,service=services(request,context);return await service.detail(context,statement_id)

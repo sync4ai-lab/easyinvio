@@ -262,18 +262,6 @@ class CustomsHarmonizerAgent:
                 'status': 'REVIEW_REQUIRED', 'customs_approved': False}
 
 
-class InvoiceSurchargeAuditorAgent:
-    def __init__(self, runtime):
-        self.runtime = runtime
-
-    def compare(self, line, shipment):
-        from backend.invoice_upload import compare_line
-        self.runtime.usage['deterministic_calls'] += 1
-        # Exact source-backed Decimal checks. The existing endpoint owns tenant lookup,
-        # transaction, duplicate detection and billing_disputes persistence.
-        return compare_line(line, shipment)
-
-
 class ProactiveClaimsSupportAgent:
     def __init__(self, runtime):
         self.runtime = runtime

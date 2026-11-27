@@ -167,7 +167,8 @@ async def test_plan_management_describes_valid_directions_and_unbounded_access(w
     await w.db.execute("UPDATE public.tenants SET subscription_plan='COMMAND',plan_period_end=NULL,subscription_complimentary=true WHERE tenant_id=$1",w.t)
     status=await w.service.status(w.context)
     assert status['management']['access_type']=='COMPLIMENTARY'
-    assert 'no paid renewal to cancel' in status['management']['reason']
+    assert 'No paid subscription' in status['management']['reason']
+    assert status['management']['activation_targets']==['VELOCITY','COMMAND']
     assert status['management']['upgrade_targets']==[] and not status['management']['can_cancel']
     assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==0
 
@@ -260,3 +261,18 @@ async def test_stripe_upgrade_requires_matching_paid_invoice_before_access(world
     assert current.subscription_plan==('VELOCITY' if tamper else 'COMMAND')
     assert await w.db.fetchval('SELECT state FROM public.subscription_operations WHERE id=$1',opid)==('REVIEW' if tamper else 'APPLIED')
     assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==0
+
+
+@pytest.mark.asyncio
+async def test_custom_activity_stays_unsaved_after_auditor_tables_are_retired(world):
+    w=world
+    await w.db.command((ROOT/'migrations/059_retire_carrier_bill_auditor.sql').read_text(),mode='exec')
+    service=StatementService(w.db,w.settings)
+    before=await w.db.fetchval('SELECT count(*) FROM billing_statements')
+    end=datetime.now(timezone.utc);start=end-timedelta(days=90)
+    data=await service.generate(w.context,start,end,preview=True)
+    assert data['preview'] and data['period_start']==start.isoformat() and data['period_end']==end.isoformat()
+    assert await w.db.fetchval('SELECT count(*) FROM billing_statements')==before
+    first=await service.generate(w.context)
+    assert first['display_reference'].startswith('EI-01')
+    assert await service.detail(w.context,UUID(first['id']))==first

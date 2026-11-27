@@ -18,7 +18,6 @@ import main
 from backend.ecommerce_sync import EcommerceService
 from backend.ecommerce_connectors import StoreConnector
 from backend.ecommerce_inbound import build_router as inbound_router, AmazonInbound
-from backend.invoice_upload import build_router as invoice_router
 
 
 async def run():
@@ -47,7 +46,6 @@ async def run():
         app=FastAPI();app.state.ecommerce=service;app.state.finance=service
         app.include_router(inbound_router())
         async def authenticate():return context
-        app.include_router(invoice_router(authenticate))
         order={'id':'1002345','name':'QA-NATIVE-IMPORT','currency':'GBP','shipping_address':{'name':'Synthetic Recipient','address1':'1 Test Road','city':'London','zip':'SW1A 1AA','country_code':'GB'},'line_items':[{'title':'Documents','quantity':1,'grams':'100'}]}
         raw=json.dumps(order).encode()
         headers={'Content-Type':'application/json','x-shopify-shop-domain':config.shop_domain,'x-shopify-topic':'orders/create','x-shopify-hmac-sha256':base64.b64encode(hmac.digest(config.webhook_secret.get_secret_value().encode(),raw,'sha256')).decode()}
@@ -89,22 +87,7 @@ async def run():
             assert await connection.fetchval('SELECT status FROM public.shipments WHERE tenant_id=$1 AND ecommerce_store_id=$2',tenant,amazon_store)=='UNFULFILLED'
             assert await connection.fetchval('SELECT parcel_weight_kg FROM public.shipments WHERE tenant_id=$1 AND ecommerce_store_id=$2',tenant,amazon_store)==Decimal('0.400')
             print('Actual DB: authenticated Amazon receipt, duplicate protection, authorized Orders API contract and UNFULFILLED shipment persisted; provider HTTP controlled.')
-            booked=await connection.fetchrow("SELECT id,parcel_weight_kg,wholesale_cost,currency FROM public.shipments WHERE tenant_id=$1 AND status='BOOKED' AND booked_at IS NOT NULL LIMIT 1",tenant)
-            assert booked
-            await connection.execute("UPDATE public.shipments SET upstream_shipment_id='synthetic-audit-reference',logistics_metadata=logistics_metadata||$3::jsonb WHERE tenant_id=$1 AND id=$2",tenant,booked['id'],json.dumps({'address_verification':{'verified':True,'is_commercial':True}}))
-            data='upstream_shipment_id,currency,invoice_weight_kg,wholesale_cost,residential_fee\n'
-            data+='synthetic-audit-reference,'+booked['currency']+','+str(booked['parcel_weight_kg']+Decimal('0.2'))+','+str(booked['wholesale_cost']+Decimal('5.00'))+',3.00\n'
-            for attempt in range(2):
-                audited=await client.post('/api/v1/finance/audit-invoice-upload',data={'invoice_reference':'QA-INVOICE-1'},files={'file':('invoice.csv',data.encode(),'text/csv')})
-                assert audited.status_code==200,audited.text
-                findings=audited.json()['results'][0]
-                assert findings['status']=='FLAGGED' and len(findings['findings'])==3
-                assert findings['estimated_overcharge']=='5.00'
-            assert await connection.fetchval('SELECT count(*) FROM public.billing_disputes WHERE tenant_id=$1 AND invoice_reference=$2',tenant,'QA-INVOICE-1')==1
-            context.role='DISPATCHER'
-            denied=await client.post('/api/v1/finance/audit-invoice-upload',data={'invoice_reference':'QA-INVOICE-2'},files={'file':('invoice.csv',data.encode(),'text/csv')})
-            assert denied.status_code==403
-        print('Actual DB: signed UNFULFILLED import, cargo mapping, committed-event staging, duplicate/forgery rejection, three audit comparisons and one durable replay-safe dispute passed.')
+
     finally:
         await outer.rollback()
     notification=asyncio.Event()

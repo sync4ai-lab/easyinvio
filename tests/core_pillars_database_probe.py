@@ -80,10 +80,7 @@ async def run():
                 'cargo':{'cargo_type':'PARCEL','actual_weight_kg':'0.451','length_cm':'40','width_cm':'30','height_cm':'20'}},'QUOTE_ONLY')
             assert result['status']=='QUOTED',result
             assert result['shipment_id']==str(sid)
-            baseline=await connection.fetchval("SELECT logistics_metadata->'invoice_baseline' FROM public.shipments WHERE tenant_id=$1 AND id=$2",tenant,sid)
-            baseline=decode(baseline)
-            assert baseline['billable_weight_kg']=='4.800' and baseline['base_cost']=='7.00'
-            evidence['import_promotion_and_provider_invoice_baseline']=True
+            evidence['import_promotion']=True
             await connection.execute("INSERT INTO public.margin_rules(tenant_id,rule_name,currency,markup_type,markup_value,priority,billing_plan,cargo_type,min_volume_m3,max_volume_m3) VALUES($1,'PILLAR ROLLBACK','GBP','PERCENTAGE',35,0,'PREPAID_WALLET','PALLET',0.5,2)",tenant)
             with borrowed_pricing_connection(connection), calibrated_pricing_scope(pool,currency='GBP',cargo_type='PALLET',volume_m3=Decimal('1')):
                 assert await get_client_calibrated_rate(tenant,Decimal('100'),'DHL','GB')==Decimal('135')

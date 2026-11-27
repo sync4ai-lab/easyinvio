@@ -60,7 +60,7 @@ def management_options(sub,settings,context,now=None):
     elif sub.subscription_plan==Plan.STARTER and not sub.stripe_subscription_id:
         reason='Starter has no paid subscription to cancel. To activate a paid plan, open Profile and review the secure subscription checkout.'
     elif sub.plan_period_end is None:
-        reason=('This is complimentary access with no paid renewal to cancel. Contact support to change the assigned plan.' if sub.subscription_complimentary
+        reason=('No paid subscription. Choose a plan to review a new subscription.' if sub.subscription_complimentary
             else 'No billing period or renewal date is recorded for this account. Contact support to configure the billing agreement before changing or cancelling it.')
     elif sub.plan_period_end<=now:reason='The recorded billing period has ended. Contact support to reconcile the subscription before changing it.'
     elif sub.plan_status not in {'ACTIVE','TRIALING','PAST_DUE'}:reason='This subscription is not active. Contact support to review the agreement.'
@@ -68,6 +68,7 @@ def management_options(sub,settings,context,now=None):
     return {'reason':reason,'upgrade_targets':[p.value for p in ordered[rank+1:]] if not reason and sub.plan_status!='PAST_DUE' else [],
         'downgrade_targets':[p.value for p in ordered[:rank]] if not reason and sub.plan_status!='PAST_DUE' else [],
         'can_cancel':not reason and sub.subscription_plan!=Plan.STARTER,
+        'activation_targets':[p.value for p in Plan if p!=Plan.STARTER] if context.role=='OWNER' and not getattr(context,'assistance_session_id',None) and not sub.stripe_subscription_id and not sub.pending_plan and not sub.cancellation_effective_at and (sub.subscription_complimentary or sub.subscription_plan==Plan.STARTER) else [],
         'access_type':'COMPLIMENTARY' if sub.subscription_complimentary else 'BILLED' if sub.plan_period_end else 'ASSIGNED'}
 
 class SubscriptionLifecycle:
@@ -98,7 +99,8 @@ class SubscriptionLifecycle:
         if not tenant:raise HTTPException(404,'Workspace not found')
         return document({'effective_plan':sub.effective().value,'usage':{'parcels':int(usage)},'subscription':dict(tenant),'operations':[dict(x) for x in operations],
             'can_manage':bool(getattr(self.settings,'billing_lifecycle_enabled',False)) and context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
-            'management':management_options(sub,self.settings,context),
+            'is_sandbox':sub.is_sandbox,'management':management_options(sub,self.settings,context),
+            'activation_checkout_available':{p.value:bool(getattr(self.settings,'stripe_enabled',False) and getattr(self.settings,'subscription_price_ids',{}).get(p.value+':'+sub.billing_cycle)) for p in Plan if p!=Plan.STARTER},
             'plans':[{'plan':p.value,'annual_fee_gbp':cycle_price(p,'ANNUAL'),**capabilities(p).model_dump()} for p in Plan],
             'annual_cancellation_policy':'MONTHLY_PRICE_CLAWBACK'})
 

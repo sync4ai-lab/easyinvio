@@ -17,7 +17,7 @@ def main():
         ledger.append(dict(id=n+1,created_at=start+timedelta(hours=n),entry_type='CAPTURE',balance_delta='-12',balance_after=str(balance),
             shipment_id=str(uuid4()),shipment_gross='12',shipment_tax='2',carrier_code=['TEST ROYAL MAIL','TEST EVRI','TEST DPD'][n%3],
             tracking_number='ILLUSTRATIVE-'+str(n),parcel_count=1,route='GBR to GBR',reference='DEMO-ORDER-'+str(n)))
-    data=build_snapshot({'tenant_id':uuid4(),'company_name':'Synthetic EasyInvio QA workspace','is_sandbox':True},'GBP',start,start+timedelta(days=31),'0',ledger,[],[],[],[],reference='EI-202610-SYNTHETIC')
+    data=build_snapshot({'tenant_id':uuid4(),'company_name':'Synthetic EasyInvio QA workspace','is_sandbox':True},'GBP',start,start+timedelta(days=31),'0',ledger,[],[],[],reference='EI-202610-SYNTHETIC')
     raw=statement_pdf(data);(out/'statement.pdf').write_bytes(raw);(out/'statement.csv').write_bytes(statement_csv(data))
     reader=PdfReader(io.BytesIO(raw));assert len(reader.pages)>=3
     text='\n'.join(page.extract_text() for page in reader.pages)

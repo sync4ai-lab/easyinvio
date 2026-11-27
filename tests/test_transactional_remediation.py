@@ -15,7 +15,6 @@ from openpyxl import Workbook
 from backend.dispatch_realtime import DispatchUpdates, build_router as realtime_router
 from backend.ecommerce_connectors import StoreConnector, normalize_shopify
 from backend.ecommerce_inbound import amazon_order, fetch_amazon_order, AmazonInbound
-from backend.invoice_upload import StatementLine, compare_line, parse_statement, build_router
 
 
 class StatementTests(unittest.TestCase):
@@ -29,46 +28,14 @@ class StatementTests(unittest.TestCase):
         self.assertEqual(mapped['line_items'][0]['unit_value'],'12.50')
         order['line_items'][0]['sku']='UNKNOWN'
         with self.assertRaises(ValueError):normalize_shopify(order,config)
-    def line(self, **changes):
-        return StatementLine.model_validate({'upstream_shipment_id':'shipment-native-1','currency':'GBP',
-            'invoice_weight_kg':'1.100','wholesale_cost':'20.00','residential_fee':'3.00', **changes})
 
     def snapshot(self, **changes):
         return {'parcel_weight_kg':Decimal('1.000'),'wholesale_cost':Decimal('15.00'),'currency':'GBP',
             'logistics_metadata':{'address_verification':{'verified':True,'is_commercial':True}}, **changes}
 
-    def test_exact_threshold_no_double_counting(self):
-        findings, baseline, amount, draft = compare_line(self.line(), self.snapshot())
-        self.assertEqual([f['code'] for f in findings], ['RESIDENTIAL_FEE_ON_VERIFIED_COMMERCIAL_ADDRESS','WHOLESALE_COST_EXCEEDS_SNAPSHOT'])
-        self.assertEqual(amount, Decimal('5.00'))
-        self.assertIn('not an adjudicated refund', draft)
-        findings, *_ = compare_line(self.line(invoice_weight_kg='1.100001'), self.snapshot())
-        self.assertEqual(findings[0]['code'], 'WEIGHT_DELTA')
 
-    def test_unverified_address_never_becomes_commercial_evidence(self):
-        findings, _, amount, _ = compare_line(self.line(wholesale_cost='15.00'), self.snapshot(logistics_metadata={}))
-        self.assertFalse(findings);self.assertEqual(amount, 0)
 
-    def test_csv_validation_duplicate_currency_and_float_rejection(self):
-        header='upstream_shipment_id,currency,invoice_weight_kg,wholesale_cost,residential_fee\n'
-        rows=parse_statement((header+'native-1,GBP,1.200,20.05,0.00\n').encode(),'statement.csv')
-        self.assertEqual(rows[0].wholesale_cost,Decimal('20.05'))
-        aliased=b'Carrier Reference,Currency Code,Billed Weight (kg),Invoice Wholesale Cost,Residential Surcharge,Tax\nnative-2,GBP,1.200,20.05,0.00,4.01\n'
-        self.assertEqual(parse_statement(aliased,'statement.csv')[0].upstream_shipment_id,'native-2')
-        for data in [header+'a,GBP,NaN,20,0',header+'a,GBP,not-a-number,20,0',header+'a,JPY,1,20,0',header+'a,GBP,1,20,0\na,GBP,1,20,0',header+'a,GBP,1,-20,0']:
-            with self.assertRaises(HTTPException):parse_statement(data.encode(),'bad.csv')
-        with self.assertRaises(HTTPException):parse_statement(b'a,b\n1,2','bad.csv')
 
-    def test_excel_formula_and_multisheet_rejection(self):
-        book=Workbook();sheet=book.active
-        sheet.append(['upstream_shipment_id','currency','invoice_weight_kg','wholesale_cost','residential_fee'])
-        sheet.append(['native-1','GBP',1.25,20.50,0])
-        buffer=io.BytesIO();book.save(buffer)
-        self.assertEqual(parse_statement(buffer.getvalue(),'statement.xlsx')[0].wholesale_cost,Decimal('20.5'))
-        sheet['D2']='=10+10';buffer=io.BytesIO();book.save(buffer)
-        with self.assertRaises(HTTPException):parse_statement(buffer.getvalue(),'statement.xlsx')
-        book.create_sheet('second');buffer=io.BytesIO();book.save(buffer)
-        with self.assertRaises(HTTPException):parse_statement(buffer.getvalue(),'statement.xlsx')
 
 
 class RemediationAsyncTests(unittest.IsolatedAsyncioTestCase):
@@ -100,13 +67,6 @@ class RemediationAsyncTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):amazon_order(body,config,'123-1234567-1234567')
         with self.assertRaises(ValueError):amazon_order(body,config,'999-1234567-1234567')
 
-    async def test_api_upload_financial_permission(self):
-        app=FastAPI()
-        async def auth():return SimpleNamespace(role='DISPATCHER')
-        app.include_router(build_router(auth))
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
-            result=await client.post('/api/v1/finance/audit-invoice-upload',data={'invoice_reference':'test'},files={'file':('statement.csv',b'a,b\n1,2','text/csv')})
-        self.assertEqual(result.status_code,403)
 
     async def test_realtime_tenant_isolation_and_overflow_refresh(self):
         broker=DispatchUpdates(SimpleNamespace(),None)

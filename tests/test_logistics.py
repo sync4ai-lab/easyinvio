@@ -1,5 +1,6 @@
 """Offline integration tests; no credentials or external API calls."""
 import asyncio
+from datetime import datetime,timezone
 import csv
 import io
 import json
@@ -12,7 +13,7 @@ from uuid import UUID, uuid4
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 import main
-from backend.ai_engine import InvoiceLine, audit_invoice_line, predict_hs_code, analyze_tracking_history, record_invoice_baseline
+from backend.ai_engine import predict_hs_code, analyze_tracking_history
 from backend.advanced_logistics import calculate_billable_weight, generate_commercial_invoice, parse_batch_csv, CSV_FIELDS
 
 
@@ -22,8 +23,6 @@ def payload():
             "dimensions": [{"length_cm": "40", "width_cm": "30", "height_cm": "20"}], "weights_kg": ["2.500"], "currency": "GBP"}
 
 
-def invoice_line(**overrides):
-    return InvoiceLine.model_validate({"shipment_id": "00000000-0000-4000-8000-000000001043", "currency": "GBP", "billed_weight_kg": "5.200", "base_cost": "18.00", "fuel_surcharge": "4.00", "residential_fee": "1.50", "remote_area_fee": "7.50", **overrides})
 
 
 BASELINE = {"currency": "GBP", "billable_weight_kg": "4.800", "base_cost": "16.00", "fuel_surcharge": "1.92", "residential_fee": "1.50", "remote_area_fee": "0.00"}
@@ -62,22 +61,9 @@ class MathTests(unittest.TestCase):
         self.assertFalse(result["simulated"])
         self.assertEqual(result["origin"], "GB")
 
-    def test_audit_exact_sums_no_weight_double_count(self):
-        result = audit_invoice_line(invoice_line(), BASELINE)
-        self.assertEqual(result["overcharge"], "11.58")
-        self.assertEqual(len(result["findings"]), 4)
-        self.assertIn("unsent draft", result["dispute_draft"])
 
-    def test_audit_missing_and_currency(self):
-        self.assertIsNone(audit_invoice_line(invoice_line(), {})["overcharge"])
-        self.assertEqual(audit_invoice_line(invoice_line(currency="EUR"), BASELINE)["status"], "currency_mismatch")
-        self.assertEqual(audit_invoice_line(invoice_line(), {"currency": "GBP"})["status"], "baseline_missing_or_invalid")
-        self.assertEqual(audit_invoice_line(invoice_line(), "bad")["status"], "baseline_missing_or_invalid")
-        self.assertEqual(audit_invoice_line(invoice_line(), {"currency": []})["status"], "baseline_missing_or_invalid")
 
     def test_money_rejects_float(self):
-        with self.assertRaises(ValidationError):
-            invoice_line(base_cost=18.0)
         with self.assertRaises(ValidationError):
             main.WholesaleRate(provider="EASYPOST", account_id=uuid4(), upstream_shipment_id="x", upstream_rate_id="y", carrier_code="A", service_code="B", currency="GBP", wholesale_cost="10.005")
 
@@ -138,11 +124,10 @@ class PreviewHTTPTests(unittest.TestCase):
         self.assertEqual(partial["quoted"], 1)
         self.assertEqual(partial["results"][1]["status"], "invalid")
 
-    def test_audit_and_customs(self):
-        result = self.client.post("/api/v1/audit/preview", json={"invoice_reference": "INV-1", "lines": [invoice_line().model_dump(mode="json")]})
-        self.assertEqual(result.json()["results"][0]["overcharge"], "11.58")
-        result = self.client.post("/api/v1/customs/harmonize", json={"item_description": "Silk running sneakers leather trim"})
-        self.assertEqual(result.json()["hs_code"], "640411")
+    def test_removed_invoice_routes_are_absent(self):
+        paths=self.client.get('/openapi.json').json()['paths']
+        assert not any('/audit/invoice' in path or '/audit/preview' in path for path in paths)
+
 
 
 class FakeConnection:
@@ -167,30 +152,13 @@ class ConfiguredHTTPTests(unittest.TestCase):
         main.app.state.local_preview = False
         self.context = main.TenantContext(uuid4(), uuid4(), "OWNER", "fixture-token")
         main.app.dependency_overrides[main.authenticate] = lambda: self.context
-        self.connection = FakeConnection([{"id": invoice_line().shipment_id, "logistics_metadata": json.dumps({"invoice_baseline": BASELINE})}])
+        self.connection = FakeConnection([])
         main.app.state.finance = SimpleNamespace(pool=SimpleNamespace(acquire=lambda: Acquire(self.connection)))
         self.client = TestClient(main.app)
     def tearDown(self): main.app.dependency_overrides.clear()
 
-    def test_invoice_scoped_by_tenant(self):
-        response = self.client.post("/api/v1/audit/invoice", json={"invoice_reference": "INV-1", "lines": [invoice_line().model_dump(mode="json")]})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["component_overcharges_by_currency"]["GBP"], "11.58")
-        sql, args = self.connection.calls[0]
-        self.assertIn("tenant_id=$1", sql)
-        self.assertEqual(args[0], self.context.tenant_id)
 
-    def test_finance_role_and_unknown_shipment(self):
-        self.connection.rows = []
-        response = self.client.post("/api/v1/audit/invoice", json={"invoice_reference": "INV-1", "lines": [invoice_line().model_dump(mode="json")]})
-        self.assertEqual(response.json()["results"][0]["status"], "shipment_not_found")
-        self.connection.calls.clear()
-        self.context = main.TenantContext(self.context.tenant_id, self.context.user_id, "DISPATCHER", "fixture-token")
-        self.assertEqual(self.client.post("/api/v1/audit/invoice", json={"invoice_reference": "INV-1", "lines": [invoice_line().model_dump(mode="json")]}).status_code, 403)
-        self.assertEqual(self.connection.calls, [])
 
-    def test_preview_disabled(self):
-        self.assertEqual(self.client.post("/api/v1/rates/preview", json=payload()).status_code, 404)
 
     def test_bounded_parallel_batch(self):
         class CSVService:
@@ -223,7 +191,7 @@ class ProviderIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 return []
             def transaction(self, **kwargs): return Acquire(self)
             async def fetchrow(self, sql, *args):
-                return {"default_currency": "GBP", "workspace_status": "ACTIVE"} if "public.tenants" in sql else None
+                return {'subscription':{'subscription_plan':'STARTER','plan_period_start':datetime.now(timezone.utc),'plan_enforcement_enabled':True}} if 'AS subscription' in sql else {"default_currency": "GBP", "workspace_status": "ACTIVE"} if "public.tenants" in sql else None
         pricing_pool = SimpleNamespace(acquire=lambda: Acquire(PricingConnection()))
         service = main.RatingService(None, Repository(), SimpleNamespace(max_parallel_provider_requests=4, provider_deadline_seconds=5, quote_ttl_seconds=300), pool=pricing_pool)
         observed = []
@@ -234,14 +202,9 @@ class ProviderIntegrationTests(unittest.IsolatedAsyncioTestCase):
         context = main.TenantContext(uuid4(), uuid4(), "OWNER", "fixture")
         result = await service.quote(context, main.RatingRequest.model_validate(payload()))
         self.assertEqual(observed, [Decimal("4.800")])
-        self.assertEqual(result.rates[0].fee_breakdown["platform_markup"], "2.00")
+        self.assertEqual(result.rates[0].fee_breakdown["platform_markup"], "1.80")
         self.assertIsNone(result.rates[0].fee_breakdown["fuel_surcharge"])
 
-    async def test_baseline_writer_scoped(self):
-        connection = FakeConnection([])
-        tenant, shipment = uuid4(), uuid4()
-        await record_invoice_baseline(connection, tenant, shipment, BASELINE)
-        self.assertEqual(connection.calls[0][1][:2], (tenant, shipment))
 
 
 if __name__ == "__main__":

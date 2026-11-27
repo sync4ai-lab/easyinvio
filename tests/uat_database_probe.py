@@ -11,7 +11,7 @@ from backend.database_tls import database_tls_context
 from backend.verify_automation_writepath import BorrowedPool
 from backend.admin_portal import borrowed_pricing_connection, get_client_calibrated_rate, calibrated_pricing_scope
 from backend.tracking_and_support import TrackingSupportService, TrackingSettings, TrackingKey, TrackingEvent
-from backend.ai_engine import analyze_tracking_history,audit_invoice_line,InvoiceLine
+from backend.ai_engine import analyze_tracking_history
 from backend.dashboard_portal import build_router
 from backend.admin_portal import AdminService,MarginCreate,PlatformOwner
 from fastapi import FastAPI
@@ -140,15 +140,6 @@ async def run():
             assert row['markup_type']=='FIXED' and row['markup_value']==Decimal('5.50')
             return 'Admin service saved FLAT_RATE 5.50 as schema-compatible FIXED Decimal; full database/audit writes rolled back.'
         await record('TC-037',flat_margin)
-        async def invoice_weight():
-            shipment=await c.fetchrow("SELECT id,logistics_metadata FROM public.shipments WHERE tenant_id=$1 AND customer_reference='SEED24-1-3'",tid)
-            metadata=json.loads(shipment['logistics_metadata']);baseline=metadata['invoice_baseline']
-            line=InvoiceLine(shipment_id=shipment['id'],currency=baseline['currency'],billed_weight_kg='10.000',base_cost=str(Decimal(baseline['base_cost'])+Decimal('5.00')),fuel_surcharge=baseline['fuel_surcharge'],residential_fee=baseline['residential_fee'],remote_area_fee=baseline['remote_area_fee'])
-            audited=audit_invoice_line(line,baseline)
-            assert audited['overcharge']=='5.00' and audited['dispute_draft']
-            assert any(f['field']=='billable_weight_kg' for f in audited['findings'])
-            return 'Actual stored baseline versus 10kg billed weight and 5.00 excess base charge: weight discrepancy and exact 5.00 overcharge flagged. Weight alone does not invent a monetary charge.'
-        await record('TC-073',invoice_weight)
         async with httpx.AsyncClient(base_url='http://127.0.0.1:8000') as client:
             results['backend_health']=(await client.get('/health')).json()
             results['unauthenticated_http']={p:(await client.get(p)).status_code for p in ['/api/v1/analytics/reports','/api/v1/admin/analytics/dashboard','/api/v1/support/tickets']}

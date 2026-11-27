@@ -135,7 +135,7 @@ GUIDES = {
         <p>Check whether your question is about wallet credit, a label purchase, a bank-card payment or a later carrier invoice. Keep the booking or invoice reference, amount and currency.</p>
         <h2 id="carrier-invoice">Review a later carrier charge</h2>
         <p>Keep the statement and identify the shipment reference on the affected line. Tell support what looks wrong, such as a different billed weight, an unexpected address surcharge or a higher shipping cost.</p>
-        <p>Where your financial role has access to the invoice review tools, comparisons can produce a draft review request. A flagged difference is a reason to investigate; it is not a guaranteed refund. Review the evidence before any dispute is submitted.</p>
+
         <h2 id="lost-damaged">Lost or damaged goods</h2>
         <p>A carrier billing question is different from a loss or damage claim. Keep the tracking number, proof of value and any photographs. Protection claims require confirmed coverage; contact support to check the available claim route and terms.</p>
         <p><a class="button-link" href="/help/contact">Ask support to review a charge</a></p>""",

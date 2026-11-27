@@ -3,7 +3,6 @@ from decimal import Decimal
 from types import SimpleNamespace
 from backend.advanced_logistics import preview_rates, generate_commercial_invoice
 from backend.automation_freight_engine import Cargo, calculate_cargo_charge
-from backend.ai_engine import InvoiceLine
 from pydantic import ValidationError
 from main import RatingRequest
 from tests.test_logistics import payload
@@ -18,6 +17,3 @@ class ModernLogisticsTests(unittest.TestCase):
   result=preview_rates(RatingRequest.model_validate(body),settings)
   self.assertEqual(Decimal(result['weight']['billable_weight_kg']),Decimal('800'))
   self.assertTrue(result['simulated']);self.assertEqual(result['rates'][0]['provider'],'REGIONAL')
- def test_heavy_freight_invoice_weight_is_accepted(self):
-  line=InvoiceLine(shipment_id='00000000-0000-4000-8000-000000001043',currency='GBP',billed_weight_kg='1750.000',base_cost='100.00',fuel_surcharge='12.00',remote_area_fee='0.00')
-  self.assertEqual(line.billed_weight_kg,Decimal('1750'))

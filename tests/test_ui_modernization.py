@@ -74,14 +74,8 @@ async def run():
   await check('Manifest status pipeline and actions',manifest)
   async def support():
    await page.evaluate("setView('dashboard')")
-   await page.locator('[data-dispute-ticket]').first.click()
-   assert await page.locator('#dispute-dialog').is_visible()
-   assert 'not sent' in await page.locator('#dispute-draft').input_value()
-   await page.locator('#dispute-dialog [data-close]').click()
-   await page.evaluate('window.scrollTo(0,0)')
-   await page.screenshot(path=str(OUT/'client-desktop.png'),full_page=True)
-   return 'Dispute review opens without sending messages or making payments.'
-  await check('Support surcharge dispute action',support)
+   assert await page.locator('[data-dispute-ticket]').count()==0
+  await check('Support view without retired invoice auditor',support)
   async def owner():
    await page.locator('#role-admin').click()
    assert 'Consolidated Gross Revenue' in await page.locator('#dashboard-metrics').inner_text()

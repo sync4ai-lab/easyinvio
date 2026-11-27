@@ -83,3 +83,19 @@ def test_range_preview_and_download_keep_same_utc_bounds(monkeypatch):
         assert len(seen)==3 and seen[0]==seen[1]==seen[2]
         assert seen[0]['start'].month==8 and seen[0]['end'].month==11
         assert client.get('/api/v1/billing/statements/preview',params={'start':'2026-08-01T00:00:00'},headers={'X-Role':'OWNER'}).status_code==422
+
+
+def test_month_picker_uses_calendar_bounds_and_never_saves_custom_dates(monkeypatch):
+    from backend.statements import StatementService
+    seen=[]
+    async def generate(self,context,start,end,currency):
+        seen.append((start,end,currency))
+        return {'period_start':start.isoformat(),'period_end':end.isoformat()}
+    monkeypatch.setattr(StatementService,'generate',generate)
+    with TestClient(app(statements=True)) as client:
+        for year,month,days in [(2024,2,29),(2025,2,28),(2026,4,30),(2026,12,31)]:
+            response=client.post('/api/v1/billing/statements/monthly',json={'year':year,'month':month},headers={'X-Role':'OWNER'})
+            assert response.status_code==200
+            assert (seen[-1][1]-seen[-1][0]).days==days
+        assert client.post('/api/v1/billing/statements/monthly',json={'year':2026,'month':13},headers={'X-Role':'OWNER'}).status_code==422
+        assert client.post('/api/v1/billing/statements/monthly',json={'year':2026,'month':1}).status_code==403

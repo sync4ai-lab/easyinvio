@@ -1,4 +1,5 @@
-﻿import unittest
+import unittest
+from datetime import datetime,timezone
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from uuid import uuid4
@@ -20,6 +21,7 @@ class DB:
   if 'booked_at IS NOT NULL' in sql:return self.booked
   return False
  async def fetchrow(self,sql,*args):
+  if 'AS subscription' in sql:return {'subscription':{'subscription_plan':'COMMAND','plan_period_start':datetime.now(timezone.utc)}}
   if 'workspace_invitations i JOIN' in sql:return {'id':uuid4(),'tenant_id':self.tenant,'role':'DISPATCHER','first_name':'Test','last_name':'User'} if self.pending else None
   if 'FROM public.shipment_dispute_drafts' in sql:return {'content':'Saved draft content','updated_at':None}
   return None
@@ -63,17 +65,6 @@ class SettingsTests(unittest.TestCase):
   self.db.pending=False
   self.assertEqual(self.client.post('/api/v1/auth/accept-invitation',json={'access_token':'synthetic-access-token-123','password':'A-long-synthetic-password'}).status_code,403)
   self.assertFalse(any(req.method=='PUT' for req in self.http))
- def test_draft_requires_booking_and_financial_role(self):
-  path='/api/v1/shipments/'+str(uuid4())+'/dispute-draft'
-  self.db.booked=False
-  self.assertEqual(self.client.put(path,json={'content':'Draft with enough content'}).status_code,409)
-  self.ctx.role='DISPATCHER'
-  self.assertEqual(self.client.put(path,json={'content':'Draft with enough content'}).status_code,403)
- def test_saved_draft_scoped_and_not_sent(self):
-  sid=uuid4();path=f'/api/v1/shipments/{sid}/dispute-draft'
-  r=self.client.put(path,json={'content':'Draft with enough content'})
-  self.assertEqual(r.status_code,200);self.assertFalse(r.json()['sent_to_carrier']);self.assertFalse(self.http)
-  args=self.db.calls[-1][1];self.assertEqual(args[:2],(self.ctx.tenant_id,sid))
  def test_invitation_rate_limit_prevents_email_send(self):
   self.db.fetchval=AsyncMock(return_value=21)
   r=self.client.post('/api/v1/workspace/invitations',json={'first_name':'Test','last_name':'User','email':'new@example.invalid','role':'DISPATCHER'})
