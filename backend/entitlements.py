@@ -41,9 +41,9 @@ class PlanCapabilities(BaseModel):
 def capabilities(plan:Plan|str)->PlanCapabilities:
     plan=Plan(plan)
     users,stores,parcels,overage,markup,monthly,annual={
-        Plan.STARTER:(1,0,150,'0.15','18.00','0','0'),
-        Plan.VELOCITY:(3,2,2000,'0.05','9.00','29','24'),
-        Plan.COMMAND:(10,5,4000,'0.02','5.00','79','65')}[plan]
+        Plan.STARTER:(1,0,150,'0.15','18.00','0.00','0.00'),
+        Plan.VELOCITY:(3,2,2000,'0.05','9.00','25.00','20.00'),
+        Plan.COMMAND:(10,5,4000,'0.02','5.00','75.00','60.00')}[plan]
     paid=plan!=Plan.STARTER;command=plan==Plan.COMMAND
     return PlanCapabilities(max_users=users,max_store_connections=stores,included_monthly_parcels=parcels,
         overage_fee_gbp=Decimal(overage),default_markup_percent=Decimal(markup),monthly_fee_gbp=Decimal(monthly),

@@ -1,5 +1,6 @@
 """Run actual 050/051 SQL on disposable PostgreSQL WASM; never use DATABASE_URL."""
 import asyncio,os
+from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 import asyncpg,pytest,pytest_asyncio
@@ -107,7 +108,7 @@ async def test_revenue_queries_separate_environments_and_exclude_trials(db):
     async def auth():pass
     route=next(r for r in build_router(auth,auth).routes if r.path.endswith('/revenue/overview'))
     data=await route.endpoint(request,actor=NS(),environment='PRODUCTION',start=None,end=None,after=None,limit=50)
-    assert data['contracted_mrr_gbp']=='29' and len(data['tenants'])==1
+    assert Decimal(data['contracted_mrr_gbp'])==Decimal('25') and len(data['tenants'])==1
     assert data['tenants'][0]['monthly_parcel_allowance']==2000
     assert data['tenants'][0]['parcels_this_month']==0
 
@@ -120,13 +121,13 @@ async def test_subscription_invoice_replay_and_current_state_never_credit_wallet
     await db.execute("UPDATE public.tenants SET is_sandbox=true,stripe_subscription_id='sub_synthetic',stripe_customer_id='cus_synthetic' WHERE tenant_id=$1",t)
     await db.execute('INSERT INTO public.wallets(tenant_id,balance) VALUES($1,123.45)',t)
     current={'id':'sub_synthetic','livemode':False,'customer':'cus_synthetic','status':'active','current_period_start':now-60,'current_period_end':now+86400,
-        'items':{'data':[{'quantity':1,'price':{'id':'price_synthetic','livemode':False,'currency':'gbp','active':True,'unit_amount':2900,'recurring':{'interval':'month'},'billing_scheme':'per_unit'}}]}}
+        'items':{'data':[{'quantity':1,'price':{'id':'price_synthetic','livemode':False,'currency':'gbp','active':True,'unit_amount':2500,'recurring':{'interval':'month'},'billing_scheme':'per_unit'}}]}}
     observations=[]
     async def retrieve(identifier):observations.append(identifier);return current
     settings=NS(subscription_tiers_enabled=True,stripe_livemode=False,subscription_price_ids={'VELOCITY:MONTHLY':'price_synthetic'})
     finance=NS(pool=db,stripe=NS(v1=NS(subscriptions=NS(retrieve_async=retrieve))))
     request=NS(app=NS(state=NS(settings=settings,finance=finance)))
-    invoice={'id':'in_synthetic','subscription':'sub_synthetic','amount_paid':2900,'currency':'gbp','status_transitions':{'paid_at':now}}
+    invoice={'id':'in_synthetic','subscription':'sub_synthetic','amount_paid':2500,'currency':'gbp','status_transitions':{'paid_at':now}}
     event={'id':'evt_synthetic_invoice','created':now,'type':'invoice.paid','data':{'object':invoice}}
     assert await receive_verified_event(request,event)
     assert await receive_verified_event(request,event)

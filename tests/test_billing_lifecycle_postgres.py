@@ -201,13 +201,13 @@ async def test_annual_cancellation_original_card_refund_and_replay(world,monkeyp
     monkeypatch.setattr(module,'utcnow',lambda:now)
     await w.db.execute("UPDATE public.tenants SET billing_cycle='ANNUAL',stripe_subscription_id='sub_test',stripe_customer_id='cus_test',is_sandbox=true,plan_period_start=$2,plan_period_end=$3 WHERE tenant_id=$1",w.t,start,end)
     await w.db.execute('''INSERT INTO public.subscription_invoice_receipts(stripe_invoice_id,stripe_subscription_id,stripe_event_id,tenant_id,amount_paid_gbp,paid_at,created_at,invoice_net_gbp,invoice_tax_gbp,invoice_gross_gbp,invoice_payment_intent_id)
-     VALUES('in_original','sub_test','evt_original',$1,345.60,$2,$2,288,57.60,345.60,'pi_original')''',w.t,start)
-    price={'id':'price_velocity','livemode':False,'currency':'gbp','active':True,'unit_amount':28800,'recurring':{'interval':'year','interval_count':1},'billing_scheme':'per_unit'}
+     VALUES('in_original','sub_test','evt_original',$1,288.00,$2,$2,240,48.00,288.00,'pi_original')''',w.t,start)
+    price={'id':'price_velocity','livemode':False,'currency':'gbp','active':True,'unit_amount':24000,'recurring':{'interval':'year','interval_count':1},'billing_scheme':'per_unit'}
     subscription={'id':'sub_test','customer':'cus_test','livemode':False,'status':'active','items':{'data':[{'id':'si_test','quantity':1,'price':price,'current_period_start':int(start.timestamp()),'current_period_end':int(end.timestamp())}]}}
     calls=[]
     async def retrieve(*args,**kwargs):return subscription
     async def update(*args,**kwargs):calls.append(('subscription',args));return subscription
-    async def payment(*args,**kwargs):return {'id':'pi_original','customer':'cus_test','currency':'gbp','livemode':False,'latest_charge':{'amount':34560,'amount_refunded':0}}
+    async def payment(*args,**kwargs):return {'id':'pi_original','customer':'cus_test','currency':'gbp','livemode':False,'latest_charge':{'amount':28800,'amount_refunded':0}}
     async def refund(params,**kwargs):
         calls.append(('refund',params));return {'id':'re_once','payment_intent':'pi_original','amount':params['amount'],'currency':'gbp','livemode':False,'status':'succeeded'}
     w.settings.stripe_enabled=True;w.settings.subscription_price_ids={'VELOCITY:ANNUAL':'price_velocity'}
@@ -215,7 +215,7 @@ async def test_annual_cancellation_original_card_refund_and_replay(world,monkeyp
     body=ChangeRequest(request_id=uuid4(),funding='STRIPE')
     quote=await w.service.command(w.context,'CANCEL',body)
     annual=quote['payload']['breakdown']['annual_clawback']
-    assert annual['net_refund']=='253.39' and quote['amount']=='0.00'
+    assert annual['net_refund']=='210.16' and quote['amount']=='0.00'
     confirmed=await w.service.command(w.context,'CANCEL',body.model_copy(update={'confirm':True,'quote_sha256':quote['payload_sha256']}))
     await w.service.execute(UUID(confirmed['id']))
     sub=await read_subscription(w.db,w.t)
@@ -224,9 +224,9 @@ async def test_annual_cancellation_original_card_refund_and_replay(world,monkeyp
     rid=await w.db.fetchval("SELECT id FROM public.subscription_operations WHERE action='ANNUAL_REFUND'")
     await w.service.execute(rid);await w.service.execute(rid)
     assert len([c for c in calls if c[0]=='refund'])==1
-    assert [c for c in calls if c[0]=='refund'][0][1]['amount']==30407
+    assert [c for c in calls if c[0]=='refund'][0][1]['amount']==25219
     assert await w.db.fetchval('SELECT state FROM public.subscription_refunds')=='SUCCEEDED'
-    assert Decimal(await w.db.fetchval('SELECT invoice_refunded_gbp FROM public.subscription_invoice_receipts'))==Decimal('304.07')
+    assert Decimal(await w.db.fetchval('SELECT invoice_refunded_gbp FROM public.subscription_invoice_receipts'))==Decimal('252.19')
     assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==0
     assert (await read_subscription(w.db,w.t)).subscription_plan=='STARTER'
 
@@ -236,7 +236,7 @@ async def test_stripe_upgrade_requires_matching_paid_invoice_before_access(world
     w=world;sub=await read_subscription(w.db,w.t)
     await w.db.execute("UPDATE public.tenants SET stripe_subscription_id='sub_test',stripe_customer_id='cus_test',is_sandbox=true WHERE tenant_id=$1",w.t)
     def price(name,amount):return {'id':name,'active':True,'livemode':False,'currency':'gbp','unit_amount':amount,'recurring':{'interval':'month','interval_count':1},'billing_scheme':'per_unit'}
-    old,new=price('price_velocity',2900),price('price_command',7900)
+    old,new=price('price_velocity',2500),price('price_command',7500)
     subscription={'id':'sub_test','customer':'cus_test','livemode':False,'status':'active','items':{'data':[{'id':'si_test','quantity':1,'price':old,'current_period_start':int(sub.plan_period_start.timestamp()),'current_period_end':int(sub.plan_period_end.timestamp())}]}}
     invoice={};calls=[]
     async def retrieve_sub(*args,**kwargs):return subscription

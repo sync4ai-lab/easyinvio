@@ -6,17 +6,17 @@ from backend.subscription_math import annual_refund_breakdown,calculate_proratio
 def dt(value):return datetime.fromisoformat(value+'T00:00:00+00:00')
 
 def test_annual_cancellation_removes_discount_for_usage_and_notice():
-    result=annual_refund_breakdown('VELOCITY',dt('2026-11-09'),dt('2027-11-09'),dt('2026-11-15'),'288')
+    result=annual_refund_breakdown('VELOCITY',dt('2026-11-09'),dt('2027-11-09'),dt('2026-11-15'),'240')
     assert result['cancellation_effective_at'].startswith('2026-12-15')
-    assert result['usage_at_monthly_price']=='5.80'
-    assert result['total_repriced_usage_and_notice']=='34.61'
-    assert result['net_refund']=='253.39'
+    assert result['usage_at_monthly_price']=='5.00'
+    assert result['total_repriced_usage_and_notice']=='29.84'
+    assert result['net_refund']=='210.16'
     assert result['automatic_additional_debit'] is False
 
 def test_monthly_notice_charges_six_days_in_next_31_day_cycle():
     result=cancellation_breakdown('VELOCITY','MONTHLY',dt('2026-11-09'),dt('2026-12-09'),dt('2026-11-15'))
     assert result['uncovered_days']=='6'
-    assert result['final_notice_prorated_amount']=='5.61'
+    assert result['final_notice_prorated_amount']=='4.84'
 
 def test_upgrade_prorates_price_difference_not_full_new_plan():
     result=upgrade_breakdown('VELOCITY','COMMAND','MONTHLY',dt('2026-11-09'),dt('2026-12-09'),dt('2026-11-15'))
@@ -24,21 +24,21 @@ def test_upgrade_prorates_price_difference_not_full_new_plan():
     with pytest.raises(ValueError):upgrade_breakdown('COMMAND','VELOCITY','MONTHLY',dt('2026-11-09'),dt('2026-12-09'),dt('2026-11-15'))
 
 def test_annual_late_cancellation_has_explicit_balance_not_negative_refund():
-    result=annual_refund_breakdown('VELOCITY',dt('2026-01-01'),dt('2027-01-01'),dt('2026-12-25'),'288')
+    result=annual_refund_breakdown('VELOCITY',dt('2026-01-01'),dt('2027-01-01'),dt('2026-12-25'),'240')
     assert result['net_refund']=='0.00'
     assert Decimal(result['additional_balance_for_review'])>0
     assert result['automatic_additional_debit'] is False
 
 def test_previous_refunds_reduce_cash_available():
     r=annual_refund_breakdown('VELOCITY',dt('2026-11-09'),dt('2027-11-09'),dt('2026-11-15'),'100')
-    assert r['net_refund']=='65.39'
+    assert r['net_refund']=='70.16'
 
 def test_historical_upgrade_reprices_each_tier_at_its_monthly_price():
     r=annual_refund_breakdown('VELOCITY',dt('2026-11-01'),dt('2027-11-01'),dt('2026-11-16'),'700',[(dt('2026-11-16'),'COMMAND')])
-    assert r['usage_at_monthly_price']=='14.50'
-    # Remaining November 15/30 * 79 + December 15/31 * 79.
-    assert r['total_repriced_usage_and_notice']=='92.23'
-    assert r['net_refund']=='607.77'
+    assert r['usage_at_monthly_price']=='12.50'
+    # Remaining November 15/30 * 75 + December 15/31 * 75.
+    assert r['total_repriced_usage_and_notice']=='86.29'
+    assert r['net_refund']=='613.71'
 
 @pytest.mark.parametrize('anchor,month1,month2',[('2024-01-31','2024-02-29','2024-03-31'),('2025-01-31','2025-02-28','2025-03-31')])
 def test_original_month_end_anchor_is_preserved(anchor,month1,month2):
@@ -56,7 +56,7 @@ def test_money_strictness_and_fractional_seconds():
 def test_month_end_notice_uses_original_anchor_instead_of_february_drift():
     r=cancellation_breakdown('VELOCITY','MONTHLY',dt('2025-01-31'),dt('2025-02-28'),dt('2025-02-20'))
     assert r['segments'][0]['total_days']=='31'
-    assert r['final_notice_prorated_amount']=='20.58'
+    assert r['final_notice_prorated_amount']=='17.74'
 
 def test_invalid_history_and_periods_rejected():
     with pytest.raises(ValueError):annual_refund_breakdown('VELOCITY',dt('2026-11-01'),dt('2027-11-01'),dt('2026-11-16'),'288',[(dt('2026-12-01'),'COMMAND')])

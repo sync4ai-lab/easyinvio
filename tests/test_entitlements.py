@@ -101,7 +101,7 @@ def test_assistance_owner_cannot_authorize_customer_subscription():
     asyncio.run(run())
 
 def test_provider_price_must_match_exact_amount_cycle_currency_and_environment():
-    p={'livemode':False,'currency':'gbp','active':True,'unit_amount':28800,'recurring':{'interval':'year','interval_count':1},'billing_scheme':'per_unit'}
+    p={'livemode':False,'currency':'gbp','active':True,'unit_amount':24000,'recurring':{'interval':'year','interval_count':1},'billing_scheme':'per_unit'}
     validate_price(p,'VELOCITY','ANNUAL',False)
     for key,value in [('unit_amount',2900),('currency','usd'),('livemode',True),('active',False)]:
         with pytest.raises(HTTPException):validate_price({**p,key:value},'VELOCITY','ANNUAL',False)
@@ -131,3 +131,34 @@ def test_downgrade_preflight_and_stale_version_do_not_mutate():
         with pytest.raises(HTTPException) as e:await change_plan(c,uuid4(),body,NS(user_id=uuid4()))
         assert e.value.status_code==409
     asyncio.run(run())
+
+@pytest.mark.parametrize('plan,monthly,annual,overage',[
+    ('STARTER','0.00','0.00','0.15'),
+    ('VELOCITY','25.00','240.00','0.05'),
+    ('COMMAND','75.00','720.00','0.02')])
+def test_published_prices_match_checkout_and_period_math(plan,monthly,annual,overage):
+    from backend.subscription_math import cycle_price
+    policy=capabilities(plan)
+    assert policy.monthly_fee_gbp==Decimal(monthly)
+    assert policy.overage_fee_gbp==Decimal(overage)
+    assert cycle_price(plan,'MONTHLY')==Decimal(monthly)
+    assert cycle_price(plan,'ANNUAL')==Decimal(annual)
+    for cycle,amount,interval in [('MONTHLY',monthly,'month'),('ANNUAL',annual,'year')]:
+        price={'livemode':False,'currency':'gbp','active':True,
+               'unit_amount':int(Decimal(amount)*100),
+               'recurring':{'interval':interval,'interval_count':1},'billing_scheme':'per_unit'}
+        validate_price(price,plan,cycle,False)
+
+@pytest.mark.parametrize('plan,cycle,old_amount',[
+    ('VELOCITY','MONTHLY',2900),('VELOCITY','ANNUAL',28800),
+    ('COMMAND','MONTHLY',7900),('COMMAND','ANNUAL',78000)])
+def test_previous_stripe_prices_cannot_charge_new_plan_checkout(plan,cycle,old_amount):
+    price={'livemode':False,'currency':'gbp','active':True,'unit_amount':old_amount,
+           'recurring':{'interval':'month' if cycle=='MONTHLY' else 'year'},'billing_scheme':'per_unit'}
+    with pytest.raises(HTTPException):validate_price(price,plan,cycle,False)
+
+@pytest.mark.parametrize('feature',[Feature.STORES,Feature.WHATSAPP,Feature.ADVISOR,Feature.CUSTOMS,Feature.RETURNS])
+def test_starter_does_not_unlock_paid_provider_workflows(feature):
+    with pytest.raises(HTTPException) as error:
+        require_subscription_feature(subscription('STARTER'),feature)
+    assert error.value.status_code==402

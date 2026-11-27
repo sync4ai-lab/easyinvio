@@ -85,10 +85,14 @@ async def change_plan(c,tenant_id,body,actor):
     # A downgrade cannot retain an old quote/price; quote-version fencing handles other in-flight actions.
     return response
 
+# Derive revenue reporting from the same Decimal policy used by checkout.
 MRR_SQL="""CASE WHEN t.workspace_status='ACTIVE' AND t.plan_status IN ('ACTIVE','PENDING_CANCELLATION') AND NOT t.subscription_complimentary
  AND (t.plan_period_end IS NULL OR t.plan_period_end>now()) THEN
- CASE t.subscription_plan WHEN 'VELOCITY' THEN CASE t.billing_cycle WHEN 'ANNUAL' THEN 24 ELSE 29 END
- WHEN 'COMMAND' THEN CASE t.billing_cycle WHEN 'ANNUAL' THEN 65 ELSE 79 END ELSE 0 END ELSE 0 END"""
+ CASE t.subscription_plan """ + ' '.join(
+    f"WHEN '{plan.value}' THEN CASE t.billing_cycle WHEN 'ANNUAL' THEN {capabilities(plan).annual_monthly_fee_gbp} ELSE {capabilities(plan).monthly_fee_gbp} END"
+    for plan in Plan
+) + " ELSE 0 END ELSE 0 END"
+
 
 def build_router(authenticate,authenticate_platform_owner):
     router=APIRouter(tags=['Subscription plans'])
