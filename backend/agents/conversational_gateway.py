@@ -458,7 +458,7 @@ class ConversationalActionGateway:
         engine = getattr(self.state, 'logistics_supervisor', None)
         commands = ('You can ask for a quote without a saved route; I will collect missing locations, measured packaging and addresses. '
                     'You can also track, book a displayed option, arrange a top-up, create a return or record a claim support case. Send Cancel to clear a draft.\n'
-                    'Examples: Quote 4.5kg from London to Paris; Track EINVIO-00000050; Book option 1; Return order EINVIO-00000050; Top up 50 GBP; My package is lost.')
+                    'Examples: Quote 4.5kg from London to Paris; Track EI-00000050; Book option 1; Return order EI-00000050; Top up 50 GBP; My package is lost.')
         if engine is not None and len(body.message_body.strip()) >= 3 and body.message_body.strip().lower() not in {'help', 'hello', 'hi', 'commands'}:
             answer = await engine.help.answer(context, body.message_body[:800])
             sources = answer.get('sources', [])[:6]
@@ -621,7 +621,7 @@ class ConversationalActionGateway:
         draft = getattr(self,'draft',None)
         if not ((explicit and explicit[1]==intent.target_reference_id) or
                 (draft and draft.action=='TRIGGER_RETURN' and body.message_body.strip()==intent.target_reference_id)):
-            return self.reply('TRIGGER_RETURN','To create a retailer-paid return, send: Return order EINVIO-1024.',status='NEEDS_INPUT')
+            return self.reply('TRIGGER_RETURN','To create a retailer-paid return, send: Return order EI-1024.',status='NEEDS_INPUT')
         from backend.reverse_logistics import ReverseLogisticsService, ReturnCommand
         shipment = await self.shipment(context,intent.target_reference_id)
         result = await ReverseLogisticsService(self.state.partner_lifecycle).process(context,

@@ -72,7 +72,7 @@ async def main():
         assert await page.locator('#solutions-toggle,#solutions-menu,#rate-tab,#rate-panel').count()==0
         await page.locator('[data-demo-confirm]').click()
         await expect(page.locator('.demo-confirmation')).to_be_visible()
-        await expect(page.locator('.phone-thread')).to_contain_text('Demo expiry: 09:46')
+        await expect(page.locator('.phone-thread')).to_contain_text('Quote expiry: 09:46')
         await expect(page.locator('.phone-thread')).to_contain_text('estimated 2–3 working days')
         assert await page.locator('#integrations .brand-badge').count()==13
         assert await page.locator('#integrations').count()==1
@@ -121,8 +121,8 @@ async def main():
 
         assert await page.locator('.feedback-card').count()==8
         for card in await page.locator('.feedback-card').all():
-            assert 'Not a customer review' in await card.text_content()
-            assert 'fictional' in await card.inner_text()
+            assert await card.locator('h3').count()==1
+            assert await card.locator('blockquote,.sample-stars,.feedback-person').count()==0
         assert await page.locator('script[type="application/ld+json"]').count()==0
 
         assert await page.locator('.brand-sprite script,.brand-sprite foreignObject,.brand-sprite image').count()==0

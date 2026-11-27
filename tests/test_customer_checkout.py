@@ -6,7 +6,7 @@ from datetime import datetime,timezone,timedelta
 from decimal import Decimal
 from io import BytesIO
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock,patch
 from uuid import uuid4
 
 import httpx
@@ -48,6 +48,9 @@ class CheckoutTests(unittest.IsolatedAsyncioTestCase):
         app.include_router(build_router(lambda: user))
         app.state.logistics_supervisor = SimpleNamespace(
             runtime=SimpleNamespace(available=True), customs=SimpleNamespace(rank_tariff=ranker))
+        # This test isolates tariff ranking; entitlement enforcement has separate coverage.
+        app.state.finance=SimpleNamespace(pool=None);app.state.settings=SimpleNamespace()
+        permission=patch('backend.entitlements.guard_feature',new=AsyncMock());permission.start();self.addCleanup(permission.stop)
         async with httpx.AsyncClient(transport=httpx.MockTransport(official_response)) as tariff:
             app.state.partner_lifecycle = SimpleNamespace(client=tariff)
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
@@ -170,3 +173,19 @@ class InvoiceAccessTests(unittest.TestCase):
         row.update(status='BOOKED',booked_at=datetime.now(timezone.utc),tracking_number='TEST',reservation_status='CAPTURED')
         response=client.get(path);self.assertEqual(response.status_code,200);self.assertTrue(response.content.startswith(b'%PDF'))
         self.assertEqual(response.headers['cache-control'],'no-store')
+
+
+class BookingReferencePrefixTests(unittest.IsolatedAsyncioTestCase):
+    async def test_new_reference_uses_ei_and_existing_reference_is_preserved(self):
+        from backend.customer_checkout import booking_reference
+        class Pool:
+            def __init__(self,values):self.values=iter(values);self.writes=[]
+            @asynccontextmanager
+            async def acquire(self):yield self
+            transaction=acquire
+            async def fetchval(self,*args):return next(self.values)
+            async def execute(self,sql,*args):self.writes.append((sql,args))
+        tenant,request=uuid4(),uuid4();pool=Pool([None,None,1048])
+        self.assertEqual(await booking_reference(pool,tenant,request),'EI-00001048')
+        self.assertEqual(pool.writes[-1][1],(tenant,request,'EI-00001048'))
+        self.assertEqual(await booking_reference(Pool(['EINVIO-00001048']),tenant,request),'EINVIO-00001048')

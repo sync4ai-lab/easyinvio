@@ -79,7 +79,7 @@ async def booking_reference(pool,tenant,request_id):
             reference=await c.fetchval('SELECT customer_reference FROM public.shipments WHERE tenant_id=$1 AND idempotency_key=$2',tenant,key)
             if not reference:
                 number=await c.fetchval("SELECT nextval('public.easyinvio_booking_reference_sequence')")
-                reference='EINVIO-'+str(number).zfill(8)
+                reference='EI-'+str(number).zfill(8)
             await c.execute('INSERT INTO public.booking_references(tenant_id,request_id,invoice_reference) VALUES($1,$2,$3)',tenant,request_id,reference)
             return reference
 

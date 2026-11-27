@@ -752,7 +752,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#e2e8f0}thead th{backgro
 <div class="fields">
 <div>
 <label for="decl-reference">Invoice reference</label>
-<input id="decl-reference" placeholder="e.g. EINVIO-00000001" maxlength="100" required>
+<input id="decl-reference" placeholder="e.g. EI-00000001" maxlength="100" required>
 </div>
 <div>
 <label for="decl-form">Postal declaration form</label>
@@ -2598,16 +2598,16 @@ const portal = {
   activeTicket: null
 };
 const demoTickets = [{
-  id: 'demo-9821',
-  shipment_id: 'VEL-9821',
-  title: 'Shipment #VEL-9821 ➔ Held in Customs (USA)',
+  id: 'EI-9821',
+  shipment_id: 'EI-9821',
+  title: 'Shipment #EI-9821 ➔ Held in Customs (USA)',
   status: 'OPEN',
   ai_summary: '🤖 AI Resolution Action: Commercial invoice missing itemized commodity harmonizer codes. Outbound WhatsApp remedy message transmitted to dispatcher.',
   demo: true
 }, {
-  id: 'demo-7410',
-  shipment_id: 'VEL-7410',
-  title: 'Shipment #VEL-7410 ➔ Address Insufficient (DEU)',
+  id: 'EI-7410',
+  shipment_id: 'EI-7410',
+  title: 'Shipment #EI-7410 ➔ Address Insufficient (DEU)',
   status: 'RESOLVED',
   ai_summary: '🤖 AI Resolution Action: Postcode format mismatch resolved via Google Maps Place verification. Automation ticket successfully corrected and closed.',
   demo: true
@@ -3331,7 +3331,7 @@ $('#qc-harmonize').addEventListener('click', () => {
 function sampleManifest() {
   return [{
     id: '00000000-0000-4000-8000-000000001044',
-    reference: 'VEL-9821',
+    reference: 'EI-9821',
     status: 'IN_TRANSIT',
     currency: 'GBP',
     price: '18.40',
@@ -3347,7 +3347,7 @@ function sampleManifest() {
     simulated: true
   }, {
     id: DEMO_ID,
-    reference: 'VEL-9819',
+    reference: 'EI-9819',
     status: 'DELIVERED',
     currency: 'GBP',
     price: '23.00',
@@ -3362,7 +3362,7 @@ function sampleManifest() {
     simulated: true
   }, {
     id: '00000000-0000-4000-8000-000000001045',
-    reference: 'VEL-7410',
+    reference: 'EI-7410',
     status: 'EXCEPTION',
     currency: 'GBP',
     price: '115.58',
