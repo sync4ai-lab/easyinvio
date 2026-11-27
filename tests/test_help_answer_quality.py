@@ -69,7 +69,7 @@ async def test_amazon_question_has_complete_specific_steps_without_any_ai_config
 @pytest.mark.parametrize('query,expected',[
     ('How do I connect Shopify?', 'myshopify.com'),
     ('How do I connect WooCommerce?', 'x-wc-webhook-signature'),
-    ('How do I connect eBay?', 'still need implementation'),
+    ('How do I connect eBay?', 'native REST'),
     ('How do I connect Etsy?', 'not implemented'),
     ('How do I invite a colleague?', 'invitation'),
     ('When is my wallet charged?', 'reserves'),

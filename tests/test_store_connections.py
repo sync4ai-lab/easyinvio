@@ -26,6 +26,8 @@ class StoreConnectionTests(unittest.IsolatedAsyncioTestCase):
             @asynccontextmanager
             async def transaction(self): yield self
             async def fetchrow(self, sql, *args):
+                if 'to_jsonb(t) AS subscription' in sql:
+                    return {'subscription':{'subscription_plan':'COMMAND','plan_period_start':'2020-01-01T00:00:00Z'}} if args[0]==test.tenant else None
                 if 'FROM public.ecommerce_stores' in sql:
                     return {'platform': test.platform, 'is_active': True} if args == (test.tenant, test.store) else None
                 return test.rows.get(test.store) if args[-1] == test.store else None
@@ -34,6 +36,7 @@ class StoreConnectionTests(unittest.IsolatedAsyncioTestCase):
                     test.rows[args[1]] = dict(tenant_id=args[0], credentials_ciphertext=args[2], credential_key_id=args[3])
         self.service = SimpleNamespace(pool=Pool(), connectors={}, credential_keys={'k': SecretStr(self.key.decode())})
         self.app = FastAPI(); self.app.state.ecommerce = self.service
+        self.app.state.settings=SimpleNamespace(subscription_tiers_enabled=True)
         async def authenticate(): return self.context
         self.app.include_router(build_router(authenticate))
         self.client = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url='http://test')

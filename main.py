@@ -40,6 +40,8 @@ import os
 import re
 import ssl
 import sys
+if __name__ == "__main__":
+    sys.modules.setdefault("main",sys.modules[__name__])
 from pathlib import Path
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
@@ -2263,7 +2265,7 @@ async def branded_carrier_transport(request: Request, call_next):
 async def preview_guard(request: Request, call_next):
     public_tools = {"/api/v1/public/assistance", "/api/v1/public/session", "/api/v1/config", "/api/v1/customs/harmonize", "/api/v1/customs/declaration",
                     "/api/v1/logistics/package-guidance",
-                    "/api/v1/logistics/weight", "/api/v1/logistics/cargo-weight", "/api/v1/rates/sample", "/api/v1/routing/sample", "/api/v1/rates/preview", "/api/v1/routing/preview",
+                    "/store-integrations.js", "/returns-portal.js", "/returns-portal.css", "/api/v1/integration/platforms", "/api/v1/logistics/weight", "/api/v1/logistics/cargo-weight", "/api/v1/rates/sample", "/api/v1/routing/sample", "/api/v1/rates/preview", "/api/v1/routing/preview",
                     "/api/v1/shipments/batch-preview", "/api/v1/shipments/batch-template",
                     "/api/v1/shipments/batch-review-preview", "/api/v1/audit/preview"}
     if (getattr(request.app.state, "local_preview", False)
@@ -2821,18 +2823,6 @@ app.add_middleware(ClientAssistanceMiddleware)
 from backend.public_experience import router as public_experience_router
 app.include_router(public_experience_router)
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    if "--self-test" in sys.argv:
-        verify_local_logic()
-    else:
-        from dotenv import load_dotenv
-        load_dotenv(override=False)
-        import uvicorn
-        # Loopback is appropriate for local VS Code development. Deploy
-        # behind an HTTPS reverse proxy with explicit hosting configuration.
-        uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8000")), access_log=False, proxy_headers=False)
-
 from backend.invoice_upload import build_router as invoice_upload_router
 app.include_router(invoice_upload_router(authenticate))
 from backend.ecommerce_inbound import build_router as ecommerce_inbound_router
@@ -2852,3 +2842,31 @@ from backend.whatsapp_consumer import build_router as consumer_cx_router
 app.include_router(consumer_cx_router(authenticate))
 from backend.cx_automation import build_router as cx_automation_router
 app.include_router(cx_automation_router(authenticate, authenticate_platform_owner))
+
+from backend.custom_stores import build_router as custom_store_router
+app.include_router(custom_store_router())
+from backend.store_returns_portal import build_router as store_returns_portal_router
+app.include_router(store_returns_portal_router(authenticate))
+from backend.platform_registry import PLATFORMS
+@app.get('/api/v1/integration/platforms')
+async def integration_platforms():
+    return {'platforms':[v.model_dump() for v in PLATFORMS.values()]}
+@app.get('/store-integrations.js',include_in_schema=False)
+@app.get('/returns-portal.js',include_in_schema=False)
+@app.get('/returns-portal.css',include_in_schema=False)
+async def integration_assets(request: Request):
+    name=request.url.path.rsplit('/',1)[-1]
+    path=Path(__file__).resolve().parent / ('frontend/landing' if name.startswith('returns-portal') else '.') / name
+    return FileResponse(path)
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    if "--self-test" in sys.argv:
+        verify_local_logic()
+    else:
+        from dotenv import load_dotenv
+        load_dotenv(override=False)
+        import uvicorn
+        # Loopback is appropriate for local VS Code development. Deploy
+        # behind an HTTPS reverse proxy with explicit hosting configuration.
+        uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8000")), access_log=False, proxy_headers=False)

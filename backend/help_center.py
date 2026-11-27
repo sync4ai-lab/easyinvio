@@ -200,11 +200,19 @@ GUIDES = {
 
 # These repository-authored sources are maintained once and rendered on their pages.
 GUIDES.update({
+    'connect-custom-website': Guide('Connect your custom website with signed APIs', 'Connect your stores',
+        'Signed orders, checkout rates, tracking callbacks, retailer setup and public returns.', '',
+        'own custom website bespoke rest api hmac bridge zapier make checkout rates integration',
+        source_file='docs_custom_website.md',section_chunks=True),
+    'supported-platforms': Guide('Supported sales platforms and connection methods','Connect your stores',
+        'Capabilities and setup requirements for all 24 platform codes.','',
+        'platforms integration directory ebay etsy tiktok wix squarespace magento bigcommerce prestashop shopware ecwid square opencart onbuy linnworks',
+        source_file='docs_supported_platforms.md',section_chunks=True),
     'connect-stores': Guide(
         'Choose and connect a sales channel', 'Connect your stores',
         'Supported store import methods and platforms that still need an adapter.',
         '''<h2 id="choose">Choose your platform before connecting</h2><p>EasyInvio currently implements Shopify order notifications/retrieval, WooCommerce signed order webhooks, and Amazon authorised seller order lookup triggered by AWS notifications. A workspace owner or admin manages connections in Store Integrations; dispatchers use the imported orders in Marketplace Workspace.</p>
-        <p>eBay, BigCommerce and PrestaShop are catalogue entries for assisted setup. Their order adapters and authorisation onboarding still need implementation; entering credentials does not activate imports. Etsy, Magento, Wix and TikTok are not implemented native order importers in this application.</p>
+        <p>eBay, BigCommerce, Wix and Magento have native REST retrieval and fulfillment adapters using authorized credentials. Custom Website and other directory platforms use signed normalized API bridges. Etsy, TikTok and PrestaShop require external middleware; native OAuth onboarding is not implemented. Read <a href="/help/supported-platforms">the complete capability matrix</a> and <a href="/help/connect-custom-website">custom website integration guide</a>.</p>
         <ol><li>Tell us which store platform you use.</li><li>For Shopify, WooCommerce or Amazon, follow that platform's connection guide and save credentials only in its secure connection settings.</li><li>Verify an imported order in Marketplace Workspace, review shipment details and explicitly choose/book a carrier. Store connection never purchases labels automatically.</li></ol>
         <p>For an unsupported platform, use an available manual shipment or CSV preparation workflow while discussing an adapter with support. Do not use Shopify setup instructions for a different platform.</p>''',
         'stores storefront platform connect integration amazon shopify woocommerce ebay bigcommerce prestashop etsy magento wix tiktok'),
@@ -217,7 +225,7 @@ GUIDES.update({
         <li>In your WooCommerce administration, open Settings, Advanced, Webhooks. Configure an Order created webhook and, if needed, Order updated. Use your public EasyInvio origin plus /api/v1/integration/webhooks/ and this registered store's UUID as the delivery URL.</li>
         <li>Use the same signing secret in WooCommerce and EasyInvio. EasyInvio verifies the x-wc-webhook-signature and supported order.created/order.updated topic before importing.</li>
         <li>Send an eligible order notification. Open Marketplace Workspace to review the imported address, goods, packing and customs, then compare rates and explicitly book. Import does not buy a label or charge a wallet.</li></ol>
-        <h2 id="troubleshoot">If an order is missing</h2><p>Check webhook delivery logs, the exact store UUID, signing secret, recipient address, prices and verified SKU weights. Keep the original reference when investigating repeated events. The Shopify Retrieve orders button is not WooCommerce polling; this connector uses signed notifications.</p>''',
+        <h2 id="troubleshoot">If an order is missing</h2><p>Check webhook delivery logs, the exact store UUID, signing secret, recipient address, prices and verified SKU weights. Keep the original reference when investigating repeated events. WooCommerce can also retrieve orders through the REST adapter after configuring the HTTPS origin and consumer key/secret. Live tracking write-back requires those REST credentials and the explicit toggle.</p>''',
         'woocommerce wordpress connect integration setup webhook orders weights'),
     'connect-amazon': Guide(
         'Connect Amazon Marketplace and import orders', 'Connect your stores',

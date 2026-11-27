@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from backend.admin_portal import authenticate_platform_operator
 from backend.tracking_and_support import money
+from backend.platform_registry import PlatformCode
 from backend.support_workflow import add_internal_note,present_ticket
 
 
@@ -24,7 +25,7 @@ class WorkspaceMember(BaseModel):
 
 class StoreConfiguration(BaseModel):
     model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
-    platform: Literal['SHOPIFY','WOOCOMMERCE','AMAZON']
+    platform: PlatformCode
     display_name: str=Field(min_length=1,max_length=200)
 
 class StoreState(BaseModel):

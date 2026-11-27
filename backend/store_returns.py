@@ -69,6 +69,8 @@ async def sync_return_jobs(service):
         config = await resolve_connector(service, job['store_id'])
         if not config or config.tenant_id != job['tenant_id']:
             continue
+        from backend.platform_registry import NATIVE
+        if config.platform not in NATIVE: continue  # Signed callback worker owns bridge return events.
         code = None
         if config.platform != 'SHOPIFY':
             code = 'RETURN_NATIVE_PROGRAM_NOT_CONFIGURED'

@@ -190,7 +190,21 @@ def build_router(authenticate):
                     'notice': 'Inbox refreshed. Remote polling is not configured; signed webhooks import orders independently.'}
         if config.tenant_id != context.tenant_id or config.platform != store['platform']:
             raise HTTPException(409, 'Store connector identity mismatch')
-        return await poll_shopify(service, context, store_id, config, after=after)
+        if config.platform=='SHOPIFY': return await poll_shopify(service,context,store_id,config,after=after)
+        from backend.store_rest import RestStoreAdapter
+        try: page=int(after or '1')
+        except ValueError: raise HTTPException(422,'REST cursor must be a page number') from None
+        if not 1<=page<=1000: raise HTTPException(422,'Invalid page')
+        adapter=RestStoreAdapter(service.client,config); values=await adapter.orders(page)
+        if len(values)>50: raise HTTPException(502,'Native order page exceeds configured limit')
+        results=[]
+        for value in values:
+            try:
+                payload=ImportPayload.model_validate({'store_id':store_id,'platform':config.platform,'cargo_type':config.cargo_type,'order':adapter.normalize(value)})
+                results.append(await service.import_order(context,payload))
+            except (ValueError,KeyError,TypeError,HTTPException):
+                results.append({'status':'REVIEW_REQUIRED','error':'Review address, fulfillment allocation, product values and verified SKU weights'})
+        return {'source':config.platform+'_API','results':results,'more_available':len(values)==50,'next_cursor':str(page+1) if len(values)==50 else None}
 
     @router.get('/orders/{shipment_id}')
     async def prepare(shipment_id: UUID, request: Request, context: Any = Depends(authenticate)):

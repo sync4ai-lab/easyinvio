@@ -62,6 +62,8 @@ class Store:
 
     async def fetchrow(self, sql, *args):
         self.calls.append((sql,args))
+        if 'to_jsonb(t) AS subscription' in sql:
+            return {'subscription':{'subscription_plan':'COMMAND','plan_period_start':'2020-01-01T00:00:00Z'}} if args[0]==self.context.tenant_id else None
         if 'FROM public.reverse_logistics_requests' in sql:
             return next((row for row in self.commands.values() if row['tenant_id']==args[0]
                 and (row['id']==args[1] or len(args)>2 and row['original_shipment_id']==args[2])),None)
@@ -339,7 +341,7 @@ async def test_signed_store_return_requires_timestamp_signature_and_real_dispatc
 @pytest.mark.parametrize('text',['return order EINVIO-1024','create a return for tracking DPD-7712'])
 async def test_chat_return_is_deterministic_and_does_not_need_a_model(text):
     from backend.agents.conversational_gateway import ConversationalActionGateway
-    gateway=ConversationalActionGateway(SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace())))
+    gateway=ConversationalActionGateway(SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(settings=SimpleNamespace()))))
     intent=await gateway.interpret(None,text)
     assert intent.intent=='TRIGGER_RETURN'
     assert intent.target_reference_id==text.split()[-1]

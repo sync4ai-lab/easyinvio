@@ -112,11 +112,13 @@ class Goods(StrictInput):
 
 from backend.shipment_notifications import SenderNotifications
 
+from backend.platform_registry import OrderPlatform
+
 class Order(StrictInput):
     sender_notifications: SenderNotifications = Field(default_factory=SenderNotifications)
     idempotency_key: UUID
     order_reference: str = Field(min_length=1,max_length=100)
-    platform: Literal['SHOPIFY','WOOCOMMERCE','AMAZON','MANUAL'] = 'MANUAL'
+    platform: OrderPlatform = 'MANUAL'
     store_id: UUID | None = None
     store_order_id: str | None = Field(default=None,min_length=1,max_length=150)
     origin: dict

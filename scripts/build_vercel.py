@@ -17,13 +17,13 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ('index.html', 'pricing.html', 'workspace.html', 'tracking.html', 'tracking-workspace.js',
           'tracking-public.js', 'cx-automation.js', 'tracking-ui.css', 'manifest-workflow.js',
           'help-workspace-bridge.js', 'return-workspace.js',
-          'form-feedback.js', 'form-feedback.css', 'workspace-ui.css', 'workspace-ui.js', 'platform-console.css', 'platform-console.js',
+          'form-feedback.js', 'form-feedback.css', 'workspace-ui.css', 'workspace-ui.js', 'store-integrations.js', 'returns-portal.js', 'returns-portal.css', 'platform-console.css', 'platform-console.js',
           'brand-mark.svg', 'ask-easyinvio.css', 'brand.css', 'favicon.svg', 'favicon-32.png',
           'apple-touch-icon.png', 'app-icon-192.png', 'app-icon-512.png', 'site.webmanifest')
 RUNTIME_PATTERNS = ('main.py', 'requirements.txt', 'requirements.lock.txt',
                     'backend/**/*.py', 'certs/*.crt', 'frontend/components/*.html',
                     'frontend/components/*.js', 'frontend/components/*.css',
-                    'docs/status_reference.md', 'docs_*.md')
+                    'docs/status_reference.md', 'docs_*.md', 'frontend/landing/returns-portal.html')
 
 
 def checked_file(root: Path, path: Path) -> Path:
@@ -113,6 +113,8 @@ def prepare(root: Path = ROOT, *, write_bundle: bool = False) -> dict[str, int]:
         # Keep the workspace source intact; publish the landing page at the root.
         source = root / {'index.html': 'frontend/landing/index.html',
                          'workspace.html': 'index.html',
+                         'returns-portal.js':'frontend/landing/returns-portal.js',
+                         'returns-portal.css':'frontend/landing/returns-portal.css',
                          'pricing.html': 'frontend/landing/pricing.html'}.get(name, name)
         checked_file(root, source)
         destination = public / name

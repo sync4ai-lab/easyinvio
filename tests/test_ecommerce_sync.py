@@ -32,6 +32,8 @@ class Database:
         yield
 
     async def fetchrow(self, sql, *args):
+        if 'to_jsonb(t) AS subscription' in sql:
+            return {'subscription':{'subscription_plan':'COMMAND','plan_period_start':'2020-01-01T00:00:00Z'}} if args[0]==self.tenant else None
         if 'FROM public.users' in sql:
             return {'id': self.tenant} if args[0] == self.tenant else None
         if 'FROM public.tenants' in sql:
@@ -46,6 +48,9 @@ class Database:
                     return row
         return None
 
+    async def fetchval(self,sql,*args):
+        return False
+
     async def execute(self, sql, *args):
         if "INSERT INTO public.shipments" in sql:
             sid, tenant, currency, store, order, digest, metadata = args[:7]
@@ -55,7 +60,7 @@ class Database:
                                                        "ecommerce_store_id": store, "store_order_id": order}
         elif "INSERT INTO public.ecommerce_tracking_outbox" in sql:
             tenant, sid, store, order, body = args[:5]
-            self.events.setdefault((tenant, sid), {"id": uuid4(), "tenant_id": tenant, "store_order_id": order,
+            self.events.setdefault((tenant, sid), {"id": uuid4(), "tenant_id": tenant, "store_order_id": order,"store_id":store,"shipment_id":sid,"platform":"SHOPIFY",
                                                     "payload": body, "status": "PENDING", "attempts": 0})
         elif "UPDATE public.ecommerce_tracking_outbox" in sql:
             for row in self.events.values():
@@ -65,7 +70,7 @@ class Database:
                     row["response"] = json.loads(args[2])
 
     async def fetch(self, sql, *args):
-        if not args:
+        if not args or (len(args)==1 and isinstance(args[0],list)):
             return [row for row in self.events.values() if row["status"] == "PENDING"]
         return [row for row in self.events.values() if (row["tenant_id"], row["store_order_id"]) == args]
 
@@ -74,7 +79,7 @@ class EcommerceTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.tenant, self.store = uuid4(), uuid4()
         self.database = Database(self.tenant, self.store)
-        self.service = EcommerceService(self.database)
+        self.service = EcommerceService(self.database,settings=SimpleNamespace(subscription_tiers_enabled=True,provider_environment='TEST'))
         self.context = SimpleNamespace(tenant_id=self.tenant, user_id=uuid4(), role="DISPATCHER")
 
     async def test_exact_import_replay_and_changed_payload(self):

@@ -122,6 +122,7 @@ def documentation_question(text):
 
 
 def requested_platform(query):
+    if re.search(r"custom.?website|bespoke|own (?:web)?site|own custom",query,re.I): return "custom website"
     for name in ('amazon','shopify','woocommerce','ebay','bigcommerce','prestashop','etsy','magento','wix','tiktok'):
         if re.search(r'\b' + name + r'\b', query, re.I):
             return name
@@ -132,6 +133,10 @@ def requested_platform(query):
 
 
 def preferred_topic(query, chunks):
+    if requested_platform(query)=="custom website":
+        return [chunk for chunk in chunks if chunk.url.startswith("/help/connect-custom-website")][:4]
+    if re.search(r"supported platforms|20\+|24 platforms|channel breadth",query,re.I):
+        return [chunk for chunk in chunks if chunk.url.startswith("/help/supported-platforms")][:4]
     if re.search(r'\bamazon\b', query, re.I) and re.search(r'\b(?:integrat\w*|connect\w*|setup|set up|configur\w*|steps)\b', query, re.I):
         matches = [chunk for chunk in chunks if chunk.url.startswith('/help/connect-amazon')]
         setup = [chunk for chunk in matches if 'Setup steps' in chunk.title]

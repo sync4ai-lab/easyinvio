@@ -15,6 +15,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 from typing import Literal
 from uuid import UUID
+from urllib.parse import urlsplit
 
 import httpx
 from fastapi import HTTPException, Request
@@ -22,6 +23,8 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, m
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend.ecommerce_sync import ImportPayload
+from backend.platform_registry import PlatformCode, NATIVE, REST_PLATFORMS
+from backend.store_transport import https_url
 from backend.ai_engine import strict_decimal
 
 
@@ -29,8 +32,12 @@ class StoreConnector(BaseModel):
     model_config = ConfigDict(extra='forbid', allow_inf_nan=False, hide_input_in_errors=True)
     tenant_id: UUID
     auth_user_id: UUID
-    platform: Literal['SHOPIFY','WOOCOMMERCE','AMAZON']
+    platform: PlatformCode
     webhook_secret: SecretStr
+    store_url: str | None = None
+    tracking_callback_url: str | None = None
+    external_store_id: str | None = Field(default=None,max_length=200,pattern=r"^[A-Za-z0-9_-]+$")
+    api_key_id: str | None = None
     shop_domain: str | None = None
     access_token: SecretStr | None = None
     client_id: str | None = None
@@ -67,12 +74,27 @@ class StoreConnector(BaseModel):
     def configured(self):
         if self.platform == 'SHOPIFY' and not self.shop_domain:
             raise ValueError('Shopify requires shop_domain for webhook identity verification')
-        if self.live_delivery and (self.platform != 'SHOPIFY' or not self.access_token or not self.access_token.get_secret_value().strip()):
-            raise ValueError('Live delivery currently requires a Shopify access token')
-        if bool(self.client_id) != bool(self.client_secret):
-            raise ValueError('Supply both Shopify client credentials')
-        if self.live_import and (self.platform != 'SHOPIFY' or not (self.access_token and self.access_token.get_secret_value().strip() or self.client_id and self.client_secret)):
-            raise ValueError('Live polling currently requires a Shopify access token')
+        if self.store_url: self.store_url=https_url(self.store_url,origin=True)
+        if self.tracking_callback_url:
+            self.tracking_callback_url=https_url(self.tracking_callback_url)
+            if not self.store_url or urlsplit(self.tracking_callback_url).netloc!=urlsplit(self.store_url).netloc:
+                raise ValueError('Tracking callback must be on the configured retailer HTTPS origin')
+        if self.platform=='SHOPIFY':
+            if bool(self.client_id)!=bool(self.client_secret): raise ValueError('Supply both Shopify app credentials')
+            if (self.live_import or self.live_delivery) and not (self.access_token or self.client_id and self.client_secret):
+                raise ValueError('Shopify API credentials required')
+        elif self.platform=='WOOCOMMERCE':
+            if (self.live_import or self.live_delivery) and not (self.store_url and self.client_id and self.client_secret):
+                raise ValueError('WooCommerce API operations require HTTPS store origin, consumer key and consumer secret')
+        elif self.platform in REST_PLATFORMS:
+            if not self.access_token: raise ValueError('Native REST adapter requires an authorized access token')
+            if self.platform=='MAGENTO' and not self.store_url: raise ValueError('Magento requires its HTTPS store origin')
+            if self.platform in {'WIX','BIGCOMMERCE'} and not self.external_store_id: raise ValueError('Site ID/store hash required')
+        elif self.live_import: raise ValueError('This platform uses signed push intake, not native polling')
+        if self.platform=='AMAZON' and self.live_delivery: raise ValueError('Amazon tracking write-back is not implemented')
+        if self.platform not in NATIVE and not self.store_url: raise ValueError('Bridge setup requires the retailer HTTPS origin')
+        if self.live_delivery and self.platform not in NATIVE and not self.tracking_callback_url:
+            raise ValueError('Enable bridge delivery only after configuring its callback URL')
         if self.platform == 'AMAZON' and self.amazon_seller_id and not all((self.amazon_marketplace_ids,self.amazon_client_id,self.amazon_client_secret,self.amazon_refresh_token)):
             raise ValueError('Native Amazon intake requires complete seller authorization')
         if any(not weight.is_finite() or weight <= 0 or weight > 1000000 for weight in self.sku_unit_grams.values()):
@@ -120,7 +142,7 @@ async def receive_store_webhook(request: Request, store_id: UUID, *, initial_sta
         if single_header(request, 'x-wc-webhook-topic') not in {'order.created','order.updated'}:
             raise HTTPException(422, 'Unsupported WooCommerce order topic')
         topic = 'orders/create'
-    else:
+    elif config.platform == 'AMAZON':
         signature = single_header(request, 'x-veloce-signature')
         timestamp = single_header(request, 'x-veloce-timestamp')
         try:
@@ -129,6 +151,13 @@ async def receive_store_webhook(request: Request, store_id: UUID, *, initial_sta
         except ValueError:
             raise HTTPException(401, 'Expired adapter signature') from None
         expected = hmac.new(secret, timestamp.encode()+b'.'+str(store_id).encode()+b'.'+raw, hashlib.sha256).hexdigest()
+        topic = 'orders/create'
+    else:
+        from backend.custom_stores import signed_actor
+        signed_config, _, signed_store = await signed_actor(request, bytes(raw))
+        if signed_store != store_id or signed_config.tenant_id != config.tenant_id:
+            raise HTTPException(401, 'Signed store identity mismatch')
+        signature = expected = 'verified-store-bridge'
         topic = 'orders/create'
     if not hmac.compare_digest(signature, expected):
         raise HTTPException(401, 'Invalid webhook signature')
@@ -169,6 +198,8 @@ def normalize_shopify(data: dict, config: StoreConnector) -> dict:
     normalized = {**data, 'line_items': items, 'shipping_address': {**shipping,
         'address2': shipping.get('address2') or '', 'phone': shipping.get('phone') or '',
         'province': shipping.get('province_code') or shipping.get('province') or ''}}
+    if data.get('email') or data.get('contact_email'):
+        normalized['shipping_address']['email']=data.get('email') or data['contact_email']
     return normalized
 
 
@@ -186,7 +217,9 @@ def normalize_woocommerce(data: dict, config: StoreConnector) -> dict:
             'shipping_address':{'name':(shipping['first_name']+' '+shipping['last_name']).strip(),
                 'address1':shipping['address_1'],'address2':shipping.get('address_2',''),
                 'city':shipping['city'],'zip':shipping['postcode'],'country_code':shipping['country'],
-                'province':shipping.get('state','')},'line_items':items}
+                'province':shipping.get('state',''),
+                **({'email':data['billing']['email']} if data.get('billing',{}).get('email') else {}),
+                **({'phone':shipping.get('phone') or data.get('billing',{}).get('phone')} if shipping.get('phone') or data.get('billing',{}).get('phone') else {})},'line_items':items}
 
 
 async def shopify_access_token(client, config):

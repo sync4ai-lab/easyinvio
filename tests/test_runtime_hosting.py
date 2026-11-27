@@ -89,6 +89,8 @@ def fixture_checkout(root):
     for name in ASSETS:
         (root / name).write_text('synthetic public file', encoding='utf-8')
     (root / 'frontend/landing').mkdir(parents=True)
+    for asset in ('returns-portal.html','returns-portal.js','returns-portal.css'):
+        (root/'frontend/landing'/asset).write_text('synthetic portal',encoding='utf-8')
     (root / 'frontend/landing/index.html').write_text('synthetic landing', encoding='utf-8')
     (root / 'frontend/landing/pricing.html').write_text('synthetic pricing', encoding='utf-8')
     (root / 'index.html').write_text('synthetic workspace', encoding='utf-8')
@@ -112,7 +114,7 @@ def test_build_publishes_only_allowlisted_assets_and_blocks_stale_worker(tmp_pat
     data = (tmp_path / 'deployment/worker/runtime.tar.gz').read_bytes()
     assert data == bundle(runtime_files(tmp_path))
     with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
-        assert set(archive.getnames()) == {'main.py', 'requirements.lock.txt', 'backend/worker_runtime.py'}
+        assert set(archive.getnames()) == {'main.py', 'requirements.lock.txt', 'backend/worker_runtime.py','frontend/landing/returns-portal.html'}
         assert all(item.isfile() and not Path(item.name).is_absolute() for item in archive.getmembers())
     prepare(tmp_path)
     (tmp_path / 'main.py').write_text('app = changed', encoding='utf-8')

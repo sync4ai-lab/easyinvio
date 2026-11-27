@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from backend.ai_engine import strict_decimal, country_code
+from backend.platform_registry import PlatformCode
 
 _service: EcommerceService | None = None
 
@@ -34,6 +35,7 @@ class Address(BaseModel):
     zip: str = Field(min_length=1, max_length=30)
     country_code: str
     province: str = Field(default="", max_length=120)
+    email: str | None = Field(default=None,max_length=254,pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
     phone: str = Field(default="", max_length=40)
 
     @field_validator("country_code")
@@ -94,7 +96,7 @@ class StoreOrder(BaseModel):
 class ImportPayload(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     store_id: UUID
-    platform: Literal["SHOPIFY", "WOOCOMMERCE", "AMAZON"] = "SHOPIFY"
+    platform: PlatformCode = "SHOPIFY"
     topic: Literal["orders/create", "orders/paid"] = "orders/create"
     cargo_type: Literal["LETTER", "PARCEL", "PALLET", "OVERLAND_FREIGHT"] = "PARCEL"
     order: StoreOrder
@@ -120,6 +122,7 @@ def parsed_order(order: StoreOrder) -> dict:
         if kg <= 0 or kg > 1000 or quantity > 10000:
             raise ValueError("Order must weigh more than zero and at most 1000 kg, with at most 10000 units")
     address = order.shipping_address.model_dump()
+    if not address.get('email'): address.pop('email',None)
     if not address['phone']:
         address.pop('phone')
     return {"store_order_id": str(order.id), "order_reference": order.name,
@@ -160,39 +163,8 @@ class EcommerceService:
         return await process_batch(lifecycle, context, commands, source=source, store_id=store_id)
 
     async def push_live(self, tenant_id, store_order_id, tracking_number, carrier_name):
-        """Commit a send fence before the remote mutation; crashes cannot resend."""
-        async with self.pool.acquire() as connection:
-            rows = await connection.fetch('''SELECT o.id,o.store_id,o.payload FROM public.ecommerce_tracking_outbox o
-                JOIN public.ecommerce_stores s ON s.tenant_id=o.tenant_id AND s.id=o.store_id
-                WHERE o.tenant_id=$1 AND o.store_order_id=$2 AND o.status='PENDING' AND o.tracking_lifecycle_type='FORWARD_SHIPMENT' AND s.is_active''', tenant_id,store_order_id)
-        for row in rows:
-            from backend.store_connections import resolve_connector
-            config = await resolve_connector(self, row['store_id'])
-            if not config or not config.live_delivery or config.tenant_id != tenant_id:
-                continue
-            body = json.loads(row['payload']) if isinstance(row['payload'], str) else row['payload']
-            if body['tracking_number'] != tracking_number or body['carrier_name'] != carrier_name:
-                continue
-            if self.client is None:
-                raise HTTPException(503, 'Store delivery client unavailable')
-            async with self.pool.acquire() as connection:
-                claimed = await connection.fetchval('''UPDATE public.ecommerce_tracking_outbox
-                    SET status='RECONCILIATION_REQUIRED',attempts=attempts+1
-                    WHERE tenant_id=$1 AND id=$2 AND status='PENDING' RETURNING id''',tenant_id,row['id'])
-            if not claimed:
-                continue
-            from backend.ecommerce_connectors import ShopifyFulfillment
-            try:
-                response = await ShopifyFulfillment(self.client,config).deliver(body)
-            except (httpx.HTTPError,HTTPException,ValueError,KeyError,TypeError):
-                # No remote error payload or credentials enter the outbox/logs.
-                continue
-            async with self.pool.acquire() as connection:
-                async with connection.transaction():
-                    await connection.execute('''UPDATE public.ecommerce_tracking_outbox SET status='DELIVERED',
-                        delivered_at=now(),response=$3::jsonb WHERE tenant_id=$1 AND id=$2 AND status='RECONCILIATION_REQUIRED' ''',
-                        tenant_id,row['id'],json.dumps(response))
-                    await connection.execute("UPDATE public.shipments SET store_fulfillment_status='FULFILLED' WHERE tenant_id=$1 AND id=(SELECT shipment_id FROM public.ecommerce_tracking_outbox WHERE tenant_id=$1 AND id=$2) AND tracking_lifecycle_type='FORWARD_SHIPMENT'",tenant_id,row['id'])
+        from backend.store_delivery import deliver_tracking
+        await deliver_tracking(self,tenant_id,store_order_id,tracking_number,carrier_name)
 
     async def import_order(self, context, payload: ImportPayload, *, initial_status="PENDING_IMPORT") -> dict:
         if initial_status not in {"PENDING_IMPORT", "UNFULFILLED"}:
@@ -251,6 +223,7 @@ class EcommerceService:
                 if not address.address2: recipient.pop('line2')
                 if address.province: recipient['state']=address.province
                 if address.phone: recipient['phone']=address.phone
+                if address.email: recipient['email']=address.email
                 await connection.execute(
                     """INSERT INTO public.shipments
                        (id,tenant_id,status,currency,quote_expires_at,ecommerce_store_id,store_order_id,store_import_hash,logistics_metadata,
@@ -297,45 +270,18 @@ class EcommerceService:
     async def push(self, tenant_id: UUID, store_order_id: str, tracking_number: str, carrier_name: str):
         if not isinstance(tenant_id, UUID) or not tracking_number.strip() or len(tracking_number) > 200 or not carrier_name.strip() or len(carrier_name) > 100:
             raise ValueError("Tenant UUID, tracking number and carrier are required")
-        if any(config.live_delivery for config in self.connectors.values()):
-            await self.push_live(tenant_id,store_order_id,tracking_number,carrier_name)
-        async with self.pool.acquire() as connection:
-            async with connection.transaction():
-                rows = await connection.fetch(
-                    """SELECT o.id,o.payload,o.status,o.tracking_lifecycle_type FROM public.ecommerce_tracking_outbox o
-                       JOIN public.ecommerce_stores s ON s.id=o.store_id AND s.tenant_id=o.tenant_id
-                       WHERE o.tenant_id=$1 AND o.store_order_id=$2 AND s.is_active
-                       ORDER BY o.id FOR UPDATE OF o""", tenant_id, store_order_id)
-                matched = 0
-                for row in rows:
-                    body = json.loads(row["payload"]) if isinstance(row["payload"], str) else row["payload"]
-                    if row.get('tracking_lifecycle_type','FORWARD_SHIPMENT')!='FORWARD_SHIPMENT':continue
-                    if body["tracking_number"] != tracking_number or body["carrier_name"] != carrier_name:
-                        continue
-                    matched += 1
-                    if row["status"] in {"SIMULATED_DELIVERED", "DELIVERED", "RECONCILIATION_REQUIRED"}:
-                        continue
-                    # A real HTTP request/response exchange through an in-process mock
-                    # transport: no DNS, sockets, credentials or real fulfillment.
-                    def merchant_host(request: httpx.Request):
-                        received = json.loads(request.content)
-                        if received != body or request.headers.get("idempotency-key") != str(row["id"]):
-                            return httpx.Response(422, json={"accepted": False})
-                        return httpx.Response(200, json={"accepted": True, "fulfillment_state": "SHIPPED", "simulated": True})
-                    async with httpx.AsyncClient(transport=httpx.MockTransport(merchant_host), trust_env=False) as client:
-                        response = await client.post("https://merchant.invalid/fulfillments", json=body,
-                                                     headers={"Idempotency-Key": str(row["id"])})
-                        response.raise_for_status()
-                    await connection.execute(
-                        """UPDATE public.ecommerce_tracking_outbox SET status='SIMULATED_DELIVERED',
-                           attempts=attempts+1,delivered_at=now(),response=$3::jsonb WHERE tenant_id=$1 AND id=$2""",
-                        tenant_id, row["id"], json.dumps(response.json()))
-                if matched == 0:
-                    raise HTTPException(404, "Confirmed tracking event not found")
+        await self.push_live(tenant_id,store_order_id,tracking_number,carrier_name)
 
     async def retry_pending(self):
+        from backend.platform_registry import NATIVE
         async with self.pool.acquire() as connection:
-            rows = await connection.fetch("SELECT tenant_id,store_order_id,payload FROM public.ecommerce_tracking_outbox WHERE status='PENDING' AND tracking_lifecycle_type='FORWARD_SHIPMENT' ORDER BY created_at LIMIT 100")
+            rows = await connection.fetch("""SELECT o.tenant_id,o.store_order_id,o.payload FROM public.ecommerce_tracking_outbox o
+                JOIN public.ecommerce_stores s ON s.tenant_id=o.tenant_id AND s.id=o.store_id AND s.is_active
+                WHERE o.next_attempt_at<=now() AND o.attempts<30 AND
+                  ((o.status='PENDING' AND (o.tracking_lifecycle_type='FORWARD_SHIPMENT' OR NOT (s.platform=ANY($1::text[]))))
+                   OR (o.status='RECONCILIATION_REQUIRED' AND NOT (s.platform=ANY($1::text[]))
+                    AND o.store_sync_error_code IN ('CALLBACK_RETRY','RETURN_ADAPTER_UPGRADE_REQUIRED')))
+                ORDER BY o.created_at LIMIT 100""",list(NATIVE))
         for row in rows:
             body = json.loads(row["payload"]) if isinstance(row["payload"], str) else row["payload"]
             try:
@@ -345,6 +291,8 @@ class EcommerceService:
                 continue
         from backend.store_returns import sync_return_jobs
         await sync_return_jobs(self)
+        from backend.store_delivery import retry_status_callbacks
+        await retry_status_callbacks(self)
 
 
 def configure_ecommerce_service(service: EcommerceService | None):
@@ -414,7 +362,9 @@ def build_router(authenticate):
             if row['tracking_lifecycle_type']=='RETURN_SHIPMENT':
                 from backend.store_returns import ShopifyReturnTracking
                 response=await ShopifyReturnTracking(service.client,config).deliver(body,verify_only=True)
-            elif row['tracking_lifecycle_type']=='FORWARD_SHIPMENT':response=await ShopifyFulfillment(service.client,config).deliver(body,verify_only=True)
+            elif row['tracking_lifecycle_type']=='FORWARD_SHIPMENT':
+                from backend.store_delivery import adapter_for
+                response=await adapter_for(service,config).deliver(body,verify_only=True)
             else:raise HTTPException(409,'Exchange tracking requires a verified replacement-order allocation')
         except (httpx.HTTPError,ValueError,KeyError,TypeError):
             raise HTTPException(503,'Store verification unavailable; hold retained') from None

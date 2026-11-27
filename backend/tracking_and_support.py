@@ -249,6 +249,10 @@ class TrackingSupportService:
                     (tenant_id,shipment_id,integration_key_id,event_id,body_sha256,status,occurred_at,raw_error,response,support_pending)
                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10)""", key.tenant_id, shipment["id"], key_id,
                     event.event_id, digest, event.status, occurred_at, event.raw_error, json.dumps(result), result["support_queued"])
+                if applied:
+                    from backend.store_delivery import queue_status_callback
+                    await queue_status_callback(connection,key.tenant_id,shipment['id'],str(key_id)+':'+event.event_id,
+                        {'status':applied_status,'tracking_number':event.tracking_number,'occurred_at':occurred_at.isoformat()})
                 if self.workspace is not None:
                     await self.workspace.record_event(connection,key_id,key,event,result)
                 return result

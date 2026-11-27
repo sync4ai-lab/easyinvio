@@ -9,17 +9,22 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from backend.ecommerce_connectors import StoreConnector
+from backend.platform_registry import PLATFORMS, NATIVE, REST_PLATFORMS
 
 
 class ConnectionSetup(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+    live_delivery: bool = Field(default=False,strict=True)
+    store_url: str | None = Field(default=None,max_length=500)
+    tracking_callback_url: str | None = Field(default=None,max_length=1000)
+    external_store_id: str | None = Field(default=None,max_length=200)
     shop_domain: str | None = None
     access_token: SecretStr | None = Field(default=None, max_length=4096)
     client_id: str | None = Field(default=None, max_length=200)
     client_secret: SecretStr | None = Field(default=None, max_length=4096)
     authorization_mode: Literal['TOKEN', 'CLIENT_CREDENTIALS'] | None = None
     webhook_secret: SecretStr | None = Field(default=None, max_length=4096)
-    live_import: bool = True
+    live_import: bool = Field(default=False,strict=True)
     live_returns: bool = Field(default=False,strict=True)
     sku_unit_grams: dict[str, str] = Field(default_factory=dict, max_length=1000)
     cargo_type: Literal['LETTER','PARCEL','PALLET','OVERLAND_FREIGHT'] = 'PARCEL'
@@ -51,6 +56,11 @@ async def resolve_connector(service, store_id):
 def public_settings(config):
     return {'configured': config is not None, 'shop_domain': config.shop_domain if config else '',
             'live_import': bool(config and config.live_import),
+            'live_delivery': bool(config and config.live_delivery),
+            'store_url': config.store_url if config else '',
+            'tracking_callback_url': config.tracking_callback_url if config else '',
+            'external_store_id': config.external_store_id if config else '',
+            'api_key_id': config.api_key_id if config else None,
             'live_returns': bool(config and config.live_returns),
             'sku_unit_grams': {k: str(v) for k, v in config.sku_unit_grams.items()} if config else {},
             'has_access_token': bool(config and config.access_token),
@@ -90,7 +100,7 @@ def build_router(authenticate):
         store = await scoped_store(request, context, store_id)
         from backend.entitlements import guard_feature
         await guard_feature(request.app.state.ecommerce.pool,getattr(request.app.state,'settings',None),context.tenant_id,'store_integrations')
-        if store['platform'] not in {'SHOPIFY', 'WOOCOMMERCE', 'AMAZON'}:
+        if store['platform'] not in PLATFORMS:
             raise HTTPException(422, 'This platform requires assisted integration')
         service = request.app.state.ecommerce
         if not getattr(service, 'credential_keys', None):
@@ -117,7 +127,7 @@ def build_router(authenticate):
                     except (KeyError, ValueError, InvalidToken):
                         raise HTTPException(503, 'Existing store credentials unavailable') from None
                 values = body.model_dump(exclude={'access_token', 'client_secret', 'webhook_secret', 'amazon_client_secret', 'amazon_refresh_token', 'authorization_mode'})
-                for field in ('cargo_type','amazon_region','amazon_seller_id','amazon_marketplace_ids','amazon_client_id','live_returns'):
+                for field in ('cargo_type','amazon_region','amazon_seller_id','amazon_marketplace_ids','amazon_client_id','live_returns','live_delivery','store_url','tracking_callback_url','external_store_id'):
                     if field not in body.model_fields_set and field in previous:
                         values[field] = previous[field]
                 if body.client_id is None:
@@ -135,9 +145,10 @@ def build_router(authenticate):
                     values['webhook_secret'] = secrets.token_urlsafe(32)
                 try:
                     config = StoreConnector.model_validate({**values, 'tenant_id': context.tenant_id,
-                        'auth_user_id': context.user_id, 'platform': store['platform'], 'live_delivery': previous.get('live_delivery', False)})
+                        'auth_user_id': context.user_id, 'platform': store['platform'],
+                        'api_key_id': previous.get('api_key_id') or secrets.token_urlsafe(18)})
                 except ValueError:
-                    raise HTTPException(422, 'Use a canonical Shopify hostname and valid token or app credentials. Supply positive SKU weights in grams. WooCommerce uses signed webhooks. Amazon requires seller app credentials, marketplaces and an AWS destination key.') from None
+                    raise HTTPException(422, 'Check the platform credentials, HTTPS store origin/callback, store hash or site ID, import/write-back toggles and positive SKU weights. See the supported-platforms guide; secret values are not returned in diagnostics.') from None
                 key_id = sorted(service.credential_keys)[0]
                 key = service.credential_keys[key_id].get_secret_value().encode()
                 envelope = config.model_dump(mode='json')
@@ -150,7 +161,56 @@ def build_router(authenticate):
                     VALUES($1,$2,$3,$4,$5) ON CONFLICT(tenant_id,store_id) DO UPDATE SET
                     credentials_ciphertext=excluded.credentials_ciphertext,credential_key_id=excluded.credential_key_id,
                     updated_by=excluded.updated_by,updated_at=now()''', context.tenant_id, store_id, cipher, key_id, context.user_id)
-        return public_settings(config)
+        result = public_settings(config)
+        if not previous.get('webhook_secret') and store['platform'] not in NATIVE:
+            result['one_time_webhook_secret'] = config.webhook_secret.get_secret_value()
+        async with service.pool.acquire() as connection:
+            await connection.execute("UPDATE public.ecommerce_tracking_outbox SET next_attempt_at=now(),store_sync_error_code=NULL WHERE tenant_id=$1 AND store_id=$2 AND status='PENDING' AND store_sync_error_code='LIVE_DELIVERY_DISABLED'",context.tenant_id,store_id)
+        return result
+
+    @router.post('/{store_id}/test-connection')
+    async def test_connection(store_id: UUID, request: Request, context: Any=Depends(authenticate)):
+        await scoped_store(request,context,store_id)
+        if context.role not in {'OWNER','ADMIN'}: raise HTTPException(403,'Merchant administrator required')
+        service=request.app.state.ecommerce
+        from backend.custom_stores import throttle
+        await throttle(service.pool,store_id,'test-connection',5)
+        config=await resolve_connector(service,store_id)
+        if not config or config.tenant_id!=context.tenant_id: raise HTTPException(409,'Save this store connection first')
+        if config.platform=='SHOPIFY':
+            from backend.ecommerce_connectors import ShopifyFulfillment
+            value=await ShopifyFulfillment(service.client,config).graphql('query EasyInvioConnection { shop { name } }',{})
+            return {'verified':True,'store_name':value['shop']['name'],'scope':'Read-only shop access; write scopes and webhook delivery are not tested'}
+        if config.platform in REST_PLATFORMS:
+            from backend.store_rest import RestStoreAdapter
+            return await RestStoreAdapter(service.client,config).test()
+        if config.platform=='AMAZON':
+            from backend.store_transport import store_json
+            if not all((config.amazon_client_id,config.amazon_client_secret,config.amazon_refresh_token)):
+                raise HTTPException(409,'Complete seller authorization first')
+            value=await store_json(service.client,'POST','https://api.amazon.com/auth/o2/token',data={
+                'grant_type':'refresh_token','refresh_token':config.amazon_refresh_token.get_secret_value(),
+                'client_id':config.amazon_client_id,'client_secret':config.amazon_client_secret.get_secret_value()})
+            if not value.get('access_token'): raise HTTPException(502,'Amazon authorization did not return a token')
+            return {'verified':True,'store_name':config.amazon_seller_id,'scope':'Token exchange only; seller order scopes and AWS delivery are not tested'}
+        return {'verified':False,'store_name':config.store_url,'scope':'Bridge configured. Send a correctly signed test order/rate request to verify inbound delivery; no native platform credentials are claimed verified.'}
+
+    @router.post('/{store_id}/rotate-machine-secret')
+    async def rotate(store_id: UUID, request: Request, context: Any=Depends(authenticate)):
+        if context.role not in {'OWNER','ADMIN'}: raise HTTPException(403,'Merchant administrator required')
+        await scoped_store(request,context,store_id)
+        service=request.app.state.ecommerce
+        async with service.pool.acquire() as c:
+            async with c.transaction():
+                await c.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,0))','store-settings:'+str(store_id))
+                row=await c.fetchrow('SELECT * FROM public.workspace_store_connections WHERE tenant_id=$1 AND store_id=$2 FOR UPDATE',context.tenant_id,store_id)
+                if not row: raise HTTPException(409,'Save a database connection first')
+                key=service.credential_keys[row['credential_key_id']].get_secret_value().encode()
+                value=json.loads(Fernet(key).decrypt(bytes(row['credentials_ciphertext'])))
+                if value.get('tenant_id')!=str(context.tenant_id) or value.get('store_id')!=str(store_id): raise HTTPException(409,'Credential identity mismatch')
+                value['api_key_id']=secrets.token_urlsafe(18);value['webhook_secret']=secrets.token_urlsafe(32)
+                await c.execute('UPDATE public.workspace_store_connections SET credentials_ciphertext=$3,updated_at=now() WHERE tenant_id=$1 AND store_id=$2',context.tenant_id,store_id,Fernet(key).encrypt(json.dumps(value).encode()))
+        return {'api_key_id':value['api_key_id'],'one_time_webhook_secret':value['webhook_secret'],'notice':'Replace bridge signing keys now; old signatures no longer authenticate.'}
 
     @router.get('/{store_id}/notifications')
     async def notifications(store_id: UUID, request: Request, context: Any = Depends(authenticate)):

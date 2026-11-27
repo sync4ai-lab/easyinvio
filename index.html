@@ -7022,7 +7022,7 @@ storePanel.insertAdjacentHTML('beforeend', '<article class="card" style="margin-
 
 function renderStoreCatalogue() {
   const search = $('#store-search').value.trim().toLowerCase();
-  $('#store-catalogue').innerHTML = storePlatforms.filter(p => p.name.toLowerCase().includes(search)).map(p => `<article class="card"><div class="toolbar"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:54px;height:54px;border-radius:14px;background:${p.color};color:#101827;font-size:24px;font-weight:900">${p.mark}</span><h2>${p.name}</h2></div><span class="tag">${p.mode}</span><p class="subtle">${p.code==='SHOPIFY'?'Retrieve unfulfilled orders through the Shopify API.':p.code==='WOOCOMMERCE'?'Import orders through authenticated WooCommerce webhooks.':p.code==='AMAZON'?'Receive authorized AWS order notifications and retrieve order details.':'Talk to us about connecting your store.'}</p><div class="toolbar"><button class="primary" data-store-connect="${p.code}">${['SHOPIFY','WOOCOMMERCE','AMAZON'].includes(p.code)?'Connect store':'Request integration'}</button><button class="secondary" data-store-guide="${p.code}">How to connect</button></div><button class="secondary" data-store-help="${p.name}" style="margin-top:12px">Support</button></article>`).join('') || '<p class="notice">No matching platform. Contact support for another sales channel.</p>';
+  $('#store-catalogue').innerHTML = storePlatforms.filter(p => p.name.toLowerCase().includes(search) && (!document.querySelector('#store-category') || document.querySelector('#store-category').value==='All' || p.category===document.querySelector('#store-category').value)).map(p => `<article class="card"><div class="toolbar"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:54px;height:54px;border-radius:14px;background:${p.color};color:#101827;font-size:24px;font-weight:900">${p.mark}</span><h2>${p.name}</h2></div><span class="tag">${p.mode}</span><p class="subtle">${p.intake?escapeHTML(p.intake):p.code==='SHOPIFY'?'Retrieve unfulfilled orders through the Shopify API.':p.code==='WOOCOMMERCE'?'Import orders through authenticated WooCommerce webhooks.':p.code==='AMAZON'?'Receive authorized AWS order notifications and retrieve order details.':'Talk to us about connecting your store.'}</p><div class="toolbar"><button class="primary" data-store-connect="${p.code}">${p.setup_mode==='API_BRIDGE'?'Connect via API bridge':'Connect store'}</button><button class="secondary" data-store-guide="${p.code}">How to connect</button></div><button class="secondary" data-store-help="${p.name}" style="margin-top:12px">Support</button></article>`).join('') || '<p class="notice">No matching platform. Contact support for another sales channel.</p>';
 }
 $('#store-search').addEventListener('input', renderStoreCatalogue);
 renderStoreCatalogue();
@@ -7033,7 +7033,7 @@ function storeCanManage() {
 }
 renderEnterpriseStores = function() {
   $('#store-new').hidden = !storeCanManage();
-  $('#store-list').innerHTML = enterprise.stores.map(s => `<article class="card"><span class="tag">${escapeHTML(s.platform)}</span><h2>${escapeHTML(s.display_name)}</h2><p class="subtle">${s.is_active?'Registered · connection required for imports':'Disabled · new imports stopped'}</p><div class="toolbar">${storeCanManage()&&['SHOPIFY','WOOCOMMERCE','AMAZON'].includes(s.platform)?`<button class="primary" data-store-settings="${escapeHTML(s.id)}">Connection settings</button>`:''}${s.is_active&&s.platform==='SHOPIFY'&&storeCanManage()?`<button class="secondary" data-store-sync="${escapeHTML(s.id)}">Retrieve orders</button>`:''}${s.platform==='AMAZON'&&storeCanManage()?`<button class="secondary" data-store-notifications="${escapeHTML(s.id)}">Import activity</button>`:''}<button class="secondary" data-open-marketplace>Open order inbox</button></div>${storeCanManage()?`<button class="secondary full" data-store-state="${escapeHTML(s.id)}" style="margin-top:12px">${s.is_active?'Disable':'Enable'} store</button>`:''}</article>`).join('') || '<p class="notice">No stores registered yet. Choose a platform above to get started.</p>';
+  $('#store-list').innerHTML = enterprise.stores.map(s => `<article class="card"><span class="tag">${escapeHTML(s.platform)}</span><h2>${escapeHTML(s.display_name)}</h2><p class="subtle">${s.is_active?'Registered · connection required for imports':'Disabled · new imports stopped'}</p><div class="toolbar">${storeCanManage()&&storePlatforms.some(v=>v.code===s.platform)?`<button class="primary" data-store-settings="${escapeHTML(s.id)}">Connection settings</button>`:''}${s.is_active&&storePlatforms.find(v=>v.code===s.platform)?.order_polling&&storeCanManage()?`<button class="secondary" data-store-sync="${escapeHTML(s.id)}">Retrieve orders</button>`:''}${s.platform==='AMAZON'&&storeCanManage()?`<button class="secondary" data-store-notifications="${escapeHTML(s.id)}">Import activity</button>`:''}<button class="secondary" data-open-marketplace>Open order inbox</button>${storeCanManage()?`<button class="secondary" data-store-test="${escapeHTML(s.id)}">Test connection</button><button class="secondary" data-store-portal="${escapeHTML(s.id)}">Public returns portal</button><button class="secondary" data-store-key="${escapeHTML(s.id)}">Rotate API signing secret</button>`:""}</div>${storeCanManage()?`<button class="secondary full" data-store-state="${escapeHTML(s.id)}" style="margin-top:12px">${s.is_active?'Disable':'Enable'} store</button>`:''}</article>`).join('') || '<p class="notice">No stores registered yet. Choose a platform above to get started.</p>';
 };
 document.addEventListener('click', event => {
   const button = event.target.closest('[data-store-guide],[data-store-help],[data-store-connect],[data-store-settings],[data-store-sync],[data-open-marketplace]');
@@ -7054,7 +7054,7 @@ document.addEventListener('click', event => {
     $('#store-guide').showModal();
     return;
   }
-  if (button.hasAttribute('data-store-help') || button.hasAttribute('data-store-connect') && !['SHOPIFY', 'WOOCOMMERCE', 'AMAZON'].includes(button.dataset.storeConnect)) {
+  if (button.hasAttribute('data-store-help') || button.hasAttribute('data-store-connect') && !storePlatforms.some(v=>v.code===button.dataset.storeConnect)) {
     $('#store-help-form').reset();
     $('#store-help-form').elements.reference.value = button.dataset.storeHelp || button.dataset.storeConnect || '';
     $('#store-help').showModal();
@@ -7083,8 +7083,15 @@ document.addEventListener('click', event => {
       form.reset();
       form.elements.shop_domain.value = c.shop_domain || '';
       form.elements.client_id.value = c.client_id || '';
+      for(const name of ['store_url','external_store_id','tracking_callback_url'])form.elements[name].value=c[name]||'';
+      const bridgePlatform=storePlatforms.find(v=>v.code===s.platform)?.setup_mode==='API_BRIDGE'||s.platform==='CUSTOM_WEBSITE';
+      for(const [name,visible] of Object.entries({store_url:bridgePlatform||['WOOCOMMERCE','MAGENTO'].includes(s.platform),external_store_id:['BIGCOMMERCE','WIX'].includes(s.platform),tracking_callback_url:bridgePlatform,rest_access_token:['EBAY','BIGCOMMERCE','WIX','MAGENTO'].includes(s.platform),woo_key:s.platform==='WOOCOMMERCE',woo_secret:s.platform==='WOOCOMMERCE'}))form.elements[name].closest('label').hidden=!visible;
+      form.elements.live_delivery.disabled=storePlatforms.find(v=>v.code===s.platform)?.tracking_writeback===false;
+      form.elements.live_delivery.checked=!!c.live_delivery&&!form.elements.live_delivery.disabled;
+      form.elements.live_import.closest('label').hidden=!storePlatforms.find(v=>v.code===s.platform)?.order_polling;
+      form.elements.woo_key.value=s.platform==='WOOCOMMERCE'?(c.client_id||''):'';
       form.elements.authorization_mode.value = c.has_client_credentials ? 'CLIENT_CREDENTIALS' : 'TOKEN';
-      form.elements.live_import.checked = c.configured ? c.live_import : true;
+      form.elements.live_import.checked = c.configured ? c.live_import : s.platform==='SHOPIFY';
       form.elements.live_returns.checked = !!c.live_returns;
       form.elements.weights.value = Object.entries(c.sku_unit_grams || {}).map(([sku, g]) => sku + ' = ' + g).join('\n');
       form.querySelectorAll('[data-amazon]').forEach(n => {
@@ -7126,7 +7133,11 @@ $('#store-connection-form').addEventListener('submit', event => {
       sku_unit_grams[match[1].trim()] = match[2];
     }
     const body = {
-      live_import: store.platform === 'SHOPIFY' && form.elements.live_import.checked,
+      live_import: !!storePlatforms.find(v=>v.code===store.platform)?.order_polling && form.elements.live_import.checked,
+      live_delivery:form.elements.live_delivery.checked,
+      store_url:form.elements.store_url.value.trim()||null,
+      external_store_id:form.elements.external_store_id.value.trim()||null,
+      tracking_callback_url:form.elements.tracking_callback_url.value.trim()||null,
       live_returns: form.elements.live_returns.checked,
       sku_unit_grams
     };
@@ -7136,6 +7147,11 @@ $('#store-connection-form').addEventListener('submit', event => {
       for (const n of ['access_token', 'client_id', 'client_secret'])
         if (form.elements[n].value.trim()) body[n] = form.elements[n].value.trim();
     }
+    if(store.platform==='WOOCOMMERCE'){
+      if(form.elements.woo_key.value.trim())body.client_id=form.elements.woo_key.value.trim();
+      if(form.elements.woo_secret.value.trim())body.client_secret=form.elements.woo_secret.value.trim();
+    }
+    if(store.platform!=='SHOPIFY' && form.elements.rest_access_token.value.trim())body.access_token=form.elements.rest_access_token.value.trim();
     if (store.platform === 'AMAZON') {
       body.amazon_region = form.elements.amazon_region.value;
       body.amazon_seller_id = form.elements.amazon_seller_id.value.trim();
@@ -7145,15 +7161,16 @@ $('#store-connection-form').addEventListener('submit', event => {
         if (form.elements[name].value.trim()) body[name] = form.elements[name].value.trim();
     }
     if (form.elements.webhook_secret.value.trim()) body.webhook_secret = form.elements.webhook_secret.value.trim();
-    await api('/api/v1/workspace/stores/' + storeConnectionId + '/connection', {
+    const savedConnection=await api('/api/v1/workspace/stores/' + storeConnectionId + '/connection', {
       method: 'PUT',
       auth: true,
       body
     });
+    window.showStoreMachineCredentials?.(savedConnection);
     form.reset();
     $('#store-connection').close();
     await loadEnterpriseView('stores');
-    notify('Connection saved. Retrieve Shopify orders or activate your signed WooCommerce/AWS notification delivery.');
+    notify('Connection saved. Test native API access, retrieve supported orders or send signed bridge requests. Import does not buy labels.');
   });
 });
 $('#store-help-form').addEventListener('submit', event => {
@@ -9025,5 +9042,6 @@ document.addEventListener('pointerdown', event => { if (!overviewInfo.contains(e
 <script src="/tracking-workspace.js?v=1"></script>
 <script src="/help-workspace-bridge.js?v=1"></script>
 <script src="/cx-automation.js"></script>
+<script src="/store-integrations.js"></script>
 </body>
 </html>

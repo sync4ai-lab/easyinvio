@@ -186,7 +186,7 @@ class ReturnReviewService:
                 await c.execute("UPDATE public.return_review_sessions SET state='REVIEW_REQUIRED',updated_at=now() WHERE tenant_id=$1 AND id=$2", context.tenant_id, body.request_id)
             raise
 
-    async def select(self, context, request_id: UUID, body: SelectReturn, *, expected_policy_version: int | None = None) -> dict:
+    async def select(self, context, request_id: UUID, body: SelectReturn, *, expected_policy_version: int | None = None, expected_store_policy: tuple[UUID,str] | None = None) -> dict:
         from backend.automation_three_partners import authorize, BookingRequest
         from backend.card_checkout import CardCart, create_cart
         authorize(context, context.tenant_id)
@@ -204,6 +204,22 @@ class ReturnReviewService:
                         AND u.role IN ('OWNER','ADMIN') AND t.workspace_status='ACTIVE' FOR SHARE OF p,u,t''',context.tenant_id,context.user_id)
                     if version!=expected_policy_version:
                         raise HTTPException(409,'Consumer return policy was changed or revoked; retailer review is required')
+                portal_policy = None
+                if expected_store_policy is not None:
+                    import hashlib
+                    store_id, digest = expected_store_policy
+                    record = await c.fetchrow('''SELECT s.return_policy FROM public.ecommerce_stores s
+                        JOIN public.users u ON u.tenant_id=s.tenant_id AND u.auth_user_id=s.return_policy_authorized_by
+                        WHERE s.tenant_id=$1 AND s.id=$2 AND s.is_active AND s.return_policy_authorized_by=$3
+                          AND u.is_active AND u.role IN ('OWNER','ADMIN') FOR SHARE OF s,u''',context.tenant_id,store_id,context.user_id)
+                    from backend.store_returns_portal import ReturnPolicy
+                    policy_data = decoded(record['return_policy']) if record else {}
+                    if not record or hashlib.sha256(json.dumps(policy_data,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=digest:
+                        raise HTTPException(409,'Store return policy changed or was revoked')
+                    portal_policy=ReturnPolicy.model_validate(policy_data)
+                    if not portal_policy.enabled: raise HTTPException(409,'Store return portal is disabled')
+                    from backend.entitlements import require_subscription_feature,read_subscription
+                    require_subscription_feature(await read_subscription(c,context.tenant_id),'paperless_qr_returns')
                 row = await c.fetchrow('SELECT * FROM public.return_review_sessions WHERE tenant_id=$1 AND id=$2 FOR UPDATE', context.tenant_id, request_id)
                 if not row:
                     raise HTTPException(404, 'Return preparation not found')
@@ -218,6 +234,14 @@ class ReturnReviewService:
                 rate = next((r for r in decoded(row['response'])['rates'] if r['offer_id'] == str(body.offer_id)), None)
                 if not rate:
                     raise HTTPException(409, 'Choose a service from this return quote')
+                if portal_policy and (rate['currency']!=portal_policy.currency or Decimal(str(rate['client_price_ex_tax']))>portal_policy.maximum_price or row['charge_bearer']!=portal_policy.charge_bearer):
+                    raise HTTPException(409,'Selected return is outside the merchant-authorized policy')
+                if portal_policy:
+                    eligible=await c.fetchval("""SELECT EXISTS(SELECT 1 FROM public.shipments s WHERE s.tenant_id=$1
+                        AND s.id=$2 AND s.ecommerce_store_id=$3 AND s.status='DELIVERED'
+                        AND (SELECT max(e.occurred_at) FROM public.tracking_events e WHERE e.tenant_id=s.tenant_id
+                          AND e.shipment_id=s.id AND e.status='DELIVERED') BETWEEN now()-make_interval(days=>$4) AND now())""",context.tenant_id,row['original_shipment_id'],store_id,portal_policy.return_window_days)
+                    if not eligible: raise HTTPException(409,'Original store shipment is outside the authorized return window')
                 if row['charge_bearer'] == 'CUSTOMER_PAY' and context.role not in {'OWNER', 'ADMIN', 'DISPATCHER'}:
                     raise HTTPException(403, 'An owner or administrator must create customer-paid checkout')
                 valid = await c.fetchval('''SELECT EXISTS(SELECT 1 FROM public.partner_shipping_offers
