@@ -15,7 +15,7 @@ import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ('index.html', 'pricing.html', 'workspace.html', 'tracking.html', 'tracking-workspace.js',
-          'tracking-public.js', 'tracking-input.js', 'platform-logos.svg', 'cx-automation.js', 'tracking-ui.css', 'manifest-workflow.js',
+          'tracking-public.js', 'tracking-input.js', 'platform-logos.svg', 'platform-brand.js', 'cx-automation.js', 'tracking-ui.css', 'manifest-workflow.js',
           'help-workspace-bridge.js', 'return-workspace.js',
           'form-feedback.js', 'form-feedback.css', 'workspace-ui.css', 'workspace-ui.js', 'store-integrations.js', 'returns-portal.js', 'returns-portal.css', 'platform-console.css', 'platform-console.js',
           'brand-mark.svg', 'ask-easyinvio.css', 'brand.css', 'favicon.svg', 'favicon-32.png',

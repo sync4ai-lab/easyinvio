@@ -126,7 +126,9 @@ window.ManifestWorkflow = (() => {
         const tr=button.closest('tr'), cells=tr.querySelectorAll('td');
         previousStates.set(row.id,status(row));
         const carrier=row.carrier_code||row.metadata?.carrier;
+        cells[1].querySelector('[data-platform-brand]')?.remove();
         cells[1].firstChild.textContent=carrier || (['PENDING_IMPORT','UNFULFILLED','DRAFT'].includes(row.status)?'Not selected': 'Unavailable on this older record');
+        const mark=EasyInvioBrands.markup(carrier,true);if(mark)cells[1].insertAdjacentHTML('afterbegin',mark);
         const tag=cells[2].querySelector('.tag');tag.textContent=titles[status(row)]||row.status;tag.title=row.workflow?.explanation||'';
         if (row.tracking_lifecycle_type==='RETURN_SHIPMENT' || row.metadata?.automation_order?.is_return || row.logistics_metadata?.automation_order?.is_return) {
           const ribbon=document.createElement('span');ribbon.className='tag green';ribbon.textContent='RETURN';cells[0].append(ribbon);

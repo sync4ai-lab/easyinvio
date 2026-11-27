@@ -20,6 +20,7 @@
     </fieldset>`);
 
   const connectionDialog=document.querySelector('#store-connection');
+  connectionDialog.querySelector('h2').insertAdjacentHTML('beforebegin','<div id="store-connection-brand" class="platform-identity"></div>');
   const secret=form.elements.webhook_secret;
   const secretLabel=secret.closest('label');
   secretLabel.insertAdjacentHTML('beforeend',`<span class="toolbar"><button class="secondary" type="button" id="store-generate-secret">Generate strong secret</button><button class="secondary" type="button" data-copy-field="webhook_secret">Copy secret</button></span><small id="store-secret-help">Copy before saving. Saved secrets are encrypted and cannot be displayed again.</small>`);
@@ -62,6 +63,7 @@
   }
   window.configureStoreConnectionUI=async(store,config)=>{
     const generation=++connectionGeneration;
+    document.getElementById('store-connection-brand').innerHTML=EasyInvioBrands.markup(store.platform);
     const code=store.platform,bridge=code==='CUSTOM_WEBSITE'||storePlatforms.find(p=>p.code===code)?.setup_mode==='API_BRIDGE';
     const nativeRest=['WOOCOMMERCE','EBAY','BIGCOMMERCE','WIX','MAGENTO'].includes(code);
     const visibility={store_url:bridge||['WOOCOMMERCE','MAGENTO'].includes(code),
@@ -191,14 +193,13 @@
   }).catch(()=>notify('Platform directory unavailable. Existing store setup remains available.'));
 
   // Shared local brand geometry is identical on public and authenticated cards.
-  const logoCatalogue={"SHOPIFY": {"viewBox": "0.7280003118515015 -0.7200001192092895 22.54499954223633 25.44", "plate": false}, "WOOCOMMERCE": {"viewBox": "-0.7200109165542744 8.8599995803833 25.440012130737305 6.280001792907715", "plate": false}, "AMAZON": {"viewBox": "-0.7200024265050888 0.38200089454650876 25.44000202178955 23.236699638366698", "plate": false}, "CUSTOM_WEBSITE": {"viewBox": "2.8 5.8 42.4 36.4", "plate": false}, "EBAY": {"viewBox": "-0.72 6.491999893188477 25.44 11.01600212097168", "plate": false}, "ETSY": {"viewBox": "0.8009999084472657 -0.72 22.39800018310547 25.44", "plate": false}, "TIKTOK_SHOP": {"viewBox": "0.8540861511230469 -0.7200090980529785 22.290922660827636 25.440321464538574", "plate": false}, "BIGCOMMERCE": {"viewBox": "-0.7200466719269752 -0.7201974791288376 25.43997978210449 25.439195861816405", "plate": false}, "WIX": {"viewBox": "-0.72 6.633000164031983 25.44 10.733001174926757", "plate": false}, "SQUARESPACE": {"viewBox": "-0.7199896955490112 1.734010181427002 25.43964012145996 20.531229095458983", "plate": false}, "MAGENTO": {"viewBox": "0.8889999675750733 -0.72 22.22200149536133 25.44", "plate": false}, "PRESTASHOP": {"viewBox": "-0.72 0.314000039100647 25.44 23.37045234680176", "plate": false}, "SHOPWARE": {"viewBox": "-0.720000057220459 -0.7178000572323799 25.44000202178955 25.43559986114502", "plate": false}, "ECWID": {"viewBox": "-47.99999237060547 -48.00001811981201 1696 572.8000183105469", "plate": false}, "SQUARE": {"viewBox": "-0.72 -0.7200000000000285 25.44 25.44", "plate": false}, "WEEBLY": {"viewBox": "-2.1438677978515623 -2.9019854736328123 107.46028198242188 36.791885986328126", "plate": false}, "OPENCART": {"viewBox": "-15.36 -14.895999298095703 542.72 130.25601837158203", "plate": false}, "ONBUY": {"viewBox": "66.80178436279297 142.9321859741211 426.3960955810547 114.1355517578125", "plate": false}, "MANOMANO": {"viewBox": "0 200 548 150", "plate": true}, "MIRAKL": {"viewBox": "-3.033479922460392 -3.0334799194335935 107.18295715332032 26.086826782226563", "plate": false}, "KAUFLAND": {"viewBox": "-0.72 -0.72 25.44 25.44", "plate": false}, "LINNWORKS": {"viewBox": "0 0 100 100", "plate": true}, "CHANNELENGINE": {"viewBox": "-49.14603777647018 -50.055949706652896 1768.6521826171875 353.9021368408203", "plate": false}, "CSV_SFTP": {"viewBox": "2.8 5.8 42.4 36.4", "plate": false}, "ROYAL_MAIL": {"viewBox": "-1.14 -1.14 40.28 26.28", "plate": false}, "EVRI": {"viewBox": "-1.14 -1.14 40.28 26.28", "plate": false}, "DPD": {"viewBox": "0.9819885730743408 -0.7202190950862132 22.03602523803711 25.440400314331054", "plate": false}, "DHL": {"viewBox": "-0.72 9.583000450134277 25.44 4.835000457763671", "plate": false}, "UPS": {"viewBox": "1.1600020217895508 -0.72 21.679999771118165 25.44", "plate": false}};
   const renderCatalogueBeforeLogos=renderStoreCatalogue;
   renderStoreCatalogue=function(){renderCatalogueBeforeLogos();
     document.querySelectorAll('#store-catalogue [data-store-connect]').forEach(button=>{
-      const mark=button.closest('article').querySelector('.toolbar > span'),entry=logoCatalogue[button.dataset.storeConnect];
-      if(!mark||!entry)return;
-      mark.style.cssText='display:flex;align-items:center;width:120px;height:46px;padding:4px;border-radius:8px;background:'+(entry.plate?'#fff':'transparent');
-      mark.innerHTML='<svg style="width:100%;height:100%" aria-hidden="true" viewBox="'+entry.viewBox+'"><use href="/platform-logos.svg#'+button.dataset.storeConnect+'"></use></svg>';
+      const mark=button.closest('article').querySelector('.toolbar > span');
+      if(!mark)return;
+      mark.removeAttribute('style');mark.className='platform-identity';
+      mark.innerHTML=EasyInvioBrands.markup(button.dataset.storeConnect);
     });
   };
   renderStoreCatalogue();

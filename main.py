@@ -2447,6 +2447,8 @@ async def tracking_asset(request:Request):
 
 @app.get('/brand-mark.svg', include_in_schema=False)
 @app.get('/brand.css', include_in_schema=False)
+@app.get('/platform-logos.svg', include_in_schema=False)
+@app.get('/platform-brand.js', include_in_schema=False)
 @app.get('/ask-easyinvio.css', include_in_schema=False)
 @app.get('/favicon.svg', include_in_schema=False)
 @app.get('/favicon-32.png', include_in_schema=False)
@@ -2456,7 +2458,7 @@ async def tracking_asset(request:Request):
 @app.get('/site.webmanifest', include_in_schema=False)
 async def brand_asset(request: Request):
     name = request.url.path.removeprefix('/')
-    media = {'.svg': 'image/svg+xml', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json'}
+    media = {'.js': 'text/javascript', '.svg': 'image/svg+xml', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json'}
     return FileResponse(Path(__file__).with_name(name), media_type=media[Path(name).suffix],
                         headers={'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff'})
 
@@ -2863,7 +2865,6 @@ from backend.post_purchase import build_router as post_purchase_router
 app.include_router(post_purchase_router(authenticate))
 
 @app.get('/tracking-input.js',include_in_schema=False)
-@app.get('/platform-logos.svg',include_in_schema=False)
 async def post_purchase_asset(request: Request):
     return FileResponse(Path(__file__).resolve().parent/request.url.path.rsplit('/',1)[-1])
 
