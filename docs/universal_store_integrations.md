@@ -31,3 +31,11 @@ The hosted portal uses ReturnReviewService's existing explicit service-selection
 Authored API guide: /help/connect-custom-website and docs_custom_website.md. Platform matrix: /help/supported-platforms and docs_supported_platforms.md. Developer schemas also appear in /openapi.json for signed order and checkout-rate endpoints. Configure a public BOOKING_PAGE_URL and QUOTE_LINK_SECRET using the existing environment procedure for signed customer return documents.
 
 Provider reference contracts consulted during implementation: [WooCommerce REST v3](https://woocommerce.github.io/woocommerce-rest-api-docs/), [eBay shipping fulfillment](https://www.edp.ebay.com/api-docs/sell/static/orders/handling-unfulfilled-lineitems.html), [BigCommerce shipments](https://docs.bigcommerce.com/developer/learn/courses/checkout-orders-rest-api/ship-taxes/shipments), [Wix order fulfillments](https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/order-fulfillments/update-fulfillment), [Adobe Commerce shipment creation](https://developer.adobe.com/commerce/webapi/rest/tutorials/orders/order-create-shipment).
+
+## Connection and documentation experience
+
+The local landing page now has 24 filterable sales-channel cards and five carrier cards. Card details distinguish native adapters from signed API bridges; signup does not bypass subscription or provider requirements. No third-party logos load at runtime. Asset sources and raster exceptions are recorded in `docs/landing_brand_assets.md`.
+
+In Workspace → Store Integrations → Connection settings, only the selected platform's fields appear. Custom Website and API bridges show copyable store/key IDs, the intake URL, a browser-generated 256-bit signing secret option, and the configured returns link. Saved secrets remain unrecoverable; replacement requires updating the sender. The returns shortcut opens the existing policy authorization form and never silently activates spending.
+
+Visit `/help/connect-custom-website` or `/help/supported-platforms` for business-owner quickstart and developer tabs. Code examples use private environment variables and the existing HMAC contract; Copy Code never sends a request. Browser acceptance is available in `tests/integration_experience_browser.py`, using the offline preview on port 8017 and mocked API calls.

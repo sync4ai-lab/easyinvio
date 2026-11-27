@@ -35,3 +35,31 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+## Expanded integration directory assets
+
+The directory embeds sanitized SVG geometry locally; no third-party logo requests occur at runtime. Generic Custom Website and CSV icons are EasyInvio-authored. Linnworks and ManoMano use published raster marks in local SVG image containers; these two are not original vector geometry.
+
+- shopify: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/shopify.svg
+- woocommerce: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/woocommerce.svg
+- amazon: https://raw.githubusercontent.com/simple-icons/simple-icons/13.21.0/icons/amazon.svg
+- ebay: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/ebay.svg
+- etsy: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/etsy.svg
+- tiktok: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/tiktok.svg
+- bigcommerce: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/bigcommerce.svg
+- wix: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wix.svg
+- squarespace: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/squarespace.svg
+- magento: https://raw.githubusercontent.com/simple-icons/simple-icons/13.21.0/icons/magento.svg
+- prestashop: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/prestashop.svg
+- shopware: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/shopware.svg
+- ecwid: https://www.ecwid.com
+- square: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/square.svg
+- weebly: https://cdn11.editmysite.com/images/landing-pages/global/logotype.svg
+- opencart: https://cdn.worldvectorlogo.com/logos/opencart.svg
+- onbuy: https://logo-index.com/wp-content/uploads/2026/05/onbuy.svg
+- manomano: https://iconlogovector.com/uploads/images/2025/08/lg-68a9619aeeeb1-ManoMano.webp
+- mirakl: https://www.mirakl.com/media/logos/mirakl/mirakl-logo-white.svg
+- kaufland: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/kaufland.svg
+- linnworks: https://services.linnworks.com/static/media/linnwork_logo.d8e491756ad552fb0392.png
+- channelengine: https://www.channelengine.com/hubfs/Logos/ChannelEngine-whiteText.svg

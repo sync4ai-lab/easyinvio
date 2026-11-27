@@ -70,3 +70,14 @@ main table td{word-break:normal}
  dialog{max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}
 }
 @media(max-width:359px){#address-fields>.contact-block{grid-column:1 / -1}}
+
+/* Platform-specific connection setup and short-lived credentials. */
+#store-connection-form .card{margin:16px 0;padding:18px}
+#store-connection-form .card h3{margin:0 0 12px}
+#store-connection-form .card>button{margin:8px 8px 16px 0}
+#store-connection-form .card>label{display:block;margin-top:12px}
+#store-quick-credentials ol{list-style:decimal;padding-left:22px;margin:16px 0}
+#store-quick-credentials li{padding:4px 0;line-height:1.6}
+#store-secret-help{display:block;margin:10px 0;color:#cbd5e1;line-height:1.6}
+#store-connection-form fieldset{margin:18px 0}
+#store-connection-form input[readonly]{font-size:12px}

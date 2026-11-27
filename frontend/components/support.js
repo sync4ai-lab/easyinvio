@@ -306,3 +306,20 @@
     });
   }
 })();
+
+// Documentation tabs are scoped so language tabs never switch the owner guide.
+document.querySelectorAll('.docs-tabs').forEach(group=>{
+  const list=group.querySelector(':scope > [role=tablist]');if(!list)return;
+  const tabs=[...list.querySelectorAll('[role=tab]')];
+  function activate(tab){tabs.forEach(item=>{const selected=item===tab;item.setAttribute('aria-selected',String(selected));item.tabIndex=selected?0:-1;document.getElementById(item.getAttribute('aria-controls')).hidden=!selected;});}
+  tabs.forEach((tab,index)=>{tab.addEventListener('click',()=>activate(tab));tab.addEventListener('keydown',event=>{
+    let target=null;if(event.key==='ArrowRight')target=tabs[(index+1)%tabs.length];if(event.key==='ArrowLeft')target=tabs[(index+tabs.length-1)%tabs.length];if(event.key==='Home')target=tabs[0];if(event.key==='End')target=tabs.at(-1);
+    if(target){event.preventDefault();activate(target);target.focus();}
+  });});
+});
+document.querySelectorAll('.copy-code').forEach(button=>button.addEventListener('click',async()=>{
+  const code=button.parentElement.querySelector('pre code');
+  const status=document.querySelector('.docs-copy-status');
+  try{await navigator.clipboard.writeText(code.textContent);button.textContent='Copied';if(status)status.textContent='Code copied.';}
+  catch{const range=document.createRange();range.selectNodeContents(code);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);if(status)status.textContent='Copy was unavailable. Code selected; copy it manually.';}
+}));

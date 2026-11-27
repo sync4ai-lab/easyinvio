@@ -18,11 +18,104 @@
     <label class="check"><input name="live_delivery" type="checkbox">Enable live tracking write-back</label>
     <p>Native APIs require authorized tokens and scopes. Other platforms use the signed API bridge. Blank secrets retain saved values.</p>
     </fieldset>`);
-  document.body.insertAdjacentHTML('beforeend',`<dialog id="store-machine-secret"><button type="button" data-close-machine>Close</button><h2>Store machine credentials</h2>
+
+  const connectionDialog=document.querySelector('#store-connection');
+  const secret=form.elements.webhook_secret;
+  const secretLabel=secret.closest('label');
+  secretLabel.insertAdjacentHTML('beforeend',`<span class="toolbar"><button class="secondary" type="button" id="store-generate-secret">Generate strong secret</button><button class="secondary" type="button" data-copy-field="webhook_secret">Copy secret</button></span><small id="store-secret-help">Copy before saving. Saved secrets are encrypted and cannot be displayed again.</small>`);
+  form.insertAdjacentHTML('afterbegin',`<section id="store-quick-credentials" class="card" aria-labelledby="store-quick-title"><h3 id="store-quick-title">Quick credentials</h3>
+    <label>Store ID<input name="display_store_id" readonly></label><button class="secondary" type="button" data-copy-field="display_store_id">Copy Store ID</button>
+    <label>Key ID<input name="display_key_id" readonly></label><button class="secondary" type="button" data-copy-field="display_key_id">Copy Key ID</button>
+    <p id="store-key-help"></p><label>Signed order intake URL<input name="display_intake_url" readonly></label><button class="secondary" type="button" data-copy-field="display_intake_url">Copy intake URL</button>
+    <ol><li>Save your website origin and copy your credentials securely.</li><li>Ask your developer or middleware provider to send signed orders using our guide.</li><li>Verify an order in the inbox, then review rates before buying a label.</li></ol><a href="/help/connect-custom-website">Open the step-by-step API guide</a></section>
+    <section id="store-portal-shortcut" class="card"><h3>Hosted returns portal</h3><p>Choose your return window, payer and spending limit before enabling returns.</p>
+    <label>Returns portal URL<input name="display_return_url" readonly></label><button class="secondary" type="button" data-copy-field="display_return_url">Copy return link for your website</button>
+    <button class="secondary" type="button" id="store-open-portal">Enable / configure hosted returns portal</button><p id="store-portal-hint" role="status"></p></section>`);
+  let connectionGeneration=0;
+  async function copyValue(value,button){
+    if(!value){notify('Save or configure this connection first.');return;}
+    try{await navigator.clipboard.writeText(value);notify('Copied.');}
+    catch{notify('Clipboard unavailable. Select the field and copy it manually.');}
+  }
+  form.addEventListener('click',event=>{
+    const button=event.target.closest('[data-copy-field]');
+    if(button)copyValue(form.elements[button.dataset.copyField].value,button);
+  });
+  document.querySelector('#store-generate-secret').onclick=()=>{
+    if(secret.dataset.saved==='true'&&!window.confirm('Replace the saved signing secret? Update the same secret on your website or webhook sender after saving.'))return;
+    const bytes=crypto.getRandomValues(new Uint8Array(32));
+    secret.value=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+    secret.type='text';notify('Strong secret generated. Copy it securely before saving.');
+  };
+  connectionDialog.addEventListener('close',()=>{
+    connectionGeneration++;form.reset();secret.type='password';
+    form.querySelectorAll('input[type=password]').forEach(input=>input.value='');
+    secret.value='';
+  });
+  function rename(name,text){
+    const label=form.elements[name].closest('label');
+    let title=label.querySelector('[data-field-title]');
+    if(!title){title=document.createElement('span');title.dataset.fieldTitle='';
+      for(const node of [...label.childNodes])if(node.nodeType===Node.TEXT_NODE)node.remove();
+      label.prepend(title);}
+    title.textContent=text;
+  }
+  window.configureStoreConnectionUI=async(store,config)=>{
+    const generation=++connectionGeneration;
+    const code=store.platform,bridge=code==='CUSTOM_WEBSITE'||storePlatforms.find(p=>p.code===code)?.setup_mode==='API_BRIDGE';
+    const nativeRest=['WOOCOMMERCE','EBAY','BIGCOMMERCE','WIX','MAGENTO'].includes(code);
+    const visibility={store_url:bridge||['WOOCOMMERCE','MAGENTO'].includes(code),
+      external_store_id:['BIGCOMMERCE','WIX'].includes(code),tracking_callback_url:bridge,
+      rest_access_token:['EBAY','BIGCOMMERCE','WIX','MAGENTO'].includes(code),
+      woo_key:code==='WOOCOMMERCE',woo_secret:code==='WOOCOMMERCE',
+      weights:!bridge,live_returns:['SHOPIFY','WOOCOMMERCE','AMAZON'].includes(code),
+      live_import:nativeRest||code==='SHOPIFY',live_delivery:code!=='AMAZON'};
+    for(const [name,visible] of Object.entries(visibility))form.elements[name].closest('label').hidden=!visible;
+    form.querySelectorAll('[data-shopify]').forEach(node=>node.hidden=code!=='SHOPIFY');
+    // Read-only retrieval is shared by native REST adapters, not Shopify-only.
+    form.elements.live_import.closest('label').hidden=!visibility.live_import;
+    form.elements.live_delivery.checked=code!=='AMAZON'&&!!config.live_delivery;
+    form.elements.live_delivery.disabled=code==='AMAZON';
+    const authorizationFields=()=>{
+      const token=form.elements.authorization_mode.value==='TOKEN';
+      form.elements.access_token.closest('label').hidden=code!=='SHOPIFY'||!token;
+      for(const name of ['client_id','client_secret'])form.elements[name].closest('label').hidden=code!=='SHOPIFY'||token;
+    };
+    form.elements.authorization_mode.onchange=authorizationFields;authorizationFields();
+    const weightsHelp=form.elements.weights.closest('label').nextElementSibling;
+    if(weightsHelp?.tagName==='P')weightsHelp.hidden=bridge;
+    document.querySelector('#store-quick-credentials').hidden=!bridge;
+    document.querySelector('#store-secret-label').textContent=code==='AMAZON'?'AWS API-destination authentication key':bridge?'Signing secret':code==='WOOCOMMERCE'?'WooCommerce webhook secret':'Webhook signing secret';
+    secretLabel.hidden=!(bridge||['SHOPIFY','WOOCOMMERCE','AMAZON'].includes(code));
+    secret.dataset.saved=String(!!config.has_webhook_secret);secret.type='password';
+    document.querySelector('#store-secret-help').textContent=config.has_webhook_secret?
+      'A secret is already saved. Leave blank to keep it. Replacing it requires updating your webhook sender too.':
+      bridge?'Generate and copy a secret, or leave blank for a server-generated one-time secret after saving. Never put it in browser code.':
+      code==='AMAZON'?'Use the same authentication value configured for your AWS API destination.':
+      'Use the same secret in your platform webhook settings. Copy generated secrets before saving.';
+    form.elements.display_store_id.value=store.id;
+    form.elements.display_key_id.value=config.api_key_id||'';
+    document.querySelector('#store-key-help').textContent=config.api_key_id?'Use this Key ID with your server-side signing secret.':'Your Key ID will be assigned when you save this connection.';
+    form.elements.display_intake_url.value=new URL('/api/v1/integration/custom-store/orders',location.origin).href;
+    rename('external_store_id',code==='WIX'?'Wix site ID':'BigCommerce store hash');
+    rename('rest_access_token',code==='EBAY'?'eBay seller access token':code==='BIGCOMMERCE'?'BigCommerce API access token':code==='WIX'?'Wix authorized API token':'Magento integration access token');
+    rename('store_url',code==='WOOCOMMERCE'?'WooCommerce HTTPS store origin':code==='MAGENTO'?'Magento HTTPS store origin':'Website HTTPS origin');
+    document.querySelector('#store-webhook-path').hidden=bridge||!['SHOPIFY','WOOCOMMERCE','AMAZON'].includes(code);
+    document.querySelector('#store-open-portal').dataset.storePortal=store.id;
+    form.elements.display_return_url.value='';
+    document.querySelector('#store-portal-hint').textContent='Loading return policy…';
+    try{
+      const policy=await api('/api/v1/workspace/stores/'+encodeURIComponent(store.id)+'/returns-portal',{auth:true});
+      if(generation!==connectionGeneration)return;
+      form.elements.display_return_url.value=policy.store_slug?new URL('/returns/'+policy.store_slug,location.origin).href:'';
+      document.querySelector('#store-portal-hint').textContent=policy.return_policy.enabled?'Hosted returns are enabled under your saved policy.':'Hosted returns are disabled. Configure and authorize your policy to enable them.';
+    }catch{if(generation===connectionGeneration)document.querySelector('#store-portal-hint').textContent='Return policy unavailable. Check migration 057 and your workspace access.';}
+  };
+  document.body.insertAdjacentHTML('beforeend',`<dialog id="store-machine-secret"><button class="secondary" type="button" data-close-machine>Close</button><h2>Store machine credentials</h2>
     <p>Copy the signing secret now. It will not be displayed again. Rotation invalidates previous signatures.</p>
     <label>Key ID<input id="store-machine-key" readonly></label><label>Signing secret<input id="store-machine-value" readonly type="password"></label>
-    <button type="button" id="store-machine-copy">Copy credentials</button></dialog>
-    <dialog id="store-return-policy"><button type="button" data-close-portal>Close</button><h2>Public returns portal</h2>
+    <button class="secondary" type="button" id="store-machine-copy">Copy credentials</button></dialog>
+    <dialog id="store-return-policy"><button class="secondary" type="button" data-close-portal>Close</button><h2>Public returns portal</h2>
     <form id="store-return-policy-form"><label>Portal address identifier<input name="store_slug" required pattern="[a-z0-9][a-z0-9-]{1,61}[a-z0-9]" placeholder="my-store"></label>
     <label><input name="enabled" type="checkbox">Authorize self-service returns under this spending policy</label>
     <label>Return window (days)<input name="days" type="number" min="1" max="90" value="30" required></label>

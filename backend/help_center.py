@@ -303,6 +303,35 @@ CONTACT_BODY = """<p class="article-intro">Tell us what you expected and what ha
 <noscript><p>Email support@easyinvio.com directly and include the topic and reference.</p></noscript>"""
 
 
+def chapter_navigation(title: str) -> str:
+    chapters = (
+        ('Getting Started', ('account-access', 'first-shipment', 'team-and-security')),
+        ('Sales Channels & Custom Websites', ('connect-stores', 'supported-platforms', 'connect-custom-website', 'connect-shopify', 'connect-woocommerce', 'connect-amazon')),
+        ('Orders & Live Checkout Rates', ('features/order-processing', 'features/pricing')),
+        ('Tracking & Notifications', ('shipment-updates', 'features/labels-and-tracking')),
+        ('Returns & Drop-Off QR', ('returns', 'returns-and-refunds')),
+        ('Billing & Plans', ('booking-payments', 'billing', 'plans', 'wallet')),
+    )
+    # Fall back by category for chapters whose catalogue slugs differ.
+    used: set[str] = set()
+    sections: list[str] = []
+    for name, slugs in chapters:
+        matching = [s for s in slugs if s in GUIDES]
+        if name == 'Billing & Plans':
+            matching += [s for s,g in GUIDES.items() if any(w in (s+' '+g.category).lower() for w in ('billing','subscription','wallet','payment')) and s not in matching]
+        if name == 'Returns & Drop-Off QR':
+            matching += [s for s in GUIDES if 'return' in s and s not in matching]
+        links = []
+        for slug in matching:
+            if slug in used: continue
+            used.add(slug)
+            guide = GUIDES[slug]
+            current = ' aria-current="page"' if guide.title == title else ''
+            links.append(f'<a href="/help/{escape(slug, quote=True)}"{current}>{escape(guide.title)}</a>')
+        sections.append('<section><h2>'+escape(name)+'</h2>'+''.join(links)+'</section>')
+    return '<nav class="docs-chapters" aria-label="Documentation chapters">'+''.join(sections)+'</nav>'
+
+
 def render_page(title, category, summary, body, *, prepared=True, contents="", source_url=None):
     status = '' if prepared else '<div class="notice"><strong>Guide being prepared</strong><br>This guide is not ready yet. Use the links below for help with the existing tool.</div>'
     navigation = '<nav class="guide-contents" aria-label="In this guide"><h2>In this guide</h2>'+contents+'</nav>' if contents else ''
@@ -330,7 +359,8 @@ def render_page(title, category, summary, body, *, prepared=True, contents="", s
   </header>
   <main class="help-shell" id="help-main">
     <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/help">Help Centre</a><span aria-hidden="true">/</span><span>{escape(category)}</span></nav>
-    <div class="article-layout">
+    <div class="article-layout docs-layout">
+      {chapter_navigation(title)}
       <article class="help-article bg-slate-950 border border-slate-800">
         <span class="eyebrow">{escape(category)}</span>
         <h1>{escape(title)}</h1>
@@ -407,6 +437,9 @@ async def support_guide(slug: str):
     if guide.source_file:
         try:
             body, contents = rendered_guide(guide)
+            if slug in {'connect-custom-website', 'supported-platforms'}:
+                from backend.integration_help import integration_explorer
+                body = integration_explorer() + '<details class="contract-details"><summary>Full technical contract and platform capabilities</summary>' + body + '</details>'
         except (OSError, ValueError):
             raise HTTPException(503, 'This guide is temporarily unavailable') from None
         return HTMLResponse(render_page(guide.title, guide.category, guide.summary, body,
