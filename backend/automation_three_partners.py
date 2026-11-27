@@ -115,7 +115,7 @@ def enrich_easypost_event(event, tracker, latest):
             'scan_occurred_at':native_timestamp(latest['datetime']) if latest.get('datetime') else None}
     location=latest.get('tracking_location') or {}
     city=location.get('city') if isinstance(location,dict) else None
-    if isinstance(city,str) and re.fullmatch(r"[\w .'-]{1,80}",city):values['location']=city
+    if isinstance(city,str) and re.fullmatch(r"[^\W\d_][^\d\n\r<>@/]{0,79}",city):values.update(location=city,hub_city=city)
     estimate=tracker.get('est_delivery_date')
     if isinstance(estimate,str):
         try:

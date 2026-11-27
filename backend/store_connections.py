@@ -74,17 +74,18 @@ def public_settings(config):
             'has_amazon_credentials': bool(config and config.amazon_refresh_token)}
 
 
+async def scoped_store(request, context, store_id):
+    if context.role not in {'OWNER', 'ADMIN', 'DISPATCHER'}:
+        raise HTTPException(403, 'Dispatch permission required')
+    async with request.app.state.ecommerce.pool.acquire() as connection:
+        store = await connection.fetchrow('SELECT platform,is_active FROM public.ecommerce_stores WHERE tenant_id=$1 AND id=$2', context.tenant_id, store_id)
+    if not store:
+        raise HTTPException(404, 'Workspace store not found')
+    return store
+
+
 def build_router(authenticate):
     router = APIRouter(prefix='/api/v1/workspace/stores', tags=['Store connections'])
-
-    async def scoped_store(request, context, store_id):
-        if context.role not in {'OWNER', 'ADMIN', 'DISPATCHER'}:
-            raise HTTPException(403, 'Dispatch permission required')
-        async with request.app.state.ecommerce.pool.acquire() as connection:
-            store = await connection.fetchrow('SELECT platform,is_active FROM public.ecommerce_stores WHERE tenant_id=$1 AND id=$2', context.tenant_id, store_id)
-        if not store:
-            raise HTTPException(404, 'Workspace store not found')
-        return store
 
     @router.get('/{store_id}/connection')
     async def read(store_id: UUID, request: Request, context: Any = Depends(authenticate)):

@@ -93,13 +93,18 @@ def test_one_message_budget_keeps_whole_action_link():
 
 @pytest.mark.asyncio
 async def test_public_status_projection_never_includes_extra_record_fields():
-    db=AsyncMock();db.__aenter__.return_value=db
-    db.fetch.side_effect=[[{'id':'synthetic','tenant_id':'synthetic','status':'IN_TRANSIT','carrier_code':'EVRI','recipient_name':'PRIVATE NAME','address':'PRIVATE STREET','price':'PRIVATE PRICE'}],
-        [{'status':'DELIVERED','occurred_at':datetime.now(timezone.utc),'location':'PRIVATE STREET'}]]
-    helper=GuestShippingAssistant.__new__(GuestShippingAssistant);helper.pool=NS(acquire=lambda:db);helper.settings=settings()
-    result=await helper.public_status('TRACK12345678')
-    assert 'Delivered' in result and 'Evri' in result and 'PRIVATE' not in result
-    assert 'public_status_lookup_enabled' in db.fetch.call_args_list[0].args[0]
+    from uuid import uuid4
+    from backend.post_purchase import public_projection
+    now=datetime.now(timezone.utc);identifier=uuid4()
+    row={'id':identifier,'tenant_id':uuid4(),'status':'IN_TRANSIT','carrier_code':'EVRI','tracking_number':'TRACK12345678','last_tracking_event_at':now,'recipient_name':'PRIVATE NAME','recipient_address':{'line1':'PRIVATE STREET'},'price':'PRIVATE PRICE'}
+    db=AsyncMock();db.fetch.return_value=[{'id':uuid4(),'status':'IN_TRANSIT','occurred_at':now,'received_at':now,'integration_key_id':'fixture','response':{'applied':True,'tracking_detail':{'tracking_number':'TRACK12345678','milestone':'OUT_FOR_DELIVERY','location':'PRIVATE STREET'}}}]
+    projection=await public_projection(db,row,'TRACK12345678')
+    helper=GuestShippingAssistant.__new__(GuestShippingAssistant);helper.settings=settings();helper.state=NS(tracking_workspace=NS(pool=None,settings=helper.settings))
+    answer={'branding':{'display_name':'Fixture Merchant'},'shipments':[projection]}
+    with patch('backend.post_purchase.PostPurchaseService.lookup',AsyncMock(return_value=answer)):
+        result=await helper.public_status('TRACK12345678')
+    assert 'Out For Delivery' in result and 'PRIVATE' not in result
+    assert projection['timeline'][0]['location'] is None
 
 
 @pytest.mark.asyncio

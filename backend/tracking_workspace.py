@@ -105,6 +105,7 @@ def shipment_projection(row, events=(), *, platform=False, stale_hours=48, now=N
               'return_status': row.get('store_return_status', 'NONE'), 'refund': dict(NO_REFUND),
               'return_of_shipment_id': str(row['return_of_shipment_id']) if row.get('return_of_shipment_id') else None,
               'estimated_delivery_at': latest.get('estimated_delivery_at') if latest else None,
+              'proof_of_delivery_url': row.get('proof_of_delivery_url') if row['status']=='DELIVERED' else None,
               'origin_country': row.get('origin_country'), 'destination_country': row.get('destination_country'),
               'refresh': {'state': row.get('refresh_state'), 'last_success_at': iso(row.get('last_success_at')),
                           'error_code': row.get('refresh_error')},
@@ -167,7 +168,7 @@ class ReviewRequest(BaseModel):
 
 SELECT_SHIPMENT = '''SELECT s.id,s.tenant_id,s.customer_reference,s.store_order_id,s.ecommerce_store_id,
  s.tracking_number,s.status::text AS status,s.last_tracking_event_at,s.booked_at,s.created_at,
- s.origin_country,s.destination_country,s.parcel_count,s.tracking_lifecycle_type,s.store_return_status,
+ s.proof_of_delivery_url,s.origin_country,s.destination_country,s.parcel_count,s.tracking_lifecycle_type,s.store_return_status,
  s.return_of_shipment_id,s.carrier_account_id,s.carrier_code,s.logistics_metadata,
  a.api_base_url,a.aggregator,a.is_active AS account_active,t.company_name AS tenant_name,
  j.state AS refresh_state,j.last_success_at,j.error_code AS refresh_error,
@@ -237,7 +238,7 @@ class TrackingWorkspace:
                 for key,item in projected.items():
                     row=all_rows[key]
                     item['refresh']['available']=bool(getattr(self.settings,'tracking_polling_enabled',False) and row['account_active']
-                        and row['api_base_url']=='https://api.easypost.com/v2' and integration_enabled(row['api_base_url'],self.settings)
+                        and row['api_base_url'] in {'https://api.easypost.com/v2','https://panel.sendcloud.sc/api/v3','https://api.goshippo.com'} and integration_enabled(row['api_base_url'],self.settings)
                         and row['status'] in {'BOOKED','MANIFESTED','DISPATCHED','IN_TRANSIT','EXCEPTION'})
                 if audit:
                     await self.audit(connection, TrackingScope(tenant_id, scope.actor_id, scope.platform), 'DETAIL', shipment_id)
@@ -368,9 +369,17 @@ class TrackingWorkspace:
         if count>=30:
             raise HTTPException(429, 'Too many tracking requests; please wait a minute', headers={'Retry-After':'60'})
 
+    async def check_recipient_lineage(self,connection,token):
+        if not await connection.fetchval("SELECT to_regclass('public.tracking_recipient_access') IS NOT NULL"):return
+        digest=hashlib.sha256(token.encode()).hexdigest()
+        if await connection.fetchval('SELECT EXISTS(SELECT 1 FROM public.tracking_recipient_access WHERE token_sha256=$1)',digest):
+            from backend.post_purchase import PostPurchaseService
+            if not await PostPurchaseService(self).access_row(connection,token):raise HTTPException(404,'Verified tracking access expired or was revoked')
+
     async def resolve(self, token):
         self.require_ready()
         async with self.pool.acquire() as connection:
+            await self.check_recipient_lineage(connection,token)
             link = await connection.fetchrow('''SELECT tenant_id,anchor_shipment_id,shipment_ids FROM public.tracking_share_links
                 WHERE token_sha256=$1 AND revoked_at IS NULL AND expires_at>now()''', hashlib.sha256(token.encode()).hexdigest())
             if link is None:
@@ -430,6 +439,7 @@ class TrackingWorkspace:
                 return await self._customer_request(connection, body, shipment_id)
 
     async def _customer_request(self, connection, body, shipment_id=None):
+        await self.check_recipient_lineage(connection,body.token)
         digest=hashlib.sha256(body.note.encode()).hexdigest()
         link=await connection.fetchrow('''SELECT id,tenant_id,anchor_shipment_id,shipment_ids FROM public.tracking_share_links
             WHERE token_sha256=$1 AND revoked_at IS NULL AND expires_at>now() FOR UPDATE''',hashlib.sha256(body.token.encode()).hexdigest())
@@ -524,7 +534,8 @@ def build_router(authenticate, authenticate_platform_owner):
         try:body=ResolveRequest.model_validate_json(raw)
         except ValueError:raise HTTPException(422,'Use the complete tracking capability from your retailer') from None
         response.headers.update({'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'})
-        return await engine.resolve(body.token)
+        from backend.post_purchase import PostPurchaseService
+        return await PostPurchaseService(engine).resolve(body.token)
 
     @router.post('/api/v1/public/tracking/help',status_code=202,openapi_extra={'requestBody':{'required':True,'content':{'application/json':{'schema':CustomerRequest.model_json_schema()}}}})
     async def public_help(request:Request,response:Response):
@@ -536,6 +547,8 @@ def build_router(authenticate, authenticate_platform_owner):
         try:body=CustomerRequest.model_validate_json(raw)
         except ValueError:raise HTTPException(422,'Provide a valid tracking link, request reference and message') from None
         response.headers.update({'Cache-Control':'no-store','Referrer-Policy':'no-referrer'})
+        from backend.post_purchase import PostPurchaseService
+        await PostPurchaseService(engine).resolve(body.token)
         return await engine.customer_request(body)
 
     @router.get('/api/v1/tracking/preferences')

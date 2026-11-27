@@ -2424,7 +2424,7 @@ async def frontend():
 async def public_tracking_page():
     return FileResponse(Path(__file__).with_name('tracking.html'),media_type='text/html',headers={
         'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',
-        'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; manifest-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"})
+        'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-src 'self'; manifest-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"})
 
 
 @app.get('/tracking-workspace.js',include_in_schema=False)
@@ -2858,6 +2858,14 @@ async def integration_assets(request: Request):
     name=request.url.path.rsplit('/',1)[-1]
     path=Path(__file__).resolve().parent / ('frontend/landing' if name.startswith('returns-portal') else '.') / name
     return FileResponse(path)
+
+from backend.post_purchase import build_router as post_purchase_router
+app.include_router(post_purchase_router(authenticate))
+
+@app.get('/tracking-input.js',include_in_schema=False)
+@app.get('/platform-logos.svg',include_in_schema=False)
+async def post_purchase_asset(request: Request):
+    return FileResponse(Path(__file__).resolve().parent/request.url.path.rsplit('/',1)[-1])
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")

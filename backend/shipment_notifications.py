@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import re
+from typing import Literal
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request
 import httpx
@@ -28,6 +29,7 @@ class SenderNotifications(BaseModel):
 
 class ShipmentNotificationSettings(EmailDeliverySettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore', hide_input_in_errors=True)
+    shipment_recipient_notifications_enabled: bool = False
     shipment_email_notifications_enabled: bool = False
     shipment_sendgrid_api_key: SecretStr = SecretStr('')
     shipment_email_from: str = 'support@easyinvio.com'
@@ -56,6 +58,9 @@ def decoded(value):
     return value if isinstance(value, dict) else {}
 
 def notice_content(row, settings) -> tuple[str, str]:
+    if row.get('audience')=='RECIPIENT':
+        from backend.recipient_notifications import recipient_content
+        return recipient_content(row,settings,MESSAGES)
     reference = row.get('customer_reference') or str(row['shipment_id'])
     test = settings.provider_environment == 'TEST'
     heading = ('[UAT TEST] ' if test else '') + 'EasyInvio ' + row['category'].replace('_', ' ').lower() + ': ' + reference
@@ -99,23 +104,28 @@ def target_for(row, config, settings) -> tuple[str | None, str | None]:
     return target, None
 
 class ShipmentNotificationWorker:
-    def __init__(self, lifecycle, config: ShipmentNotificationSettings):
-        self.lifecycle, self.config = lifecycle, config
+    def __init__(self, lifecycle, config: ShipmentNotificationSettings, *, audience: Literal['SENDER','RECIPIENT'] | None=None):
+        self.lifecycle, self.config, self.audience = lifecycle, config, audience
 
     async def drain(self) -> bool:
         service, config = self.lifecycle, self.config
         async with service.pool.acquire() as c:
             async with c.transaction():
-                row = await c.fetchrow("""SELECT n.*,s.customer_reference,s.tracking_number,s.sender_address,s.logistics_metadata
+                row = await c.fetchrow("""SELECT n.*,s.customer_reference,s.tracking_number,s.sender_address,to_jsonb(s)->'recipient_address' AS recipient_address,s.logistics_metadata
                     FROM public.shipment_sender_notifications n JOIN public.shipments s
                     ON s.tenant_id=n.tenant_id AND s.id=n.shipment_id
-                    WHERE n.state='READY' AND ($1::boolean=false OR n.channel='EMAIL') AND (n.channel='EMAIL' OR n.provider IS NULL OR (n.provider=$2 AND n.provider_account IN ('',$3))) AND n.next_attempt_at<=now() AND n.attempts<3 AND NOT EXISTS(SELECT 1 FROM public.shipment_sender_notifications earlier
-                      WHERE earlier.tenant_id=n.tenant_id AND earlier.shipment_id=n.shipment_id AND earlier.channel=n.channel AND earlier.id<n.id AND earlier.state IN ('READY','SENDING'))
-                    ORDER BY n.id LIMIT 1 FOR UPDATE OF n SKIP LOCKED""",whatsapp_paused(service.automation.settings),whatsapp_provider(service.automation.settings),whatsapp_account(service.automation.settings))
+                    WHERE n.state IN ('READY','BUYER_READY') AND n.environment=$4 AND ($5::text IS NULL OR coalesce(to_jsonb(n)->>'audience','SENDER')=$5) AND ($1::boolean=false OR n.channel='EMAIL') AND (n.channel='EMAIL' OR n.provider IS NULL OR (n.provider=$2 AND n.provider_account IN ('',$3))) AND n.next_attempt_at<=now() AND n.attempts<3 AND NOT EXISTS(SELECT 1 FROM public.shipment_sender_notifications earlier
+                      WHERE earlier.tenant_id=n.tenant_id AND earlier.shipment_id=n.shipment_id AND earlier.channel=n.channel
+                      AND coalesce(to_jsonb(earlier)->>'audience','SENDER')=coalesce(to_jsonb(n)->>'audience','SENDER') AND earlier.id<n.id AND earlier.state IN ('READY','BUYER_READY','SENDING'))
+                    ORDER BY n.id LIMIT 1 FOR UPDATE OF n SKIP LOCKED""",whatsapp_paused(service.automation.settings),whatsapp_provider(service.automation.settings),whatsapp_account(service.automation.settings),service.automation.settings.provider_environment,self.audience)
                 if row is None:
                     return False
                 row = dict(row)
-                target, reason = target_for(row, config, service.automation.settings)
+                if row.get('audience')=='RECIPIENT':
+                    from backend.recipient_notifications import prepare_recipient
+                    target,reason=await prepare_recipient(c,row,config,service.automation.settings)
+                else:
+                    target, reason = target_for(row, config, service.automation.settings)
                 if reason and reason=='APPROVED_GUPSHUP_TEMPLATE_REQUIRED':
                     await c.execute("UPDATE public.shipment_sender_notifications SET error_code=$2,next_attempt_at=now()+interval '5 minutes' WHERE id=$1",row['id'],reason)
                     return True
@@ -150,9 +160,10 @@ class ShipmentNotificationWorker:
                 reason = None if accepted else 'PROVIDER_REJECTED' if state == 'FAILED' else 'PROVIDER_OUTCOME_UNCERTAIN'
                 if response.status_code == 429 and row['attempts'] + 1 < 3:
                     state, reason = 'READY', 'PROVIDER_RATE_LIMITED'
+            if row.get('audience')=='RECIPIENT' and state=='READY':state='BUYER_READY'
             async with service.pool.acquire() as c:
                 await c.execute("""UPDATE public.shipment_sender_notifications SET state=$2,provider_reference=$3,error_code=$4,updated_at=now(),
-                    next_attempt_at=CASE WHEN $2='READY' THEN now()+interval '1 minute' ELSE next_attempt_at END
+                    next_attempt_at=CASE WHEN $2 IN ('READY','BUYER_READY') THEN now()+interval '1 minute' ELSE next_attempt_at END
                     WHERE id=$1 AND state='SENDING'""", row['id'], state, reference, reason)
         except Exception:
             async with service.pool.acquire() as c:

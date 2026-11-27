@@ -24,9 +24,11 @@ def main():
     parser.add_argument('--preview',action='store_true',help='Layout only: no sign-in or database')
     parser.add_argument('--public-url',help='Your trusted Wi-Fi URL or HTTPS tunnel origin, without a path')
     parser.add_argument('--whatsapp',action='store_true',help='Run only the WhatsApp queue in addition to the web app')
+    parser.add_argument('--buyer-notifications',action='store_true',help='With --whatsapp, explicitly run consented buyer delivery only; migration 058 and delivery settings required')
     parser.add_argument('--cx-automation',action='store_true',help='With --whatsapp, run tracking, connector setup, delay alerts and support delivery only; migration 056 required')
     parser.add_argument('--hosted-whatsapp-paused',action='store_true',help='Confirm hosted consumers for the same Gupshup app are paused')
     args=parser.parse_args()
+    if args.buyer_notifications and (not args.whatsapp or args.preview):parser.error('--buyer-notifications requires configured --whatsapp mode and the hosted-consumer pause acknowledgement')
     if args.cx_automation and not args.whatsapp:parser.error('--cx-automation requires --whatsapp and the hosted-consumer pause acknowledgement')
     if args.whatsapp and not args.hosted_whatsapp_paused:
         parser.error('Pause hosted WhatsApp consumers first, then add --hosted-whatsapp-paused. The database/queue is shared.')
@@ -73,6 +75,14 @@ def main():
                 if queue is None:raise RuntimeError('Enable the configured WhatsApp provider first')
                 tasks=[asyncio.create_task(queue.worker())]
                 try:
+                    if args.buyer_notifications:
+                        from backend.shipment_notifications import ShipmentNotificationSettings,ShipmentNotificationWorker
+                        delivery=ShipmentNotificationSettings()
+                        if not delivery.shipment_recipient_notifications_enabled:raise RuntimeError('Set SHIPMENT_RECIPIENT_NOTIFICATIONS_ENABLED=true only when ready to send real test updates')
+                        async with application.state.finance.pool.acquire() as connection:
+                            ready=await connection.fetchval("SELECT to_regclass('public.shipment_recipient_preferences') IS NOT NULL")
+                        if not ready:raise RuntimeError('Apply migration 058 before buyer notification testing')
+                        tasks.append(asyncio.create_task(ShipmentNotificationWorker(application.state.partner_lifecycle,delivery,audience='RECIPIENT').worker()))
                     if args.cx_automation:
                         if not application.state.settings.cx_automation_enabled:raise RuntimeError('Set CX_AUTOMATION_ENABLED=true only after migration 056')
                         async with application.state.finance.pool.acquire() as connection:
@@ -94,6 +104,7 @@ def main():
                     await asyncio.gather(*tasks,return_exceptions=True)
         app.router.lifespan_context=local_whatsapp
     print('Landing: '+base+'/\nSign in: '+base+'/login\nWorkspace: '+base+'/workspace\nPricing: '+base+'/pricing',flush=True)
+    if args.buyer_notifications:print('Buyer notifications: explicitly enabled; original recipient contacts and consent are rechecked before delivery',flush=True)
     print('Background jobs: '+('WhatsApp + selected CX automation (shared queues)' if args.cx_automation else 'WhatsApp only (shared queue)' if args.whatsapp else 'off'),flush=True)
     import uvicorn
     uvicorn.run(app,host='0.0.0.0' if args.lan else '127.0.0.1',port=args.port,access_log=False,proxy_headers=False)

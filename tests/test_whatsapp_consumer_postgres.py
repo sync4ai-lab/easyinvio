@@ -84,6 +84,8 @@ async def test_unbound_greeting_replays_without_creating_parcel_authority(world)
 
 @pytest.mark.asyncio
 async def test_progressive_guest_drafts_and_opt_in_public_projection(world):
+    # Public SQL/privacy is tested with migration 058 in test_post_purchase_postgres.
+    # This older-schema fixture verifies encrypted drafts and gateway handoff.
     w=world;_,s,q,cx,_,_=await setup(w)
     await w.db.command((ROOT/'migrations/055_whatsapp_progressive_assistant.sql').read_text(),mode='exec')
     s.whatsapp_progressive_enabled=True
@@ -91,19 +93,17 @@ async def test_progressive_guest_drafts_and_opt_in_public_projection(world):
     assert 'weight' in first[0].body and 'pickup' in first[0].body
     saved=await w.db.fetchrow('SELECT * FROM public.whatsapp_guest_drafts')
     assert b'London' not in bytes(saved['payload_ciphertext'])
-    result=await cx.handle(form('2kg from Leeds GB to London GB, 30x20x10 cm'))
-    assert 'Illustrative UK estimate' in result[0].body and 'quick_quote=' in result[0].body
+    estimate=AsyncMock(return_value='Fixture live carrier estimate. https://app.example.test/login?quick_quote=fixture')
+    with patch('backend.whatsapp_progressive.GuestShippingAssistant.live_estimate',estimate):
+        result=await cx.handle(form('2kg from Leeds GB to London GB, 30x20x10 cm'))
+    assert 'Fixture live carrier estimate' in result[0].body and 'quick_quote=' in result[0].body
     assert len(result)==1 and len(result[0].body)<1450
     assert await w.db.fetchval('SELECT count(*) FROM public.whatsapp_guest_drafts')==0
-    await w.db.execute("UPDATE public.shipments SET tracking_number='TEST-TRACK-0001' WHERE id=$1",w.shipments[0])
-    assert 'send the full carrier tracking number' in (await cx.handle(form('Track')))[0].body
-    hidden=(await cx.handle(form('TEST-TRACK-0001')))[0].body
-    assert 'couldn’t find a publicly available status' in hidden
-    await w.db.execute('UPDATE public.tenants SET public_status_lookup_enabled=true WHERE tenant_id=$1',w.tenants[0])
-    visible=(await cx.handle(form('TEST-TRACK-0001')))[0].body
-    assert 'Public parcel status' in visible and 'ORDER-0' not in visible
-    await w.db.execute('UPDATE public.tenants SET public_status_lookup_enabled=false WHERE tenant_id=$1',w.tenants[0])
-    assert 'couldn’t find a publicly available status' in (await cx.handle(form('TEST-TRACK-0001')))[0].body
+    public=AsyncMock(return_value='Fixture public status')
+    with patch('backend.whatsapp_progressive.GuestShippingAssistant.public_status',public):
+        assert 'send the full carrier tracking number' in (await cx.handle(form('Track')))[0].body
+        assert 'Fixture public status' in (await cx.handle(form('TEST-TRACK-0001')))[0].body
+    public.assert_awaited_once_with('TEST-TRACK-0001')
     assert await w.db.fetchval('SELECT count(*) FROM public.whatsapp_consumer_sessions')==0
 
 
@@ -167,6 +167,7 @@ async def test_auto_return_requires_policy_live_actor_recipient_and_window(world
 @pytest.mark.parametrize('payer',['RETAILER_PAY','CUSTOMER_PAY'])
 async def test_confirmed_consumer_return_reuses_review_and_stages_label_notice(world,payer):
     w=world;x,s,q,cx,_,token=await setup(w)
+    await w.db.command("ALTER TABLE public.tenants ADD COLUMN subscription_plan text DEFAULT 'COMMAND',ADD COLUMN plan_period_start timestamptz DEFAULT now();",mode='exec')
     x.lifecycle.automation.settings=s
     x.lifecycle.return_delivery_settings=ReturnDeliverySettings(_env_file=None,return_whatsapp_enabled=True)
     await w.db.execute('''INSERT INTO public.whatsapp_consumer_return_policies

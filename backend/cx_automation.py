@@ -69,20 +69,6 @@ async def dossier_scope(request: Request,context: Any,identifier: UUID) -> Claim
 def build_router(authenticate: Any,authenticate_platform_owner: Any) -> APIRouter:
     router=APIRouter(tags=['Unified CX automation'],dependencies=[Depends(require_schema)])
 
-    @router.post('/api/v1/public/tracking/status')
-    async def public_status(body: PolicyDescription,request: Request,response: Response) -> dict[str,str]:
-        import re
-        if not re.fullmatch(r'[A-Za-z0-9_-]{8,100}',body.text):
-            raise HTTPException(422,'Enter the complete carrier tracking reference')
-        workspace=request.app.state.tracking_workspace
-        workspace.public_rate_limit(request.client.host if request.client else 'unknown')
-        from backend.whatsapp_progressive import GuestShippingAssistant
-        assistant=object.__new__(GuestShippingAssistant)
-        assistant.pool=request.app.state.finance.pool
-        assistant.settings=request.app.state.settings
-        response.headers['Cache-Control']='no-store'
-        return {'message':await assistant.public_status(body.text)}
-
     @router.post('/api/v1/settings/return-policy/proposals')
     async def propose(body: PolicyDescription,request: Request,context=Depends(authenticate)) -> dict[str,Any]:
         return await policies(request).propose(context,body.text,body.request_id)

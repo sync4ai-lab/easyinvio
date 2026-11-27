@@ -27,6 +27,10 @@ class Database:
     @asynccontextmanager
     async def transaction(self, **kwargs):
         yield
+    async def fetchval(self,sql,*args):
+        self.calls.append((sql,args))
+        if 'to_regclass' in sql:return False
+        raise AssertionError('Unexpected scalar query in legacy tracking fixture')
     async def fetchrow(self, sql, *args):
         self.calls.append((sql, args))
         if "body_sha256,response" in sql:

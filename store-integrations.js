@@ -189,4 +189,64 @@
     if(select){select.replaceChildren();platforms.forEach(p=>select.add(new Option(p.name,p.code)));}
     renderStoreCatalogue();if(typeof renderEnterpriseStores==='function')renderEnterpriseStores();
   }).catch(()=>notify('Platform directory unavailable. Existing store setup remains available.'));
+
+  // Shared local brand geometry is identical on public and authenticated cards.
+  const logoCatalogue={"SHOPIFY": {"viewBox": "0.7280003118515015 -0.7200001192092895 22.54499954223633 25.44", "plate": false}, "WOOCOMMERCE": {"viewBox": "-0.7200109165542744 8.8599995803833 25.440012130737305 6.280001792907715", "plate": false}, "AMAZON": {"viewBox": "-0.7200024265050888 0.38200089454650876 25.44000202178955 23.236699638366698", "plate": false}, "CUSTOM_WEBSITE": {"viewBox": "2.8 5.8 42.4 36.4", "plate": false}, "EBAY": {"viewBox": "-0.72 6.491999893188477 25.44 11.01600212097168", "plate": false}, "ETSY": {"viewBox": "0.8009999084472657 -0.72 22.39800018310547 25.44", "plate": false}, "TIKTOK_SHOP": {"viewBox": "0.8540861511230469 -0.7200090980529785 22.290922660827636 25.440321464538574", "plate": false}, "BIGCOMMERCE": {"viewBox": "-0.7200466719269752 -0.7201974791288376 25.43997978210449 25.439195861816405", "plate": false}, "WIX": {"viewBox": "-0.72 6.633000164031983 25.44 10.733001174926757", "plate": false}, "SQUARESPACE": {"viewBox": "-0.7199896955490112 1.734010181427002 25.43964012145996 20.531229095458983", "plate": false}, "MAGENTO": {"viewBox": "0.8889999675750733 -0.72 22.22200149536133 25.44", "plate": false}, "PRESTASHOP": {"viewBox": "-0.72 0.314000039100647 25.44 23.37045234680176", "plate": false}, "SHOPWARE": {"viewBox": "-0.720000057220459 -0.7178000572323799 25.44000202178955 25.43559986114502", "plate": false}, "ECWID": {"viewBox": "-47.99999237060547 -48.00001811981201 1696 572.8000183105469", "plate": false}, "SQUARE": {"viewBox": "-0.72 -0.7200000000000285 25.44 25.44", "plate": false}, "WEEBLY": {"viewBox": "-2.1438677978515623 -2.9019854736328123 107.46028198242188 36.791885986328126", "plate": false}, "OPENCART": {"viewBox": "-15.36 -14.895999298095703 542.72 130.25601837158203", "plate": false}, "ONBUY": {"viewBox": "66.80178436279297 142.9321859741211 426.3960955810547 114.1355517578125", "plate": false}, "MANOMANO": {"viewBox": "0 200 548 150", "plate": true}, "MIRAKL": {"viewBox": "-3.033479922460392 -3.0334799194335935 107.18295715332032 26.086826782226563", "plate": false}, "KAUFLAND": {"viewBox": "-0.72 -0.72 25.44 25.44", "plate": false}, "LINNWORKS": {"viewBox": "0 0 100 100", "plate": true}, "CHANNELENGINE": {"viewBox": "-49.14603777647018 -50.055949706652896 1768.6521826171875 353.9021368408203", "plate": false}, "CSV_SFTP": {"viewBox": "2.8 5.8 42.4 36.4", "plate": false}, "ROYAL_MAIL": {"viewBox": "-1.14 -1.14 40.28 26.28", "plate": false}, "EVRI": {"viewBox": "-1.14 -1.14 40.28 26.28", "plate": false}, "DPD": {"viewBox": "0.9819885730743408 -0.7202190950862132 22.03602523803711 25.440400314331054", "plate": false}, "DHL": {"viewBox": "-0.72 9.583000450134277 25.44 4.835000457763671", "plate": false}, "UPS": {"viewBox": "1.1600020217895508 -0.72 21.679999771118165 25.44", "plate": false}};
+  const renderCatalogueBeforeLogos=renderStoreCatalogue;
+  renderStoreCatalogue=function(){renderCatalogueBeforeLogos();
+    document.querySelectorAll('#store-catalogue [data-store-connect]').forEach(button=>{
+      const mark=button.closest('article').querySelector('.toolbar > span'),entry=logoCatalogue[button.dataset.storeConnect];
+      if(!mark||!entry)return;
+      mark.style.cssText='display:flex;align-items:center;width:120px;height:46px;padding:4px;border-radius:8px;background:'+(entry.plate?'#fff':'transparent');
+      mark.innerHTML='<svg style="width:100%;height:100%" aria-hidden="true" viewBox="'+entry.viewBox+'"><use href="/platform-logos.svg#'+button.dataset.storeConnect+'"></use></svg>';
+    });
+  };
+  renderStoreCatalogue();
+  // Store-scoped branding and notification policy. No recipient permission is
+  // inferred from a merchant enabling a channel.
+  document.body.insertAdjacentHTML('beforeend',`<dialog id="store-post-purchase"><button type="button" class="close" aria-label="Close branding settings">×</button><h2>Tracking branding & buyer updates</h2><form id="store-post-purchase-form">
+    <label>Store name on tracking pages<input name="brand_display_name" maxlength="100"></label>
+    <label>Logo HTTPS URL<input name="brand_logo_url" type="url" maxlength="2048"></label>
+    <label>Brand accent<input name="brand_accent_hex" type="color" value="#059669"></label>
+    <label>Customer support HTTPS URL<input name="support_url" type="url" maxlength="2048"></label>
+    <fieldset><legend>Buyer milestone notifications</legend><label><input type="checkbox" name="buyer_email"> Enable buyer email updates</label><label><input type="checkbox" name="buyer_whatsapp"> Enable buyer WhatsApp updates</label>
+    <p>Only recipients who have explicitly agreed receive future updates. Sender preferences stay separate. WhatsApp uses an approved SHIPMENT template and your normal provider charges.</p>
+    <label><input type="checkbox" name="category" value="IN_TRANSIT" checked> In transit</label><label><input type="checkbox" name="category" value="OUT_FOR_DELIVERY" checked> Out for delivery</label><label><input type="checkbox" name="category" value="AVAILABLE_FOR_PICKUP" checked> Ready for pickup</label><label><input type="checkbox" name="category" value="DELIVERED" checked> Delivered</label><label><input type="checkbox" name="category" value="EXCEPTION" checked> Delivery issue</label></fieldset>
+    <p>Delivery also requires SHIPMENT_RECIPIENT_NOTIFICATIONS_ENABLED and configured email/WhatsApp channels. This form does not send messages or create historical notifications.</p><button type="submit" class="primary">Save branding and policy</button><p role="status"></p></form></dialog>`);
+  const presentationDialog=document.querySelector('#store-post-purchase'),presentationForm=document.querySelector('#store-post-purchase-form');
+  let presentationStore=null,presentationGeneration=0;
+  presentationDialog.querySelector('.close').onclick=()=>presentationDialog.close();
+  presentationDialog.addEventListener('close',()=>{presentationStore=null;presentationGeneration++;presentationForm.reset();});
+  const storesBeforePresentation=renderEnterpriseStores;
+  renderEnterpriseStores=function(){storesBeforePresentation();if(!storeCanManage())return;
+    document.querySelectorAll('#store-list [data-store-settings]').forEach(button=>{
+      const extra=document.createElement('button');extra.type='button';extra.className='secondary';extra.dataset.storePresentation=button.dataset.storeSettings;extra.textContent='Tracking branding & buyer updates';button.parentElement.append(extra);
+    });
+  };
+  document.addEventListener('click',event=>{
+    const button=event.target.closest('[data-store-presentation]');if(!button)return;
+    busy(button,async()=>{
+      const generation=++presentationGeneration,storeId=button.dataset.storePresentation;
+      const value=await api('/api/v1/workspace/stores/'+storeId+'/post-purchase',{auth:true});
+      if(generation!==presentationGeneration)return;
+      presentationStore=storeId;presentationForm.reset();
+      for(const name of ['brand_display_name','brand_logo_url','support_url'])presentationForm.elements[name].value=value[name]||'';
+      presentationForm.elements.brand_accent_hex.value=value.brand_accent_hex||'#059669';
+      const policy=value.buyer_notification_policy||{};presentationForm.elements.buyer_email.checked=!!policy.email;presentationForm.elements.buyer_whatsapp.checked=!!policy.whatsapp;
+      presentationForm.querySelectorAll('[name=category]').forEach(input=>input.checked=(policy.categories||[]).includes(input.value));
+      presentationForm.querySelector('[role=status]').textContent='';presentationDialog.showModal();
+    });
+  });
+  presentationForm.onsubmit=event=>{
+    event.preventDefault();busy(presentationForm.querySelector('[type=submit]'),async()=>{
+      const f=presentationForm.elements;
+      await api('/api/v1/workspace/stores/'+presentationStore+'/post-purchase',{method:'PUT',auth:true,body:{
+        brand_display_name:f.brand_display_name.value.trim()||null,brand_logo_url:f.brand_logo_url.value.trim()||null,
+        brand_accent_hex:f.brand_accent_hex.value,support_url:f.support_url.value.trim()||null,
+        buyer_notification_policy:{email:f.buyer_email.checked,whatsapp:f.buyer_whatsapp.checked,categories:[...presentationForm.querySelectorAll('[name=category]:checked')].map(input=>input.value)}}});
+      presentationForm.querySelector('[role=status]').textContent='Saved. Recipient permission and configured delivery channels are still required.';
+    });
+  };
+  window.addEventListener('easyinvio-session-ready',()=>{presentationDialog.close();presentationStore=null;presentationGeneration++;});
+  document.addEventListener('click',event=>{if(event.target.closest('#identity-logout,#signout-btn')){presentationDialog.close();presentationStore=null;presentationGeneration++;}},true);
 })();

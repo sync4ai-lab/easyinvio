@@ -136,32 +136,35 @@ class GuestShippingAssistant:
         return await service.estimate(facts)
 
     async def public_status(self,reference:str)->str:
-        if not re.fullmatch(r'[A-Za-z0-9_-]{8,100}',reference):return 'That reference format looks incomplete. Please try the full carrier tracking number, or paste your secure EasyInvio tracking link.'
-        try:shipment_id=UUID(reference)
-        except ValueError:shipment_id=None
-        # An exact reference is not authentication. Merchants must explicitly
-        # publish this small projection; ambiguity never identifies a tenant.
-        async with self.pool.acquire() as c:
-            rows=await c.fetch('''SELECT s.id,s.tenant_id,s.status::text AS status,s.carrier_code
-             FROM public.shipments s JOIN public.tenants t ON t.tenant_id=s.tenant_id
-             WHERE t.public_status_lookup_enabled AND (s.tracking_number=$1 OR s.id=$2::uuid) LIMIT 2''',reference,shipment_id)
-            if len(rows)!=1:return 'I couldn’t find a publicly available status for that reference. Check it and try again, or paste your retailer’s secure tracking link. This does not mean the parcel does not exist.'
-            row=rows[0]
-            events=await c.fetch('''SELECT coalesce(response->'tracking_detail'->>'milestone',status) AS status,occurred_at FROM public.tracking_events
-             WHERE tenant_id=$1 AND shipment_id=$2 AND response->>'applied'='true' ORDER BY occurred_at DESC LIMIT 3''',row['tenant_id'],row['id'])
-        # Fixed status vocabulary only: no arbitrary carrier prose or location,
-        # contacts, addresses, order IDs, prices or POD URLs can leave here.
-        allowed={'DRAFT','QUOTED','BOOKED','LABEL_CREATED','IN_TRANSIT','OUT_FOR_DELIVERY','DELIVERED','EXCEPTION','CANCELLED','RETURNED','PENDING','COLLECTED','FAILED','PRE_TRANSIT','AVAILABLE_FOR_PICKUP','RETURNED_TO_SENDER','CUSTOMS_PROCESSING','DELIVERY_ATTEMPTED','UNKNOWN'}
-        latest=events[0]['status'] if events else row['status']
-        status=latest if latest in allowed else 'PENDING'
-        known={'ROYAL_MAIL':'Royal Mail','EVRI':'Evri','DPD':'DPD','DHL':'DHL','UPS':'UPS','FEDEX':'FedEx'}
-        text='*Public parcel status*\n'+status.replace('_',' ').title()+' • '+known.get(row['carrier_code'],'Carrier service')
-        for event in events:
-            if event['status'] in allowed:text+='\n• '+event['status'].replace('_',' ').title()+' — '+event['occurred_at'].strftime('%d %b %H:%M UTC')
-        return text+'\nFor private details or changes, sign in: '+self.settings.booking_page_url.rstrip('/')+'/login?mode=signin'
+        from backend.post_purchase import PostPurchaseService
+        from fastapi import HTTPException
+        workspace=getattr(self.state,'tracking_workspace',None)
+        if workspace is None:return 'Tracking is temporarily unavailable. Please try the tracking page.'
+        try:
+            result=await PostPurchaseService(workspace).lookup(reference,'whatsapp:'+hashlib.sha256(reference.encode()).hexdigest())
+        except (HTTPException,ValueError):
+            return 'I could not find a uniquely published status. Check the tracking number or paste your retailer’s secure tracking link.'
+        lines=['*'+result['branding']['display_name']+' parcel tracking*']
+        for shipment in result['shipments']:
+            lines.append(str(shipment['carrier'])+' · '+str(shipment['status']).replace('_',' ').title())
+            for event in shipment['timeline'][-3:]:lines.append('• '+event['status'].replace('_',' ').title()+' — '+str(event['occurred_at'])+(' · '+event['location'] if event.get('location') else ''))
+            if shipment.get('estimated_delivery_at'):lines.append('Estimated delivery: '+str(shipment['estimated_delivery_at']))
+        from backend.tracking_input import parse_tracking_input,trusted_tracking_origins
+        from urllib.parse import urlsplit,quote
+        parsed=parse_tracking_input(reference,trusted_tracking_origins(self.settings));origin=urlsplit(self.settings.booking_page_url)
+        path='/track#'+parsed.value if parsed.kind=='CAPABILITY' else '/track?q='+quote(parsed.value,safe='')
+        lines.append('Private details and delivery help: '+origin.scheme+'://'+origin.netloc+path)
+        return '\n'.join(lines)
 
     async def handle(self,form:Any)->str|None:
         text=form['Body'].strip()
+        # A standalone carrier reference or /track?q= URL starts tracking too.
+        from backend.tracking_input import parse_tracking_input,trusted_tracking_origins
+        if re.fullmatch(r'[A-Za-z0-9_-]{8,100}',text) and re.search(r'\d',text) or text.startswith(('https://','http://','/track')):
+            try:
+                tracking_input=parse_tracking_input(text,trusted_tracking_origins(self.settings))
+                if tracking_input.kind=='REFERENCE':text='Track '+tracking_input.value
+            except ValueError:pass
         from backend.whatsapp_concierge import social
         if social(text):return None
         if text.lower() in {'cancel','start over'}:

@@ -277,3 +277,34 @@ disposable PostgreSQL dependency completed with **972 passed, 1 skipped,
 public customer-page checks passed using synthetic fixtures, with no page errors
 or horizontal overflow. JavaScript syntax, Python compilation and diff whitespace
 checks also passed. These are repository checks, not live-carrier certification.
+
+
+## Release 058: branded recipient tracking
+
+Apply `migrations/058_branded_recipient_tracking.sql` **once, after 057**, before testing the new public lookup, postcode verification, branding settings or buyer updates. It adds indexes, hashed short-lived recipient access, durable rate limits, recipient permission records and store presentation/policy fields. It does not contact carriers, send messages or backfill notifications. The shared database remains shared; the migration has not been applied by development.
+
+Open the landing page's Track a parcel widget or `/track`. Both accept a plain reference, shipment UUID, raw capability, `/track#TOKEN`, or `/track?token=TOKEN`. Plain numbers search EasyInvio's recorded shipments and package-label numbers only; unknown external parcels never create a paid tracker. A merchant's publication setting remains authoritative, and ambiguous matches across workspaces fail closed. Public output contains fixed milestones, explicitly structured hub cities, carrier estimates and store branding. Arbitrary provider prose, contacts, addresses, order details and POD are excluded.
+
+Enter the exact delivery postcode to unlock a 30-minute recipient view; an original secure link is an alternative factor. Recipient sessions contain one shipment, store only token hashes, and recheck expiration and source-link revocation. The browser keeps the issued token in memory, clears private content when access expires or the page is left, and does not put the issued token into links or storage. Verified views show the delivery address, carrier-supplied delivered POD, eligible store return portal and support intake. The portal still rechecks its current policy and shopper verification before any return purchase. No carrier label, address mutation or refund is authorized by a tracking lookup.
+
+In Workspace → Store Integrations, use **Tracking branding & buyer updates** to save the merchant display name, direct public HTTPS logo URL, accent and support URL. Logos render in a scriptless sandboxed frame whose image policy allows only the saved image origin; the tracking parent's images remain restricted to its own origin. No logo URL is fetched by the backend. Platform cards and their detail modals use the same local `/platform-logos.svg` sprite across landing and workspace.
+
+### Buyer updates and cost controls
+
+Buyer updates need **all** of: store policy enabled for the selected category/channel; explicit recipient permission tied to the original stored contacts; `SHIPMENT_RECIPIENT_NOTIFICATIONS_ENABLED=true`; and the existing configured shipment email/WhatsApp delivery settings. WhatsApp still requires an approved SHIPMENT template and recipient allowlist checks. Default buyer delivery is off. Changing a contact invalidates the earlier permission. Verified recipients can save or withdraw their future-update preferences on `/track`; authorized merchants can record permission through `PUT /api/v1/shipping/{shipment_id}/recipient-notifications`, including the corresponding permission-confirmed flags. Enabling a store channel alone never grants recipient permission.
+
+Verified ingest stages only IN_TRANSIT, OUT_FOR_DELIVERY, AVAILABLE_FOR_PICKUP, DELIVERED and EXCEPTION, once per tenant/shipment/category/channel/audience. Partial multiparcel delivery cannot announce overall delivery. Buyer queue entries use BUYER_READY, so older sender-only workers selecting READY cannot consume them during a mixed-version shared-database rollout. Explicit temporary refusals retry at most three times; uncertain sends remain for review. Existing SHIPMENT receipt reconciliation and sender delivery stay in place. No historical buyer backfill occurs.
+
+For local real-message testing, pause hosted consumers for this app first. Then set the new flag in your private `.env.local` only when ready, confirm test recipients and the public booking origin, and run:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/dev.py --whatsapp --hosted-whatsapp-paused --buyer-notifications
+```
+
+Keep your existing BOOKING_PAGE_URL / public tunnel configuration, or reuse the `--public-url` argument from your working local command. `--buyer-notifications` drains only recipient jobs, not old sender jobs. Add the existing `--cx-automation` option only if you intentionally want carrier polling/connector setup/support workers too. Ordinary local development and offline layout preview do not start buyer delivery. Real email/WhatsApp tests can incur provider fees.
+
+The tracking workspace's optional 60-second auto-refresh reads stored state only, runs only while its tab is visible, defaults off, and does not force a carrier poll. Its drawer now includes delivered POD; the existing four-hour stale polling guard is preserved for cost control.
+
+### Verification
+
+`tests/test_post_purchase_postgres.py` uses explicitly configured disposable in-memory PGlite, never `.env` or hosted PostgreSQL. It exercises actual migration SQL, multipiece references, tenant collisions, public redaction, wrong/right postcodes, expiry/revocation, policy-based returns, consent/contact changes, deduplication, authenticated ingest, delivery fencing and store-setting authorization. `tests/post_purchase_browser.py` uses mocked APIs on the isolated preview server at port 8017 for mobile/tablet/desktop checks, including the actual sandboxed logo policy and identical public/workspace logo references. Deployment artifacts must be regenerated with `python scripts/build_vercel.py --bundle` whenever runtime sources change.

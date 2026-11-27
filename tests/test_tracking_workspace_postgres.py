@@ -173,6 +173,7 @@ async def test_ingestion_replay_late_scans_immutable_facts_and_notification_dedu
 @pytest.mark.asyncio
 async def test_refresh_dedup_cooldown_lease_and_disabled_polling(world):
     w=world;worker=TrackingRefreshWorker(w.engine,w.support)
+    await w.db.execute("UPDATE public.shipments SET booked_at=now()-interval '6 hours' WHERE id=$1",w.shipments[0])
     with pytest.raises(HTTPException):await worker.enqueue(w.scope,w.shipments[0])
     w.settings.tracking_polling_enabled=True
     await worker.enqueue(w.scope,w.shipments[0]);await worker.enqueue(w.scope,w.shipments[0])
@@ -223,6 +224,7 @@ async def test_read_only_provider_reconciliation_and_transient_failure_fence(wor
     from main import CarrierAccount
     import httpx
     w=world;w.settings.tracking_polling_enabled=True
+    await w.db.execute("UPDATE public.shipments SET booked_at=now()-interval '6 hours' WHERE id=$1",w.shipments[0])
     member_id=await w.db.fetchval('SELECT id FROM public.users WHERE tenant_id=$1',w.tenants[0])
     await w.db.execute('UPDATE public.shipments SET created_by_user_id=$2 WHERE id=$1',w.shipments[0],member_id)
     worker=TrackingRefreshWorker(w.engine,w.support)
@@ -246,6 +248,7 @@ async def test_read_only_provider_reconciliation_and_transient_failure_fence(wor
         job=await w.db.fetchrow('SELECT * FROM public.tracking_refresh_jobs')
         assert job['last_success_at'] and job['attempts']==0 and job['state']=='DUE'
         failure=True
+        await w.db.execute("UPDATE public.shipments SET last_tracking_event_at=now()-interval '6 hours' WHERE id=$1",w.shipments[0])
         await w.db.execute("UPDATE public.tracking_refresh_jobs SET next_attempt_at=now();")
         await w.db.execute("UPDATE public.tracking_provider_limits SET next_allowed_at=now()-interval '1 minute'")
         job=await worker.claim()
@@ -263,6 +266,7 @@ async def test_platform_refresh_and_retry_after_are_account_bound(world):
     from main import CarrierAccount
     import httpx
     w=world;w.settings.tracking_polling_enabled=True;w.settings.platform_admin_user_ids=[w.actors[1]]
+    await w.db.execute("UPDATE public.shipments SET booked_at=now()-interval '6 hours' WHERE id=$1",w.shipments[0])
     worker=TrackingRefreshWorker(w.engine,w.support)
     await worker.enqueue(TrackingScope(None,w.actors[1],True),w.shipments[0])
     account=CarrierAccount(w.accounts[0],w.tenants[0],'EASYPOST','https://api.easypost.com/v2',None,5,'offline-test')

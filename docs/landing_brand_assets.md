@@ -63,3 +63,5 @@ The directory embeds sanitized SVG geometry locally; no third-party logo request
 - kaufland: https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/kaufland.svg
 - linnworks: https://services.linnworks.com/static/media/linnwork_logo.d8e491756ad552fb0392.png
 - channelengine: https://www.channelengine.com/hubfs/Logos/ChannelEngine-whiteText.svg
+
+The expanded marks now live in the shared local `platform-logos.svg` sprite. Landing cards, public detail modals and workspace platform cards reference the same symbol per platform; no screenshot tracing or remote runtime logo lookup is used.

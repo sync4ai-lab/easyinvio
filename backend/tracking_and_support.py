@@ -86,6 +86,7 @@ class TrackingEvent(BaseModel):
         'RETURNED_TO_SENDER','CUSTOMS_PROCESSING','DELIVERY_ATTEMPTED','UNKNOWN'] | None = None
     source_status: str | None = Field(default=None, pattern=r'^[A-Za-z0-9_.:-]{1,80}$')
     location: str | None = Field(default=None, max_length=120)
+    hub_city: str | None = Field(default=None,max_length=80,pattern=r"^[^\W\d_][^\d\n\r<>@/]{0,79}$")
     scan_occurred_at: datetime | None = None
     estimated_delivery_at: datetime | None = None
 
@@ -243,13 +244,15 @@ class TrackingSupportService:
                           "applied": applied, "replayed": False, "support_queued": applied and event.status == "EXCEPTION"}
                 if self.workspace is not None:
                     result['tracking_detail'] = {'tracking_number':event.tracking_number,'milestone':event.milestone or event.status,
-                        'source_status':event.source_status,'location':event.location,
+                        'source_status':event.source_status,'location':event.location,'hub_city':event.hub_city,
                         'estimated_delivery_at':event.estimated_delivery_at.isoformat() if event.estimated_delivery_at else None}
                 await connection.execute("""INSERT INTO public.tracking_events
                     (tenant_id,shipment_id,integration_key_id,event_id,body_sha256,status,occurred_at,raw_error,response,support_pending)
                     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10)""", key.tenant_id, shipment["id"], key_id,
                     event.event_id, digest, event.status, occurred_at, event.raw_error, json.dumps(result), result["support_queued"])
                 if applied:
+                    from backend.recipient_notifications import stage_recipient_notifications
+                    await stage_recipient_notifications(connection,key.tenant_id,shipment['id'],event.milestone or applied_status)
                     from backend.store_delivery import queue_status_callback
                     await queue_status_callback(connection,key.tenant_id,shipment['id'],str(key_id)+':'+event.event_id,
                         {'status':applied_status,'tracking_number':event.tracking_number,'occurred_at':occurred_at.isoformat()})

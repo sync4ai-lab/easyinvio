@@ -3,6 +3,7 @@
   'use strict';
   const escape = value => { const node = document.createElement('span'); node.textContent = String(value ?? ''); return node.innerHTML.replaceAll('"', '&quot;').replaceAll("'", '&#39;'); };
   const portalLink = url => ['https://www.royalmail.com/track-your-item','https://www.evri.com/track-a-parcel'].includes(url) ? `<a href="${escape(url)}" target="_blank" rel="noopener noreferrer">Open carrier tracking</a>` : '';
+  const safePod=value=>{try{const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password?url.href:null;}catch{return null;}};
   const human = value => String(value || 'Not available').toLowerCase().replaceAll('_', ' ');
   const when = value => value ? new Date(value).toLocaleString() : 'No carrier scan yet';
   const badge = value => `<span class="tracking-badge" data-status="${escape(value)}">${escape(human(value))}</span>`;
@@ -12,7 +13,7 @@
   const writable = () => !admin() && ['OWNER', 'ADMIN', 'DISPATCHER'].includes(portal.profile?.workspace_role);
   const prefix = () => admin() ? '/api/v1/admin/tracking' : '/api/v1/tracking';
   const section = document.createElement('section'); section.id = 'tracking'; section.hidden = true;
-  section.innerHTML = `<div class="pagehead"><div><div class="eyebrow">Shipping visibility</div><h1 id="tracking-title">Shipment tracking</h1><p>Shipments, returns and delivery exceptions in one place.</p></div><div class="tracking-actions"><button class="secondary" id="tracking-preferences">Notification preferences</button><button class="secondary" id="tracking-reload">Refresh view</button></div></div>
+  section.innerHTML = `<div class="pagehead"><div><div class="eyebrow">Shipping visibility</div><h1 id="tracking-title">Shipment tracking</h1><p>Shipments, returns and delivery exceptions in one place.</p></div><div class="tracking-actions"><button class="secondary" id="tracking-preferences">Notification preferences</button><label><input type="checkbox" id="tracking-auto-refresh"> Auto-refresh every 60s</label><button class="secondary" id="tracking-reload">Refresh view</button></div></div>
     <div class="tracking-toolbar"><label>Order or tracking reference<input id="tracking-search" type="search" maxlength="120" placeholder="Search order, tracking or return reference"></label>
     <label id="tracking-tenant-wrap" hidden>Tenant ID<input id="tracking-tenant" placeholder="All authorized workspaces"></label>
     <label>Carrier<input id="tracking-carrier" maxlength="50" placeholder="All carriers"></label><label>Destination<input id="tracking-country" maxlength="2" placeholder="e.g. GB"></label>
@@ -51,6 +52,7 @@
   const clear = clearSession;
   clearSession = function () {
     generation++; detailGeneration++; preferenceGeneration++; current = null; page = 1; activeView = 'all';
+    document.getElementById('tracking-auto-refresh').checked=false;
     drawer.close(); preferences.close(); section.hidden = true; global.hidden = true;
     global.querySelector('input').value = ''; document.getElementById('tracking-pref-form').reset();
     document.getElementById('tracking-pref-events').replaceChildren(); document.getElementById('tracking-pref-message').textContent = '';
@@ -58,6 +60,12 @@
     for (const id of ['tracking-search', 'tracking-tenant', 'tracking-carrier', 'tracking-country', 'tracking-start', 'tracking-end']) document.getElementById(id).value = '';
     return clear.apply(this, arguments);
   };
+  setInterval(async()=>{
+    if(document.hidden||section.hidden||!state.session||!document.getElementById('tracking-auto-refresh').checked)return;
+    const id=drawer.open&&!drawer.querySelector('form')?current?.id:null;
+    await load();
+    if(id&&drawer.open&&!section.hidden&&!drawer.querySelector('form')&&current?.id===id)await open(id);
+  },60000);
   const timeline = events => events.length ? `<ol class="tracking-timeline">${events.map(event => `<li><b>${escape(human(event.status))}</b><time>${escape(when(event.occurred_at))}</time><small>Received ${escape(when(event.received_at))} · ${escape(event.source)}${event.applied ? '' : ' · Update stored; current state retained'}</small>${event.location ? `<small>${escape(event.location)}</small>` : ''}</li>`).join('')}</ol>` : '<p class="tracking-muted">The carrier has not supplied a tracking scan yet.</p>';
   async function load() {
     const epoch = ++generation; const isAdmin = admin(); const context = contextKey();
@@ -103,7 +111,7 @@
       if (epoch !== detailGeneration || !drawer.open || context !== contextKey()) return;
       current = { id, result }; document.getElementById('tracking-detail-title').textContent = result.order_reference;
       document.getElementById('tracking-detail-content').innerHTML = `${admin() ? `<p class="tracking-tenant-context">Selected workspace: <b>${escape(result.shipments[0]?.tenant_name)}</b><br>${escape(result.shipments[0]?.tenant_id)}</p>` : ''}<div class="tracking-actions">${admin() || writable() ? `<button class="secondary" data-tracking-refresh="${escape(id)}">Request carrier refresh</button>` : ''}${writable() ? '<button class="primary" id="tracking-share">Create secure tracking link</button>' : ''}${admin() || writable() ? '<button class="secondary" id="tracking-review">Review exception</button>' : ''}${admin() ? `<button class="secondary" data-tracking-retry="${escape(id)}">Retry failed refresh</button>` : ''}</div><div id="tracking-detail-feedback" role="status"></div>
-        ${result.shipments.map(item => `<article class="tracking-parcel"><h3>${escape(item.carrier)} · ${escape(item.order_reference)}</h3>${badge(item.status)}<p>${escape(item.tracking_number || 'Tracking number unavailable')}</p>${portalLink(item.carrier_portal)}${item.lifecycle === 'RETURN_SHIPMENT' ? `<p>Return: ${escape(human(item.return_status))}</p>` : ''}${item.review?.state ? `<p>Internal review: ${escape(human(item.review.state))}</p><p>${escape(item.review.note)}</p>` : ''}${item.estimated_delivery_at ? `<p>Carrier estimate: ${escape(when(item.estimated_delivery_at))}</p>` : '<p class="tracking-muted">No confirmed delivery estimate.</p>'}${item.parcels.map(piece => `<p>Parcel ${Number(piece.index)} · ${escape(piece.tracking_number || 'Not yet assigned')} · ${escape(human(piece.status))}</p>`).join('')}${timeline(item.timeline)}</article>`).join('')}
+        ${result.shipments.map(item => `<article class="tracking-parcel"><h3>${escape(item.carrier)} · ${escape(item.order_reference)}</h3>${badge(item.status)}<p>${escape(item.tracking_number || 'Tracking number unavailable')}</p>${portalLink(item.carrier_portal)}${item.status==='DELIVERED'&&safePod(item.proof_of_delivery_url)?`<section class="card"><h3>Delivery evidence</h3><a href="${escape(safePod(item.proof_of_delivery_url))}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">View Proof of Delivery (POD)</a></section>`:''}${item.lifecycle === 'RETURN_SHIPMENT' ? `<p>Return: ${escape(human(item.return_status))}</p>` : ''}${item.review?.state ? `<p>Internal review: ${escape(human(item.review.state))}</p><p>${escape(item.review.note)}</p>` : ''}${item.estimated_delivery_at ? `<p>Carrier estimate: ${escape(when(item.estimated_delivery_at))}</p>` : '<p class="tracking-muted">No confirmed delivery estimate.</p>'}${item.parcels.map(piece => `<p>Parcel ${Number(piece.index)} · ${escape(piece.tracking_number || 'Not yet assigned')} · ${escape(human(piece.status))}</p>`).join('')}${timeline(item.timeline)}</article>`).join('')}
         <h3>Returns</h3>${result.returns.length ? result.returns.map(item => `<article class="tracking-parcel">${badge(item.return_status)}<p>${escape(item.tracking_number || 'Return tracking not yet assigned')}</p>${timeline(item.timeline)}</article>`).join('') : '<p class="tracking-muted">No linked return shipment is recorded.</p>'}<h3>Purchase refund</h3><p>${escape(result.refund.message)}</p><h3>Customer requests</h3>${(result.customer_requests || []).length ? result.customer_requests.map(item => `<article class="tracking-parcel">${badge(item.state)}<p>${escape(item.note)}</p><small>${escape(when(item.created_at))}</small></article>`).join('') : '<p class="tracking-muted">No customer help requests.</p>'}<div id="tracking-share-links"></div>`;
       const carrierRefresh = drawer.querySelector('[data-tracking-refresh]');
       if (carrierRefresh && result.shipments.find(item => item.id === id)?.refresh?.available === false) {

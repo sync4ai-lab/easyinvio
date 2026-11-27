@@ -39,14 +39,11 @@ def tracking_token(text: str, base: str) -> tuple[str | None, str]:
             parsed = urlsplit(match[0].rstrip('.,'))
         except ValueError:
             continue
-        expected = urlsplit(base)
-        if parsed.netloc != expected.netloc or parsed.username or parsed.password:
-            continue
-        # Public tracking stores its bearer in the fragment, never a server log.
-        for token in [parsed.fragment, *parse_qs(parsed.fragment).get('token', []),
-                      *parse_qs(parsed.query).get('token', [])]:
-            if TOKEN.fullmatch(token):
-                return token, (text[:match.start()] + text[match.end():]).strip()
+        from backend.tracking_input import parse_tracking_input
+        expected=urlsplit(base)
+        try:value=parse_tracking_input(match[0].rstrip('.,'),{expected.scheme+'://'+expected.netloc})
+        except ValueError:continue
+        if value.kind=='CAPABILITY':return value.value,(text[:match.start()]+text[match.end():]).strip()
     if not re.search(r'https?://',text,re.I):
         candidates=list(TOKEN.finditer(text))
         if len(candidates)==1:
