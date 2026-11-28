@@ -154,15 +154,37 @@ Provisioning seeds uniquely named subscription margin rules, including the requi
 owner, wallet and pricing rules together. Logs include only SQLSTATE and schema
 identifiers, never raw database exception details or registration credentials.
 
-If the registration page remains open, restart the local backend with its existing
-development command, then retry **Verify email and create account** using the same
-password. A reconciliation retry requires the original private registration secret,
-a fresh Supabase password proof for the confirmed email, an identity created during
-that registration, no existing membership/profile, and matching workspace metadata.
-It is limited to five total attempts and 24 hours from registration start. It never
-reuses a consumed OTP or resets the password. A completed activation is idempotent.
-If the page was closed or that recovery window elapsed, operator review is required;
-starting another registration for the same email does not bypass identity checks.
+An interrupted web registration requires a **new email code**, even if Auth
+confirmed the email or set a password before the database failure. Password-only
+registration recovery is not supported. Choose **Start again with a new email
+code**, review the details and request a replacement code (one-minute cooldown).
+Restarting rotates the private browser secret, resets the five-attempt challenge
+budget and starts a new 15-minute verification window. The original creation
+evidence and workspace ID are retained to reconcile only that provisional identity.
+Old browser verification requests cannot finalize or mutate credentials after a
+restart. IP-based rate limits and Supabase's delivery/verification limits still apply.
+
+The start endpoint permits an existing Auth identity only when earlier unfinished
+web-registration evidence ties its creation to the same email. Existing workspace
+memberships/profiles, unrelated identities, foreign tenant/role metadata, banned or
+deleted identities and platform administrators cannot be claimed through this flow.
+Auth users are never deleted merely to allow registration again.
+
+Before successful OTP verification, only private pending-registration data and
+Supabase's provisional Auth identity exist. These are not an activated customer,
+workspace, membership or wallet. Pending profile data is not a verified identity.
+Successful OTP verification precedes any Auth metadata/password mutation. Workspace,
+owner, zero-balance wallet, pricing and completed registration state commit together.
+Because Auth is a separate service, its confirmed identity/metadata can survive a
+database rollback; those facts alone never activate an EasyInvio workspace.
+
+Sign-in explicitly requires a confirmed email from Supabase. A workspace with web
+registration evidence must also have a completed owner-registration record for that
+workspace; invited teammates are not required to repeat the owner signup.
+Legacy/admin-created accounts retain their existing membership-based access rules.
+Session resolution and renewal reject identities whose email is no longer confirmed.
+Web signup verifies email; its supplied phone number remains contact data. WhatsApp
+signup separately requires its email and phone challenges.
 
 New registrations still require the full email code within 15 minutes. Test with a
 new email, enter its actual code and chosen password, then sign in: the workspace

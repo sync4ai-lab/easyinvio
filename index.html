@@ -8521,7 +8521,7 @@ $('#identity-login-form').insertAdjacentHTML('afterend', `<button type="button" 
 <label>Registration number<input name="registration" maxlength="100" required></label><label>Tax / VAT number (optional)<input name="tax_id" maxlength="100"></label>
 <label>Billing street<input name="street" maxlength="200" required></label><label>City<input name="city" maxlength="100" required></label><label>Postcode<input name="postcode" maxlength="30" required></label><label>Country<select name="country" autocomplete="country" required><option value="">Choose country</option>${shippingCountries.map(country=>`<option value="${country.code}">${escapeHTML(country.name)}</option>`).join('')}</select></label></div>
 <label id="identity-signup-code" hidden>Email verification code<input name="code" inputmode="numeric" pattern="[0-9]{6,10}" autocomplete="one-time-code" disabled></label>
-<button class="primary full" type="submit">Send verification code</button><p role="status" class="footnote" aria-live="polite"></p></form>`);
+<button class="primary full" type="submit">Send verification code</button><button class="secondary full" type="button" id="identity-signup-restart" hidden style="margin-top:12px">Start again with a new email code</button><p role="status" class="footnote" aria-live="polite"></p></form>`);
 let signupPersona = 'BUSINESS', signupReceipt = null;
 function setSignupPersona(persona) {
   if (signupReceipt) return;
@@ -8628,6 +8628,7 @@ function resetPersonaSignup() {
   form.elements.code.disabled = true;
   form.elements.code.required = false;
   $('#identity-signup-code').hidden = true;
+  $('#identity-signup-restart').hidden = true;
   $$('[data-signup-persona]').forEach(button => button.disabled = false);
   form.querySelector('[type=submit]').textContent = 'Send verification code';
   form.querySelector('[role=status]').textContent = '';
@@ -8636,6 +8637,20 @@ function resetPersonaSignup() {
 function returnToIdentitySignIn(){resetPersonaSignup();identityRecoveryView('login');$('#identity-email').focus();}
 // Switch in place: the verified WhatsApp draft and any edits stay in memory.
 $('#identity-signin-top').addEventListener('click',returnToIdentitySignIn);
+$('#identity-signup-restart').addEventListener('click', () => {
+  signupReceipt = null;
+  const form = $('#identity-signup-form');
+  form.querySelectorAll('input,select').forEach(input => input.disabled = false);
+  $$('[data-signup-persona]').forEach(control => control.disabled = false);
+  setSignupPersona(signupPersona);
+  const code = form.elements.code;
+  code.value = ''; code.required = false; code.disabled = true;
+  form.elements.password.value = '';
+  $('#identity-signup-code').hidden = true;
+  $('#identity-signup-restart').hidden = true;
+  form.querySelector('button[type="submit"]').textContent = 'Send verification code';
+  form.querySelector('[role="status"]').textContent = 'Review your details and request a new code. Your account activates only after verification.';
+});
 $('#identity-signup-form').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.target, button = form.querySelector('[type=submit]'), status = form.querySelector('[role=status]');
@@ -8658,6 +8673,7 @@ $('#identity-signup-form').addEventListener('submit', async event => {
       fields.code.required = true;
       fields.code.focus();
       button.textContent = 'Verify email and create account';
+      $('#identity-signup-restart').hidden = false;
       status.textContent = signupReceipt.message;
     } else {
       const result = await api('/api/v1/auth/register/verify', {method:'POST',body:{registration_id:signupReceipt.registration_id,

@@ -184,13 +184,15 @@ class WebDB:
                 'expires_at':datetime.now(timezone.utc)+timedelta(minutes=15),'attempts':0,'tenant_id':uuid4(),'requested_plan':'STARTER','requested_cycle':'MONTHLY'}
             return self.row
         if 'public.web_registration_sessions' in sql:
-            return self.row
+            return copy.deepcopy(self.row)
         if 'public.wallets' in sql:
             return {'currency':'GBP','balance':Decimal(1) if self.fail_wallet else Decimal(0),'reserved_balance':Decimal(0)}
         raise AssertionError(sql)
 
     async def execute(self, sql, *args):
         self.writes.append((sql,args))
+        if 'SET secret_sha256=$2' in sql:
+            self.row.update(secret_sha256=args[1],workspace_type=args[2],profile=args[3],state='SENDING_EMAIL',attempts=0,expires_at=datetime.now(timezone.utc)+timedelta(minutes=15))
         if "SET state='PENDING_OTP'" in sql:
             self.row['state'] = 'PENDING_OTP'
         if "SET state='RECONCILIATION_REQUIRED'" in sql:
@@ -253,30 +255,33 @@ async def test_web_nonce_failures_and_partial_provision_never_activate(web_fixtu
         assert not any('INSERT INTO public.tenants' in sql for sql,_ in db.writes)
 
 
+
 @pytest.mark.asyncio
-async def test_interrupted_activation_requires_nonce_and_password_and_can_resume(web_fixture):
+async def test_interrupted_activation_requires_restart_and_a_fresh_email_code(web_fixture):
     db, request, provider = web_fixture
-    provider.resume_verified_registration = AsyncMock(return_value=None)
     with patch('backend.identity.recovery_limit', AsyncMock()), patch('backend.web_registration.SupabaseSignupProvider', return_value=provider):
-        receipt = await start_registration(RegistrationStart(workspace_type='INDIVIDUAL', profile=personal()), request)
+        profile = RegistrationStart(workspace_type='INDIVIDUAL', profile=personal())
+        receipt = await start_registration(profile, request)
         body = RegistrationVerify(**receipt_for_verify(receipt), code='12345678', password='synthetic-password-only')
         db.fail_wallet = True
-        with pytest.raises(HTTPException):
-            await verify_registration(body, request)
+        with pytest.raises(HTTPException): await verify_registration(body, request)
         assert db.row['state'] == 'RECONCILIATION_REQUIRED'
-        # The OTP has expired; the bounded recovery path needs a fresh password proof.
-        db.row['expires_at'] = datetime.now(timezone.utc)-timedelta(minutes=1)
-        with pytest.raises(HTTPException) as error:
-            await verify_registration(body, request)
-        assert error.value.status_code == 400
-        assert db.row['state'] == 'RECONCILIATION_REQUIRED'
+        with pytest.raises(HTTPException) as error: await verify_registration(body, request)
+        assert error.value.status_code == 409
+        assert provider.verify.await_count == 1
+        db.row['expires_at'] = datetime.now(timezone.utc)+timedelta(minutes=13)
+        newer = await start_registration(profile, request)
+        assert newer['registration_secret'] != receipt['registration_secret']
+        with pytest.raises(HTTPException): await verify_registration(body, request)
+        provider.verify.return_value = None
+        fresh = RegistrationVerify(**receipt_for_verify(newer), code='87654321', password='synthetic-password-only')
+        with pytest.raises(HTTPException): await verify_registration(fresh, request)
+        assert not any('INSERT INTO public.tenants' in sql for sql, _ in db.writes)
+        provider.verify.return_value = uuid4()
         db.fail_wallet = False
-        provider.resume_verified_registration.return_value = provider.verify.return_value
-        await verify_registration(body, request)
+        await verify_registration(fresh, request)
         assert db.row['state'] == 'VERIFIED'
-        assert provider.verify.await_count == 1  # Never reuse a consumed OTP.
-        assert provider.request.await_count == 1  # Never reset a password on retry.
-        assert len([sql for sql, _ in db.writes if 'INSERT INTO public.tenants' in sql]) == 1
+        assert provider.send_code.await_count == 2
 
 
 def receipt_for_verify(receipt):
@@ -284,18 +289,14 @@ def receipt_for_verify(receipt):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('failure', ['nonce', 'age', 'attempts', 'existing_membership'])
-async def test_interrupted_activation_cannot_claim_another_identity(web_fixture, failure):
+async def test_restart_throttled_and_registered_accounts_never_overwritten(web_fixture):
     db, request, provider = web_fixture
-    provider.resume_verified_registration = AsyncMock(return_value=uuid4())
     with patch('backend.identity.recovery_limit', AsyncMock()), patch('backend.web_registration.SupabaseSignupProvider', return_value=provider):
-        receipt = await start_registration(RegistrationStart(workspace_type='INDIVIDUAL', profile=personal()), request)
-        db.row['state'] = 'RECONCILIATION_REQUIRED'
-        if failure == 'nonce': receipt['registration_secret'] = 'incorrect-'*5
-        if failure == 'age': db.row['created_at'] -= timedelta(hours=25)
-        if failure == 'attempts': db.row['attempts'] = 5
-        if failure == 'existing_membership': db.blocked = True
-        with pytest.raises(HTTPException):
-            await verify_registration(RegistrationVerify(**receipt_for_verify(receipt), code='12345678', password='synthetic-password-only'), request)
-        assert not any('INSERT INTO public.tenants' in sql for sql, _ in db.writes)
-        if failure != 'existing_membership': provider.resume_verified_registration.assert_not_awaited()
+        profile = RegistrationStart(workspace_type='INDIVIDUAL', profile=personal())
+        await start_registration(profile, request)
+        with pytest.raises(HTTPException) as error: await start_registration(profile, request)
+        assert error.value.status_code == 429
+        db.blocked = True
+        with pytest.raises(HTTPException) as error: await start_registration(profile, request)
+        assert error.value.status_code == 409
+        provider.send_code.assert_awaited_once()

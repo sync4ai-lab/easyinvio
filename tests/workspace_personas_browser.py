@@ -52,12 +52,21 @@ async def run():
         assert request['body']['workspace_type'] == 'INDIVIDUAL'
         assert set(request['body']['profile']) == {'full_name','billing_email','phone_e164'}
         assert 'password' not in request['body']
+        assert await page.locator('#identity-signup-restart').is_visible()
+        await page.locator('#identity-signup-restart').click()
+        assert await page.evaluate('signupReceipt') is None
+        assert await page.locator('#identity-signup-form input[name="email"]').is_enabled()
+        assert await page.locator('#identity-signup-form input[name="password"]').input_value() == ''
+        assert await page.locator('#identity-signup-code').is_hidden()
+        await page.locator('#identity-signup-form input[name="password"]').fill('synthetic-password-only')
+        await page.locator('#identity-signup-form button[type="submit"]').click()
+        await page.wait_for_function('signupReceipt !== null')
         await page.locator('#identity-signup-form input[name="code"]').fill('12345678')
         await page.locator('#identity-signup-form button[type="submit"]').click()
         await page.wait_for_function("document.querySelector('#identity-login-status').textContent.includes('activated')")
         assert await page.locator('#identity-signup-form input[name="password"]').input_value() == ''
         assert await page.evaluate('signupReceipt') is None
-        assert (await page.evaluate('personaRequests[1]'))['body']['code'] == '12345678'
+        assert (await page.evaluate('personaRequests[2]'))['body']['code'] == '12345678'
         await page.evaluate('''() => renderPersonaReport({cohorts:{shipping:[
             {workspace_type:'BUSINESS',currency:'GBP',revenue:'100.00',margin:'20.00',package_count:4,label_count:3},
             {workspace_type:'INDIVIDUAL',currency:'GBP',revenue:'50.00',margin:'10.00',package_count:2,label_count:2}],
@@ -74,7 +83,7 @@ async def run():
         await page.locator('#identity-signup-form select[name=country]').select_option(label='United Kingdom')
         await page.locator('#identity-signup-form button[type=submit]').click()
         await page.wait_for_function('signupReceipt !== null')
-        business = (await page.evaluate('personaRequests[2]'))['body']
+        business = (await page.evaluate('personaRequests[3]'))['body']
         assert business['workspace_type'] == 'BUSINESS'
         assert business['profile']['country_code'] == 'GB'
         assert await page.locator('#identity-signup-form select[name=country]').is_disabled()

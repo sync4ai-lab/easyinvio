@@ -15,7 +15,7 @@ import main
 class IdentityTests(unittest.TestCase):
     def setUp(self):
         self.user,self.tenant=uuid4(),uuid4();self.sessions={};self.profile={'full_name':'Test User','phone_e164':None}
-        self.no_membership=False;self.agent=False
+        self.no_membership=False;self.agent=False;self.unconfirmed=False;self.registration_incomplete=False
         self.refresh_calls=0;self.identity_unavailable=False;self.refresh_wrong_user=False
         self.assisted=[];self.assistance_events=[]
         self.email='satyakishore.mavuri@gmail.com';self.invalid_password=False
@@ -35,6 +35,9 @@ class IdentityTests(unittest.TestCase):
                     for row in test.assisted:
                         row.update(bearer_sha256=args[2],expires_at=min(row['created_at']+timedelta(minutes=30),args[3]))
                     return test.assisted
+                if test.registration_incomplete:
+                    assert "done.state='VERIFIED'" in sql
+                    return []
                 return [] if test.no_membership else [{'tenant_id':test.tenant,'role':'OWNER'}]
             async def fetchrow(self,sql,*args):
                 if 'app_auth_sessions' in sql:return test.sessions.get(args[0])
@@ -65,7 +68,7 @@ class IdentityTests(unittest.TestCase):
                 now=int(time.time());access=jwt.encode({'sub':str(test.user),'role':'authenticated','iss':'https://identity.example/auth/v1','aud':'authenticated','iat':now,'exp':now+3600},test.key,algorithm='ES256',headers={'kid':'test'})
                 return httpx.Response(200,json={'access_token':access,'expires_at':now+3600,'refresh_token':'synthetic-provider-refresh','user':{'id':str(uuid4() if test.refresh_wrong_user else test.user)}})
             if test.identity_unavailable:return httpx.Response(503,json={'error':'unavailable'})
-            return httpx.Response(200,json={'id':str(test.user),'email':test.email})
+            return httpx.Response(200,json={'id':str(test.user),'email':test.email,'email_confirmed_at':None if test.unconfirmed else '2026-11-27T00:00:00Z'})
         self.transport=httpx.MockTransport(provider)
     def login(self):
         with patch('backend.identity.httpx.AsyncClient',side_effect=lambda **kw:self.real_async(transport=self.transport,**kw)):
@@ -204,5 +207,17 @@ class IdentityTests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/v1/profile',headers=headers).json()['portal_role'],'AGENT')
         self.agent=False
         self.assertEqual(self.client.post('/api/v1/auth/renew',headers=headers).status_code,403)
+
+    def test_unconfirmed_email_creates_no_application_session_even_if_provider_accepts_password(self):
+        self.unconfirmed=True
+        response=self.login()
+        self.assertEqual(response.status_code,403)
+        self.assertFalse(self.sessions)
+
+    def test_partial_web_registration_cannot_sign_in_with_only_a_confirmed_auth_identity(self):
+        self.registration_incomplete=True
+        response=self.login()
+        self.assertEqual(response.status_code,403)
+        self.assertFalse(self.sessions)
 
 if __name__=='__main__':unittest.main()

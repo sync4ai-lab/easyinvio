@@ -4,7 +4,7 @@ import hmac
 import json
 import secrets
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
@@ -57,22 +57,47 @@ async def start_registration(body: RegistrationStart, request: Request):
     async with pool.acquire() as c:
         async with c.transaction():
             await c.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', 'register-email:' + email)
-            blocked = await c.fetchval('''SELECT EXISTS(SELECT 1 FROM auth.users WHERE lower(email)=$1)
-                OR EXISTS(SELECT 1 FROM public.tenants WHERE lower(billing_email)=$1)
-                OR EXISTS(SELECT 1 FROM public.web_registration_sessions WHERE lower(email_address)=$1
-                    AND state NOT IN ('VERIFIED') AND expires_at>now())''', email)
+            # A provisional Auth identity is expected after requesting an email code.
+            # Reuse only an identity tied to this app's unfinished registration; never
+            # delete Auth users or replace an existing customer's credentials/profile.
+            blocked = await c.fetchval('''SELECT EXISTS(SELECT 1 FROM public.tenants WHERE lower(billing_email)=$1)
+                OR EXISTS(SELECT 1 FROM auth.users a WHERE lower(a.email)=$1 AND (
+                    a.id=ANY($2::uuid[]) OR a.banned_until>now() OR (to_jsonb(a)->>'deleted_at') IS NOT NULL
+                    OR EXISTS(SELECT 1 FROM public.users u WHERE u.auth_user_id=a.id)
+                    OR EXISTS(SELECT 1 FROM public.app_user_profiles p WHERE p.auth_user_id=a.id)
+                    OR NOT EXISTS(SELECT 1 FROM public.web_registration_sessions w
+                        WHERE lower(w.email_address)=$1 AND w.state<>'VERIFIED'
+                        AND a.created_at BETWEEN w.created_at AND w.expires_at
+                        AND NOT EXISTS(SELECT 1 FROM public.tenants t WHERE t.tenant_id=w.tenant_id)
+                        AND ((a.raw_app_meta_data->>'role' IS NULL AND a.raw_app_meta_data->>'tenant_id' IS NULL)
+                          OR (a.raw_app_meta_data->>'role'='OWNER' AND a.raw_app_meta_data->>'tenant_id'=w.tenant_id::text)))))''',
+                email, settings.platform_admin_user_ids)
             if blocked:
-                raise HTTPException(409, 'Use your existing verification session or sign in. Contact support if setup was interrupted.')
-            row = await c.fetchrow('''INSERT INTO public.web_registration_sessions
-                (secret_sha256,email_address,workspace_type,profile,state) VALUES($1,$2,$3,$4::jsonb,'SENDING_EMAIL')
-                RETURNING id''', hashlib.sha256(secret.encode()).hexdigest(), email, body.workspace_type, profile.model_dump_json())
+                raise HTTPException(409, 'An account already exists or needs review. Sign in or contact support.')
+            previous = await c.fetchrow('''SELECT * FROM public.web_registration_sessions
+                WHERE lower(email_address)=$1 ORDER BY created_at DESC LIMIT 1 FOR UPDATE''', email)
+            if previous:
+                if previous['state'] == 'VERIFIED':
+                    raise HTTPException(409, 'An account already exists. Sign in or contact support.')
+                # The expiry is set to 15 minutes at each send; enforce a one-minute resend cooldown.
+                if (previous['expires_at'] - datetime.now(timezone.utc)).total_seconds() > 14 * 60:
+                    raise HTTPException(429, 'Wait a minute before requesting a new email code.', headers={'Retry-After':'60'})
+                row = previous
+                await c.execute('''UPDATE public.web_registration_sessions SET secret_sha256=$2,
+                    workspace_type=$3,profile=$4::jsonb,state='SENDING_EMAIL',attempts=0,
+                    expires_at=now()+interval '15 minutes',auth_user_id=NULL WHERE id=$1''',
+                    row['id'], hashlib.sha256(secret.encode()).hexdigest(), body.workspace_type, profile.model_dump_json())
+            else:
+                row = await c.fetchrow('''INSERT INTO public.web_registration_sessions
+                    (secret_sha256,email_address,workspace_type,profile,state) VALUES($1,$2,$3,$4::jsonb,'SENDING_EMAIL')
+                    RETURNING id''', hashlib.sha256(secret.encode()).hexdigest(), email, body.workspace_type, profile.model_dump_json())
             from backend.entitlements import enabled
             if enabled(settings):
                 await c.execute('UPDATE public.web_registration_sessions SET requested_plan=$2,requested_cycle=$3 WHERE id=$1',row['id'],body.plan,body.cycle)
     async with httpx.AsyncClient(trust_env=False) as client:
         await SupabaseSignupProvider(settings, client).send_code(email)
     async with pool.acquire() as c:
-        await c.execute("UPDATE public.web_registration_sessions SET state='PENDING_OTP' WHERE id=$1 AND state='SENDING_EMAIL'", row['id'])
+        await c.execute("UPDATE public.web_registration_sessions SET state='PENDING_OTP' WHERE id=$1 AND state='SENDING_EMAIL' AND secret_sha256=$2", row['id'], hashlib.sha256(secret.encode()).hexdigest())
     return {'registration_id': str(row['id']), 'registration_secret': secret,
         'message': 'Check your email and enter the full numeric verification code (6 to 10 digits).'}
 
@@ -88,23 +113,17 @@ async def verify_registration(body: RegistrationVerify, request: Request):
                 raise HTTPException(400, 'Invalid verification session')
             if row['state'] == 'VERIFIED':
                 return {'message': 'Account already activated. Sign in with your email and password.'}
-            resuming = row['state'] == 'RECONCILIATION_REQUIRED'
-            deadline = row['created_at'] + timedelta(hours=24) if resuming else row['expires_at']
-            if row['state'] not in ('PENDING_OTP', 'RECONCILIATION_REQUIRED') or row['attempts'] >= 5 or deadline <= datetime.now(timezone.utc):
-                raise HTTPException(409, 'Verification expired or requires review. Contact support before restarting.')
+            if row['state'] != 'PENDING_OTP' or row['attempts'] >= 5 or row['expires_at'] <= datetime.now(timezone.utc):
+                raise HTTPException(409, 'Registration is unfinished. Start again to request a new email code.')
+            # Commit the attempt before contacting Auth, including uncertain outcomes.
             await c.execute("UPDATE public.web_registration_sessions SET state='RECONCILIATION_REQUIRED',attempts=attempts+1 WHERE id=$1", row['id'])
     async with httpx.AsyncClient(trust_env=False) as client:
         provider = SupabaseSignupProvider(settings, client)
-        # A consumed OTP cannot be reused after Auth succeeded but database provisioning failed.
-        # Resume only with the original private session AND the password already set in Auth.
-        user_id = (await provider.resume_verified_registration(row['email_address'], body.password.get_secret_value())
-            if resuming else await provider.verify(row['email_address'], body.code.get_secret_value()))
+        user_id = await provider.verify(row['email_address'], body.code.get_secret_value())
         if user_id is None:
             async with pool.acquire() as c:
-                if not resuming:
-                    await c.execute("UPDATE public.web_registration_sessions SET state='PENDING_OTP' WHERE id=$1", row['id'])
-            raise HTTPException(400, 'Enter the same password you used when registration was interrupted.'
-                if resuming else 'The email verification code was rejected or expired')
+                await c.execute("UPDATE public.web_registration_sessions SET state='PENDING_OTP' WHERE id=$1 AND secret_sha256=$2 AND state='RECONCILIATION_REQUIRED'", row['id'], row['secret_sha256'])
+            raise HTTPException(400, 'The email verification code was rejected or expired')
         if user_id in settings.platform_admin_user_ids:
             raise HTTPException(409, 'This identity requires administrator review')
         async with pool.acquire() as c:
@@ -114,32 +133,36 @@ async def verify_registration(body: RegistrationVerify, request: Request):
                   AND lower(email)=$3 AND (banned_until IS NULL OR banned_until<now())
                   AND email_confirmed_at IS NOT NULL
                   AND ((raw_app_meta_data->>'role' IS NULL AND raw_app_meta_data->>'tenant_id' IS NULL)
-                    OR ($4::boolean AND raw_app_meta_data->>'role'='OWNER'
-                        AND raw_app_meta_data->>'tenant_id'=$5::text)))''',
-                user_id, row['created_at'], row['email_address'], resuming, str(row['tenant_id']))
+                    OR (raw_app_meta_data->>'role'='OWNER'
+                        AND raw_app_meta_data->>'tenant_id'=$4::text)))''',
+                user_id, row['created_at'], row['email_address'], str(row['tenant_id']))
         if blocked:
             raise HTTPException(409, 'This identity is already associated with an account; contact support')
         sandbox = settings.database_environment == 'SANDBOX'
         if settings.provider_environment != ('TEST' if sandbox else 'LIVE'):
             raise HTTPException(403, 'Account environment requires administrator configuration')
-        await provider.bind_workspace(user_id, row['tenant_id'], row['email_address'])
-        if not resuming:
-            await provider.request('PUT', 'admin/users/' + str(user_id), {'password': body.password.get_secret_value()}, admin=True)
     raw = json.loads(row['profile']) if isinstance(row['profile'], str) else row['profile']
     model = PersonalProfile.model_validate(raw) if row['workspace_type'] == 'INDIVIDUAL' else CompanyProfile.model_validate(raw)
     profile = storage_profile(model)
     async with pool.acquire() as c:
         async with c.transaction():
+            current = await c.fetchrow('SELECT state,secret_sha256 FROM public.web_registration_sessions WHERE id=$1 FOR UPDATE', row['id'])
+            if not current or current['state'] != 'RECONCILIATION_REQUIRED' or not hmac.compare_digest(current['secret_sha256'], row['secret_sha256']):
+                raise HTTPException(409, 'Registration state changed. Contact support.')
             await c.execute('LOCK TABLE public.tenants IN SHARE ROW EXCLUSIVE MODE')
             await c.execute('LOCK TABLE public.users IN SHARE ROW EXCLUSIVE MODE')
-            current = await c.fetchrow('SELECT state FROM public.web_registration_sessions WHERE id=$1 FOR UPDATE', row['id'])
-            if current['state'] != 'RECONCILIATION_REQUIRED':
-                raise HTTPException(409, 'Registration state changed. Contact support.')
             if await c.fetchval('''SELECT EXISTS(SELECT 1 FROM public.users WHERE auth_user_id=$1)
                 OR EXISTS(SELECT 1 FROM public.tenants WHERE lower(billing_email)=$2
                    OR ($3::text IS NOT NULL AND company_registration_number=$3 AND country_code=$4))''',
                     user_id, row['email_address'], profile.company_registration_number, profile.country_code):
                 raise HTTPException(409, 'Account details are already in use')
+            # Hold the registration row lock across identity mutation and finalization.
+            # A concurrent restart cannot replace the profile/secret or overwrite an
+            # activated customer's password with an older in-flight request.
+            async with httpx.AsyncClient(trust_env=False) as client:
+                provider = SupabaseSignupProvider(settings, client)
+                await provider.bind_workspace(user_id, row['tenant_id'], row['email_address'])
+                await provider.request('PUT', 'admin/users/' + str(user_id), {'password': body.password.get_secret_value()}, admin=True)
             await c.execute('''INSERT INTO public.tenants
                 (tenant_id,company_name,company_profile,billing_plan,default_currency,workspace_status,billing_status,is_sandbox,
                  workspace_slug,workspace_name,legal_company_name,billing_email,billing_address,country_code,company_registration_number,

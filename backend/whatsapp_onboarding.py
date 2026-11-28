@@ -109,29 +109,6 @@ class SupabaseSignupProvider:
         except (KeyError, TypeError, ValueError):
             raise HTTPException(503, 'Verified identity did not match this registration.') from None
 
-    async def resume_verified_registration(self, email: str, password: str) -> UUID | None:
-        """Prove ownership again after a consumed OTP; never infer proof from metadata alone."""
-        key = self.settings.supabase_publishable_key.get_secret_value()
-        try:
-            response = await self.client.post(self.settings.supabase_url + '/auth/v1/token',
-                headers={'apikey': key}, params={'grant_type': 'password'},
-                json={'email': email, 'password': password}, timeout=5)
-        except httpx.HTTPError:
-            raise HTTPException(503, 'Registration retry is temporarily unavailable. Try again shortly.') from None
-        if response.status_code in (400, 401, 403, 422):
-            return None
-        if response.status_code == 429:
-            raise HTTPException(429, 'Too many attempts. Wait before retrying registration.')
-        if response.status_code != 200:
-            raise HTTPException(503, 'Registration retry is temporarily unavailable. Try again shortly.')
-        try:
-            user = response.json()['user']
-            if user.get('email', '').casefold() != email or not user.get('email_confirmed_at'):
-                return None
-            return UUID(user['id'])
-        except (KeyError, TypeError, ValueError):
-            raise HTTPException(503, 'Registration identity could not be confirmed.') from None
-
     async def bind_workspace(self, user_id, tenant_id, email):
         user = await self.request('GET', 'admin/users/' + str(user_id), None, admin=True)
         if UUID(user['id']) != user_id or user.get('email', '').casefold() != email or not user.get('email_confirmed_at'):

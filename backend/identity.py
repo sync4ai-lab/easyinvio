@@ -65,7 +65,7 @@ async def unwrap_app_session(request: Request, token: str) -> str:
         user_id=UUID(claims['sub']);identifier=UUID(claims['jti'])
         if str(user_id)!=claims['user_id']:raise ValueError()
         async with request.app.state.finance.pool.acquire() as c:
-            row=await c.fetchrow("SELECT s.* FROM public.app_auth_sessions s JOIN auth.users a ON a.id=s.auth_user_id WHERE s.id=$1 AND s.auth_user_id=$2 AND s.expires_at>now() AND (a.banned_until IS NULL OR a.banned_until<now()) AND (to_jsonb(a)->>'deleted_at') IS NULL",identifier,user_id)
+            row=await c.fetchrow("SELECT s.* FROM public.app_auth_sessions s JOIN auth.users a ON a.id=s.auth_user_id WHERE s.id=$1 AND s.auth_user_id=$2 AND s.expires_at>now() AND a.email_confirmed_at IS NOT NULL AND (a.banned_until IS NULL OR a.banned_until<now()) AND (to_jsonb(a)->>'deleted_at') IS NULL",identifier,user_id)
         if not row or (str(row['tenant_id']) if row['tenant_id'] else None)!=claims['tenant_id']:raise ValueError()
         key=settings.credential_keys[row['key_id']]
         envelope=json.loads(Fernet(key.get_secret_value().encode()).decrypt(bytes(row['provider_token'])))
@@ -104,11 +104,16 @@ async def token(body: Login, request: Request, response: Response):
             if identity.status_code!=200:raise HTTPException(401,'Invalid authentication session')
             principal=identity.json();user_id=UUID(principal['id'])
             if principal.get('email','').casefold()!=email:raise HTTPException(401,'Identity mismatch')
+            if not principal.get('email_confirmed_at'):
+                raise HTTPException(403,'Verify your email before signing in. Complete registration with the email code.')
     except (httpx.HTTPError,ValueError,KeyError,TypeError):
         raise HTTPException(503,'Authentication provider is unavailable') from None
     async with request.app.state.finance.pool.acquire() as c:
         members=await c.fetch('''SELECT u.tenant_id,u.role,t.company_name,t.workspace_type FROM public.users u JOIN public.tenants t USING(tenant_id)
-            WHERE u.auth_user_id=$1 AND u.is_active AND t.workspace_status='ACTIVE' LIMIT 2''',user_id)
+            WHERE u.auth_user_id=$1 AND u.is_active AND t.workspace_status='ACTIVE'
+            AND NOT EXISTS(SELECT 1 FROM public.web_registration_sessions w WHERE w.tenant_id=t.tenant_id
+                AND NOT EXISTS(SELECT 1 FROM public.web_registration_sessions done WHERE done.tenant_id=t.tenant_id
+                    AND done.auth_user_id IS NOT NULL AND done.state='VERIFIED')) LIMIT 2''',user_id)
         staff_role=await platform_role(c,settings,user_id)
         admin=bool(staff_role)
         if len(members)>1 or (not admin and len(members)!=1):raise HTTPException(403,'An active workspace registration is required')
@@ -157,7 +162,7 @@ async def renew(request: Request, response: Response):
         async with connection.transaction():
             row=await connection.fetchrow('''SELECT s.* FROM public.app_auth_sessions s JOIN auth.users a ON a.id=s.auth_user_id
                 WHERE s.id=$1 AND s.auth_user_id=$2 AND s.expires_at>now()
-                AND (a.banned_until IS NULL OR a.banned_until<now()) AND (to_jsonb(a)->>'deleted_at') IS NULL FOR UPDATE OF s''',identifier,user_id)
+                AND a.email_confirmed_at IS NOT NULL AND (a.banned_until IS NULL OR a.banned_until<now()) AND (to_jsonb(a)->>'deleted_at') IS NULL FOR UPDATE OF s''',identifier,user_id)
             now=int(time.time())
             if not row:raise HTTPException(401,'Session ended. Sign in again')
             absolute=int(row['created_at'].timestamp())+SESSION_MAX_SECONDS
@@ -169,7 +174,10 @@ async def renew(request: Request, response: Response):
             except (ValueError,KeyError,TypeError,InvalidToken,jwt.PyJWTError):
                 raise HTTPException(401,'Sign in again to renew your session') from None
             members=await connection.fetch('''SELECT u.tenant_id,u.role FROM public.users u JOIN public.tenants t USING(tenant_id)
-                WHERE u.auth_user_id=$1 AND u.is_active AND t.workspace_status='ACTIVE' LIMIT 2''',user_id)
+                WHERE u.auth_user_id=$1 AND u.is_active AND t.workspace_status='ACTIVE'
+            AND NOT EXISTS(SELECT 1 FROM public.web_registration_sessions w WHERE w.tenant_id=t.tenant_id
+                AND NOT EXISTS(SELECT 1 FROM public.web_registration_sessions done WHERE done.tenant_id=t.tenant_id
+                    AND done.auth_user_id IS NOT NULL AND done.state='VERIFIED')) LIMIT 2''',user_id)
             staff_role=await platform_role(connection,settings,user_id)
             admin=bool(staff_role)
             if len(members)>1 or (not admin and len(members)!=1):raise HTTPException(403,'Active workspace access is required')
