@@ -403,17 +403,31 @@ function renderEnterpriseStores() {
 }
 $('#store-new').addEventListener('click', () => { $('#store-admin-form').reset(); $('#store-admin-dialog').showModal(); });
 $('#store-refresh').addEventListener('click', () => busy($('#store-refresh'), () => loadEnterpriseView('stores')));
+$('#store-admin-form').insertAdjacentHTML('beforeend', '<p id="store-registration-status" role="status" aria-live="polite"></p><button id="store-registration-plan" type="button" class="secondary full" hidden>Change plan</button>');
+$('#store-registration-plan').onclick=()=>{$('#store-admin-dialog').close();setView('wallet');$('#billing-manage')?.click();};
+$('#store-admin-dialog').addEventListener('close',()=>{$('#store-registration-status').textContent='';$('#store-registration-plan').hidden=true;});
 $('#store-admin-form').addEventListener('submit', event => {
-    event.preventDefault(); busy(event.target.querySelector('button'), async () => {
-        if (!allowedEnterpriseViews().includes('stores')) throw Error('Store configuration permission required.');
-        const body = Object.fromEntries(new FormData(event.target));
-        let registeredStore;
-        if (state.session) registeredStore = await api('/api/v1/workspace/stores', { method: 'POST', body, auth: true });
-        else enterprise.stores.push({ id: crypto.randomUUID(), ...body, is_active: true });
-        $('#store-admin-dialog').close(); if (state.session) await loadEnterpriseView('stores'); else renderEnterpriseStores();
-        notify('Store registered. Complete connection settings to import orders.');
-        if (registeredStore) document.querySelector('[data-store-settings="'+registeredStore.id+'"]')?.click();
-    });
+  event.preventDefault();
+  const form=event.target,button=form.querySelector('button[type=submit],button.primary');
+  busy(button, async () => {
+    const status=$('#store-registration-status');status.textContent='Registering your store…';status.setAttribute('role','status');$('#store-registration-plan').hidden=true;
+    try {
+      if (!allowedEnterpriseViews().includes('stores')) throw Error('Store configuration permission required.');
+      const body=Object.fromEntries(new FormData(form));
+      if (!state.session) throw Error('Sign in as a workspace owner to connect a store.');
+      const registeredStore=await api('/api/v1/workspace/stores',{method:'POST',body,auth:true});
+      if(!registeredStore?.id)throw Error('Store registration could not be confirmed. Refresh your store list before retrying.');
+      if(!enterprise.stores.some(store=>store.id===registeredStore.id))enterprise.stores.push(registeredStore);
+      $('#store-admin-dialog').close();renderEnterpriseStores();
+      // Open directly; a list refresh or missing DOM button must not swallow step two.
+      await openStoreConnection(registeredStore.id);
+    } catch(error) {
+      status.setAttribute('role','alert');
+      status.textContent=error.code==='PLAN_QUOTA_EXCEEDED'?'Your plan’s store connection limit has been reached. Choose Velocity or Command in Wallet & Billing, then retry.':error.message||'Store registration failed. Please retry.';
+      $('#store-registration-plan').hidden=error.code!=='PLAN_QUOTA_EXCEEDED';
+      if(!$('#store-admin-dialog').open)notify(status.textContent,true);
+    }
+  });
 });
 $('#store-list').addEventListener('click', event => {
     const b = event.target.closest('[data-store-state]'); if (!b) return;

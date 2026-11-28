@@ -61,9 +61,16 @@
       label.prepend(title);}
     title.textContent=text;
   }
+  const shopifyHelp=document.createElement('p');shopifyHelp.id='store-shopify-help';shopifyHelp.className='notice';
+  shopifyHelp.textContent='For your own development store, install an app in the same Shopify organization and choose App credentials. Use the real myshopify.com hostname, Client ID and Client secret. Start with read-only retrieval. Dummy credentials cannot establish a connection.';
+  form.querySelector('[data-shopify]').before(shopifyHelp);
   window.configureStoreConnectionUI=async(store,config)=>{
     const generation=++connectionGeneration;
     document.getElementById('store-connection-brand').innerHTML=EasyInvioBrands.markup(store.platform);
+    shopifyHelp.hidden=store.platform!=='SHOPIFY';
+    document.querySelector('#store-generate-secret').hidden=store.platform==='SHOPIFY';
+    document.querySelector('#store-portal-shortcut').hidden=store.platform==='SHOPIFY'&&!config.configured;
+    form.querySelector('button[type=submit]').textContent=store.platform==='SHOPIFY'?'Save and verify Shopify connection':'Save encrypted connection';
     const code=store.platform,bridge=code==='CUSTOM_WEBSITE'||storePlatforms.find(p=>p.code===code)?.setup_mode==='API_BRIDGE';
     const nativeRest=['WOOCOMMERCE','EBAY','BIGCOMMERCE','WIX','MAGENTO'].includes(code);
     const visibility={store_url:bridge||['WOOCOMMERCE','MAGENTO'].includes(code),
@@ -80,6 +87,9 @@
     form.elements.live_delivery.disabled=code==='AMAZON';
     const authorizationFields=()=>{
       const token=form.elements.authorization_mode.value==='TOKEN';
+      form.elements.access_token.required=code==='SHOPIFY'&&token&&!config.has_access_token;
+      form.elements.client_id.required=code==='SHOPIFY'&&!token;
+      form.elements.client_secret.required=code==='SHOPIFY'&&!token&&!config.has_client_credentials;
       form.elements.access_token.closest('label').hidden=code!=='SHOPIFY'||!token;
       for(const name of ['client_id','client_secret'])form.elements[name].closest('label').hidden=code!=='SHOPIFY'||token;
     };
@@ -94,7 +104,7 @@
       'A secret is already saved. Leave blank to keep it. Replacing it requires updating your webhook sender too.':
       bridge?'Generate and copy a secret, or leave blank for a server-generated one-time secret after saving. Never put it in browser code.':
       code==='AMAZON'?'Use the same authentication value configured for your AWS API destination.':
-      'Use the same secret in your platform webhook settings. Copy generated secrets before saving.';
+      code==='SHOPIFY'?'Optional for order retrieval. App-managed webhooks use your Shopify app Client secret; manually created webhooks use the signing secret Shopify provides. Leave returns off during the initial retrieval test.':'Use the same secret in your platform webhook settings. Copy generated secrets before saving.';
     form.elements.display_store_id.value=store.id;
     form.elements.display_key_id.value=config.api_key_id||'';
     document.querySelector('#store-key-help').textContent=config.api_key_id?'Use this Key ID with your server-side signing secret.':'Your Key ID will be assigned when you save this connection.';
