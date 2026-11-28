@@ -9,6 +9,7 @@
  const typeName=t=>({TOPUP:'TOP-UP',CAPTURE:'LABEL CHARGE',SHIPMENT_REFUND:'REFUND',SUBSCRIPTION_DEBIT:'SUBSCRIPTION',RESERVE:'HOLD',RELEASE:'HOLD RELEASE',REFUND_DEBIT:'TOP-UP REVERSAL'}[t]||'ADJUSTMENT');
  const wallet=$('#wallet');if(!wallet)return;
  const paymentStyle=document.createElement('style');paymentStyle.textContent='#billing-payment-options{border:1px solid var(--border,#334155);border-radius:12px;padding:16px;margin:16px 0}#billing-payment-options label{display:flex;align-items:center;gap:10px;margin:12px 0;flex-wrap:wrap}#billing-payment-options input{width:auto;min-height:0;margin:0}';document.head.append(paymentStyle);
+ const costStyle=document.createElement('style');costStyle.textContent='#billing-quote .billing-cost-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}#billing-quote .billing-cost-grid>div{padding:14px;border:1px solid var(--border,#334155);border-radius:10px}#billing-quote dt{font-size:.82rem;color:var(--muted,#94a3b8);margin-bottom:8px}#billing-quote dd{margin:0;font-size:1.1rem;font-weight:700;overflow-wrap:anywhere}#billing-quote dd small{font-size:.8rem;font-weight:400}#billing-quote .billing-proration{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 0}#billing-quote .billing-proration>span:not([aria-hidden]){padding:8px 10px;border-radius:8px;background:rgba(148,163,184,.08)}@media(max-width:700px){#billing-quote .billing-cost-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#billing-quote dd{font-size:.9rem;overflow-wrap:normal}#billing-quote dd small{display:block}}';document.head.append(costStyle);
  let ledgerRequest=0;let ledgerEntries=[];let epoch=0,key='',loading=false,cursor=null,previous=[],category='ALL',holds=false,latest=null;
  const sessions=new WeakMap();let sequence=0;
  const identity=()=>{if(state.session&&!sessions.has(state.session))sessions.set(state.session,++sequence);return state.session&&portal.profile?.tenant_id&&['OWNER','ADMIN','ACCOUNTANT'].includes(portal.profile.workspace_role)?JSON.stringify([portal.profile.tenant_id,portal.profile.workspace_role,state.assistance?.session_id,sessions.get(state.session),state.session.user?.id]):'';};
@@ -48,6 +49,12 @@
  returnActions.querySelector('[data-return-wallet]').onclick=()=>{$('#manifest-search').value=priorManifestSearch;returnActions.hidden=true;renderManifest();setView('wallet');};
  returnActions.querySelector('[data-show-shipments]').onclick=()=>{$('#manifest-search').value='';returnActions.hidden=true;renderManifest();};
  history.addEventListener('click',event=>{const button=event.target.closest('[data-finance-shipment],[data-ledger-entry]');if(!button)return;if(button.dataset.ledgerEntry){const r=ledgerEntries.find(row=>String(row.id)===button.dataset.ledgerEntry);if(!r)return;entryDialog.innerHTML='<button class="secondary" data-entry-close>Close</button><h2>Wallet transaction</h2>'+table('Recorded transaction',['Field','Value'],[['Reference',r.reference],['Date (UTC)',utc(r.created_at)],['Type',typeName(r.entry_type)],['Amount',cash(r.balance_delta,r.currency)],['Balance after',cash(r.balance_after,r.currency)]].map(row=>cells(row.map(h))));entryDialog.querySelector('[data-entry-close]').onclick=()=>entryDialog.close();entryDialog.showModal();return;}priorManifestSearch=$('#manifest-search').value;setView('manifest');returnActions.hidden=false;$('#manifest-search').value=button.dataset.financeShipment;renderManifest();});
+ window.addEventListener('easyinvio-wallet-balance',event=>{
+  if(!identity())return;const w=event.detail,c=w.currency;
+  $('#finance-available').textContent=cash(w.available,c);
+  $('#finance-reserved').textContent='Reserved funds: '+cash(w.reserved_balance,c);
+  $('#finance-currency').textContent=c;
+ });
  window.addEventListener('easyinvio-billing-loaded',event=>{
   const data=event.detail,s=data.subscription,plan=data.plans.find(p=>p.plan===(data.effective_plan||s.subscription_plan));if(!plan)return;
   const used=data.usage?.parcels,limit=plan.included_monthly_parcels;

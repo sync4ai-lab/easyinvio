@@ -117,7 +117,7 @@
  <div id="billing-agreement"></div><div id="billing-change" hidden>
  <div class="billing-toolbar"><h3>Change plan</h3><button type="button" class="secondary" id="billing-management-close">Back</button></div><p id="billing-management-note"></p>
  <label for="billing-target">Choose a different plan<select id="billing-target"><option value="">Choose a plan…</option><option value="STARTER">Starter</option><option value="VELOCITY">Velocity</option><option value="COMMAND">Command</option></select></label>
- <p id="billing-selection-note" class="footnote"></p><fieldset id="billing-payment-options" hidden><legend>Pay for this upgrade</legend><label><input type="radio" name="billing-funding" value="STRIPE" checked> Pay by card</label><label><input type="radio" name="billing-funding" value="WALLET"> Use available wallet balance <span id="billing-wallet-available"></span></label><p class="footnote">Wallet payment requires the full amount, including tax. Your regular renewal payment method stays the same.</p></fieldset>
+ <p id="billing-selection-note" class="footnote"></p><fieldset id="billing-payment-options" hidden><legend>Pay for this upgrade</legend><label><input type="radio" name="billing-funding" value="STRIPE" checked> Pay by card</label><label><input type="radio" name="billing-funding" value="WALLET"> Use available wallet balance <span id="billing-wallet-available"></span></label><p class="footnote">Full amount required, including tax. Renewal payments stay unchanged.</p></fieldset>
  <div class="billing-toolbar"><button type="button" class="primary" id="billing-plan-review" data-billing-action="UPGRADE" hidden>Review upgrade</button>
  <button type="button" class="secondary" id="billing-cancel" data-billing-action="CANCEL">Cancel current subscription</button></div>
  <div id="billing-quote" class="notice" hidden></div><button type="button" class="primary" id="billing-confirm" hidden>Confirm these terms</button></div>
@@ -169,7 +169,7 @@
 
    ${s.pending_plan?`<p>Scheduled ${h(s.pending_plan)} from ${h(date(s.pending_plan_effective_at))}.</p>`:''}
    ${s.cancellation_effective_at?`<p>Service ends ${h(date(s.cancellation_effective_at))}. Final notice amount: ${h(amount(s.final_notice_prorated_amount))} before applicable tax.</p>`:''}
-   ${(data.operations||[]).filter(o=>['AUTHORIZED','PROVIDER_PENDING','PAID','SCHEDULED','REVIEW','FAILED'].includes(o.state)).map(o=>`<p>${h(o.action.toLowerCase().replaceAll('_',' '))}: ${h({AUTHORIZED:'Request received',PROVIDER_PENDING:'Awaiting payment or processing',PAID:'Payment received; applying change',SCHEDULED:'Scheduled',REVIEW:'Finance review needed',FAILED:'Not completed'}[o.state])}${safeInvoice(o.provider_url)?` · <a href="${h(o.provider_url)}" target="_blank" rel="noopener noreferrer">Continue to secure payment</a>`:''}</p>`).join('')}`;
+   ${(data.operations||[]).filter(o=>['AUTHORIZED','PROVIDER_PENDING','PAID','SCHEDULED','REVIEW'].includes(o.state)).map(o=>`<p>${h(o.action.toLowerCase().replaceAll('_',' '))}: ${h({AUTHORIZED:'Request received',PROVIDER_PENDING:'Awaiting payment or processing',PAID:'Payment received; applying change',SCHEDULED:'Scheduled',REVIEW:'This change needs support; your current plan remains active',FAILED:'Not completed'}[o.state])}${safeInvoice(o.provider_url)?` · <a href="${h(o.provider_url)}" target="_blank" rel="noopener noreferrer">Continue to secure payment</a>`:''}</p>`).join('')}`;
   $('#billing-manage').hidden=!data.can_manage;
   $('#billing-change').hidden=!managing||!data.can_manage||capabilities?.subscription_changes_enabled===false;
   $('#billing-management-note').textContent=data.management?.reason||'Review your price adjustment and effective date before confirming. Choosing a plan does not charge you.';
@@ -188,9 +188,9 @@
   const action=m?.activation_targets?.includes(target)?'ACTIVATE':m?.upgrade_targets?.includes(target)?'UPGRADE':m?.downgrade_targets?.includes(target)?'DOWNGRADE':null;
   button.hidden=!action;button.disabled=!action;if(action){button.dataset.billingAction=action;button.textContent='Review '+(action==='ACTIVATE'?'subscription':action.toLowerCase())+' to '+target.charAt(0)+target.slice(1).toLowerCase();}
   $('#billing-payment-options').hidden=action!=='UPGRADE';
-  const wallet=agreement?.wallet,available=wallet?.currency==='GBP'?Number(wallet.available):0;
-  $('#billing-wallet-available').textContent='('+amount(available)+' available)';
-  const walletOption=$('[name="billing-funding"][value="WALLET"]');walletOption.disabled=available<=0;
+  const wallet=agreement?.wallet,available=wallet?.currency==='GBP'&&wallet.available!=null?Number(wallet.available):NaN;
+  $('#billing-wallet-available').textContent=Number.isFinite(available)?'('+amount(available)+' available)':'(balance unavailable - reload billing details)';
+  const walletOption=$('[name="billing-funding"][value="WALLET"]');walletOption.disabled=!Number.isFinite(available)||available<=0;
   if(walletOption.disabled||action!=='UPGRADE')$('[name="billing-funding"][value="STRIPE"]').checked=true;
   $('#billing-cancel').disabled=!m?.can_cancel;
   $('#billing-selection-note').textContent=!target?'Choose a plan to see the available action.':target===s?.subscription_plan&&!m?.activation_targets?.includes(target)?'You are already on this plan.':m?.reason||(!action?'This change is not available for the current agreement.':'You will see the amount and timing before confirming.');
@@ -205,11 +205,19 @@
  function renderList(data){if($('#billing-previous').dataset.available==='false')data={...data,statements:[]};window.dispatchEvent(new CustomEvent('easyinvio-statements-loaded',{detail:data}));$('#billing-statements').innerHTML=(data.statements||[]).map(s=>`<p><button type="button" class="secondary" data-statement-id="${h(s.id)}">${h(new Date(s.period_start).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}))}</button> Statement ${h(s.display_reference||s.statement_number)} · ${h(s.currency)}</p>`).join('')||'<p class="subtle">No statements to display.</p>';}
  function renderStatement(data){statement=data;window.renderEnterpriseStatement($('#billing-statement'),data);$('#billing-statement').querySelector('[data-statement-close]').onclick=()=>{statement=null;$('#billing-statement').replaceChildren();$('#billing-generate').focus();};}
 
+ async function paymentWallet(key,epoch){
+  const data=await api('/api/v1/billing/wallet-ledger?category=ALL&holds=false&limit=1',{auth:true});
+  if(!valid(key,epoch))return null;
+  const wallet=data.wallet;
+  if(!wallet||wallet.available==null||!Number.isFinite(Number(wallet.available)))throw Error('Wallet balance is unavailable. Reload billing details before choosing payment.');
+  window.dispatchEvent(new CustomEvent('easyinvio-wallet-balance',{detail:wallet}));
+  return wallet;
+ }
  async function refresh(key,epoch){let data=await api('/api/v1/billing/subscription',{auth:true});if(!valid(key,epoch))return;
   if(data.can_manage&&!data.subscription.stripe_subscription_id&&data.activation_checkout_available&&Object.values(data.activation_checkout_available).some(Boolean)){await api('/api/v1/billing/subscription/reconcile',{method:'POST',auth:true});if(!valid(key,epoch))return;data=await api('/api/v1/billing/subscription',{auth:true});if(!valid(key,epoch))return;}
-  if(data.can_manage){for(const operation of (data.operations||[]).filter(o=>['AUTHORIZED','PROVIDER_PENDING','PAID'].includes(o.state)).slice(0,3)){data=await api('/api/v1/billing/subscription/'+operation.id+'/process',{method:'POST',auth:true});if(!valid(key,epoch))return;}}renderAgreement(data);
-  if(capabilities?.statements_enabled!==true){status(capabilities?.message||'Plan loaded. Statements are not enabled.');return;}
-  const list=await api('/api/v1/billing/statements',{auth:true});if(valid(key,epoch)){renderList(list);status((data.operations||[]).some(o=>['AUTHORIZED','PROVIDER_PENDING','PAID'].includes(o.state))?'A request is still processing. Reload billing details shortly to check its status.':'Billing details are up to date.');}}
+  if(data.can_manage){for(const operation of (data.operations||[]).filter(o=>['AUTHORIZED','PROVIDER_PENDING','PAID'].includes(o.state)).slice(0,3)){data=await api('/api/v1/billing/subscription/'+operation.id+'/process',{method:'POST',auth:true});if(!valid(key,epoch))return;}}let walletProblem='';try{data.wallet=await paymentWallet(key,epoch);}catch(error){data.wallet=null;walletProblem=error.message;}if(!valid(key,epoch))return;renderAgreement(data);
+  if(capabilities?.statements_enabled!==true){status(walletProblem||capabilities?.message||'Plan loaded. Statements are not enabled.');return;}
+  const list=await api('/api/v1/billing/statements',{auth:true});if(valid(key,epoch)){renderList(list);status(walletProblem||((data.operations||[]).some(o=>['AUTHORIZED','PROVIDER_PENDING','PAID'].includes(o.state))?'A request is still processing. Reload billing details shortly to check its status.':'Billing details are up to date.'));}}
  function watchPending(key,epoch,attempt=0){
   if(!valid(key,epoch)||attempt>=15)return;
   setTimeout(async()=>{
@@ -229,6 +237,7 @@
  card.querySelectorAll('[name="billing-funding"]').forEach(input=>input.addEventListener('change',()=>{quote=null;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;status('Payment method selected. Review the updated amount before confirming.');}));
  card.querySelectorAll('[data-billing-action]').forEach(button=>button.addEventListener('click',()=>run(button,async(key,epoch)=>{
   if(!agreement?.can_manage)return;
+  if(button.dataset.billingAction==='UPGRADE'){const wallet=await paymentWallet(key,epoch);if(!valid(key,epoch))return;agreement.wallet=wallet;$('[name="billing-funding"][value="WALLET"]').disabled=wallet.currency!=='GBP'||Number(wallet.available)<=0;$('#billing-wallet-available').textContent='('+amount(wallet.available)+' available)';}
   const action=button.dataset.billingAction,request={request_id:crypto.randomUUID(),funding:button.dataset.billingAction==='UPGRADE'?($('[name="billing-funding"]:checked')?.value||'STRIPE'):(agreement.subscription.stripe_subscription_id?'STRIPE':'WALLET')};
   const m=agreement.management,target=$('#billing-target').value;
   if(action==='ACTIVATE'){
@@ -245,11 +254,14 @@
   const data=await api('/api/v1/billing/subscription/'+action.toLowerCase(),{method:'POST',auth:true,body:request});if(!valid(key,epoch))return;
   quote={action,request,data};const b=data.payload.breakdown,a=b.annual_clawback;
   const source=agreement.plans.find(p=>p.plan===data.source_plan),targetPlan=agreement.plans.find(p=>p.plan===data.target_plan),feeKey=agreement.subscription.billing_cycle==='ANNUAL'?'annual_fee_gbp':'monthly_fee_gbp';
-  $('#billing-quote').innerHTML=`<h3>Review ${h(action.toLowerCase())}: ${h(data.source_plan)} to ${h(data.target_plan)}</h3><p>Effective ${h(date(data.effective_at))}. ${action==='CANCEL'?'Final notice amount':'Amount to authorize'}: ${h(amount(data.amount))}${request.funding==='STRIPE'?' before applicable tax shown on the secure invoice.':' including configured wallet tax.'}</p>
-   ${b.remaining_days?`<p>${Number(b.remaining_days).toFixed(2)} days remain in your ${Number(b.total_days).toFixed(2)}-day billing period. You pay only the plan price difference for this unused part of the period.</p><p>${h(amount(source?.[feeKey]))} current plan → ${h(amount(targetPlan?.[feeKey]))} new plan. Difference for a full period: ${h(amount(Number(targetPlan?.[feeKey])-Number(source?.[feeKey])))} × ${Number(b.remaining_days).toFixed(2)} ÷ ${Number(b.total_days).toFixed(2)} days = <strong>${h(amount(b.prorated_amount))}</strong> before tax. The charge uses the exact remaining time; displayed days are rounded.</p>`:''}
-   ${action==='DOWNGRADE'?`<p>Current features remain until the period ends. Next period price: ${h(amount(b.next_period_price))} before applicable tax.${b.next_period_total?' Wallet total including configured tax: '+h(amount(b.next_period_total))+'.':''}</p>`:''}
-   ${a?`<p>Annual discount removed. Elapsed usage at monthly prices: ${h(amount(a.usage_at_monthly_price))}. 30-day notice at monthly prices: ${h(amount(a.notice_at_monthly_price))}. Verified prepaid net: ${h(amount(a.verified_annual_prepaid_net))}.</p><p>Refund after service ends: ${h(amount(a.net_refund))} net, plus the corresponding original tax. Additional balance: ${h(amount(a.additional_balance_for_review))} net. Refunds go to the original payment source.</p>`:''}
-   <p>${request.funding==='WALLET'?'Payment: wallet. The full amount shown will be deducted once you confirm.':'Payment: card. Confirm to prepare your secure payment invoice.'} Your new plan starts after payment is confirmed.</p>`;
+  const unit=agreement.subscription.billing_cycle==='ANNUAL'?'year':'month';
+  const nextFee=targetPlan?.[feeKey]??b.next_period_price;
+  $('#billing-quote').innerHTML=`<h3>${h(planName(data.source_plan))} → ${h(planName(data.target_plan))}</h3>
+   <dl class="billing-cost-grid"><div><dt>${action==='CANCEL'?'Adjustment':'Due now'}</dt><dd>${h(amount(data.amount))}</dd></div><div><dt>${action==='CANCEL'?'Service ends':'Effective from'}</dt><dd>${h(date(data.effective_at))}</dd></div>${action!=='CANCEL'?`<div><dt>New plan price</dt><dd>${h(amount(nextFee))}<small>/${unit}</small></dd></div><div><dt>Current period ends</dt><dd>${h(date(agreement.subscription.plan_period_end))}</dd></div>`:''}</dl>
+   ${b.remaining_days?`<div class="billing-proration" aria-label="Upgrade calculation"><span>${h(amount(Number(targetPlan?.[feeKey])-Number(source?.[feeKey])))} price difference</span><span aria-hidden="true">×</span><span title="The exact remaining time is used to calculate the charge; displayed days are rounded.">${Number(b.remaining_days).toFixed(2)} / ${Number(b.total_days).toFixed(2)} days left</span><span aria-hidden="true">=</span><strong>${h(amount(b.prorated_amount))}</strong></div>`:''}
+   <p class="footnote">${Number(data.amount)>0?(request.funding==='WALLET'?'Includes configured wallet tax.':'Before applicable tax.'):'No payment due now.'}${action==='DOWNGRADE'?' Keep your current plan until '+h(date(data.effective_at))+'.':''}</p>
+   ${a?`<details><summary>Cancellation calculation</summary><p>Annual discount removed. Elapsed usage at monthly prices: ${h(amount(a.usage_at_monthly_price))}. 30-day notice: ${h(amount(a.notice_at_monthly_price))}. Verified prepaid net: ${h(amount(a.verified_annual_prepaid_net))}.</p><p>Refund after service ends: ${h(amount(a.net_refund))} net, plus corresponding original tax. Additional balance: ${h(amount(a.additional_balance_for_review))} net. Refunds go to the original payment source.</p></details>`:''}
+   <p class="footnote">Confirm to prepare your adjusted invoice.</p>`;
   $('#billing-quote').hidden=false;$('#billing-confirm').hidden=false;$('#billing-confirm').disabled=false;
   $('#billing-confirm').textContent=action==='CANCEL'?'Confirm cancellation':action==='DOWNGRADE'?'Confirm scheduled downgrade':(request.funding==='WALLET'?'Confirm upgrade and pay from wallet':'Confirm upgrade and continue to payment');
   if(request.funding==='WALLET'&&Number(data.amount)>Number(agreement.wallet?.available||0)){$('#billing-confirm').disabled=true;status('The wallet must cover the full amount. Choose card payment or top up, then review again.');return;}

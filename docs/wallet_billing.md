@@ -128,3 +128,13 @@ worker to prepare an upgrade invoice or observe its payment. It checks tenant an
 original actor, respects operation leases and never starts other shared workers.
 Annual refunds involving wallet-settled provider invoices require reconciliation
 of the original funding source; no card refund is inferred from a wallet debit.
+
+
+The plan payment selector and wallet summary now share the wallet-ledger balance
+source. Billing refresh and each upgrade review reload the available amount;
+missing balance data disables wallet selection with an unavailable message,
+never a synthetic zero. The server still validates funds at confirmation.
+Failed historical plan-change requests stay in the audit data but do not appear
+under the active-plan summary. Genuine unresolved requests remain visible.
+Reviews use compact amount/date/price cards, a single proration calculation and
+explicit "No payment due now" wording for zero-cost changes.
