@@ -276,3 +276,27 @@ async def test_custom_activity_stays_unsaved_after_auditor_tables_are_retired(wo
     first=await service.generate(w.context)
     assert first['display_reference'].startswith('EI-01')
     assert await service.detail(w.context,UUID(first['id']))==first
+
+
+@pytest.mark.asyncio
+async def test_registration_date_limits_all_activity_and_monthly_statements(world):
+    w=world;service=StatementService(w.db,w.settings)
+    # Preserve an old snapshot to prove pre-registration artifacts are also hidden.
+    old=await service.generate(w.context)
+    registered=datetime.now(timezone.utc)-timedelta(hours=1)
+    await w.db.execute('UPDATE public.tenants SET created_at=$2 WHERE tenant_id=$1',w.t,registered)
+    assert (await service.list(w.context))['statements']==[]
+    with pytest.raises(HTTPException) as error:await service.detail(w.context,UUID(old['id']))
+    assert error.value.status_code==404
+    with pytest.raises(HTTPException) as error:await service.generate(w.context)
+    assert error.value.status_code==422
+    before=registered.replace(hour=0,minute=0,second=0,microsecond=0)-timedelta(days=1)
+    with pytest.raises(HTTPException) as error:await service.generate(w.context,before,datetime.now(timezone.utc),preview=True)
+    assert error.value.status_code==422
+    current=await service.generate(w.context,preview=True)
+    assert current['period_start'][:10]==registered.isoformat()[:10]
+    # A first partial month becomes eligible once that calendar month ends.
+    start=datetime.fromisoformat(old['period_start']);end=datetime.fromisoformat(old['period_end'])
+    await w.db.execute('UPDATE public.tenants SET created_at=$2 WHERE tenant_id=$1',w.t,start+timedelta(days=10))
+    assert (await service.generate(w.context,start,end))['id']==old['id']
+    assert len((await service.list(w.context))['statements'])==1

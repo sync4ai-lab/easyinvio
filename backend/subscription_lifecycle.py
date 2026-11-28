@@ -58,7 +58,7 @@ def management_options(sub,settings,context,now=None):
     elif not sub.plan_enforcement_enabled:reason='Your access is managed by EasyInvio. Contact support to change the assigned plan.'
     elif sub.pending_plan or sub.cancellation_effective_at:reason='A change is already scheduled. Its effective date is shown above.'
     elif sub.subscription_plan==Plan.STARTER and not sub.stripe_subscription_id:
-        reason='Starter has no paid subscription to cancel. To activate a paid plan, open Profile and review the secure subscription checkout.'
+        reason='Starter has no paid subscription to cancel. To activate a paid plan, choose a plan below, review the terms and confirm to continue to payment.'
     elif sub.plan_period_end is None:
         reason=('No paid subscription. Choose a plan to review a new subscription.' if sub.subscription_complimentary
             else 'No billing period or renewal date is recorded for this account. Contact support to configure the billing agreement before changing or cancelling it.')
@@ -89,7 +89,7 @@ class SubscriptionLifecycle:
         if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Financial permission required')
         async with self.pool.acquire() as c:
             sub=await read_subscription(c,context.tenant_id)
-            tenant=await c.fetchrow('''SELECT tenant_id,subscription_plan,billing_cycle,plan_status,plan_period_start,plan_period_end,stripe_subscription_id,
+            tenant=await c.fetchrow('''SELECT tenant_id,created_at AS registered_at,subscription_plan,billing_cycle,plan_status,plan_period_start,plan_period_end,stripe_subscription_id,
              plan_version,subscription_complimentary,pending_plan,pending_billing_cycle,pending_plan_effective_at,
              cancellation_requested_at,cancellation_effective_at,final_notice_prorated_amount,final_notice_billed
              FROM public.tenants WHERE tenant_id=$1''',context.tenant_id)
@@ -97,7 +97,7 @@ class SubscriptionLifecycle:
              FROM public.subscription_operations WHERE tenant_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20''',context.tenant_id)
             usage=await c.fetchval('SELECT parcels FROM public.v_tenant_monthly_usage WHERE tenant_id=$1',context.tenant_id) or 0
         if not tenant:raise HTTPException(404,'Workspace not found')
-        return document({'effective_plan':sub.effective().value,'usage':{'parcels':int(usage)},'subscription':dict(tenant),'operations':[dict(x) for x in operations],
+        return document({'registered_at':tenant['registered_at'],'effective_plan':sub.effective().value,'usage':{'parcels':int(usage)},'subscription':dict(tenant),'operations':[dict(x) for x in operations],
             'can_manage':bool(getattr(self.settings,'billing_lifecycle_enabled',False)) and context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
             'is_sandbox':sub.is_sandbox,'management':management_options(sub,self.settings,context),
             'activation_checkout_available':{p.value:bool(getattr(self.settings,'stripe_enabled',False) and getattr(self.settings,'subscription_price_ids',{}).get(p.value+':'+sub.billing_cycle)) for p in Plan if p!=Plan.STARTER},

@@ -106,6 +106,7 @@
    el('subscription-export').hidden=!['OWNER','ADMIN','ACCOUNTANT'].includes(portal.profile?.workspace_role)||(!p.grandfathered&&!p.capabilities.features.tax_ledger_audits);
   }catch(error){if(current(session,generation))el('subscription-summary').textContent='Plan details are unavailable on this deployment. Your existing workspace remains available.';}
  }
+ window.addEventListener('easyinvio-plan-changed',loadPlan);
  async function loadRevenue(next=false){
   if(!root())return;
   const session=state.session,generation=epoch,load=++revenueGeneration,status=el('subscription-revenue-status');

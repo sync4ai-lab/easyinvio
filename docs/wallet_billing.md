@@ -62,3 +62,33 @@ These are instructions, not an importable environment file. Replace each placeho
 with its real `price_...` ID and restart the local server. Production requires its own
 live-mode Prices and configuration. Checkout validates amount, currency, mode and
 recurrence on the server; a local preview does not authorize a payment.
+
+
+## Plan display and registration-aware statements
+
+The summary emphasizes the plan name; Starter is shown as Free. Customer billing
+panels omit internal environment labels. Environment checks, verified Stripe
+receipts, and entitlement enforcement remain mandatory. Review is a preview;
+confirmation authorizes the chosen terms, and the current plan changes only after
+verified payment/application. Billing summaries and Profile refresh after an applied
+change. Pending changes and a return from checkout use bounded status polling;
+the return URL is never payment proof. Scheduled downgrades retain the current
+plan until their effective date.
+
+Statement availability starts with `tenants.created_at`, in UTC. Activity previews
+and their PDF/CSV exports reject a start date before the registration day. The
+current-month default starts at the later of month start and registration day.
+Completed monthly statements are available from the registration month onward;
+the first month can be partial. Earlier saved artifacts are filtered and cannot
+be downloaded through statement detail. New accounts show "No statements to
+display" until their first calendar month is complete. Existing snapshots are
+not deleted or rewritten.
+
+Local subscription checkout needs four recurring GBP Price mappings in
+`SUBSCRIPTION_PRICE_IDS`: Velocity monthly £25 / annual £240, and Command monthly
+£75 / annual £720, excluding applicable tax. The local configuration now points
+to validated prices in its existing Stripe test environment. No customer
+subscription or payment was created during setup. Launch requires the equivalent
+live prices and matching live payment/webhook configuration; hiding environment
+labels in the UI does not switch payment mode. Restart the local backend after
+environment updates.

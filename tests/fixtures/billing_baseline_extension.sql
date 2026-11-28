@@ -1,3 +1,4 @@
+ALTER TABLE public.tenants ADD COLUMN created_at timestamptz NOT NULL DEFAULT '2020-01-01T00:00:00Z';
 -- Synthetic disposable test schema only. Complete the pre-052 financial fields.
 ALTER TABLE public.wallets ADD COLUMN reserved_balance numeric NOT NULL DEFAULT 0,ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
 ALTER TABLE public.wallet_ledger ADD COLUMN topup_id uuid,ADD COLUMN stripe_session_id text,ADD COLUMN stripe_event_id text,ADD COLUMN stripe_payment_intent_id text;

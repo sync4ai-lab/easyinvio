@@ -134,7 +134,7 @@
  const statementButton=button=>['billing-generate','billing-preview','billing-save'].includes(button.id)||button.hasAttribute('data-statement-id')||button.hasAttribute('data-billing-export');
  function notice(message,button,error=false){const node=$(statementButton(button)?'#billing-statement-status':'#billing-status');node.textContent=message;node.setAttribute('role',error?'alert':'status');if(error){node.scrollIntoView({block:'nearest'});}}
  function statementControls(disabled){for(const id of ['billing-generate','billing-preview','billing-save'])$('#'+id).disabled=disabled;}
- function reset(){generation++;quote=null;agreement=null;statement=null;capabilities=null;managing=false;statementControls(false);if($('#billing-comparison').open)$('#billing-comparison').close();$('#billing-comparison-content').replaceChildren();$('#billing-target').value='';$('#billing-statement-status').textContent='';$('#billing-agreement').replaceChildren();$('#billing-change').hidden=true;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;$('#billing-statements').replaceChildren();$('#billing-statement').replaceChildren();status('Your plan details load when you open Wallet & Billing.');}
+ function reset(){$('#billing-from').min=$('#billing-until').min=$('#billing-month').min='';delete $('#billing-previous').dataset.available;$('#billing-month').disabled=false;$('#billing-month').closest('.billing-toolbar').hidden=false;$('#billing-save').hidden=false;generation++;quote=null;agreement=null;statement=null;capabilities=null;managing=false;statementControls(false);if($('#billing-comparison').open)$('#billing-comparison').close();$('#billing-comparison-content').replaceChildren();$('#billing-target').value='';$('#billing-statement-status').textContent='';$('#billing-agreement').replaceChildren();$('#billing-change').hidden=true;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;$('#billing-statements').replaceChildren();$('#billing-statement').replaceChildren();status('Your plan details load when you open Wallet & Billing.');}
  function sync(){const next=scope();if(next!==currentScope){currentScope=next;reset();}card.hidden=!next;}
  function valid(key,epoch){return key===scope()&&epoch===generation;}
  async function run(button,fn){sync();if(!currentScope||button.disabled)return;const key=currentScope,epoch=generation;button.disabled=true;
@@ -151,9 +151,21 @@
  const date=value=>value?new Date(value).toLocaleString():'Not set';
  const amount=(value,currency='GBP')=>currency+' '+String(value??'Not supplied');
  const planName=value=>String(value??'').charAt(0)+String(value??'').slice(1).toLowerCase();
- function renderAgreement(data){agreement=data;quote=null;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;
+ function registrationDates(data){
+  const registered=data.registered_at||data.subscription?.registered_at;if(!registered)return;
+  const first=registered.slice(0,10),month=first.slice(0,7),today=new Date().toISOString().slice(0,10),thisMonth=today.slice(0,7);
+  $('#billing-from').min=$('#billing-until').min=first;
+  if(!$('#billing-from').value||$('#billing-from').value<first)$('#billing-from').value=first;
+  if(!$('#billing-until').value||$('#billing-until').value<first)$('#billing-until').value=today;
+  const available=month<thisMonth;
+  $('#billing-month').min=month;$('#billing-month').disabled=!available;$('#billing-month').closest('.billing-toolbar').hidden=!available;
+  $('#billing-save').hidden=!available;
+  if($('#billing-month').value<month)$('#billing-month').value=month;
+  $('#billing-previous').dataset.available=String(available);
+ }
+ function renderAgreement(data){registrationDates(data);agreement=data;quote=null;$('#billing-quote').hidden=true;$('#billing-confirm').hidden=true;
   const s=data.subscription;
-  $('#billing-agreement').innerHTML=`<h3>Current plan: ${h(planName(s.subscription_plan))} · ${s.billing_cycle==='ANNUAL'?'Annual':'Monthly'}</h3><p>${h({ACTIVE:'Active',TRIALING:'Trial',PAST_DUE:'Payment overdue',CANCELLED:'Cancelled',PENDING_CANCELLATION:'Cancellation scheduled'}[s.plan_status]||s.plan_status)}${s.subscription_complimentary?(data.is_sandbox?' · Test workspace — no subscription charge':' · No subscription charge'):''}</p><p>${s.plan_period_end?'Current period: '+h(date(s.plan_period_start))+' to '+h(date(s.plan_period_end))+'.':''}</p>
+  $('#billing-agreement').innerHTML=`<h3>Current plan: ${h(planName(s.subscription_plan))} · ${s.billing_cycle==='ANNUAL'?'Annual':'Monthly'}</h3><p>${h({ACTIVE:'Active',TRIALING:'Trial',PAST_DUE:'Payment overdue',CANCELLED:'Cancelled',PENDING_CANCELLATION:'Cancellation scheduled'}[s.plan_status]||s.plan_status)}</p><p>${s.plan_period_end?'Current period: '+h(date(s.plan_period_start))+' to '+h(date(s.plan_period_end))+'.':''}</p>
 
    ${s.pending_plan?`<p>Scheduled ${h(s.pending_plan)} from ${h(date(s.pending_plan_effective_at))}.</p>`:''}
    ${s.cancellation_effective_at?`<p>Service ends ${h(date(s.cancellation_effective_at))}. Final notice amount: ${h(amount(s.final_notice_prorated_amount))} before applicable tax.</p>`:''}
@@ -183,12 +195,22 @@
   $('#billing-comparison').showModal();$('#billing-comparison-close').focus();
  }
  function safeInvoice(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&['invoice.stripe.com','pay.stripe.com'].includes(u.hostname);}catch{return false;}}
- function renderList(data){window.dispatchEvent(new CustomEvent('easyinvio-statements-loaded',{detail:data}));$('#billing-statements').innerHTML=(data.statements||[]).map(s=>`<p><button type="button" class="secondary" data-statement-id="${h(s.id)}">${h(new Date(s.period_start).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}))}</button> Statement ${h(s.display_reference||s.statement_number)} · ${h(s.currency)}</p>`).join('')||'<p class="subtle">No completed statements yet.</p>';}
+ function renderList(data){if($('#billing-previous').dataset.available==='false')data={...data,statements:[]};window.dispatchEvent(new CustomEvent('easyinvio-statements-loaded',{detail:data}));$('#billing-statements').innerHTML=(data.statements||[]).map(s=>`<p><button type="button" class="secondary" data-statement-id="${h(s.id)}">${h(new Date(s.period_start).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}))}</button> Statement ${h(s.display_reference||s.statement_number)} · ${h(s.currency)}</p>`).join('')||'<p class="subtle">No statements to display.</p>';}
  function renderStatement(data){statement=data;window.renderEnterpriseStatement($('#billing-statement'),data);$('#billing-statement').querySelector('[data-statement-close]').onclick=()=>{statement=null;$('#billing-statement').replaceChildren();$('#billing-generate').focus();};}
 
  async function refresh(key,epoch){const data=await api('/api/v1/billing/subscription',{auth:true});if(!valid(key,epoch))return;renderAgreement(data);
   if(capabilities?.statements_enabled!==true){status(capabilities?.message||'Plan loaded. Statements are not enabled.');return;}
   const list=await api('/api/v1/billing/statements',{auth:true});if(valid(key,epoch)){renderList(list);status((data.operations||[]).some(o=>['AUTHORIZED','PROVIDER_PENDING','PAID'].includes(o.state))?'A request is still processing. Reload billing details shortly to check its status.':'Billing details are up to date.');}}
+ function watchPending(key,epoch,attempt=0){
+  if(!valid(key,epoch)||attempt>=15)return;
+  setTimeout(async()=>{
+   if(!valid(key,epoch))return;
+   await run($('#billing-refresh'),refresh);
+   if(!valid(key,epoch))return;
+   if(agreement?.operations?.some(o=>['AUTHORIZED','PROVIDER_PENDING','PAID'].includes(o.state)))watchPending(key,epoch,attempt+1);
+   else window.dispatchEvent(new CustomEvent('easyinvio-plan-changed'));
+  },2000);
+ }
  $('#billing-refresh').addEventListener('click',e=>run(e.currentTarget,refresh));
  $('#billing-manage').addEventListener('click',e=>run(e.currentTarget,async(key,epoch)=>{if(!agreement)await refresh(key,epoch);if(!valid(key,epoch)||!agreement?.can_manage)return;managing=true;$('#billing-change').hidden=false;selection();$('#billing-change').scrollIntoView({block:'nearest'});status(agreement.management?.reason||'Choose a plan change, then review and confirm the terms. No changes take effect until you confirm.');}));
  $('#billing-compare').addEventListener('click',e=>run(e.currentTarget,async(key,epoch)=>{if(!agreement)await refresh(key,epoch);if(valid(key,epoch)){comparison();status('Comparing plan features. Your subscription has not changed.');}}));
@@ -204,8 +226,8 @@
    const plan=agreement.plans.find(p=>p.plan===target),cycle=agreement.subscription.billing_cycle||'MONTHLY';
    const price=cycle==='ANNUAL'?plan.annual_fee_gbp:plan.monthly_fee_gbp;
    quote={action,request:{request_id:crypto.randomUUID(),plan:target,cycle}};
-   $('#billing-quote').innerHTML=`<h3>${h(planName(target))} — ${h(amount(price))}/${cycle==='ANNUAL'?'year':'month'}</h3><p>New subscription; no previous subscription payment to prorate. Tax and final terms appear at secure checkout.${agreement.is_sandbox?' Test payments only for this sandbox workspace.':''}</p>`;
-   $('#billing-quote').hidden=false;$('#billing-confirm').hidden=false;$('#billing-confirm').textContent='Continue to secure checkout';$('#billing-confirm').disabled=agreement.activation_checkout_available?.[target]===false;status($('#billing-confirm').disabled?'Preview ready. Contact support to activate subscription billing.':'Review the new subscription. No payment has been made.');return;
+   $('#billing-quote').innerHTML=`<h3>${h(planName(target))} — ${h(amount(price))}/${cycle==='ANNUAL'?'year':'month'}</h3><p>New subscription; no previous subscription payment to prorate. Tax and final terms appear at secure checkout.</p>`;
+   $('#billing-quote').hidden=false;$('#billing-confirm').hidden=false;$('#billing-confirm').textContent='Confirm plan and continue to payment';$('#billing-confirm').disabled=agreement.activation_checkout_available?.[target]===false;status($('#billing-confirm').disabled?'Subscription payments are not configured for this plan. Contact support; your current plan is unchanged.':'Review only. Confirm below and complete payment to activate this plan.');return;
   }
   if(action==='CANCEL'?!m?.can_cancel:!(action==='UPGRADE'?m?.upgrade_targets:m?.downgrade_targets)?.includes(target))throw Error(m?.reason||'Choose an available change for this subscription.');
   if(action!=='CANCEL')request.target_plan=$('#billing-target').value;
@@ -230,7 +252,11 @@
   const data=await api('/api/v1/billing/subscription/'+chosen.action.toLowerCase(),{method:'POST',auth:true,body:{...chosen.request,confirm:true,quote_sha256:chosen.data.payload_sha256}});
   if(!valid(key,epoch))return;quote=null;$('#billing-confirm').hidden=true;
   const confirmed=['APPLIED','SCHEDULED'].includes(data.state);
-  const message=confirmed?(chosen.action==='CANCEL'?'Cancellation scheduled. Service ends '+date(chosen.data.effective_at)+'.':chosen.action==='DOWNGRADE'?'Downgrade scheduled for '+date(chosen.data.effective_at)+'.':'Upgrade applied. Reload billing details to see your updated plan.'):'Request received. Reload billing details to check processing and any required secure payment.';
+  const message=confirmed?(chosen.action==='CANCEL'?'Cancellation scheduled. Service ends '+date(chosen.data.effective_at)+'.':chosen.action==='DOWNGRADE'?'Downgrade scheduled for '+date(chosen.data.effective_at)+'.':'Upgrade applied. Your plan details are up to date.'):'Change awaiting payment or processing. Your current plan remains active until confirmation.';
+  await refresh(key,epoch);if(!valid(key,epoch))return;
+  if(!confirmed)watchPending(key,epoch);
+  if(confirmed){window.dispatchEvent(new CustomEvent('easyinvio-plan-changed'));try{await refreshPortal();}catch{ /* Billing is already refreshed; other views retry on navigation. */ }}
+  if(!valid(key,epoch))return;
   $('#billing-quote').textContent=message;$('#billing-quote').hidden=false;status(message);
  }));
  for(const id of ['billing-generate','billing-preview','billing-save'])$('#'+id).addEventListener('click',e=>run(e.currentTarget,async(key,epoch)=>{
@@ -243,11 +269,13 @@
   }else{
    const from=$('#billing-from').value,to=$('#billing-until').value,now=new Date();
    const start=Date.parse(from+'T00:00:00Z'),end=Date.parse(to+'T00:00:00Z')+86400000,days=(end-start)/86400000;
+   if($('#billing-from').min&&from<$('#billing-from').min)throw Error('Choose a start date on or after your registration date.');
    if(!from||!to||!Number.isFinite(days)||days<1||days>366)throw Error('Choose a date range of 1 to 366 days.');
    if(to>now.toISOString().slice(0,10))throw Error('Choose an end date no later than today.');
    data=await api('/api/v1/billing/statements/preview?'+new URLSearchParams({currency,start:new Date(start).toISOString(),end:new Date(Math.min(end,now.getTime())).toISOString()}),{auth:true});
    if(Date.parse(data.period_start)!==start||Date.parse(data.period_end)!==Math.min(end,now.getTime()))throw Error('Restart the local server to load date-range support, then retry.');
   }
+  if(id==='billing-save'&&valid(key,epoch)){const list=await api('/api/v1/billing/statements',{auth:true});if(valid(key,epoch))renderList(list);}
   if(valid(key,epoch)){if(id==='billing-preview'){$('#billing-from').value=data.period_start.slice(0,10);$('#billing-until').value=new Date(Date.parse(data.period_end)-1).toISOString().slice(0,10);}renderStatement(data);notice(id==='billing-save'?'Monthly statement ready.':'Activity ready.',$('#'+id));$('#billing-statement').scrollIntoView({block:'start'});}
  }));
  card.addEventListener('click',e=>{const button=e.target.closest('[data-statement-id],[data-billing-export]');if(!button)return;
@@ -263,11 +291,21 @@
  function init(){const wallet=document.getElementById('wallet');if(!wallet)return;wallet.append(card);
   const now=new Date(),end=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1)),start=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-1,1));
   $('#billing-month').value=start.toISOString().slice(0,7);$('#billing-month').max=start.toISOString().slice(0,7);$('#billing-from').value=start.toISOString().slice(0,10);$('#billing-until').value=new Date(end.getTime()-86400000).toISOString().slice(0,10);$('#billing-from').max=$('#billing-until').max=now.toISOString().slice(0,10);
+  let returnChecks=0,returnTimer=null;
+  const subscriptionReturn=new URLSearchParams(location.search).get('subscription');
+  function reconcileReturn(){
+   if(subscriptionReturn!=='processing'||!currentScope||returnChecks>=15)return;
+   if(agreement?.subscription.stripe_subscription_id&&!agreement.subscription.subscription_complimentary&&agreement.subscription.subscription_plan!=='STARTER'&&['ACTIVE','TRIALING'].includes(agreement.subscription.plan_status)){
+    status('Subscription confirmed. Your plan details are up to date.');window.dispatchEvent(new CustomEvent('easyinvio-plan-changed'));returnChecks=15;return;
+   }
+   status('Confirming your subscription payment. Your current plan remains active until confirmation.');
+   if(!returnTimer){returnChecks++;const key=currentScope,epoch=generation;returnTimer=setTimeout(async()=>{returnTimer=null;if(!valid(key,epoch))return;await run($('#billing-refresh'),refresh);reconcileReturn();},2000);}
+  }
   let autoLoading=false;
-  async function autoLoad(){sync();if(!currentScope||autoLoading)return;autoLoading=true;try{await run($('#billing-refresh'),refresh);}finally{autoLoading=false;}}
+  async function autoLoad(){sync();if(!currentScope||autoLoading)return;autoLoading=true;try{await run($('#billing-refresh'),refresh);reconcileReturn();}finally{autoLoading=false;}}
   const originalView=setView;setView=function(...args){const result=originalView(...args);sync();if(args[0]==='wallet')autoLoad();return result;};
   const originalClear=clearSession;clearSession=function(...args){currentScope='';reset();card.hidden=true;return originalClear(...args);};
-  const originalRefresh=refreshPortal;refreshPortal=async function(...args){try{return await originalRefresh(...args);}finally{sync();}};
+  const originalRefresh=refreshPortal;refreshPortal=async function(...args){try{return await originalRefresh(...args);}finally{sync();if(subscriptionReturn&&currentScope)setView('wallet');}};
   sync();if(!wallet.hidden)autoLoad();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();

@@ -152,12 +152,12 @@ class StatementService:
         self.ready(context)
         async with self.pool.acquire() as c:
             rows=await c.fetch('''SELECT id,statement_number,period_start,period_end,currency,gross_total,closing_balance,created_at
-             FROM public.billing_statements WHERE tenant_id=$1 AND period_start=date_trunc('month',period_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AND period_end=(date_trunc('month',period_start AT TIME ZONE 'UTC')+interval '1 month') AT TIME ZONE 'UTC' ORDER BY period_start DESC,id DESC LIMIT 100''',context.tenant_id)
+             FROM public.billing_statements WHERE tenant_id=$1 AND period_end>(SELECT created_at FROM public.tenants WHERE tenant_id=$1) AND period_end<=now() AND period_start=date_trunc('month',period_start AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AND period_end=(date_trunc('month',period_start AT TIME ZONE 'UTC')+interval '1 month') AT TIME ZONE 'UTC' ORDER BY period_start DESC,id DESC LIMIT 100''',context.tenant_id)
         return {'statements':document([{**dict(r),'display_reference':statement_reference(r['period_start'],r['period_end'])} for r in rows])}
 
     async def detail(self,context,statement_id):
         self.ready(context)
-        async with self.pool.acquire() as c:row=await c.fetchrow('SELECT statement_snapshot,snapshot_sha256 FROM public.billing_statements WHERE tenant_id=$1 AND id=$2',context.tenant_id,statement_id)
+        async with self.pool.acquire() as c:row=await c.fetchrow('SELECT statement_snapshot,snapshot_sha256 FROM public.billing_statements WHERE tenant_id=$1 AND id=$2 AND period_end>(SELECT created_at FROM public.tenants WHERE tenant_id=$1)',context.tenant_id,statement_id)
         if not row:raise HTTPException(404,'Statement not found in this workspace')
         snapshot=decoded(row['statement_snapshot'])
         if hashlib.sha256(json.dumps(snapshot,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=row['snapshot_sha256']:
@@ -175,15 +175,24 @@ class StatementService:
     async def _generate(self,context,start=None,end=None,currency='GBP',*,preview=False):
         self.ready(context)
         if currency not in {'GBP','EUR','USD'}:raise HTTPException(422,'Unsupported statement currency')
+        default_preview=preview and start is None and end is None
         start,end=preview_bounds(start,end) if preview else period_bounds(start,end)
         async with self.pool.acquire() as c:
             async with c.transaction(isolation='repeatable_read'):
+                tenant=await c.fetchrow('SELECT tenant_id,company_name,is_sandbox,created_at FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
+                if not tenant:raise HTTPException(404,'Workspace not found')
+                registered=utc(tenant['created_at'])
+                first_day=registered.replace(hour=0,minute=0,second=0,microsecond=0)
+                if preview:
+                    if default_preview:start=max(start,first_day)
+                    if start<first_day:raise HTTPException(422,'Choose a start date on or after your registration date')
+                elif start<first_day.replace(day=1) or end<=registered:
+                    raise HTTPException(422,'No statements to display before your registration month')
+                if start>=end:raise HTTPException(422,'No activity period is available yet')
                 if not preview:
                     await c.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,52))','statement:'+str(context.tenant_id)+start.isoformat()+end.isoformat()+currency)
                     existing=await c.fetchrow('SELECT statement_snapshot FROM public.billing_statements WHERE tenant_id=$1 AND period_start=$2 AND period_end=$3 AND currency=$4',context.tenant_id,start,end,currency)
                     if existing:return decoded(existing['statement_snapshot'])
-                tenant=await c.fetchrow('SELECT tenant_id,company_name,is_sandbox FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
-                if not tenant:raise HTTPException(404,'Workspace not found')
                 wallet=await c.fetchrow('SELECT currency,balance FROM public.wallets WHERE tenant_id=$1',context.tenant_id)
                 prior=await c.fetchval('SELECT balance_after FROM public.wallet_ledger WHERE tenant_id=$1 AND currency=$2 AND created_at<$3 ORDER BY created_at DESC,id DESC LIMIT 1',context.tenant_id,currency,start)
                 first=await c.fetchrow('SELECT balance_after,balance_delta FROM public.wallet_ledger WHERE tenant_id=$1 AND currency=$2 AND created_at>=$3 ORDER BY created_at,id LIMIT 1',context.tenant_id,currency,start)

@@ -1,5 +1,6 @@
 """Synthetic browser QA of billing presentation; no real sessions or providers."""
 import asyncio,json,os,time,sys
+from datetime import datetime,timezone,timedelta
 from pathlib import Path
 from urllib.parse import urlsplit,parse_qs
 from playwright.async_api import async_playwright,expect
@@ -13,6 +14,7 @@ os.environ.setdefault('PLAYWRIGHT_BROWSERS_PATH',str(ROOT/'.playwright'))
 async def main():
     out=ROOT/'output/subscription-qa';out.mkdir(parents=True,exist_ok=True)
     errors=[];requests=[];commands=[];gate=asyncio.Event();gate.set();can_manage=True;enabled=False;statement_failure=False;review_failure=False;current_plan='VELOCITY';unbounded=False;ignore_dates=False;prices_ready=True
+    registered='2026-07-15T10:00:00Z'
     plans=document([{'plan':p.value,'annual_fee_gbp':cycle_price(p,'ANNUAL'),**capabilities(p).model_dump()} for p in Plan])
     snapshot={'id':'00000000-0000-4000-8000-000000000003','statement_number':'EI-DEMO','period_start':'2026-10-01','period_end':'2026-11-01','currency':'GBP','opening_balance':'100.00','closing_balance':'88.00','total_topups':'0.00','subscription_net':'0.00','shipping_net':'10.00','refunds_net':'0.00','tax_total':'2.00','gross_total':'12.00','tax_complete':True,'transactions':[{'occurred_at':'2026-10-15T12:00:00Z','type':'SHIPPING','reference':'<script>bad()</script>','carrier':'Synthetic Carrier','net_amount':'10.00','tax_amount':'2.00','gross_amount':'12.00','running_wallet_balance':'88.00'}],'notice':'Synthetic statement for testing.'}
     async with async_playwright() as p:
@@ -43,7 +45,7 @@ async def main():
                 elif path=='/api/v1/billing/subscription':
                     await gate.wait();rank=['STARTER','VELOCITY','COMMAND'].index(current_plan)
                     management={'reason':'This is complimentary access with no paid renewal to cancel.' if unbounded else None,'upgrade_targets':['STARTER','VELOCITY','COMMAND'][rank+1:] if not unbounded else [],'downgrade_targets':['STARTER','VELOCITY','COMMAND'][:rank] if not unbounded else [],'can_cancel':not unbounded and rank>0,'activation_targets':['VELOCITY','COMMAND'] if unbounded else []}
-                    data={'activation_checkout_available':{'VELOCITY':prices_ready,'COMMAND':prices_ready},'is_sandbox':unbounded,'can_manage':can_manage,'management':management,'plans':plans,'subscription':{'subscription_plan':current_plan,'billing_cycle':'ANNUAL','plan_status':'ACTIVE','subscription_complimentary':unbounded,'plan_period_start':'2026-11-09T00:00:00Z','plan_period_end':None if unbounded else '2027-11-09T00:00:00Z','stripe_subscription_id':'sub_synthetic'},'operations':[],'usage':{'parcels':48}}
+                    data={'registered_at':registered,'activation_checkout_available':{'VELOCITY':prices_ready,'COMMAND':prices_ready},'is_sandbox':unbounded,'can_manage':can_manage,'management':management,'plans':plans,'subscription':{'subscription_plan':current_plan,'billing_cycle':'ANNUAL','plan_status':'ACTIVE','subscription_complimentary':unbounded,'plan_period_start':'2026-11-09T00:00:00Z','plan_period_end':None if unbounded else '2027-11-09T00:00:00Z','stripe_subscription_id':'sub_synthetic'},'operations':[],'usage':{'parcels':48}}
                 elif path=='/api/v1/billing/subscription/cancel':
                     body=route.request.post_data_json;commands.append((path,body));data={'id':'operation-demo','state':'SCHEDULED' if body.get('confirm') else 'PREVIEW','source_plan':'VELOCITY','target_plan':'STARTER','effective_at':'2026-12-15T00:00:00Z','amount':'0.00','payload_sha256':'a'*64,'payload':{'breakdown':{'annual_clawback':{'usage_at_monthly_price':'5.00','notice_at_monthly_price':'24.84','verified_annual_prepaid_net':'240.00','net_refund':'210.16','additional_balance_for_review':'0.00'}}}}
                 elif path in {'/api/v1/billing/subscription/upgrade','/api/v1/billing/subscription/downgrade'}:
@@ -100,6 +102,8 @@ async def main():
         await page.locator('#billing-plan-review').click();await expect(page.locator('#billing-quote')).to_contain_text('40.00')
         assert not any(body.get('confirm') for _,body in commands)
         await page.locator('#billing-confirm').click();await expect(page.locator('#billing-status')).to_contain_text('Upgrade applied')
+        await expect(page.locator('#finance-plan strong')).to_have_text('Command')
+        await expect(page.locator('#billing-agreement')).to_contain_text('Current plan: Command')
         await page.locator('#billing-refresh').click();await page.locator('#billing-target').select_option('VELOCITY')
         await expect(page.locator('#billing-plan-review')).to_have_text('Review downgrade to Velocity')
         await page.locator('#billing-plan-review').click();assert commands[-1][0].endswith('/downgrade')
@@ -137,16 +141,29 @@ async def main():
         await page.locator('[data-statement-id]').click();await expect(page.locator('#billing-statement')).to_contain_text('<script>bad()</script>');assert await page.locator('#billing-statement script').count()==0
         out=ROOT/'output/subscription-qa/billing';out.mkdir(parents=True,exist_ok=True);await page.locator('#billing-workspace').screenshot(path=str(out/'workspace-owner.png'))
         current_plan='COMMAND';unbounded=True
-        await page.locator('#billing-refresh').click();await expect(page.locator('#billing-agreement')).to_contain_text('Test workspace')
+        await page.locator('#billing-refresh').click();await expect(page.locator('#billing-agreement')).not_to_contain_text('Test workspace')
         await page.locator('#billing-manage').click();await expect(page.locator('#billing-target')).to_be_visible()
         await page.locator('#billing-target').select_option('VELOCITY');await page.locator('#billing-plan-review').click()
         await expect(page.locator('#billing-quote')).to_contain_text('New subscription');await expect(page.locator('#billing-quote')).to_contain_text('240.00')
-        await expect(page.locator('#billing-confirm')).to_have_text('Continue to secure checkout')
+        await expect(page.locator('#billing-confirm')).to_have_text('Confirm plan and continue to payment')
         await expect(page.locator('#billing-cancel')).to_be_disabled();await expect(page.locator('#billing-confirm')).to_be_enabled()
         prices_ready=False
         await page.locator('#billing-refresh').click();await page.locator('#billing-target').select_option('VELOCITY');await page.locator('#billing-plan-review').click()
-        await expect(page.locator('#billing-confirm')).to_be_disabled();await expect(page.locator('#billing-status')).to_contain_text('activate subscription billing')
+        await expect(page.locator('#billing-confirm')).to_be_disabled();await expect(page.locator('#billing-status')).to_contain_text('payments are not configured')
         count=len(commands);await page.locator('#billing-compare').click();await expect(page.locator('#billing-comparison')).to_be_visible();await page.locator('#billing-comparison-close').click();assert len(commands)==count
+        registered=datetime.now(timezone.utc).isoformat()
+        await page.locator('#billing-refresh').click()
+        await expect(page.locator('#billing-month')).to_be_hidden()
+        await expect(page.locator('#billing-statements')).to_have_text('No statements to display.')
+        today=datetime.now(timezone.utc).date().isoformat()
+        await expect(page.locator('#billing-from')).to_have_attribute('min',today)
+        await page.locator('#billing-from').fill((datetime.now(timezone.utc).date()-timedelta(days=1)).isoformat())
+        await page.locator('#billing-until').fill(today)
+        count=len(requests)
+        await page.locator('#billing-generate').click()
+        await expect(page.locator('#billing-statement-status')).to_contain_text('on or after your registration date')
+        assert len(requests)==count
+        registered='2026-07-15T10:00:00Z'
         # A response from the previous workspace must be discarded after a role change.
         gate.clear();await page.locator('#billing-refresh').click()
         await page.evaluate("portal.profile.workspace_role='DISPATCHER';setView('wallet')")
