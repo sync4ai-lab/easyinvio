@@ -10,6 +10,31 @@
  const wallet=$('#wallet');if(!wallet)return;
  const paymentStyle=document.createElement('style');paymentStyle.textContent='#billing-payment-options{border:1px solid var(--border,#334155);border-radius:12px;padding:16px;margin:16px 0}#billing-payment-options label{display:flex;align-items:center;gap:10px;margin:12px 0;flex-wrap:wrap}#billing-payment-options input{width:auto;min-height:0;margin:0}';document.head.append(paymentStyle);
  const costStyle=document.createElement('style');costStyle.textContent='#billing-quote .billing-cost-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}#billing-quote .billing-cost-grid>div{padding:14px;border:1px solid var(--border,#334155);border-radius:10px}#billing-quote dt{font-size:.82rem;color:var(--muted,#94a3b8);margin-bottom:8px}#billing-quote dd{margin:0;font-size:1.1rem;font-weight:700;overflow-wrap:anywhere}#billing-quote dd small{font-size:.8rem;font-weight:400}#billing-quote .billing-proration{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 0}#billing-quote .billing-proration>span:not([aria-hidden]){padding:8px 10px;border-radius:8px;background:rgba(148,163,184,.08)}@media(max-width:700px){#billing-quote .billing-cost-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#billing-quote dd{font-size:.9rem;overflow-wrap:normal}#billing-quote dd small{display:block}}';document.head.append(costStyle);
+ const retentionStyle=document.createElement('style');retentionStyle.textContent=`
+ #billing-quote .billing-retention .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+ #billing-quote .billing-retention{margin-top:24px;padding:24px;border:1px solid rgba(52,211,153,.36);border-radius:16px;background:linear-gradient(135deg,rgba(16,185,129,.09),rgba(99,102,241,.06))}
+ #billing-quote .retention-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+ #billing-quote .retention-eyebrow{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:#6ee7b7}
+ #billing-quote .retention-heading h4{font-size:1.25rem;margin:8px 0 0;color:var(--text,#e2e8f0)}
+ #billing-quote .retention-saving{font-size:1rem;font-weight:700;padding:10px 14px;border-radius:10px;background:rgba(148,163,184,.1)}
+ #billing-quote .retention-saving small{display:block;font-size:.72rem;font-weight:400;margin-top:4px;color:var(--muted,#94a3b8)}
+ #billing-quote .retention-intro{font-size:.85rem;color:var(--muted,#94a3b8);margin:12px 0 18px}
+ #billing-quote .retention-limits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+ #billing-quote .retention-limits>div{padding:14px;border:1px solid rgba(148,163,184,.22);border-radius:10px}
+ #billing-quote .retention-limits>div>span,#billing-quote .retention-limits small{display:block;font-size:.75rem;color:var(--muted,#94a3b8)}
+ #billing-quote .retention-limits strong{display:block;margin:8px 0;font-size:1.15rem;color:var(--text,#e2e8f0)}
+ #billing-quote .retention-section-title{font-size:.95rem;margin:22px 0 12px}
+ #billing-quote .retention-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+ #billing-quote .retention-feature{padding:16px;border-radius:12px;background:rgba(15,23,42,.42);border:1px solid rgba(148,163,184,.14)}
+ #billing-quote .retention-number{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;background:rgba(52,211,153,.12);color:#6ee7b7;font-size:.75rem;font-weight:700}
+ #billing-quote .retention-feature h5{font-size:.93rem;margin:12px 0 8px;color:var(--text,#e2e8f0)}
+ #billing-quote .retention-feature p,#billing-quote .retention-more{font-size:.8rem;line-height:1.6;margin:0;color:var(--muted,#94a3b8)}
+ #billing-quote .retention-more{margin-top:14px}#billing-quote .retention-more summary{cursor:pointer}
+ #billing-quote .retention-actions{display:flex;align-items:center;gap:16px;margin-top:22px;flex-wrap:wrap}
+ #billing-quote .retention-actions span{font-size:.8rem;color:var(--muted,#94a3b8);flex:1;min-width:180px}
+ @media(max-width:700px){#billing-quote .billing-retention{padding:16px}#billing-quote .retention-limits,#billing-quote .retention-features{grid-template-columns:1fr}#billing-quote .retention-actions{align-items:stretch}#billing-quote .retention-actions button{width:100%}}
+ `;document.head.append(retentionStyle);
+
  let ledgerRequest=0;let ledgerEntries=[];let epoch=0,key='',loading=false,cursor=null,previous=[],category='ALL',holds=false,latest=null;
  const sessions=new WeakMap();let sequence=0;
  const identity=()=>{if(state.session&&!sessions.has(state.session))sessions.set(state.session,++sequence);return state.session&&portal.profile?.tenant_id&&['OWNER','ADMIN','ACCOUNTANT'].includes(portal.profile.workspace_role)?JSON.stringify([portal.profile.tenant_id,portal.profile.workspace_role,state.assistance?.session_id,sessions.get(state.session),state.session.user?.id]):'';};

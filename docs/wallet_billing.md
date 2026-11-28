@@ -138,3 +138,13 @@ Failed historical plan-change requests stay in the audit data but do not appear
 under the active-plan summary. Genuine unresolved requests remain visible.
 Reviews use compact amount/date/price cards, a single proration calculation and
 explicit "No payment due now" wording for zero-cost changes.
+
+
+Downgrade review includes an inline comparison generated from the current and
+target capabilities returned by the server: lower software fee, reduced parcel,
+store and user allowances, and selected supported features that cease to be
+included. It omits features retained in the target tier and does not advertise
+planned capabilities. Keeping the current plan dismisses the preview without
+confirming any commercial operation; downgrade confirmation remains available.
+The displayed tax label is simply "tax". This copy change does not change the
+wallet subscription tax percentage, automatic-tax configuration or VAT policy.
