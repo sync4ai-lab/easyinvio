@@ -106,3 +106,25 @@ signed-in Owner/workspace and reuses the idempotent subscription event processor
 It scans at most 100 recent checkout events for up to three pending receipts.
 Normal signed Stripe webhooks remain required for ongoing invoice, cancellation
 and renewal updates in a deployed environment.
+
+
+Billing screens display UTC dates without times. Provider timestamps are retained
+for paid-period reconciliation and exact proration; an existing paid renewal
+anchor is not silently moved to midnight. Amounts and displayed remaining days
+use two decimal places, while calculations retain their exact precision.
+
+An existing subscription upgrade offers card or full-wallet payment. Wallet
+availability excludes reserved funds and is rechecked under lock at confirmation
+and settlement. The provider invoice total must match the authorized wallet total;
+tax changes require review without a new debit. A wallet-settled provider invoice
+is marked paid out of band, with an idempotent wallet debit and recurring-price
+update. Unknown provider outcomes require finance review, never a second charge.
+Future renewals retain their existing payment method. Initial recurring-plan
+activation continues to use secure card checkout.
+
+Owner-scoped processing of an already-authorized operation is available from
+billing confirmation/refresh, so local WEB mode does not need a general billing
+worker to prepare an upgrade invoice or observe its payment. It checks tenant and
+original actor, respects operation leases and never starts other shared workers.
+Annual refunds involving wallet-settled provider invoices require reconciliation
+of the original funding source; no card refund is inferred from a wallet debit.

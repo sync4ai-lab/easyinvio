@@ -14,13 +14,13 @@ os.environ.setdefault('PLAYWRIGHT_BROWSERS_PATH',str(ROOT/'.playwright'))
 async def main():
     out=ROOT/'output/subscription-qa';out.mkdir(parents=True,exist_ok=True)
     errors=[];requests=[];commands=[];gate=asyncio.Event();gate.set();can_manage=True;enabled=False;statement_failure=False;review_failure=False;current_plan='VELOCITY';unbounded=False;ignore_dates=False;prices_ready=True
-    registered='2026-07-15T10:00:00Z'
+    registered='2026-07-15T10:00:00Z';card_flow=False;invoice_pending=False
     plans=document([{'plan':p.value,'annual_fee_gbp':cycle_price(p,'ANNUAL'),**capabilities(p).model_dump()} for p in Plan])
     snapshot={'id':'00000000-0000-4000-8000-000000000003','statement_number':'EI-DEMO','period_start':'2026-10-01','period_end':'2026-11-01','currency':'GBP','opening_balance':'100.00','closing_balance':'88.00','total_topups':'0.00','subscription_net':'0.00','shipping_net':'10.00','refunds_net':'0.00','tax_total':'2.00','gross_total':'12.00','tax_complete':True,'transactions':[{'occurred_at':'2026-10-15T12:00:00Z','type':'SHIPPING','reference':'<script>bad()</script>','carrier':'Synthetic Carrier','net_amount':'10.00','tax_amount':'2.00','gross_amount':'12.00','running_wallet_balance':'88.00'}],'notice':'Synthetic statement for testing.'}
     async with async_playwright() as p:
         browser=await p.chromium.launch(channel='msedge');page=await browser.new_page(viewport={'width':1440,'height':1100});page.on('pageerror',lambda e:errors.append(str(e)))
         async def handler(route):
-            nonlocal current_plan
+            nonlocal current_plan,invoice_pending
             path=urlsplit(route.request.url).path
             if urlsplit(route.request.url).hostname!='billing.test':return await route.abort()
             if path=='/workspace':return await route.fulfill(body=(ROOT/'index.html').read_text(encoding='utf-8'),content_type='text/html')
@@ -42,10 +42,10 @@ async def main():
                 elif path=='/api/v1/billing/capabilities':data={'statements_enabled':enabled,'subscription_changes_enabled':can_manage,'message':'Billing statements are not enabled for this deployment.'}
                 elif statement_failure and path.startswith('/api/v1/billing/statements'):
                     return await route.fulfill(status=503,json={'detail':{'code':'TEST_UNAVAILABLE','message':'Statement service temporarily unavailable. Please retry.'}})
-                elif path=='/api/v1/billing/subscription':
+                elif path=='/api/v1/billing/subscription' or (path.endswith('/process') and path.startswith('/api/v1/billing/subscription/')):
                     await gate.wait();rank=['STARTER','VELOCITY','COMMAND'].index(current_plan)
                     management={'reason':'This is complimentary access with no paid renewal to cancel.' if unbounded else None,'upgrade_targets':['STARTER','VELOCITY','COMMAND'][rank+1:] if not unbounded else [],'downgrade_targets':['STARTER','VELOCITY','COMMAND'][:rank] if not unbounded else [],'can_cancel':not unbounded and rank>0,'activation_targets':['VELOCITY','COMMAND'] if unbounded else []}
-                    data={'registered_at':registered,'activation_checkout_available':{'VELOCITY':prices_ready,'COMMAND':prices_ready},'is_sandbox':unbounded,'can_manage':can_manage,'management':management,'plans':plans,'subscription':{'subscription_plan':current_plan,'billing_cycle':'ANNUAL','plan_status':'ACTIVE','subscription_complimentary':unbounded,'plan_period_start':'2026-11-09T00:00:00Z','plan_period_end':None if unbounded else '2027-11-09T00:00:00Z','stripe_subscription_id':None if unbounded else 'sub_synthetic'},'operations':[],'usage':{'parcels':48}}
+                    data={'registered_at':registered,'activation_checkout_available':{'VELOCITY':prices_ready,'COMMAND':prices_ready},'is_sandbox':unbounded,'can_manage':can_manage,'management':management,'plans':plans,'subscription':{'subscription_plan':current_plan,'billing_cycle':'ANNUAL','plan_status':'ACTIVE','subscription_complimentary':unbounded,'plan_period_start':'2026-11-09T00:00:00Z','plan_period_end':None if unbounded else '2027-11-09T00:00:00Z','stripe_subscription_id':None if unbounded else 'sub_synthetic'},'operations':([{'id':'change-demo','action':'UPGRADE','state':'PROVIDER_PENDING','provider_url':'https://invoice.stripe.com/i/synthetic','funding':'STRIPE'}] if invoice_pending else []),'wallet':{'currency':'GBP','available':'100.00'},'usage':{'parcels':48}}
                 elif path=='/api/v1/billing/subscription/reconcile':
                     assert route.request.method=='POST' and not route.request.post_data
                     data={'reconciled':False}
@@ -55,8 +55,10 @@ async def main():
                     body=route.request.post_data_json;commands.append((path,body))
                     if review_failure:return await route.fulfill(status=409,json={'detail':'The agreement requires reconciliation. No charge was made.'})
                     action='UPGRADE' if path.endswith('/upgrade') else 'DOWNGRADE'
-                    data={'id':'change-demo','state':('APPLIED' if action=='UPGRADE' else 'SCHEDULED') if body.get('confirm') else 'PREVIEW','source_plan':current_plan,'target_plan':body['target_plan'],'effective_at':'2027-11-09T00:00:00Z','amount':'40.00' if action=='UPGRADE' else '0.00','payload_sha256':'b'*64,'payload':{'breakdown':{'remaining_days':'24','total_days':'30','prorated_amount':'40.00'} if action=='UPGRADE' else {'next_period_price':'240.00'}}}
-                    if action=='UPGRADE' and body.get('confirm'):current_plan=body['target_plan']
+                    data={'id':'change-demo','state':('APPLIED' if action=='UPGRADE' else 'SCHEDULED') if body.get('confirm') else 'PREVIEW','source_plan':current_plan,'target_plan':body['target_plan'],'effective_at':'2027-11-09T00:00:00Z','amount':'40.00' if action=='UPGRADE' else '0.00','payload_sha256':'b'*64,'payload':{'breakdown':{'remaining_days':'29.990798611111111111111111111','total_days':'30','prorated_amount':'40.00'} if action=='UPGRADE' else {'next_period_price':'240.00'}}}
+                    if action=='UPGRADE' and body.get('confirm'):
+                        if card_flow:invoice_pending=True;data['state']='AUTHORIZED'
+                        else:current_plan=body['target_plan']
                 elif path=='/api/v1/billing/statements' and route.request.method=='GET':data={'statements':[snapshot]}
                 elif path=='/api/v1/billing/statements/monthly':
                     body=route.request.post_data_json;assert body=={'year':2026,'month':9,'currency':'GBP'};data={**snapshot,'period_start':'2026-09-01T00:00:00Z','period_end':'2026-10-01T00:00:00Z','display_reference':'EI-01092026-30092026'}
@@ -104,9 +106,38 @@ async def main():
         review_failure=False
         await page.locator('#billing-plan-review').click();await expect(page.locator('#billing-quote')).to_contain_text('40.00')
         assert not any(body.get('confirm') for _,body in commands)
+        await expect(page.locator('#billing-payment-options')).to_be_visible()
+        await expect(page.locator('#billing-quote')).to_contain_text('29.99 days remain')
+        await expect(page.locator('#billing-quote')).not_to_contain_text('Stripe')
+        await expect(page.locator('#billing-quote')).not_to_contain_text('111111')
+        await expect(page.locator('#billing-agreement')).not_to_contain_text('00:00:00')
+        await page.locator('[name="billing-funding"][value="WALLET"]').check()
+        await expect(page.locator('#billing-confirm')).to_be_hidden()
+        await page.locator('#billing-plan-review').click()
+        assert commands[-1][1]['funding']=='WALLET' and not commands[-1][1].get('confirm')
+        await expect(page.locator('#billing-confirm')).to_contain_text('pay from wallet')
+        await page.locator('#billing-change').screenshot(path=str(out/'upgrade-wallet.png'))
+        await page.set_viewport_size({'width':390,'height':900})
+        await page.locator('#billing-change').screenshot(path=str(out/'upgrade-wallet-mobile.png'))
+        assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+        await page.set_viewport_size({'width':1440,'height':1100})
         await page.locator('#billing-confirm').click();await expect(page.locator('#billing-status')).to_contain_text('Upgrade applied')
         await expect(page.locator('#finance-plan strong')).to_have_text('Command')
         await expect(page.locator('#billing-agreement')).to_contain_text('Current plan: Command')
+        # Card confirmation prepares an actionable invoice; access stays unchanged.
+        current_plan='VELOCITY';card_flow=True
+        await page.locator('#billing-refresh').click()
+        await page.locator('#billing-target').select_option('COMMAND')
+        await page.locator('[name="billing-funding"][value="STRIPE"]').check()
+        await page.locator('#billing-plan-review').click();await page.locator('#billing-confirm').click()
+        await expect(page.locator('#billing-quote a')).to_have_text('Pay by card')
+        await page.locator('#billing-change').screenshot(path=str(out/'upgrade-card-invoice.png'))
+        await expect(page.locator('#finance-plan strong')).to_have_text('Velocity')
+        await expect(page.locator('#billing-quote')).not_to_contain_text('Stripe')
+        invoice_pending=False;card_flow=False;current_plan='COMMAND'
+        await page.locator('#billing-refresh').click()
+        await expect(page.locator('#finance-plan strong')).to_have_text('Command')
+
         await page.locator('#billing-refresh').click();await page.locator('#billing-target').select_option('VELOCITY')
         await expect(page.locator('#billing-plan-review')).to_have_text('Review downgrade to Velocity')
         await page.locator('#billing-plan-review').click();assert commands[-1][0].endswith('/downgrade')

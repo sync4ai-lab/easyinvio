@@ -51,6 +51,15 @@ def build_router(authenticate):
     async def reconcile(request:Request,context=Depends(authenticate)):
         from backend.subscription_billing import reconcile_checkout
         return await reconcile_checkout(request,context)
+    @router.post('/subscription/{operation_id}/process')
+    async def process_operation(operation_id:UUID,request:Request,context=Depends(authenticate)):
+        from backend.subscription_lifecycle import owner
+        owner(context);service=request.app.state.subscription_lifecycle;service.ready()
+        async with service.pool.acquire() as c:
+            found=await c.fetchval('SELECT id FROM public.subscription_operations WHERE id=$1 AND tenant_id=$2 AND actor_auth_user_id=$3',operation_id,context.tenant_id,context.user_id)
+        if not found:raise HTTPException(404,'Plan change not found')
+        await service.execute(found)
+        return await service.status(context)
     @router.post('/subscription/upgrade')
     async def upgrade(body:ChangeRequest,request:Request,context=Depends(authenticate)):
         return await change(request,context,'UPGRADE',body)

@@ -93,11 +93,12 @@ class SubscriptionLifecycle:
              plan_version,subscription_complimentary,pending_plan,pending_billing_cycle,pending_plan_effective_at,
              cancellation_requested_at,cancellation_effective_at,final_notice_prorated_amount,final_notice_billed
              FROM public.tenants WHERE tenant_id=$1''',context.tenant_id)
-            operations=await c.fetch('''SELECT id,action,state,amount,currency,effective_at,provider_url,error_code,created_at
+            operations=await c.fetch('''SELECT id,action,state,amount,currency,effective_at,provider_url,error_code,created_at,funding
              FROM public.subscription_operations WHERE tenant_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20''',context.tenant_id)
+            wallet=await c.fetchrow('SELECT currency,balance-reserved_balance AS available FROM public.wallets WHERE tenant_id=$1',context.tenant_id)
             usage=await c.fetchval('SELECT parcels FROM public.v_tenant_monthly_usage WHERE tenant_id=$1',context.tenant_id) or 0
         if not tenant:raise HTTPException(404,'Workspace not found')
-        return document({'registered_at':tenant['registered_at'],'effective_plan':sub.effective().value,'usage':{'parcels':int(usage)},'subscription':dict(tenant),'operations':[dict(x) for x in operations],
+        return document({'wallet':document(dict(wallet)) if wallet else None,'registered_at':tenant['registered_at'],'effective_plan':sub.effective().value,'usage':{'parcels':int(usage)},'subscription':dict(tenant),'operations':[dict(x) for x in operations],
             'can_manage':bool(getattr(self.settings,'billing_lifecycle_enabled',False)) and context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
             'is_sandbox':sub.is_sandbox,'management':management_options(sub,self.settings,context),
             'activation_checkout_available':{p.value:bool(getattr(self.settings,'stripe_enabled',False) and getattr(self.settings,'subscription_price_ids',{}).get(p.value+':'+sub.billing_cycle)) for p in Plan if p!=Plan.STARTER},
@@ -126,6 +127,11 @@ class SubscriptionLifecycle:
                         raise HTTPException(409,'The commercial preview changed or expired. Request a fresh preview.')
                     if tenant['pending_plan'] or tenant['cancellation_requested_at']:
                         raise HTTPException(409,'An existing scheduled change must be resolved first')
+                    if await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.subscription_operations WHERE tenant_id=$1 AND id<>$2 AND state IN ('AUTHORIZED','PROVIDER_PENDING','PAID','REVIEW'))",context.tenant_id,op['id']):
+                        raise HTTPException(409,'An earlier plan change is awaiting payment or review. Resume it before confirming another.')
+                    if body.funding=='WALLET' and action=='UPGRADE' and sub.stripe_subscription_id:
+                        available=await c.fetchval("SELECT balance-reserved_balance FROM public.wallets WHERE tenant_id=$1 AND currency='GBP' FOR UPDATE",context.tenant_id)
+                        if available is None or money(available)<money(op['amount']):raise HTTPException(402,'The wallet must cover the full upgrade amount. Choose card payment or top up, then review again.')
                     await c.execute("UPDATE public.subscription_operations SET state='AUTHORIZED',updated_at=now() WHERE id=$1",op['id'])
                     op={**dict(op),'state':'AUTHORIZED'};await self.event(c,op,'AUTHORIZED');execute=True
                 else:
@@ -135,8 +141,10 @@ class SubscriptionLifecycle:
                     statuses={'ACTIVE','TRIALING','PAST_DUE'} if action=='CANCEL' else {'ACTIVE','TRIALING'}
                     if sub.plan_status not in statuses or sub.plan_period_end is None or sub.plan_period_end<=now:
                         raise HTTPException(409,'A current, bounded subscription period is required. Activate or reconcile your subscription first.')
-                    if sub.stripe_subscription_id and body.funding!='STRIPE':raise HTTPException(409,'A Stripe subscription must be changed through its Stripe agreement')
+                    if sub.stripe_subscription_id and body.funding!='STRIPE' and action!='UPGRADE':raise HTTPException(409,'Use the existing billing agreement for cancellation and downgrade changes')
                     if not sub.stripe_subscription_id and body.funding=='STRIPE':raise HTTPException(409,'Activate a Stripe subscription first, or explicitly select your wallet for a wallet-funded agreement')
+                    if await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.subscription_operations WHERE tenant_id=$1 AND state IN ('AUTHORIZED','PROVIDER_PENDING','PAID','REVIEW'))",context.tenant_id):
+                        raise HTTPException(409,'An earlier plan change is awaiting payment or review. Resume it from your billing details before starting another.')
                     target=body.target_plan or Plan.STARTER;effective=now;amount=Decimal(0)
                     if action=='UPGRADE':
                         if body.target_plan is None:raise HTTPException(422,'Choose an upgrade tier')
@@ -216,7 +224,7 @@ class SubscriptionLifecycle:
                      sub.plan_version,amount+tax,body.funding,effective,now,min(now+timedelta(minutes=10),sub.plan_period_end),canonical,digest)
                     await self.event(c,op,'PREVIEWED')
         # The HTTP process never waits on a multi-call provider workflow.
-        if execute and op['funding']!='STRIPE':
+        if execute and op['funding']!='STRIPE' and not decoded(op['payload']).get('subscription_id'):
             try:await self.execute(op['id'])
             except HTTPException as exc:
                 async with self.pool.acquire() as c:await c.execute("UPDATE public.subscription_operations SET state='FAILED',error_code='WALLET_PAYMENT_FAILED' WHERE id=$1 AND state='AUTHORIZED'",op['id'])
@@ -293,7 +301,7 @@ class SubscriptionLifecycle:
                     await c.execute("UPDATE public.subscription_operations SET state='REVIEW',error_code='RENEWAL_SETTLEMENT_LATE' WHERE id=$1",operation_id);return
                 if op['action']=='UPGRADE' and sub.plan_version!=op['plan_version'] and sub.subscription_plan.value!=op['target_plan']:
                     await c.execute("UPDATE public.subscription_operations SET state='REVIEW',error_code='PLAN_CHANGED' WHERE id=$1",operation_id);return
-                if op['funding'] in {'WALLET','NONE'}:
+                if op['funding'] in {'WALLET','NONE'} and not decoded(op['payload']).get('subscription_id'):
                     if op['action'] not in {'CANCEL','DOWNGRADE'}:await self.debit_wallet(c,op)
                     await self.apply(c,op);return
                 if op['state']=='AUTHORIZED':
@@ -351,6 +359,21 @@ class SubscriptionLifecycle:
             if invoice.get('total_excluding_tax')!=int(money(payload['net_amount'])*100):raise HTTPException(409,'Invoice net amount differs from authorized terms')
             if invoice.get('status')=='paid' and (invoice.get('amount_paid')!=invoice.get('total') or invoice.get('amount_remaining')!=0):
                 raise HTTPException(409,'Invoice payment requires reconciliation')
+            if op['funding']=='WALLET':
+                if invoice.get('status')=='paid' and money(op['amount'])>0 and not invoice.get('paid_out_of_band'):
+                    raise HTTPException(409,'This invoice was settled through another payment method. No wallet debit was made.')
+                if invoice.get('total')!=int(money(op['amount'])*100):
+                    raise HTTPException(409,'Invoice tax or total differs from the wallet amount reviewed. No new wallet debit was made.')
+                async with self.pool.acquire() as c:
+                    async with c.transaction():
+                        await read_subscription(c,op['tenant_id'],lock=True)
+                        await self.debit_wallet(c,op)
+                if invoice.get('status')!='paid':
+                    invoice=as_dict(await client.v1.invoices.pay_async(invoice['id'],{'paid_out_of_band':True},
+                        options={'idempotency_key':'ei-wallet-paid:'+str(op['id'])}))
+                if (invoice.get('status')!='paid' or invoice.get('amount_remaining')!=0
+                        or invoice.get('amount_paid')!=invoice.get('total') or (money(op['amount'])>0 and not invoice.get('paid_out_of_band'))):
+                    raise HTTPException(409,'Wallet settlement requires reconciliation before changing access')
             if invoice.get('status')!='paid':
                 async with self.pool.acquire() as c:await c.execute('UPDATE public.subscription_operations SET provider_url=$2,lease_until=now()+interval \'20 seconds\' WHERE id=$1',op['id'],invoice.get('hosted_invoice_url'))
                 return

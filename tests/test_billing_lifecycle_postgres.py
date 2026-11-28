@@ -233,8 +233,11 @@ async def test_annual_cancellation_original_card_refund_and_replay(world,monkeyp
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('tamper',[False,True])
-async def test_stripe_upgrade_requires_matching_paid_invoice_before_access(world,tamper):
+@pytest.mark.parametrize('funding',['STRIPE','WALLET','WALLET_ZERO'])
+async def test_stripe_upgrade_requires_matching_paid_invoice_before_access(world,tamper,funding):
+    zero=funding=='WALLET_ZERO';funding='WALLET' if zero else funding
     w=world;sub=await read_subscription(w.db,w.t)
+    if zero:await w.db.execute('UPDATE public.tenants SET subscription_complimentary=true WHERE tenant_id=$1',w.t)
     await w.db.execute("UPDATE public.tenants SET stripe_subscription_id='sub_test',stripe_customer_id='cus_test',is_sandbox=true WHERE tenant_id=$1",w.t)
     def price(name,amount):return {'id':name,'active':True,'livemode':False,'currency':'gbp','unit_amount':amount,'recurring':{'interval':'month','interval_count':1},'billing_scheme':'per_unit'}
     old,new=price('price_velocity',2500),price('price_command',7500)
@@ -245,13 +248,31 @@ async def test_stripe_upgrade_requires_matching_paid_invoice_before_access(world
     async def update_sub(*args,**kwargs):calls.append('update');subscription['items']['data'][0]['price']=new;return subscription
     async def create(params,**kwargs):invoice.update(id='in_change',status='draft',customer='cus_test',currency='gbp',livemode=False,metadata=params['metadata']);return dict(invoice)
     async def item(params,**kwargs):invoice.update(subtotal=params['amount'],total=params['amount'],total_excluding_tax=params['amount']);return {'id':'ii_test'}
-    async def finalize(*args,**kwargs):invoice.update(status='open',hosted_invoice_url='https://invoice.stripe.com/i/test');return dict(invoice)
+    async def finalize(*args,**kwargs):
+        invoice.update(status='paid' if zero else 'open',hosted_invoice_url='https://invoice.stripe.com/i/test')
+        if zero:invoice.update(amount_paid=0,amount_remaining=0,paid_out_of_band=False)
+        return dict(invoice)
     async def get_invoice(*args,**kwargs):return dict(invoice)
+    async def pay(invoice_id,params,**kwargs):
+        assert params=={'paid_out_of_band':True};calls.append('wallet-paid');invoice.update(status='paid',paid_out_of_band=True,amount_paid=invoice['total'],amount_remaining=0);return dict(invoice)
     w.settings.stripe_enabled=True;w.settings.subscription_price_ids={'VELOCITY:MONTHLY':'price_velocity','COMMAND:MONTHLY':'price_command'}
-    w.service.finance.stripe=NS(v1=NS(subscriptions=NS(retrieve_async=retrieve_sub,update_async=update_sub),prices=NS(retrieve_async=get_price),invoices=NS(create_async=create,finalize_invoice_async=finalize,retrieve_async=get_invoice),invoice_items=NS(create_async=item)))
-    body=ChangeRequest(request_id=uuid4(),target_plan='COMMAND',funding='STRIPE');q=await w.service.command(w.context,'UPGRADE',body)
+    w.service.finance.stripe=NS(v1=NS(subscriptions=NS(retrieve_async=retrieve_sub,update_async=update_sub),prices=NS(retrieve_async=get_price),invoices=NS(create_async=create,finalize_invoice_async=finalize,retrieve_async=get_invoice,pay_async=pay),invoice_items=NS(create_async=item)))
+    body=ChangeRequest(request_id=uuid4(),target_plan='COMMAND',funding=funding);q=await w.service.command(w.context,'UPGRADE',body)
     result=await w.service.command(w.context,'UPGRADE',body.model_copy(update={'confirm':True,'quote_sha256':q['payload_sha256']}));opid=UUID(result['id'])
+    if funding=='WALLET' and tamper:
+        # Tax changes after authorization must not debit the wallet.
+        original_finalize=finalize
+        async def changed_tax(*args,**kwargs):
+            result=await original_finalize(*args,**kwargs);invoice['total']+=1;return dict(invoice)
+        w.service.finance.stripe.v1.invoices.finalize_invoice_async=changed_tax
     await w.service.execute(opid)
+    if funding=='WALLET':
+        assert (await read_subscription(w.db,w.t)).subscription_plan==('VELOCITY' if tamper else 'COMMAND')
+        assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==(0 if tamper or zero else 1)
+        assert calls==([] if tamper else ['update'] if zero else ['wallet-paid','update'])
+        await w.service.execute(opid)
+        assert await w.db.fetchval('SELECT count(*) FROM public.wallet_ledger')==(0 if tamper or zero else 1)
+        return
     assert (await read_subscription(w.db,w.t)).subscription_plan=='VELOCITY' and not calls
     invoice.update(status='paid',amount_paid=invoice['total'],amount_remaining=0)
     if tamper:invoice['subtotal']+=1

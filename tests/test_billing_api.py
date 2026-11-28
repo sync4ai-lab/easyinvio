@@ -99,3 +99,27 @@ def test_month_picker_uses_calendar_bounds_and_never_saves_custom_dates(monkeypa
             assert (seen[-1][1]-seen[-1][0]).days==days
         assert client.post('/api/v1/billing/statements/monthly',json={'year':2026,'month':13},headers={'X-Role':'OWNER'}).status_code==422
         assert client.post('/api/v1/billing/statements/monthly',json={'year':2026,'month':1}).status_code==403
+
+
+
+def test_processing_authorized_plan_change_is_owner_and_actor_scoped():
+    from contextlib import asynccontextmanager
+    from uuid import UUID
+    api=app();calls=[];op=uuid4()
+    class C:
+        async def fetchval(self,sql,*args):
+            assert 'tenant_id=$2' in sql and 'actor_auth_user_id=$3' in sql
+            assert all(isinstance(arg,UUID) for arg in args)
+            return op if args[0]==op else None
+    class Pool:
+        @asynccontextmanager
+        async def acquire(self):yield C()
+    service=api.state.subscription_lifecycle;service.pool=Pool();service.ready=lambda:None
+    async def execute(operation):calls.append(operation)
+    service.execute=execute
+    with TestClient(api) as client:
+        for role in ['DISPATCHER','ADMIN','ACCOUNTANT']:
+            assert client.post(f'/api/v1/billing/subscription/{op}/process',headers={'X-Role':role}).status_code==403
+        assert client.post(f'/api/v1/billing/subscription/{uuid4()}/process',headers={'X-Role':'OWNER'}).status_code==404
+        assert client.post(f'/api/v1/billing/subscription/{op}/process',headers={'X-Role':'OWNER'}).status_code==200
+        assert calls==[op]

@@ -3,11 +3,12 @@
  'use strict';
  const h=v=>escapeHTML(v??''),$=s=>document.querySelector(s);
  const cash=(v,c='GBP')=>v==null?'Not recorded':new Intl.NumberFormat('en-GB',{style:'currency',currency:c}).format(Number(v));
- const utc=v=>v?new Date(v).toISOString().replace('T',' ').replace('.000Z',' UTC'):'Not recorded';
+ const utc=v=>v?new Date(v).toLocaleDateString('en-GB',{timeZone:'UTC'}):'Not recorded';
  const table=(label,heads,rows)=>`<div class="finance-scroll" tabindex="0" role="region" aria-label="${h(label)}"><table class="finance-table"><thead><tr>${heads.map(x=>`<th scope="col">${h(x)}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.join(''):`<tr><td colspan="${heads.length}">No recorded activity in this section.</td></tr>`}</tbody></table></div>`;
  const cells=values=>'<tr>'+values.map(v=>'<td>'+v+'</td>').join('')+'</tr>';
  const typeName=t=>({TOPUP:'TOP-UP',CAPTURE:'LABEL CHARGE',SHIPMENT_REFUND:'REFUND',SUBSCRIPTION_DEBIT:'SUBSCRIPTION',RESERVE:'HOLD',RELEASE:'HOLD RELEASE',REFUND_DEBIT:'TOP-UP REVERSAL'}[t]||'ADJUSTMENT');
  const wallet=$('#wallet');if(!wallet)return;
+ const paymentStyle=document.createElement('style');paymentStyle.textContent='#billing-payment-options{border:1px solid var(--border,#334155);border-radius:12px;padding:16px;margin:16px 0}#billing-payment-options label{display:flex;align-items:center;gap:10px;margin:12px 0;flex-wrap:wrap}#billing-payment-options input{width:auto;min-height:0;margin:0}';document.head.append(paymentStyle);
  let ledgerRequest=0;let ledgerEntries=[];let epoch=0,key='',loading=false,cursor=null,previous=[],category='ALL',holds=false,latest=null;
  const sessions=new WeakMap();let sequence=0;
  const identity=()=>{if(state.session&&!sessions.has(state.session))sessions.set(state.session,++sequence);return state.session&&portal.profile?.tenant_id&&['OWNER','ADMIN','ACCOUNTANT'].includes(portal.profile.workspace_role)?JSON.stringify([portal.profile.tenant_id,portal.profile.workspace_role,state.assistance?.session_id,sessions.get(state.session),state.session.user?.id]):'';};
