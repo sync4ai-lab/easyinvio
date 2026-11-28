@@ -92,3 +92,17 @@ subscription or payment was created during setup. Launch requires the equivalent
 live prices and matching live payment/webhook configuration; hiding environment
 labels in the UI does not switch payment mode. Restart the local backend after
 environment updates.
+
+
+Subscription checkout redirects use the configured payment success/cancel origins,
+independently of public booking links. The local launcher returns the browser to
+127.0.0.1; HTTP loopback is accepted only for Stripe test mode. Existing Stripe
+Checkout sessions retain their original return URLs.
+
+Owner billing refresh can reconcile a missed initial checkout callback using
+real paid checkout events fetched with the server's Stripe credentials. Recovery
+accepts no client-provided payment status or session ID, scopes receipts to the
+signed-in Owner/workspace and reuses the idempotent subscription event processor.
+It scans at most 100 recent checkout events for up to three pending receipts.
+Normal signed Stripe webhooks remain required for ongoing invoice, cancellation
+and renewal updates in a deployed environment.

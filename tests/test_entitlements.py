@@ -162,3 +162,62 @@ def test_starter_does_not_unlock_paid_provider_workflows(feature):
     with pytest.raises(HTTPException) as error:
         require_subscription_feature(subscription('STARTER'),feature)
     assert error.value.status_code==402
+
+
+@pytest.mark.parametrize('origin',['http://127.0.0.1:8000','http://localhost:8000','http://[::1]:8000','https://uat.easyinvio.com'])
+def test_subscription_return_uses_payment_configuration_not_booking_tunnel(origin):
+    from backend.subscription_billing import return_origin
+    settings=NS(checkout_success_url=origin+'/workspace?payment=success',
+        checkout_cancel_url=origin+'/workspace?payment=cancel',
+        booking_page_url='https://offline.ngrok-free.dev',stripe_livemode=False)
+    assert return_origin(settings)==origin
+    assert return_origin(settings,cancelled=True)==origin
+
+
+@pytest.mark.parametrize('origin,live',[
+    ('http://127.0.0.1:8000',True),('http://public.example',False),
+    ('https://user:password@example.com',False),('https://example.com/#fragment',False),
+    ('javascript:alert(1)',False),('http://localhost.evil.example',False)])
+def test_subscription_return_rejects_unsafe_or_live_http(origin,live):
+    from backend.subscription_billing import return_origin
+    with pytest.raises(HTTPException):
+        return_origin(NS(checkout_success_url=origin,booking_page_url='https://example.com',stripe_livemode=live))
+
+
+def test_subscription_return_preserves_existing_hosted_configuration():
+    from backend.subscription_billing import return_origin
+    assert return_origin(NS(booking_page_url='https://easyinvio.com',stripe_livemode=True))=='https://easyinvio.com'
+
+
+@pytest.mark.parametrize('role,assistance',[('ADMIN',None),('ACCOUNTANT',None),('DISPATCHER',None),('OWNER','assisted')])
+def test_checkout_recovery_requires_unassisted_owner(role,assistance):
+    from backend.subscription_billing import reconcile_checkout
+    async def run():
+        with pytest.raises(HTTPException) as e:
+            await reconcile_checkout(None,NS(role=role,assistance_session_id=assistance))
+        assert e.value.status_code==403
+    asyncio.run(run())
+
+
+def test_checkout_recovery_uses_only_own_receipts_and_paid_matching_stripe_events(monkeypatch):
+    import backend.subscription_billing as billing
+    tenant,user,receipt=uuid4(),uuid4(),uuid4();seen=[]
+    class C:
+        async def fetch(self,sql,*args):
+            assert args==(tenant,user) and "state='READY'" in sql
+            return [{'id':receipt,'stripe_session_id':'cs_owned','created_at':datetime.now(timezone.utc)}]
+    class Pool:
+        @asynccontextmanager
+        async def acquire(self):yield C()
+    def event(**changes):
+        obj={'id':'cs_owned','client_reference_id':str(receipt),'livemode':False,'mode':'subscription','payment_status':'paid',**changes}
+        return {'livemode':False,'data':{'object':obj}}
+    async def events(params):
+        assert params['limit']==100 and 'created' in params
+        return {'data':[event(id='cs_foreign'),event(payment_status='unpaid'),event(livemode=True),event(client_reference_id=str(uuid4())),event()]}
+    async def receive(request,data):seen.append(data)
+    monkeypatch.setattr(billing,'receive_verified_event',receive)
+    request=NS(app=NS(state=NS(settings=NS(subscription_tiers_enabled=True,stripe_enabled=True,stripe_livemode=False),
+        finance=NS(pool=Pool(),stripe=NS(v1=NS(events=NS(list_async=events)))))))
+    result=asyncio.run(billing.reconcile_checkout(request,NS(role='OWNER',assistance_session_id=None,tenant_id=tenant,user_id=user)))
+    assert result=={'reconciled':True} and len(seen)==1

@@ -1,6 +1,6 @@
 """Stripe recurring software billing, isolated from prepaid postage wallets.
 
-Only main.stripe_webhook calls receive_verified_event after signature/mode checks.
+Events enter through signed webhooks or authenticated Stripe API recovery.
 Provider GET observations, not query strings or redirects, determine access.
 """
 from __future__ import annotations
@@ -52,9 +52,16 @@ def provider_plan(subscription,settings):
     if type(start) is not int or type(end) is not int or start>=end:raise HTTPException(409,'Subscription period requires review')
     return plan,cycle,datetime.fromtimestamp(start,timezone.utc),datetime.fromtimestamp(end,timezone.utc)
 
-def return_origin(settings):
-    url=urlsplit(settings.booking_page_url)
-    if url.username or url.password or url.scheme!='https' or not url.netloc:raise HTTPException(503,'Configure the HTTPS workspace URL before enabling subscription checkout')
+def return_origin(settings, *, cancelled=False):
+    # Redirects use server-configured payment URLs, independently of public
+    # booking links and webhook endpoints. Never trust request Host/Origin.
+    configured=getattr(settings,'checkout_cancel_url' if cancelled else 'checkout_success_url','')
+    url=urlsplit(configured or settings.booking_page_url)
+    local=(url.scheme=='http' and url.hostname in {'localhost','127.0.0.1','::1'}
+        and not getattr(settings,'stripe_livemode',False))
+    if (url.username or url.password or not url.hostname or url.fragment
+            or (url.scheme!='https' and not local)):
+        raise HTTPException(503,'Configure a fixed HTTPS payment return URL, or loopback HTTP for local test payments')
     return url.scheme+'://'+url.netloc
 
 async def checkout(request,context,body:SubscriptionCheckout):
@@ -63,7 +70,7 @@ async def checkout(request,context,body:SubscriptionCheckout):
     if not enabled(settings) or not settings.stripe_enabled or finance.stripe is None:raise HTTPException(503,'Subscription checkout is not enabled')
     price_id=settings.subscription_price_ids.get(body.plan+':'+body.cycle)
     if not price_id or not price_id.startswith('price_'):raise HTTPException(503,'Configure a Stripe recurring Price for this plan and billing cycle')
-    base=return_origin(settings)
+    base=return_origin(settings);cancel_base=return_origin(settings,cancelled=True)
     # Validate server-configured prices before a durable checkout can be submitted.
     try:price=as_dict(await finance.stripe.v1.prices.retrieve_async(price_id))
     except stripe.StripeError:raise HTTPException(503,'Stripe Price validation is temporarily unavailable') from None
@@ -97,7 +104,7 @@ async def checkout(request,context,body:SubscriptionCheckout):
             await c.execute("INSERT INTO public.subscription_checkout_receipts(id,tenant_id,auth_user_id,plan,cycle,price_id,state) VALUES($1,$2,$3,$4,$5,$6,'CREATING')",body.request_id,context.tenant_id,context.user_id,body.plan,body.cycle,price_id)
     params={'mode':'subscription','line_items':[{'price':price_id,'quantity':1}],
         'client_reference_id':str(body.request_id),'metadata':{'purpose':'software_subscription'},
-        'success_url':base+'/workspace?subscription=processing','cancel_url':base+'/workspace?subscription=cancelled'}
+        'success_url':base+'/workspace?subscription=processing','cancel_url':cancel_base+'/workspace?subscription=cancelled'}
     if tenant['stripe_customer_id']:params['customer']=tenant['stripe_customer_id']
     else:params['customer_email']=tenant['billing_email']
     try:
@@ -110,6 +117,40 @@ async def checkout(request,context,body:SubscriptionCheckout):
     async with finance.pool.acquire() as c:
         await c.execute("UPDATE public.subscription_checkout_receipts SET state='READY',stripe_session_id=$2,checkout_url=$3,updated_at=now() WHERE id=$1 AND state='CREATING'",body.request_id,session['id'],session['url'])
     return {'checkout_url':session['url'],'request_id':str(body.request_id)}
+
+async def reconcile_checkout(request,context):
+    """Recover this Owner's paid checkout using real events fetched from Stripe.
+
+    No browser-supplied session, status or plan is accepted. Webhooks remain the
+    normal delivery path; this bounded recovery covers missed local callbacks.
+    """
+    if context.role!='OWNER' or getattr(context,'assistance_session_id',None):
+        raise HTTPException(403,'The customer workspace Owner must reconcile subscription checkout')
+    settings=request.app.state.settings;finance=request.app.state.finance
+    if not enabled(settings) or not settings.stripe_enabled or finance.stripe is None:
+        raise HTTPException(503,'Subscription checkout is not enabled')
+    async with finance.pool.acquire() as c:
+        rows=await c.fetch("""SELECT id,stripe_session_id,created_at FROM public.subscription_checkout_receipts
+            WHERE tenant_id=$1 AND auth_user_id=$2 AND state='READY'
+            AND created_at>now()-interval '30 days' ORDER BY created_at DESC LIMIT 3""",context.tenant_id,context.user_id)
+    if not rows:return {'reconciled':False}
+    ids={str(row['id']):row['stripe_session_id'] for row in rows}
+    try:
+        result=as_dict(await finance.stripe.v1.events.list_async({
+            'types':['checkout.session.completed','checkout.session.async_payment_succeeded'],
+            'created':{'gte':int(min(row['created_at'] for row in rows).timestamp())-60},'limit':100}))
+    except stripe.StripeError:
+        raise HTTPException(503,'Payment confirmation is temporarily unavailable. Do not pay again; retry billing refresh.') from None
+    reconciled=False
+    for event in result.get('data',[]):
+        event=as_dict(event);obj=event.get('data',{}).get('object',{})
+        if (event.get('livemode') is not settings.stripe_livemode or obj.get('livemode') is not settings.stripe_livemode
+                or obj.get('mode')!='subscription' or obj.get('payment_status')!='paid'
+                or obj.get('client_reference_id') not in ids
+                or obj.get('id')!=ids.get(obj.get('client_reference_id'))):continue
+        await receive_verified_event(request,event);reconciled=True
+    return {'reconciled':reconciled}
+
 
 async def receive_verified_event(request,event):
     """Returns True for subscription events, False for unrelated wallet events."""

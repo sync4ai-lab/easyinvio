@@ -47,6 +47,10 @@ def build_router(authenticate):
     async def subscription(request:Request,context=Depends(authenticate)):
         if context.role not in FINANCE_ROLES:raise HTTPException(403,'Financial permission required')
         return await request.app.state.subscription_lifecycle.status(context)
+    @router.post('/subscription/reconcile')
+    async def reconcile(request:Request,context=Depends(authenticate)):
+        from backend.subscription_billing import reconcile_checkout
+        return await reconcile_checkout(request,context)
     @router.post('/subscription/upgrade')
     async def upgrade(body:ChangeRequest,request:Request,context=Depends(authenticate)):
         return await change(request,context,'UPGRADE',body)

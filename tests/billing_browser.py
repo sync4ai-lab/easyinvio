@@ -45,7 +45,10 @@ async def main():
                 elif path=='/api/v1/billing/subscription':
                     await gate.wait();rank=['STARTER','VELOCITY','COMMAND'].index(current_plan)
                     management={'reason':'This is complimentary access with no paid renewal to cancel.' if unbounded else None,'upgrade_targets':['STARTER','VELOCITY','COMMAND'][rank+1:] if not unbounded else [],'downgrade_targets':['STARTER','VELOCITY','COMMAND'][:rank] if not unbounded else [],'can_cancel':not unbounded and rank>0,'activation_targets':['VELOCITY','COMMAND'] if unbounded else []}
-                    data={'registered_at':registered,'activation_checkout_available':{'VELOCITY':prices_ready,'COMMAND':prices_ready},'is_sandbox':unbounded,'can_manage':can_manage,'management':management,'plans':plans,'subscription':{'subscription_plan':current_plan,'billing_cycle':'ANNUAL','plan_status':'ACTIVE','subscription_complimentary':unbounded,'plan_period_start':'2026-11-09T00:00:00Z','plan_period_end':None if unbounded else '2027-11-09T00:00:00Z','stripe_subscription_id':'sub_synthetic'},'operations':[],'usage':{'parcels':48}}
+                    data={'registered_at':registered,'activation_checkout_available':{'VELOCITY':prices_ready,'COMMAND':prices_ready},'is_sandbox':unbounded,'can_manage':can_manage,'management':management,'plans':plans,'subscription':{'subscription_plan':current_plan,'billing_cycle':'ANNUAL','plan_status':'ACTIVE','subscription_complimentary':unbounded,'plan_period_start':'2026-11-09T00:00:00Z','plan_period_end':None if unbounded else '2027-11-09T00:00:00Z','stripe_subscription_id':None if unbounded else 'sub_synthetic'},'operations':[],'usage':{'parcels':48}}
+                elif path=='/api/v1/billing/subscription/reconcile':
+                    assert route.request.method=='POST' and not route.request.post_data
+                    data={'reconciled':False}
                 elif path=='/api/v1/billing/subscription/cancel':
                     body=route.request.post_data_json;commands.append((path,body));data={'id':'operation-demo','state':'SCHEDULED' if body.get('confirm') else 'PREVIEW','source_plan':'VELOCITY','target_plan':'STARTER','effective_at':'2026-12-15T00:00:00Z','amount':'0.00','payload_sha256':'a'*64,'payload':{'breakdown':{'annual_clawback':{'usage_at_monthly_price':'5.00','notice_at_monthly_price':'24.84','verified_annual_prepaid_net':'240.00','net_refund':'210.16','additional_balance_for_review':'0.00'}}}}
                 elif path in {'/api/v1/billing/subscription/upgrade','/api/v1/billing/subscription/downgrade'}:
@@ -145,6 +148,7 @@ async def main():
         await page.locator('#billing-manage').click();await expect(page.locator('#billing-target')).to_be_visible()
         await page.locator('#billing-target').select_option('VELOCITY');await page.locator('#billing-plan-review').click()
         await expect(page.locator('#billing-quote')).to_contain_text('New subscription');await expect(page.locator('#billing-quote')).to_contain_text('240.00')
+        assert ('/api/v1/billing/subscription/reconcile','POST') in requests
         await expect(page.locator('#billing-confirm')).to_have_text('Confirm plan and continue to payment')
         await expect(page.locator('#billing-cancel')).to_be_disabled();await expect(page.locator('#billing-confirm')).to_be_enabled()
         prices_ready=False
