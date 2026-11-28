@@ -8,14 +8,14 @@
 /* A visible, shared name keeps the launcher recognizable outside the workspace. */
 :is(#ai-open,#conversation-open)::after{content:'Ask EasyInvio';position:absolute;right:calc(100% + 10px);white-space:nowrap;background:#101a2e;border:1px solid #334155;border-radius:10px;padding:10px 13px;color:#e2e8f0;font:600 13px/1.3 system-ui,sans-serif;box-shadow:0 4px 16px #0004}
 
-/* Public daylight surfaces; authenticated workspace assistant is unchanged. */
-body.public-daylight #ai-open{background:#1d4ed8;color:#fff;border-color:#1d4ed8;box-shadow:0 6px 20px rgba(15,23,42,.12)}
+/* Public executive surfaces; authenticated workspace assistant is unchanged. */
+body.public-daylight #ai-open{background:#2563eb;color:#fff;border-color:#2563eb;box-shadow:0 6px 20px rgba(15,23,42,.12)}
 body.public-daylight #ai-open:after{background:#fff;color:#0f172a;border-color:#e2e8f0;box-shadow:0 4px 16px rgba(15,23,42,.06);font-family:Inter,sans-serif}
 body.public-daylight #ai-panel{background:#fff;color:#0f172a;border-color:#cbd5e1;box-shadow:0 18px 65px rgba(15,23,42,.16)}
-body.public-daylight :is(.ai-head,.ai-panel form){background:#f8fafc;border-color:#e2e8f0}
+body.public-daylight :is(.ai-head,.ai-panel form){background:#faf9f6;border-color:#e2e8f0}
 body.public-daylight :is(.ai-head p,.ai-content>p,.ai-panel .notice){color:#64748b}
 body.public-daylight .ai-panel textarea{background:#fff;color:#0f172a;border-color:#cbd5e1}
 body.public-daylight :is(.ai-panel input,.ai-panel label){color:#0f172a}
-body.public-daylight .conversation-bubble{background:#f8fafc;color:#334155;border-color:#e2e8f0}
+body.public-daylight .conversation-bubble{background:#faf9f6;color:#334155;border-color:#e2e8f0}
 body.public-daylight .conversation-bubble[data-speaker="You"]{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
 body.public-daylight .quick-prompts button{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}

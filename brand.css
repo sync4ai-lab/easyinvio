@@ -27,47 +27,48 @@
 #store-catalogue article:focus-within .platform-brand,#store-list article:focus-within .platform-brand{transform:translateY(-3px);box-shadow:inset 0 1px 1px #ffffff55,0 5px 12px #00000044}
 @media(prefers-reduced-motion:reduce){.platform-brand,.integration-mark{transition:none!important;transform:none!important}}
 
-/* British Fintech Daylight. Scoped to the public landing and pricing pages. */
+/* Option C: Executive Graphite & Warm Ivory. Public pages only. */
 :root:has(body.public-daylight){color-scheme:light}
 body.public-daylight{
-  --ink:#0f172a;--muted:#475569;--line:#e2e8f0;--accent:#1d4ed8;
-  --day-canvas:#f8fafc;--day-paper:#fff;--day-border:#cbd5e1;
-  --day-cobalt:#1d4ed8;--day-emerald:#047857;
-  --day-shadow:0 12px 32px -8px rgba(15,23,42,.08);
-  color-scheme:light;background:#fff;color:var(--ink);
+  --ink:#0f172a;--muted:#475569;--line:#e5e7eb;--accent:#2563eb;
+  --day-canvas:#faf9f6;--day-paper:#fff;--day-border:#cbd5e1;
+  --day-cobalt:#2563eb;--day-emerald:#047857;
+  --day-shadow:0 4px 20px -2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+  --executive-graphite:#16181d;--executive-panel:#1f222a;--executive-rule:#272a34;
+  color-scheme:light;background:#faf9f6;color:var(--ink);
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 body.public-daylight :is(h1,h2,h3,h4,h5,h6,.brand-name){font-family:"Plus Jakarta Sans",Inter,sans-serif;font-weight:700;letter-spacing:-.025em;color:#0f172a}
-body.public-daylight h1{font-weight:800;letter-spacing:-.025em}
+body.public-daylight h1{font-weight:800;letter-spacing:-.03em}
 body.public-daylight :is(code,kbd,pre,.tier-price,[data-plan-price],[data-compare-price],.board-table td:first-child,.order-preview>strong,.wallet-demo>strong,.demo-metrics strong,.analytics-kpi>strong,.analytics-period,.demo-label,.console-bar,#track-input){font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;font-weight:500}
 body.public-daylight :is(.eyebrow,.hero-kicker,.ecosystem-label){color:#1d4ed8}
 body.public-daylight :is(.hero-copy,.section-intro,.section-heading>p,.intro,.lead,.tier-description,.bill-detail,.trust-strip,.footer-description,.feedback-heading>p){color:#475569}
-body.public-daylight :is(.notice,.commercial-note,.compare-hint,.tier-end,.tier-price small,.services-note,.ai-guardrail,.analytics-access,.feedback-mobile-hint,.ecosystem-brief,.integration-note,#integration-count){color:#64748b}
+body.public-daylight :is(.notice,.commercial-note,.compare-hint,.tier-end,.tier-price small,.services-note,.ai-guardrail,.analytics-access,.feedback-mobile-hint,.ecosystem-brief,.integration-note),body.public-daylight #integration-count{color:#64748b}
 body.public-daylight :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #1d4ed8;outline-offset:4px}
 body.public-daylight :is(input,select,textarea){background:#fff;color:#0f172a;border-color:#cbd5e1;accent-color:#1d4ed8}
 body.public-daylight input::placeholder,body.public-daylight textarea::placeholder{color:#64748b}
 body.public-daylight .btn{background:#fff;color:#0f172a;border-color:#cbd5e1;box-shadow:none;background-image:none;transition:background-color .15s,border-color .15s}
-body.public-daylight :is(.btn-dark,.btn-indigo){background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+body.public-daylight :is(.btn-dark,.btn-indigo){background:#2563eb;border-color:#2563eb;color:#fff}
 body.public-daylight .btn:hover{filter:none;background:#f1f5f9;border-color:#94a3b8}
 body.public-daylight :is(.btn-dark,.btn-indigo):hover{background:#1e40af;border-color:#1e40af;color:#fff}
-body.public-daylight .nav{background:rgba(255,255,255,.92);color:#0f172a;border-bottom:1px solid #e2e8f0;box-shadow:none;backdrop-filter:blur(12px)}
-body.public-daylight .nav.scrolled{box-shadow:0 4px 16px rgba(15,23,42,.04)}
-body.public-daylight :is(.nav,.footer) .brand-name{color:#0f172a;font-weight:800}
-body.public-daylight :is(.nav,.footer) .brand-name em{color:#047857}
-body.public-daylight :is(.nav,.footer) .brand-tagline{color:#475569}
-body.public-daylight :is(.nav-links a:hover,.nav-links button:hover,.nav-links [aria-current=page],.nav #public-session-retry,#public-account summary){color:#1d4ed8}
+body.public-daylight .nav{background:#16181d;color:#f8fafc;border-bottom:1px solid #272a34;box-shadow:none;backdrop-filter:none}
+body.public-daylight .nav.scrolled{box-shadow:0 4px 16px rgba(0,0,0,.12)}
+body.public-daylight :is(.nav,.footer) .brand-name{color:#fff;font-weight:800}
+body.public-daylight :is(.nav,.footer) .brand-name em{color:#34d399}
+body.public-daylight :is(.nav,.footer) .brand-tagline{color:#cbd5e1}
+body.public-daylight :is(.nav-links a:hover,.nav-links button:hover,.nav-links [aria-current=page],.nav #public-session-retry,#public-account summary){color:#60a5fa}
 body.public-daylight .nav-links .btn-indigo,body.public-daylight .nav-links .btn-dark{color:#fff}
-body.public-daylight .nav .notice{color:#64748b}
+body.public-daylight .nav .notice{color:#cbd5e1}
 body.public-daylight .account-menu{background:#fff;border-color:#e2e8f0;box-shadow:var(--day-shadow)}
 body.public-daylight .account-menu>*{color:#0f172a}
-body.public-daylight .hero,body.public-daylight .pricing-hero{background-color:#f8fafc;background-image:linear-gradient(rgba(148,163,184,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.08) 1px,transparent 1px);background-size:56px 56px;border-color:#e2e8f0}
-body.public-daylight .hero h1 span{color:#1d4ed8;background:none;-webkit-text-fill-color:currentColor;text-shadow:none}
-body.public-daylight .hero-kicker{background:#eff6ff;border-color:#bfdbfe}
-body.public-daylight .hero-kicker:before{background:#047857}
-body.public-daylight .hero-checks{color:#475569}
-body.public-daylight .hero-checks li:before{color:#047857}
-body.public-daylight .hero-note{border-color:#e2e8f0}
-body.public-daylight .hero-widget{background:#fff;border:1px solid #cbd5e1;box-shadow:var(--day-shadow)}
+body.public-daylight .hero,body.public-daylight .pricing-hero{background:#16181d;border-block:1px solid #272a34}
+body.public-daylight .hero h1 span{color:#60a5fa;background:none;-webkit-text-fill-color:currentColor;text-shadow:none}
+body.public-daylight .hero-kicker{background:#1f222a;border-color:#2e323e;color:#cbd5e1}
+body.public-daylight .hero-kicker:before{background:#34d399}
+body.public-daylight .hero-checks{color:#cbd5e1}
+body.public-daylight .hero-checks li:before{color:#34d399}
+body.public-daylight .hero .hero-note{border-color:#2e323e;color:#cbd5e1}
+body.public-daylight .hero-widget{background:#fff;border:1px solid #e2e8f0;box-shadow:0 24px 48px -12px rgba(0,0,0,.45)}
 body.public-daylight .hero-board{background:#fff;border-color:#e2e8f0}
 body.public-daylight .board-header strong{color:#0f172a}
 body.public-daylight :is(.board-header small,.board-stages,.board-table th){color:#64748b}
@@ -77,10 +78,10 @@ body.public-daylight .board-table td:first-child{color:#0f172a}
 body.public-daylight :is(.board-stages .active,.status-pill,.board-bottom){background:#ecfdf5;color:#047857}
 body.public-daylight .status-pill.pending{background:#eff6ff;color:#1d4ed8}
 body.public-daylight :is(.sample-label,.badge){background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
-body.public-daylight :is(.hero-understand,.hero-understand>a){color:#1d4ed8}
+body.public-daylight :is(.hero-understand,.hero-understand>a){color:#60a5fa}
 body.public-daylight .result{background:#f8fafc;color:#334155;border-color:#e2e8f0}
-body.public-daylight .outcomes{background:#fff}
-body.public-daylight .outcome-card{background:#f8fafc;border-color:#e2e8f0}
+body.public-daylight .outcomes{background:#faf9f6}
+body.public-daylight .outcome-card{background:#fff;border-color:#e2e8f0;box-shadow:var(--day-shadow)}
 body.public-daylight .outcome-card>p{color:#475569}
 body.public-daylight .outcome-grid{counter-reset:journey}
 body.public-daylight .outcome-card{counter-increment:journey}
@@ -95,14 +96,14 @@ body.public-daylight .track-line:before{background:#a7f3d0}
 body.public-daylight .track-line span:before{background:#047857;border-color:#ecfdf5}
 
 /* One matte product anchor: the existing five workflows stay intact. */
-body.public-daylight #features{background:#0f172a;color:#f8fafc;border-color:#334155;color-scheme:dark}
+body.public-daylight #features{background:#16181d;color:#f8fafc;border-color:#272a34;color-scheme:dark}
 body.public-daylight #features :is(h2,h3,h4){color:#fff}
 body.public-daylight #features :is(.section-intro,.feature-footnote){color:#cbd5e1}
 body.public-daylight #features :is(.eyebrow,.feature-footnote a){color:#93c5fd}
-body.public-daylight #features .pillar-list button{background:#1e293b;border-color:#334155;color:#e2e8f0;box-shadow:none}
-body.public-daylight #features .pillar-list button[aria-selected=true]{background:#1e293b;border-color:#93c5fd;box-shadow:inset 3px 0 #93c5fd;color:#fff}
+body.public-daylight #features .pillar-list button{background:#1f222a;border-color:#2e323e;color:#e2e8f0;box-shadow:none}
+body.public-daylight #features .pillar-list button[aria-selected=true]{background:#1f222a;border-color:#60a5fa;box-shadow:inset 3px 0 #93c5fd;color:#fff}
 body.public-daylight #features .pillar-list button small{color:#cbd5e1}
-body.public-daylight #features :is(.console,.console-bar,.demo-dashboard,.demo-metrics>div,.return-ticket,.stripe-preview,.margin-rule,.currency-switch button){background:#1e293b;border-color:#334155;box-shadow:none}
+body.public-daylight #features :is(.console,.console-bar,.demo-dashboard,.demo-metrics>div,.return-ticket,.stripe-preview,.margin-rule,.currency-switch button){background:#1f222a;border-color:#2e323e;box-shadow:none}
 body.public-daylight #features :is(.console-bar,.demo-label,.flow-preview b,.permissions b){color:#93c5fd}
 body.public-daylight #features :is(.order-preview,.demo-confirm){background:#123c36;border-color:#276157;color:#d1fae5}
 body.public-daylight #features .currency-switch button[aria-pressed=true]{background:#1d4ed8;color:#fff;border-color:#60a5fa}
@@ -137,7 +138,8 @@ body.public-daylight #integration-detail{background:#fff;color:#0f172a;border-co
 body.public-daylight #integration-detail li{color:#475569}
 body.public-daylight .integration-close{background:#f1f5f9;color:#0f172a;border-color:#e2e8f0}
 body.public-daylight .integration-guide{color:#1d4ed8}
-body.public-daylight :is(.operations,.ai-services){background:#f8fafc}
+body.public-daylight .operations{background:#faf9f6}
+body.public-daylight .ai-services{background:#fff}
 body.public-daylight :is(.operation,.ai-service-card,.ai-guide-strip){background:#fff;border-color:#e2e8f0}
 body.public-daylight :is(.operation p,.ai-service-card>p,.ai-guide-strip p){color:#475569}
 body.public-daylight :is(.operation a,.capability-jumps,.capability-jumps a){color:#1d4ed8;border-color:#cbd5e1}
@@ -150,8 +152,8 @@ body.public-daylight .ai-extract span{background:#ecfdf5;color:#047857;border-co
 body.public-daylight .ai-offer>b{color:#047857}
 
 /* Existing analytics illustration: daylight metrics, no additional calculator. */
-body.public-daylight .analytics-section{background:#fff}
-body.public-daylight :is(.analytics-demo,.analytics-kpi){background:#f8fafc;border-color:#e2e8f0}
+body.public-daylight .analytics-section{background:#faf9f6}
+body.public-daylight :is(.analytics-demo,.analytics-kpi){background:#fff;border-color:#e2e8f0}
 body.public-daylight :is(.analytics-points li,.analytics-bar-label){color:#475569;border-color:#1d4ed8}
 body.public-daylight :is(.analytics-points strong,.analytics-kpi>strong){color:#0f172a}
 body.public-daylight :is(.analytics-kpi>span,.analytics-kpi>small,.analytics-demo-note){color:#64748b;border-color:#e2e8f0}
@@ -163,48 +165,48 @@ body.public-daylight .analytics-bar-fill{background:#1d4ed8}
 body.public-daylight .analytics-bar:nth-of-type(2) .analytics-bar-fill{background:#047857}
 body.public-daylight .analytics-bar:nth-of-type(3) .analytics-bar-fill{background:#64748b}
 body.public-daylight input[type=range]{accent-color:#10b981}
-body.public-daylight .feedback-section{background:#f8fafc}
+body.public-daylight .feedback-section{background:#fff}
 body.public-daylight .feedback-card{background:#fff;border-color:#e2e8f0}
 body.public-daylight .feedback-card>p,body.public-daylight .feedback-card blockquote{color:#475569}
 body.public-daylight .feedback-card h3{color:#0f172a}
 body.public-daylight .workflow-role{color:#047857}
 body.public-daylight .feedback-avatar{background:#eff6ff;color:#1d4ed8}
 body.public-daylight :is(.feedback-person small,.sample-stars){color:#64748b}
-body.public-daylight #faq{background:#fff}
-body.public-daylight .faq-list details{background:#f8fafc;border:1px solid #e2e8f0}
+body.public-daylight #faq{background:#faf9f6}
+body.public-daylight .faq-list details{background:#fff;border:1px solid #e2e8f0}
 body.public-daylight .faq-list details[open]{background:#fff;border-color:#cbd5e1}
 body.public-daylight .faq-list summary{color:#0f172a}
 body.public-daylight .faq-list summary:after{color:#1d4ed8}
 body.public-daylight .faq-list details p{color:#475569}
-body.public-daylight .closing{background:#f8fafc}
-body.public-daylight .closing-panel{background:#fff;border:1px solid #e2e8f0;box-shadow:none}
-body.public-daylight .closing-panel p{color:#475569}
-body.public-daylight :is(.footer,.footer-shell){background:#fff;color:#64748b}
-body.public-daylight .footer-bottom{border-color:#e2e8f0}
-body.public-daylight .footer-links a:hover{color:#1d4ed8}
+body.public-daylight .closing{background:#16181d;border-block:1px solid #272a34;color:#f8fafc}
+body.public-daylight .closing-panel{background:transparent;border:1px solid #272a34;box-shadow:none}
+body.public-daylight .closing-panel p{color:#cbd5e1}
+body.public-daylight :is(.footer,.footer-shell){background:#111317;color:#cbd5e1}
+body.public-daylight .footer-bottom{border-color:#272a34}
+body.public-daylight .footer-links a:hover{color:#60a5fa}
 body.public-daylight :is(.pricing-text-link,.chat-sources a){color:#1d4ed8}
 
 /* The same net pricing and comparison controls, on crisp paper surfaces. */
-body.public-daylight .tier-section{background:#f8fafc}
-body.public-daylight .tier{background:#fff;border-color:#e2e8f0;box-shadow:none}
-body.public-daylight .tier.featured{border:2px solid #1d4ed8;box-shadow:none}
+body.public-daylight .tier-section{background:#faf9f6}
+body.public-daylight .tier{background:#fff;border-color:#e2e8f0;box-shadow:var(--day-shadow)}
+body.public-daylight .tier.featured{border:2px solid #2563eb;border-top-width:4px;box-shadow:0 16px 36px -8px rgba(37,99,235,.14)}
 body.public-daylight .tier .tag{background:#eff6ff;color:#1d4ed8}
 body.public-daylight .tier li{border-color:#e2e8f0}
 body.public-daylight .tier-price{color:#0f172a;letter-spacing:-.04em}
 body.public-daylight .tier .check{color:#047857}
 body.public-daylight :is(.annual-saving,.allowance-pill){background:#ecfdf5;border-color:#a7f3d0;color:#047857}
-body.public-daylight .billing-tabs{background:#e2e8f0;border-color:#cbd5e1}
-body.public-daylight .billing-tabs button{color:#475569}
-body.public-daylight .billing-tabs button[aria-pressed=true]{background:#fff;color:#1d4ed8;box-shadow:0 1px 4px rgba(15,23,42,.08)}
+body.public-daylight .billing-tabs{background:#1f222a;border-color:#2e323e}
+body.public-daylight .billing-tabs button{color:#cbd5e1}
+body.public-daylight .billing-tabs button[aria-pressed=true]{background:#2563eb;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.16)}
 body.public-daylight #compare{background:#fff}
-body.public-daylight .comparison-scroll{background:#fff;border-color:#e2e8f0}
+body.public-daylight .comparison-scroll{background:#fff;border-color:#cbd5e1;box-shadow:0 8px 24px -4px rgba(15,23,42,.06)}
 body.public-daylight .comparison-table :is(th,td){border-color:#e2e8f0}
 body.public-daylight .comparison-table td{color:#475569}
 body.public-daylight .comparison-table td:nth-child(3){background:#eff6ff}
-body.public-daylight .comparison-table thead th{background:#0f172a;color:#fff}
+body.public-daylight .comparison-table thead th{background:#16181d;color:#fff}
 body.public-daylight .comparison-table .category th{background:#f1f5f9;color:#1d4ed8}
 body.public-daylight .comparison-table tbody tr:not(.category)>th{background:#fff;color:#0f172a;box-shadow:1px 0 #e2e8f0}
-body.pricing-daylight #faq{background:#f8fafc}
+body.pricing-daylight #faq{background:#faf9f6}
 body.pricing-daylight .faq-list details{background:#fff}
 body.pricing-daylight .closing-panel{background:transparent;border:0}
 body.public-daylight .text-slate-600,body.public-daylight .text-slate-500{color:#64748b!important}
@@ -219,3 +221,22 @@ body.public-daylight #features .phone-thread .qr-card .demo-label{color:#475569}
 body.public-daylight .integration-card:is([data-integration=WIX],[data-integration=SQUARESPACE],[data-integration=SQUARE],[data-integration=MIRAKL],[data-integration=BIGCOMMERCE]) .integration-mark,
 body.public-daylight #integration-detail-mark:is([data-platform=WIX],[data-platform=SQUARESPACE],[data-platform=SQUARE],[data-platform=MIRAKL],[data-platform=BIGCOMMERCE]){filter:brightness(0) saturate(100%)}
 body.public-daylight .integration-card:is([data-integration=CUSTOM_WEBSITE],[data-integration=CSV_SFTP]) .integration-mark{filter:brightness(.5) saturate(100%)}
+
+/* Executive framing keeps dark bands distinct from the elevated paper cards. */
+body.public-daylight :is(.hero,.pricing-hero) h1{color:#fff;letter-spacing:-.03em}
+body.public-daylight :is(.hero-copy,.pricing-hero .lead,.pricing-hero .commercial-note,.pricing-hero .trust-strip){color:#cbd5e1}
+body.public-daylight :is(.pricing-hero .eyebrow,.hero-note .pricing-text-link,.closing .eyebrow){color:#60a5fa}
+body.public-daylight .nav .mobile-toggle{background:#1f222a;border-color:#2e323e;color:#f8fafc}
+body.public-daylight .pricing-hero .annual-saving{background:#17372d;border-color:#2a5948;color:#a7f3d0}
+body.public-daylight :is(.section,.hero,.pricing-hero){border-bottom-color:#e5e7eb}
+body.public-daylight :is(.hero,.pricing-hero,#features,.closing){border-bottom-color:#272a34}
+body.public-daylight :is(.operation,.ai-service-card,.ai-guide-strip,.integration-card,.analytics-demo,.feedback-card){box-shadow:var(--day-shadow)}
+body.public-daylight .integration-card:hover{box-shadow:0 12px 28px -8px rgba(15,23,42,.12);border-color:#cbd5e1}
+body.public-daylight #features :is(.store-sources span,.flow-preview li,.service-row,.permissions>div,.demo-toolbar){border-color:#2e323e}
+body.public-daylight #features .phone-preview{border-color:#444854}
+body.public-daylight .comparison-table tbody tr:not(.category):nth-child(even)>:is(td,th){background:#f8fafc}
+body.public-daylight .comparison-table tbody tr:not(.category)>td:nth-child(3){background:#eff6ff}
+body.public-daylight .closing :is(h2,h3){color:#fff}
+body.public-daylight .closing .intro,body.public-daylight .footer .footer-description{color:#cbd5e1}
+/* Paint a full-width footer behind the existing constrained landing container. */
+body.landing-daylight>.footer{box-shadow:0 0 0 100vmax #111317;clip-path:inset(0 -100vmax)}
