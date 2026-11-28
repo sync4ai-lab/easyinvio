@@ -3,31 +3,31 @@
 #billing-workspace h2,#billing-workspace h3{margin-bottom:12px}
 #billing-workspace p{margin:10px 0 16px}
 #billing-workspace .billing-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:16px 0}
-#billing-change{padding:20px;margin:20px 0 28px;border:1px solid #334155;border-radius:16px;background:#0f172a}
+#billing-change{padding:20px;margin:20px 0 28px;border:1px solid #d0d5dd;border-radius:16px;background:#fff}
 #billing-quote{margin:20px 0;padding:20px}
-#billing-comparison{width:min(1000px,calc(100vw - 32px));max-height:85dvh;padding:28px;border:1px solid #475569;border-radius:18px;background:#0f172a;color:#e2e8f0;overflow:auto}
+#billing-comparison{width:min(1000px,calc(100vw - 32px));max-height:85dvh;padding:28px;border:1px solid #d0d5dd;border-radius:18px;background:#fff;color:#111827;overflow:auto}
 #billing-comparison::backdrop{background:rgba(2,6,23,.8)}
 #billing-comparison .billing-toolbar{justify-content:space-between;align-items:flex-start}
 #billing-comparison table{width:100%;border-collapse:collapse;min-width:760px}
-#billing-comparison th,#billing-comparison td{padding:14px;text-align:left;border-bottom:1px solid #334155;vertical-align:top}
-#billing-comparison th{color:#c7d2fe}
+#billing-comparison th,#billing-comparison td{padding:14px;text-align:left;border-bottom:1px solid #d0d5dd;vertical-align:top}
+#billing-comparison th{color:#111827}
 #loginContainer .identity-login-card{min-width:0;flex-shrink:0}
 #loginContainer form,#loginContainer label{min-width:0;width:100%}
 #loginContainer .identity-input{width:100%;min-width:0;min-height:48px;padding:0 14px;align-items:center}
-#loginContainer .identity-input input{flex:1 1 0%;width:100%;min-width:0;background:transparent!important;border:0!important;border-radius:0!important;padding:14px 0;box-shadow:none!important}
-#loginContainer input,#loginContainer input:focus,#loginContainer input:focus-visible{outline:none!important;box-shadow:none!important}
-#loginContainer .identity-input:focus-within{border-color:#64748b}
-#loginContainer .identity-input:has([aria-invalid=true]){border-color:#f87171}
-#loginContainer input:-webkit-autofill{-webkit-text-fill-color:#f1f5f9;-webkit-box-shadow:0 0 0 1000px #0f172a inset!important}
-#loginContainer .identity-input input::selection{background:#334155}
-#loginContainer .identity-input .password-visibility{flex:0 0 40px;width:40px;min-height:44px;display:grid;place-items:center;border:0;background:transparent;color:#a5b4fc;padding:8px;border-radius:6px;cursor:pointer}
-#loginContainer .identity-input .password-visibility:hover{color:#f1f5f9}
+#loginContainer .identity-input input{flex:1 1 0%;width:100%;min-width:0;background:transparent!important;border:0!important;border-radius:0!important;padding:14px 0;box-shadow:none}
+#loginContainer input,#loginContainer input:focus,#loginContainer input:focus-visible{outline:none!important;box-shadow:none}
+#loginContainer .identity-input:focus-within{border-color:#d0d5dd}
+#loginContainer .identity-input:has([aria-invalid=true]){border-color:#d0d5dd}
+#loginContainer input:-webkit-autofill{-webkit-text-fill-color:#111827;-webkit-box-shadow:0 0 0 1000px #0f172a inset!important}
+#loginContainer .identity-input input::selection{background:#fff}
+#loginContainer .identity-input .password-visibility{flex:0 0 40px;width:40px;min-height:44px;display:grid;place-items:center;border:0;background:transparent;color:#1d4ed8;padding:8px;border-radius:6px;cursor:pointer}
+#loginContainer .identity-input .password-visibility:hover{color:#111827}
 #loginContainer .identity-input .password-visibility svg{width:21px;height:21px}
 #loginContainer .form-field-error{display:block;width:100%;margin:-8px 0 18px;overflow-wrap:break-word}
 #loginContainer .form-validation-summary{width:100%;min-width:0}
-#identity-recovery-notice{position:fixed;inset:0;margin:auto;width:min(440px,calc(100vw - 32px));padding:24px;border:1px solid #334155;border-radius:18px;background:#0b1325;color:#f1f5f9;box-shadow:0 20px 80px #0007}
-#identity-recovery-notice p{margin:0 0 20px;line-height:1.6;color:#cbd5e1}
-#identity-recovery-notice::backdrop{background:#020617bb}
+#identity-recovery-notice{position:fixed;inset:0;margin:auto;width:min(440px,calc(100vw - 32px));padding:24px;border:1px solid #d0d5dd;border-radius:18px;background:#fff;color:#111827;box-shadow:none}
+#identity-recovery-notice p{margin:0 0 20px;line-height:1.6;color:#475467}
+#identity-recovery-notice::backdrop{background:#fff}
 #identity-recovery-notice .actions{justify-content:flex-end}
 main .scrolltable,main .catalog-scroll,main .table-wrap,main .responsive-table-scroll{overflow-x:auto;max-width:100%;min-width:0;overscroll-behavior-inline:contain}
 main table th{white-space:nowrap;word-break:normal;overflow-wrap:normal}
@@ -78,7 +78,7 @@ main table td{word-break:normal}
 #store-connection-form .card>label{display:block;margin-top:12px}
 #store-quick-credentials ol{list-style:decimal;padding-left:22px;margin:16px 0}
 #store-quick-credentials li{padding:4px 0;line-height:1.6}
-#store-secret-help{display:block;margin:10px 0;color:#cbd5e1;line-height:1.6}
+#store-secret-help{display:block;margin:10px 0;color:#475467;line-height:1.6}
 #store-connection-form fieldset{margin:18px 0}
 #store-connection-form input[readonly]{font-size:12px}
 
@@ -92,19 +92,19 @@ main table td{word-break:normal}
 .billing-kpis strong{display:block;font-size:28px;line-height:1.25;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .billing-kpis h2{font-size:16px;margin:0}.billing-kpis p{margin:0}.billing-kpis button{margin-top:auto}
 .billing-kpis progress{width:100%;accent-color:#10b981;height:12px}
-.finance-scroll{max-width:100%;overflow:auto;border:1px solid #334155;border-radius:12px;margin:16px 0}
+.finance-scroll{max-width:100%;overflow:auto;border:1px solid #d0d5dd;border-radius:12px;margin:16px 0}
 .finance-table{width:100%;min-width:760px;border-collapse:collapse;font-size:13px}
-.finance-table th,.finance-table td{padding:12px 14px;text-align:left;border-bottom:1px solid #334155;vertical-align:top;overflow-wrap:anywhere}
-.finance-table th{background:#172235;color:#cbd5e1}.finance-table td:nth-last-child(-n+2){font-variant-numeric:tabular-nums}
-.finance-number{display:block;text-align:right;white-space:nowrap}.finance-number.credit{color:#34d399}.finance-number.debit{color:inherit}
-.finance-pill{display:inline-block;white-space:nowrap;border-radius:20px;background:#1e293b;padding:5px 8px;font-size:11px;font-weight:700}
-.finance-pill[data-type=TOPUP],.finance-pill[data-type=SHIPMENT_REFUND]{background:#064e3b;color:#a7f3d0}
-.finance-pill[data-type=SUBSCRIPTION_DEBIT]{background:#312e81;color:#e0e7ff}
-.enterprise-statement{margin:24px 0;padding:22px;border:1px solid #334155;border-radius:14px}
-.enterprise-statement header{border-bottom:2px solid #10b981;padding-bottom:16px;margin-bottom:20px}
+.finance-table th,.finance-table td{padding:12px 14px;text-align:left;border-bottom:1px solid #d0d5dd;vertical-align:top;overflow-wrap:anywhere}
+.finance-table th{background:#fff;color:#475467}.finance-table td:nth-last-child(-n+2){font-variant-numeric:tabular-nums}
+.finance-number{display:block;text-align:right;white-space:nowrap}.finance-number.credit{color:#047857}.finance-number.debit{color:inherit}
+.finance-pill{display:inline-block;white-space:nowrap;border-radius:20px;background:#fff;padding:5px 8px;font-size:11px;font-weight:700}
+.finance-pill[data-type=TOPUP],.finance-pill[data-type=SHIPMENT_REFUND]{background:#ecfdf5;color:#047857}
+.finance-pill[data-type=SUBSCRIPTION_DEBIT]{background:#eff6ff;color:#111827}
+.enterprise-statement{margin:24px 0;padding:22px;border:1px solid #d0d5dd;border-radius:14px}
+.enterprise-statement header{border-bottom:2px solid #a7f3d0;padding-bottom:16px;margin-bottom:20px}
 .enterprise-statement h3{margin:22px 0 12px}
 @media(max-width:900px){.billing-kpis{grid-template-columns:1fr}.enterprise-statement{padding:14px}}
-@media print{.enterprise-statement{color:#000;background:#fff;border:0}.enterprise-statement button,.enterprise-statement .billing-toolbar{display:none}.enterprise-statement .finance-scroll{overflow:visible;border:0}.enterprise-statement .finance-table{min-width:0;font-size:9px}.enterprise-statement th{background:#eee;color:#000}}
+@media print{.enterprise-statement{color:#111827;background:#fff;border:0}.enterprise-statement button,.enterprise-statement .billing-toolbar{display:none}.enterprise-statement .finance-scroll{overflow:visible;border:0}.enterprise-statement .finance-table{min-width:0;font-size:9px}.enterprise-statement th{background:#eee;color:#111827}}
 
 #wallet .billing-kpis > .card{margin:0}
 #wallet dialog[aria-label="Wallet transaction details"]{width:min(760px,calc(100vw - 32px))}
@@ -116,3 +116,10 @@ main table td{word-break:normal}
 #wallet .billing-toolbar[hidden],#wallet .button-row[hidden],#manifest .finance-return-actions[hidden]{display:none}
 #wallet .finance-table td:last-child button{margin:4px 8px 4px 0}
 #wallet #billing-statements button{margin-right:12px}
+
+/* Keep existing form-link inline colors legible on paper surfaces. */
+body #identity-forgot{color:#1d4ed8!important}
+@media(min-width:768px) and (max-width:1023px){main .pagehead>div{min-width:min(100%,220px)}}
+
+body:has(.app-shell) :is(.metric-value,.finance-value){color:#111827}
+body:has(.app-shell) :is([id$="-postcode"],[name=postal_code]){font-family:'JetBrains Mono',ui-monospace,monospace}

@@ -23,6 +23,7 @@ ASSETS = ('index.html', 'pricing.html', 'workspace.html', 'tracking.html', 'trac
 RUNTIME_PATTERNS = ('main.py', 'requirements.txt', 'requirements.lock.txt',
                     'backend/**/*.py', 'certs/*.crt', 'frontend/components/*.html',
                     'frontend/components/*.js', 'frontend/components/*.css',
+                    'frontend/components/*.woff2', 'frontend/components/*-OFL.txt',
                     'docs/status_reference.md', 'docs_*.md', 'frontend/landing/returns-portal.html')
 
 

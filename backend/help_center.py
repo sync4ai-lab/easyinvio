@@ -343,7 +343,7 @@ def render_page(title, category, summary, body, *, prepared=True, contents="", s
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="light">
   <title>{escape(title)} | EasyInvio Help Centre</title>
   <meta name="description" content="{escape(summary, quote=True)}">
   <link rel="stylesheet" href="/help/assets/support.css">
@@ -394,7 +394,8 @@ async def support_hub():
 
 @router.get('/help/assets/{asset}', include_in_schema=False)
 async def support_asset(asset: str):
-    media = {'support.css': 'text/css', 'support.js': 'application/javascript'}
+    media = {'support.css': 'text/css', 'support.js': 'application/javascript',
+             'inter-latin.woff2': 'font/woff2', 'jetbrains-mono-latin.woff2': 'font/woff2'}
     if asset not in media:
         raise HTTPException(404, 'Help asset not found')
     return FileResponse(COMPONENTS / asset, media_type=media[asset], headers=HEADERS)

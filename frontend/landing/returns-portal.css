@@ -1,1 +1,15 @@
-:root{font-family:system-ui,sans-serif;color:#152c28;background:#f4f7f5}*{box-sizing:border-box}main{max-width:36rem;margin:3rem auto;padding:1.5rem;background:white;border:1px solid #dce5df;border-radius:1rem}label{display:block;margin:1rem 0}input:not([type=checkbox]){display:block;width:100%;padding:.8rem;margin-top:.4rem;border:1px solid #81958c;border-radius:.4rem;font:inherit}button,a{display:block;padding:.85rem;margin:.8rem 0;border-radius:.4rem;font:inherit}button{background:#087f5b;color:white;border:0;cursor:pointer}a{color:#086b50;border:1px solid #086b50}.brand{color:#087f5b;font-weight:700}button:disabled{opacity:.55;cursor:wait}[hidden]{display:none!important}@media(max-width:600px){main{margin:0;min-height:100vh;border:0;border-radius:0}}
+@import url("/brand.css");
+:root{font-family:system-ui,sans-serif;color:#047857;background:#f4f7f5}*{box-sizing:border-box}main{max-width:36rem;margin:3rem auto;padding:1.5rem;background:white;border:1px solid #d0d5dd;border-radius:1rem}label{display:block;margin:1rem 0}input:not([type=checkbox]){display:block;width:100%;padding:.8rem;margin-top:.4rem;border:1px solid #d0d5dd;border-radius:.4rem;font:inherit}button,a{display:block;padding:.85rem;margin:.8rem 0;border-radius:.4rem;font:inherit}button{background:#ecfdf5;color:white;border:0;cursor:pointer}a{color:#047857;border:1px solid #a7f3d0}.brand{color:#047857;font-weight:700}button:disabled{opacity:.55;cursor:wait}[hidden]{display:none!important}@media(max-width:600px){main{margin:0;min-height:100vh;border:0;border-radius:0}}
+
+body{background:#f1f3f6;color:#111827;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+main{background:#fff;border-color:#d0d5dd;box-shadow:var(--ei-shadow)}
+body button{background:#111827;color:#fff;border:1px solid #111827;box-shadow:none}
+body button:hover:not(:disabled){background:#1f2937;border-color:#1f2937}
+body a{background:#fff;color:#111827;border-color:#d0d5dd}
+body .brand{color:#1d4ed8}
+body input:not([type=checkbox]){background:#fff;color:#111827;border-color:#cbd5e1}
+body input:focus{border-color:#1d4ed8}
+body :is(#message,#policy){color:#475467}
+
+html{background:#f1f3f6}
+body{margin:0;min-height:100dvh;display:flow-root}

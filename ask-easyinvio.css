@@ -19,3 +19,14 @@ body.public-daylight :is(.ai-panel input,.ai-panel label){color:#111827}
 body.public-daylight .conversation-bubble{background:#f8fafc;color:#475467;border-color:#e2e8f0}
 body.public-daylight .conversation-bubble[data-speaker="You"]{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
 body.public-daylight .quick-prompts button{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+
+/* Option B assistant surfaces outside the unchanged public landing theme. */
+body:not(.public-daylight) :is(#conversation-open,#ai-open){background:#111827;color:#fff;border-color:#111827;box-shadow:var(--ei-shadow)}
+body:not(.public-daylight) :is(#conversation-open,#ai-open)::after{background:#fff;color:#111827;border-color:#d0d5dd;box-shadow:var(--ei-shadow);font-family:Inter,sans-serif}
+body:not(.public-daylight) :is(#conversation-dialog,#ai-panel){background:#fff;color:#111827;border-color:#d0d5dd;box-shadow:var(--ei-shadow)}
+body:not(.public-daylight) :is(.conversation-header,.ai-head,.ai-panel form){background:#f8fafc;color:#111827;border-color:#e2e8f0;background-image:none}
+body:not(.public-daylight) :is(.conversation-bubble,.conversation-entry){background:#f8fafc;color:#475467;border-color:#d0d5dd}
+body:not(.public-daylight) .conversation-bubble[data-speaker=You]{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+body:not(.public-daylight) :is(#conversation-input,.ai-panel textarea){background:#fff;color:#111827;border-color:#cbd5e1}
+body:not(.public-daylight) :is(.ai-head p,.ai-content>p,.ai-panel .notice){color:#475467}
+body:not(.public-daylight) :is(.ai-panel input,.ai-panel label){color:#111827}

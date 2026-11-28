@@ -2427,7 +2427,7 @@ async def frontend():
 async def public_tracking_page():
     return FileResponse(Path(__file__).with_name('tracking.html'),media_type='text/html',headers={
         'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',
-        'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-src 'self'; manifest-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"})
+        'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'; img-src 'self'; frame-src 'self'; manifest-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"})
 
 
 @app.get('/tracking-workspace.js',include_in_schema=False)
