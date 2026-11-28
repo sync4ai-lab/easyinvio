@@ -69,7 +69,7 @@
   "backend/email_delivery.py": "1b2523146b7f7020ba588705851ef86caea8127aa0a3e79362894c8bb5b16a20",
   "backend/entitlements.py": "09c068f0b40a1691afa8ea1989f453b2e496f9b86956ed4082cc654bc75515ea",
   "backend/gupshup_ingress.py": "690e8176e3851a3e6908efea12caee5b3a14186843503d9f0b3af561d73befb4",
-  "backend/help_center.py": "dc9bf0e37615c8405b30ed6ae86a0f033acb2ce7bc89925ef065e64f07d52bb6",
+  "backend/help_center.py": "d012a847f42908a6c6e8635af387908e1831fb3e231c457747f0c4ab6e8be5ef",
   "backend/hubspot_crm.py": "88683c9938eb3f47f3f90acf1a26e45f9d8f7568adaa7fd70542977f94353459",
   "backend/hubspot_provisioning.py": "8205244ce5cc58b03637256ea577dc565687edea5fa1e6fedbc91021ea0fc7dc",
   "backend/identity.py": "074d05a90da24c79195536fd2fa8a53896bac223924c9009a034608f3335421f",
@@ -171,8 +171,8 @@
   "frontend/components/jetbrains-mono-latin.woff2": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e",
   "frontend/components/support.css": "e96292bb766df8b104e06f7b83be096e7f849f88effc4c12ca211dcead06bf3d",
   "frontend/components/support.js": "cf912518cfe9f228ed2f2979d531a20c65350cf55feae6efc229e8e13a676355",
-  "frontend/landing/returns-portal.html": "6571f8da12c5f13ba9faba5f94462ec67da378dbb5cfbf8ed39bcdc799355b2c",
-  "main.py": "bf6c063af80889ab1b9b8dfbbd099d953f1aa4ef52aaacf8b9ca868f9f906b60",
+  "frontend/landing/returns-portal.html": "6b493869ebab9fe0bf88cfb228b5433223866ea5e73e634609d46d2aad4ec029",
+  "main.py": "63e1fdec531ca159535390dc2b9b16cda4bbdcdcfc82d75e4d864fb87781dc47",
   "requirements.lock.txt": "300c619fdf9efa94a8e96f8360187988d6bedb8adc8dc5cb09d749f38c60be45",
   "requirements.txt": "f847e7ee5ea0a909408135db9d2cb7feea94441d8d639a927b03088b61f0611e"
 }

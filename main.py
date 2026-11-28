@@ -2437,6 +2437,7 @@ async def public_tracking_page():
 @app.get('/manifest-workflow.js',include_in_schema=False)
 @app.get('/help-workspace-bridge.js',include_in_schema=False)
 @app.get('/return-workspace.js',include_in_schema=False)
+@app.get('/required-fields.js',include_in_schema=False)
 @app.get('/form-feedback.js',include_in_schema=False)
 @app.get('/form-feedback.css',include_in_schema=False)
 @app.get('/workspace-ui.css',include_in_schema=False)

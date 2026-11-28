@@ -68,7 +68,7 @@ class LabelFailureOperationsTests(unittest.IsolatedAsyncioTestCase):
     async def test_opt_out_without_binding_succeeds_and_opt_in_requires_verification(self):
         connection = SimpleNamespace(execute=AsyncMock(return_value='UPDATE 0'))
         request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(finance=SimpleNamespace(pool=Pool(connection)))))
-        endpoint = next(route.endpoint for route in consent_router(lambda: None).routes if route.path.endswith('/consent'))
+        endpoint = next(route.endpoint for route in consent_router(lambda: None).routes if route.path.endswith('/consent') and 'POST' in route.methods)
         context = SimpleNamespace(role='OWNER', tenant_id=uuid4(), user_id=uuid4())
         self.assertEqual(await endpoint(Consent(notification_opt_in=False), request, context), {'notification_opt_in': False})
         with self.assertRaises(HTTPException) as error:

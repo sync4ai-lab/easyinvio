@@ -12,7 +12,7 @@
     const source = field.labels?.[0];
     if (source) {
       const copy = source.cloneNode(true);
-      copy.querySelectorAll('input,select,textarea,button,small,.form-field-error').forEach(node => node.remove());
+      copy.querySelectorAll('input,select,textarea,button,small,.form-field-error,.required-indicator,[role="tooltip"]').forEach(node => node.remove());
       const text = copy.textContent.replace(/\s+/g, ' ').trim();
       if (text) return text;
     }

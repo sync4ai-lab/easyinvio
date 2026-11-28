@@ -29,6 +29,8 @@ async def check(origin):
         async def handler(route):
             path = urlsplit(route.request.url).path
             method = route.request.method
+            if path == '/api/v1/auth/browser-session/restore':
+                return await route.fulfill(status=401,json={'detail':'No synthetic browser session'})
             if method != 'GET': writes.append((path, route.request.post_data_json))
             if path.startswith('/api/v1/catalog/'):
                 if delayed:
@@ -62,6 +64,44 @@ async def check(origin):
           state.mode = 'configured';
           refreshEnterpriseNavigation(); setView('dispatch');
         }""", tenant)
+        # Markers track actual constraints, including later inserted and optional fields.
+        await expect(page.locator('label[for="origin-name"] .required-indicator')).to_have_count(1)
+        await expect(page.locator('#origin-phone').locator('..').locator('.required-indicator')).to_have_count(0)
+        await expect(page.locator('#origin-phone-help')).to_have_text('Include + and country code.')
+        await page.locator('#origin-name').focus()
+        focus=await page.locator('#origin-name').evaluate("el=>{const s=getComputedStyle(el);return [s.outlineWidth,s.outlineOffset]}")
+        assert focus==['1px','-1px'],focus
+        for label,tip in [('About cargo measurements','#cargo-help'),('About order file uploads','#order-file-help')]:
+            button=page.get_by_role('button',name=label,exact=True)
+            await button.hover()
+            await expect(page.locator(tip)).to_be_visible()
+            await button.focus();await page.keyboard.press('Escape')
+            await expect(page.locator(tip)).to_be_hidden()
+            await page.mouse.move(0,0)
+            await button.focus();await expect(page.locator(tip)).to_be_visible()
+            await page.keyboard.press('Escape');await expect(page.locator(tip)).to_be_hidden()
+        assert 'UTF-8 CSV' not in await page.locator('#csv-file').locator('..').inner_text()
+        await expect(page.locator('label[for="csv-file"] .required-indicator')).to_have_count(1)
+        await page.evaluate("""() => {
+          const form=document.createElement('form');form.id='marker-fixture';
+          form.innerHTML='<label>Fixture<input id="marker-control" required></label>';
+          document.body.append(form);
+        }""")
+        await expect(page.locator('#marker-fixture .required-indicator')).to_have_count(1)
+        await page.locator('#marker-control').evaluate('el=>el.required=false')
+        await expect(page.locator('#marker-fixture .required-indicator')).to_have_count(0)
+        await page.locator('#marker-control').evaluate('el=>el.required=true')
+        await expect(page.locator('#marker-fixture .required-indicator')).to_have_count(1)
+        await page.locator('#marker-control').evaluate('el=>el.disabled=true')
+        await expect(page.locator('#marker-fixture .required-indicator')).to_have_count(0)
+        await page.locator('#marker-fixture').evaluate('el=>el.remove()')
+        for width in [375,768,1366]:
+            await page.set_viewport_size({'width':width,'height':950})
+            button=page.get_by_role('button',name='About cargo measurements',exact=True)
+            await button.focus();await expect(page.locator('#cargo-help')).to_be_visible()
+            box=await page.locator('#cargo-help').bounding_box()
+            assert box['x']>=0 and box['x']+box['width']<=width,(width,box)
+            await page.keyboard.press('Escape')
         await page.locator('#quote-btn').click()
         await expect(page.locator('#quote-form .form-validation-summary')).to_contain_text('Pickup name')
         await expect(page.locator('#quote-form .form-validation-summary')).to_contain_text('Delivery street')

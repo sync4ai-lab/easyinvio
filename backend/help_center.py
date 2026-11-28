@@ -348,6 +348,7 @@ def render_page(title, category, summary, body, *, prepared=True, contents="", s
   <meta name="description" content="{escape(summary, quote=True)}">
   <link rel="stylesheet" href="/help/assets/support.css">
   <script src="/help/assets/support.js" defer></script>
+  <script src="/required-fields.js" defer></script>
 </head>
 <body class="bg-slate-900">
   <a class="skip-link" href="#help-main">Skip to guide</a>

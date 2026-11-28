@@ -28,6 +28,7 @@ body.auth-locked>.topbar,body.auth-locked>.app-shell,body.auth-locked>.mobile-na
 <meta name="color-scheme" content="dark">
 <link rel="stylesheet" href="/form-feedback.css">
 <script src="/form-feedback.js" defer></script>
+<script src="/required-fields.js" defer></script>
 <script src="/manifest-workflow.js?v=1"></script>
 <title>EasyInvio.com | Dispatch intelligence</title>
 <script async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4">
@@ -326,7 +327,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#111827}thead th{backgro
 <div class="fields" id="address-fields">
 </div>
 <div class="packaging-header" style="margin-top:18px;align-items:center">
-<div class="sectionlabel" style="margin:0">02 &middot; Cargo &amp; measurements</div>
+<div class="sectionlabel" style="margin:0">02 &middot; Cargo &amp; measurements<span class="field-info"><button type="button" aria-label="About cargo measurements" aria-describedby="cargo-help">i</button><span id="cargo-help" role="tooltip">Express volumetric pricing · divisor 5000.</span></span></div>
 <button type="button" class="secondary" data-packaging-open>Packaging sizes</button>
 </div>
 <div class="field">
@@ -339,7 +340,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#111827}thead th{backgro
 <option value="PALLET">Heavy Pallet Freight</option>
 <option value="OVERLAND_FREIGHT">Overland Freight</option>
 </select>
-<p id="cargo-help" class="footnote">Express volumetric pricing · divisor 5000.</p>
+
 </div>
 <div id="freight-options" class="notice" hidden>
 <label class="check">
@@ -454,15 +455,15 @@ table,thead,tbody,tr,td,th{background:transparent;color:#111827}thead th{backgro
 <div class="cardhead">
 <div>
 <h2>Bulk order processor</h2>
-<p class="subtle">1,000 orders · UTF-8 CSV · 5 MB maximum</p>
+<p class="subtle">1,000 orders · 5 MB maximum</p>
 </div>
 <div class="actions">
 <button class="secondary" id="csv-template">CSV template ↓</button>
 <button class="secondary" id="csv-extended-template">Extended customs/store template ↓</button>
 </div>
 </div>
-<label for="csv-file">Order file</label>
-<input id="csv-file" type="file" accept=".csv,text/csv">
+<label for="csv-file">Order file<span class="field-info"><button type="button" aria-label="About order file uploads" aria-describedby="order-file-help">i</button><span id="order-file-help" role="tooltip">Saves each valid row to your workspace and rates it independently. International goods need reviewed customs data; uploads do not buy labels or deduct funds.</span></span></label>
+<input id="csv-file" type="file" accept=".csv,text/csv" aria-required="true">
 <div class="actions" style="margin-top:12px">
 <button class="primary" id="batch-btn">Process batch</button>
 <button class="secondary" id="batch-export" disabled>Export results</button>
@@ -473,7 +474,7 @@ table,thead,tbody,tr,td,th{background:transparent;color:#111827}thead th{backgro
 </div>
 <div id="batch-result" class="batchrows" aria-live="polite">
 </div>
-<p class="footnote">Saves each valid row to your workspace and rates it independently. International goods need reviewed customs data; uploads do not buy labels or deduct funds.</p>
+
 </div>
 </div>
 <div class="column">
@@ -7857,7 +7858,7 @@ renderAccount = function() {
     phone.maxLength=40;phone.placeholder='+447700900123';
     phone.pattern='\\+[1-9][0-9]{7,14}';
     const help=document.createElement('small');help.id=prefix+'-phone-help';help.className='subtle';
-    help.textContent='Include + and country code. You can leave this optional field blank.';
+    help.textContent='Include + and country code.';
     phone.setAttribute('aria-describedby',help.id);phone.after(help);
     phone.addEventListener('input',()=>validateShipmentPhone(prefix));
     phone.addEventListener('change',()=>validateShipmentPhone(prefix));
