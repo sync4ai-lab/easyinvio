@@ -75,3 +75,38 @@ def test_activation_is_available_for_unpaid_owner_but_not_a_second_paid_subscrip
     paid=sub.model_copy(update={'stripe_subscription_id':'sub_synthetic','plan_period_end':NOW+timedelta(days=30),'subscription_complimentary':False})
     options=management_options(paid,settings,NS(role='OWNER'),now=NOW)
     assert options['activation_targets']==[] and options['can_cancel'] and options['downgrade_targets']==['STARTER','VELOCITY']
+
+
+@pytest.mark.parametrize('payload,expected_tax',[
+    ({'tax_amount':'10.00','net_amount':'49.98'},'10.00'),
+    ({'wallet_tax_amount':'10.00'},'10.00'),
+    ({'tax_amount':None,'wallet_tax_amount':'10.00'},'10.00'),
+    ({'tax_amount':'0.00'},'0.00'),
+    ({},None),
+])
+def test_wallet_statement_preserves_confirmed_vat_and_unknown_tax(payload,expected_tax):
+    import csv,io
+    rows=[dict(id=1,created_at=NOW,entry_type='TOPUP',balance_delta='100',balance_after='100'),
+          dict(id=2,created_at=NOW,entry_type='SUBSCRIPTION_DEBIT',balance_delta='-59.98',balance_after='40.02',operation_payload=payload)]
+    data=snapshot(rows)
+    charge=data['transactions'][1]
+    assert charge['gross_amount']=='59.98' and data['closing_balance']=='40.02'
+    assert charge['tax_amount']==expected_tax
+    assert data['tax_complete']==(expected_tax is not None)
+    exported=list(csv.reader(io.StringIO(statement_csv(data).decode('utf-8-sig'))))
+    assert exported[-1][8]==(expected_tax if expected_tax is not None else 'Not supplied')
+    if expected_tax is not None:
+        assert Decimal(charge['net_amount'])+Decimal(charge['tax_amount'])==Decimal(charge['gross_amount'])
+        assert data['subscription_net']==charge['net_amount']
+    else:
+        assert charge['net_amount'] is None and data['unclassified_gross']=='59.98'
+
+
+def test_card_and_wallet_statements_show_same_prorated_vat():
+    wallet=snapshot([
+        dict(id=1,created_at=NOW,entry_type='TOPUP',balance_delta='100',balance_after='100'),
+        dict(id=2,created_at=NOW,entry_type='SUBSCRIPTION_DEBIT',balance_delta='-59.98',balance_after='40.02',operation_payload={'net_amount':'49.98','tax_amount':'10.00'})])
+    card=snapshot(invoices=[dict(stripe_invoice_id='in_proration',invoice_gross_gbp='59.98',invoice_net_gbp='49.98',invoice_tax_gbp='10.00',amount_paid_gbp='59.98',created_at=NOW,paid_at=NOW)])
+    for key in ['subscription_net','tax_total','gross_total','tax_complete']:
+        assert wallet[key]==card[key]
+    assert card['closing_balance']=='0.00'

@@ -79,7 +79,14 @@ def build_snapshot(tenant,currency,start,end,opening,ledger,external,invoices,ev
             net=gross-tax if tax is not None else None
             if net is not None:totals['refunds_net']-=net
         elif kind=='SUBSCRIPTION_DEBIT':
-            kind='SUBSCRIPTION';tax=money(payload.get('wallet_tax_amount',0));net=gross-tax;totals['subscription_net']+=net
+            kind='SUBSCRIPTION'
+            # Read the confirmed tax snapshot, never today's configured VAT rate.
+            # Legacy wallet-only snapshots remain readable; absent tax is unknown.
+            recorded=payload.get('tax_amount')
+            if recorded is None:recorded=payload.get('wallet_tax_amount')
+            tax=money(recorded) if recorded is not None else None
+            net=gross-tax if tax is not None else None
+            if net is not None:totals['subscription_net']+=net
         elif delta>0:kind='OTHER_CREDIT';gross=Decimal(0);totals['other_wallet_credits']+=delta
         else:kind='OTHER_CHARGE';totals['other_wallet_debits']-=delta
         item=line('wallet:'+str(r['id']),r['created_at'],kind,gross,net,tax,delta,shipment_id=shipment_id,

@@ -109,7 +109,7 @@
   "backend/sendcloud_adapter.py": "d1232bbb7a177dd1491b91a5a57c9c748f0735e04de1af041d63e90ca6516513",
   "backend/shipment_notifications.py": "e2162ed2d23417f9b4b5eb8e172bcd1f65268b98d39409e8d1951253579ffe22",
   "backend/shipment_protection.py": "86da98c5f029ffebc37447bd859483b00d223fc36205291def5555b50f5cc6bd",
-  "backend/statements.py": "e56c3dcf2d4d4e60bea5984b170c599398306165e333508c8cf24eef3b4b7744",
+  "backend/statements.py": "1b625148a7777156003e2f30d8dc3f97f424b5dbff29b057630bdc7aa49f56a9",
   "backend/store_connections.py": "a7060783011b74572854fed87f106dc106288f8b205ef28f0ba62925543fd796",
   "backend/store_delivery.py": "80576c9381ee985b6635b327d5b838c048d191d021d8224599bef5d916bf4905",
   "backend/store_rest.py": "e2479145d578e97a99b6f299ce3cbb11049cc4d662d7219ca176c3fdf19e461d",

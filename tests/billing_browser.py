@@ -84,6 +84,7 @@ async def main():
         await page.locator('#billing-refresh').click();await expect(page.locator('#billing-agreement')).to_contain_text('Velocity')
         await expect(page.locator('#billing-change')).to_be_hidden();assert 'Queued payments' not in await page.locator('#billing-status').inner_text()
         await expect(page.locator('#finance-available')).to_have_text('£83.00')
+        await expect(page.locator('#finance-plan')).to_contain_text('+ VAT where applicable')
         await expect(page.locator('#ledger-table')).to_contain_text('LABEL CHARGE')
         await expect(page.locator('#ledger-table')).not_to_contain_text('HOLD RELEASE')
         await page.locator('#ledger-next').click();await expect(page.locator('#ledger-table')).to_contain_text('TOP-UP')
@@ -96,6 +97,7 @@ async def main():
         await page.locator('#wallet').screenshot(path=str(out/'enterprise-wallet.png'))
 
         await page.locator('#billing-compare').click();await expect(page.locator('#billing-comparison')).to_be_visible();await expect(page.locator('#billing-comparison')).to_contain_text('WhatsApp booking')
+        await expect(page.locator('#billing-comparison')).to_contain_text('Monthly price + VAT where applicable')
         await page.keyboard.press('Escape');await expect(page.locator('#billing-comparison')).to_be_hidden()
         await expect(page.locator('#billing-agreement')).not_to_contain_text('Finance review')
         await expect(page.locator('#billing-agreement')).not_to_contain_text('Not completed')
@@ -230,6 +232,13 @@ async def main():
         await page.locator('[data-finance-shipment]').first.click();await page.locator('[data-show-shipments]').click();await expect(page.locator('#manifest-search')).to_have_value('');await page.evaluate("setView('wallet')")
 
         await page.locator('[data-statement-id]').click();await expect(page.locator('#billing-statement')).to_contain_text('<script>bad()</script>');assert await page.locator('#billing-statement script').count()==0
+        unknown={**snapshot,'transactions':[{**snapshot['transactions'][0],'net_amount':None,'tax_amount':None}]}
+        await page.evaluate("data => window.renderEnterpriseStatement(document.querySelector('#billing-statement'),data)",unknown)
+        row=page.locator('[data-statement-lines] tbody tr').first
+        await expect(row.locator('td').nth(3)).to_have_text('Not supplied')
+        await expect(row.locator('td').nth(4)).to_have_text('Not supplied')
+        await expect(row.locator('td').nth(5)).to_have_text('£12.00')
+        await page.evaluate("data => window.renderEnterpriseStatement(document.querySelector('#billing-statement'),data)",snapshot)
         out=ROOT/'output/subscription-qa/billing';out.mkdir(parents=True,exist_ok=True);await page.locator('#billing-workspace').screenshot(path=str(out/'workspace-owner.png'))
         current_plan='COMMAND';unbounded=True
         await page.locator('#billing-refresh').click();await expect(page.locator('#billing-agreement')).not_to_contain_text('Test workspace')

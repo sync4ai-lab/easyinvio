@@ -26,6 +26,7 @@ async def main():
         await page.route('**/*',route)
         await page.goto('https://pricing.test/pricing')
         assert await page.locator('.tier').count()==3
+        assert await page.locator('.tier-price small').filter(has_text='+ VAT where applicable').count()==2
         assert await page.locator('.comparison-table .category').count()==7
         await expect(page.locator('[data-plan-price="velocity"]')).to_have_text('£25')
         await expect(page.locator('[data-plan-price="command"]')).to_have_text('£75')

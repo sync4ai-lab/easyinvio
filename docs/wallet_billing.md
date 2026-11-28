@@ -231,3 +231,20 @@ Before European commercial rollout, approve the receiving-establishment and
 business-status evidence flow, EU consumer registration/filing arrangements, and
 shipping principal/agent contracts and tax matrix. Do not activate international
 collection merely by changing SUBSCRIPTION_TAX_PERCENT.
+
+
+### VAT presentation review (28 November 2026)
+
+The Option B application rollout is preserved. Public tier prices, plan
+comparison prices, the current-plan summary and activation review now carry
+an adjacent "+ VAT where applicable" label. Review totals continue to use the
+existing confirmed net/VAT/gross amounts; these labels do not change prices,
+payment methods, tax eligibility or proration formulas.
+
+New statement snapshots read confirmed `tax_amount`, with `wallet_tax_amount`
+as a legacy fallback. Missing tax is unknown rather than zero, including in
+the browser and exports. A recorded zero remains zero. Saved statements remain
+immutable; no historical charge, invoice or statement is rewritten. Card and
+wallet subscription charges must report matching net/VAT/gross amounts for the
+same reviewed charge. The fixed-rate UK guard and overseas billing restrictions
+remain unchanged; this presentation update does not enable EU VAT collection.
