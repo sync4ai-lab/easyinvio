@@ -27,216 +27,227 @@
 #store-catalogue article:focus-within .platform-brand,#store-list article:focus-within .platform-brand{transform:translateY(-3px);box-shadow:inset 0 1px 1px #ffffff55,0 5px 12px #00000044}
 @media(prefers-reduced-motion:reduce){.platform-brand,.integration-mark{transition:none!important;transform:none!important}}
 
-/* Option C: Executive Graphite & Warm Ivory. Public pages only. */
+/* Option B: Swiss Industrial Precision. Continuous public-page canvas. */
 :root:has(body.public-daylight){color-scheme:light}
 body.public-daylight{
-  --ink:#0f172a;--muted:#475569;--line:#e5e7eb;--accent:#2563eb;
-  --day-canvas:#faf9f6;--day-paper:#fff;--day-border:#cbd5e1;
-  --day-cobalt:#2563eb;--day-emerald:#047857;
-  --day-shadow:0 4px 20px -2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
-  --executive-graphite:#16181d;--executive-panel:#1f222a;--executive-rule:#272a34;
-  color-scheme:light;background:#faf9f6;color:var(--ink);
+  --ink:#111827;--muted:#475467;--line:#e2e8f0;--accent:#1d4ed8;
+  --day-canvas:#f1f3f6;--day-paper:#fff;--day-border:#d0d5dd;
+  --day-cobalt:#1d4ed8;--day-emerald:#047857;
+  --day-shadow:0 1px 3px rgba(16,24,40,.06),0 4px 12px -2px rgba(16,24,40,.04);
+  color-scheme:light;background:#f1f3f6;color:var(--ink);
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
 }
-body.public-daylight :is(h1,h2,h3,h4,h5,h6,.brand-name){font-family:"Plus Jakarta Sans",Inter,sans-serif;font-weight:700;letter-spacing:-.025em;color:#0f172a}
-body.public-daylight h1{font-weight:800;letter-spacing:-.03em}
+body.public-daylight :is(h1,h2,h3,h4,h5,h6,.brand-name){font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:700;letter-spacing:-.025em;color:#111827}
+body.public-daylight h1{font-weight:700;letter-spacing:-.025em}
 body.public-daylight :is(code,kbd,pre,.tier-price,[data-plan-price],[data-compare-price],.board-table td:first-child,.order-preview>strong,.wallet-demo>strong,.demo-metrics strong,.analytics-kpi>strong,.analytics-period,.demo-label,.console-bar,#track-input){font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;font-weight:500}
 body.public-daylight :is(.eyebrow,.hero-kicker,.ecosystem-label){color:#1d4ed8}
-body.public-daylight :is(.hero-copy,.section-intro,.section-heading>p,.intro,.lead,.tier-description,.bill-detail,.trust-strip,.footer-description,.feedback-heading>p){color:#475569}
-body.public-daylight :is(.notice,.commercial-note,.compare-hint,.tier-end,.tier-price small,.services-note,.ai-guardrail,.analytics-access,.feedback-mobile-hint,.ecosystem-brief,.integration-note),body.public-daylight #integration-count{color:#64748b}
+body.public-daylight :is(.hero-copy,.section-intro,.section-heading>p,.intro,.lead,.tier-description,.bill-detail,.trust-strip,.footer-description,.feedback-heading>p){color:#475467}
+body.public-daylight :is(.notice,.commercial-note,.compare-hint,.tier-end,.tier-price small,.services-note,.ai-guardrail,.analytics-access,.feedback-mobile-hint,.ecosystem-brief,.integration-note),body.public-daylight #integration-count{color:#667085}
 body.public-daylight :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #1d4ed8;outline-offset:4px}
-body.public-daylight :is(input,select,textarea){background:#fff;color:#0f172a;border-color:#cbd5e1;accent-color:#1d4ed8}
-body.public-daylight input::placeholder,body.public-daylight textarea::placeholder{color:#64748b}
-body.public-daylight .btn{background:#fff;color:#0f172a;border-color:#cbd5e1;box-shadow:none;background-image:none;transition:background-color .15s,border-color .15s}
-body.public-daylight :is(.btn-dark,.btn-indigo){background:#2563eb;border-color:#2563eb;color:#fff}
+body.public-daylight :is(input,select,textarea){background:#fff;color:#111827;border-color:#d0d5dd;accent-color:#1d4ed8}
+body.public-daylight input::placeholder,body.public-daylight textarea::placeholder{color:#667085}
+body.public-daylight .btn{background:#fff;color:#111827;border-color:#d0d5dd;box-shadow:none;background-image:none;transition:background-color .15s,border-color .15s}
+body.public-daylight :is(.btn-dark,.btn-indigo){background:#111827;border-color:#111827;color:#fff}
 body.public-daylight .btn:hover{filter:none;background:#f1f5f9;border-color:#94a3b8}
-body.public-daylight :is(.btn-dark,.btn-indigo):hover{background:#1e40af;border-color:#1e40af;color:#fff}
-body.public-daylight .nav{background:#16181d;color:#f8fafc;border-bottom:1px solid #272a34;box-shadow:none;backdrop-filter:none}
-body.public-daylight .nav.scrolled{box-shadow:0 4px 16px rgba(0,0,0,.12)}
-body.public-daylight :is(.nav,.footer) .brand-name{color:#fff;font-weight:800}
-body.public-daylight :is(.nav,.footer) .brand-name em{color:#34d399}
-body.public-daylight :is(.nav,.footer) .brand-tagline{color:#cbd5e1}
-body.public-daylight :is(.nav-links a:hover,.nav-links button:hover,.nav-links [aria-current=page],.nav #public-session-retry,#public-account summary){color:#60a5fa}
+body.public-daylight :is(.btn-dark,.btn-indigo):hover{background:#1f2937;border-color:#1f2937;color:#fff}
+body.public-daylight .nav{background:#fff;color:#111827;border-bottom:1px solid #d0d5dd;box-shadow:none;backdrop-filter:none}
+body.public-daylight .nav.scrolled{box-shadow:0 4px 16px rgba(15,23,42,.04)}
+body.public-daylight :is(.nav,.footer) .brand-name{color:#111827;font-weight:700}
+body.public-daylight :is(.nav,.footer) .brand-name em{color:#1d4ed8}
+body.public-daylight :is(.nav,.footer) .brand-tagline{color:#475467}
+body.public-daylight :is(.nav-links a:hover,.nav-links button:hover,.nav-links [aria-current=page],.nav #public-session-retry,#public-account summary){color:#1d4ed8}
 body.public-daylight .nav-links .btn-indigo,body.public-daylight .nav-links .btn-dark{color:#fff}
-body.public-daylight .nav .notice{color:#cbd5e1}
+body.public-daylight .nav .notice{color:#667085}
 body.public-daylight .account-menu{background:#fff;border-color:#e2e8f0;box-shadow:var(--day-shadow)}
-body.public-daylight .account-menu>*{color:#0f172a}
-body.public-daylight .hero,body.public-daylight .pricing-hero{background:#16181d;border-block:1px solid #272a34}
-body.public-daylight .hero h1 span{color:#60a5fa;background:none;-webkit-text-fill-color:currentColor;text-shadow:none}
-body.public-daylight .hero-kicker{background:#1f222a;border-color:#2e323e;color:#cbd5e1}
-body.public-daylight .hero-kicker:before{background:#34d399}
-body.public-daylight .hero-checks{color:#cbd5e1}
-body.public-daylight .hero-checks li:before{color:#34d399}
-body.public-daylight .hero .hero-note{border-color:#2e323e;color:#cbd5e1}
-body.public-daylight .hero-widget{background:#fff;border:1px solid #e2e8f0;box-shadow:0 24px 48px -12px rgba(0,0,0,.45)}
+body.public-daylight .account-menu>*{color:#111827}
+body.public-daylight .hero,body.public-daylight .pricing-hero{background:#f1f3f6;border-color:#e2e8f0}
+body.public-daylight .hero h1 span{color:#1d4ed8;background:none;-webkit-text-fill-color:currentColor;text-shadow:none}
+body.public-daylight .hero-kicker{background:#eff6ff;border-color:#bfdbfe}
+body.public-daylight .hero-kicker:before{background:#1d4ed8}
+body.public-daylight .hero-checks{color:#475467}
+body.public-daylight .hero-checks li:before{color:#1d4ed8}
+body.public-daylight .hero-note{border-color:#e2e8f0}
+body.public-daylight .hero-widget{background:#fff;border:1px solid #d0d5dd;box-shadow:var(--day-shadow)}
 body.public-daylight .hero-board{background:#fff;border-color:#e2e8f0}
-body.public-daylight .board-header strong{color:#0f172a}
-body.public-daylight :is(.board-header small,.board-stages,.board-table th){color:#64748b}
+body.public-daylight .board-header strong{color:#111827}
+body.public-daylight :is(.board-header small,.board-stages,.board-table th){color:#667085}
 body.public-daylight .board-table :is(th,td){border-color:#e2e8f0}
 body.public-daylight .board-table td{color:#334155}
-body.public-daylight .board-table td:first-child{color:#0f172a}
+body.public-daylight .board-table td:first-child{color:#111827}
 body.public-daylight :is(.board-stages .active,.status-pill,.board-bottom){background:#ecfdf5;color:#047857}
 body.public-daylight .status-pill.pending{background:#eff6ff;color:#1d4ed8}
 body.public-daylight :is(.sample-label,.badge){background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
-body.public-daylight :is(.hero-understand,.hero-understand>a){color:#60a5fa}
+body.public-daylight :is(.hero-understand,.hero-understand>a){color:#1d4ed8}
 body.public-daylight .result{background:#f8fafc;color:#334155;border-color:#e2e8f0}
-body.public-daylight .outcomes{background:#faf9f6}
-body.public-daylight .outcome-card{background:#fff;border-color:#e2e8f0;box-shadow:var(--day-shadow)}
-body.public-daylight .outcome-card>p{color:#475569}
+body.public-daylight .outcomes{background:#f1f3f6}
+body.public-daylight .outcome-card{background:#fff;border-color:#d0d5dd;box-shadow:var(--day-shadow)}
+body.public-daylight .outcome-card>p{color:#475467}
 body.public-daylight .outcome-grid{counter-reset:journey}
 body.public-daylight .outcome-card{counter-increment:journey}
 body.public-daylight .outcome-card .line-icon{position:relative}
-body.public-daylight .outcome-card .line-icon:after{content:counter(journey,decimal-leading-zero);position:absolute;left:54px;font:500 12px "JetBrains Mono",monospace;color:#64748b}
+body.public-daylight .outcome-card .line-icon:after{content:counter(journey,decimal-leading-zero);position:absolute;left:54px;font:500 12px "JetBrains Mono",monospace;color:#667085}
 body.public-daylight .line-icon{background:#eff6ff;color:#1d4ed8}
 body.public-daylight .line-icon svg{stroke-width:1.5}
-body.public-daylight :is(.mini-proof,.track-line span){background:#fff;color:#475569;border-color:#e2e8f0}
+body.public-daylight :is(.mini-proof,.track-line span){background:#fff;color:#475467;border-color:#e2e8f0}
 body.public-daylight .mini-proof strong{color:#047857}
-body.public-daylight :is(.mini-proof small,.proof-caption){color:#64748b}
-body.public-daylight .track-line:before{background:#a7f3d0}
-body.public-daylight .track-line span:before{background:#047857;border-color:#ecfdf5}
+body.public-daylight :is(.mini-proof small,.proof-caption){color:#667085}
+body.public-daylight .track-line:before{background:#bfdbfe}
+body.public-daylight .track-line span:before{background:#1d4ed8;border-color:#eff6ff}
 
-/* One matte product anchor: the existing five workflows stay intact. */
-body.public-daylight #features{background:#16181d;color:#f8fafc;border-color:#272a34;color-scheme:dark}
-body.public-daylight #features :is(h2,h3,h4){color:#fff}
-body.public-daylight #features :is(.section-intro,.feature-footnote){color:#cbd5e1}
-body.public-daylight #features :is(.eyebrow,.feature-footnote a){color:#93c5fd}
-body.public-daylight #features .pillar-list button{background:#1f222a;border-color:#2e323e;color:#e2e8f0;box-shadow:none}
-body.public-daylight #features .pillar-list button[aria-selected=true]{background:#1f222a;border-color:#60a5fa;box-shadow:inset 3px 0 #93c5fd;color:#fff}
-body.public-daylight #features .pillar-list button small{color:#cbd5e1}
-body.public-daylight #features :is(.console,.console-bar,.demo-dashboard,.demo-metrics>div,.return-ticket,.stripe-preview,.margin-rule,.currency-switch button){background:#1f222a;border-color:#2e323e;box-shadow:none}
-body.public-daylight #features :is(.console-bar,.demo-label,.flow-preview b,.permissions b){color:#93c5fd}
-body.public-daylight #features :is(.order-preview,.demo-confirm){background:#123c36;border-color:#276157;color:#d1fae5}
-body.public-daylight #features .currency-switch button[aria-pressed=true]{background:#1d4ed8;color:#fff;border-color:#60a5fa}
-body.public-daylight #features .phone-preview{background:#efeae2;border:5px solid #475569;box-shadow:0 12px 32px -8px rgba(0,0,0,.22)}
-body.public-daylight #features :is(.phone-head,.phone-status){background:#075e54;color:#fff}
+/* A white, framed workflow workspace on the continuous porcelain canvas. */
+body.public-daylight #features{background:#f1f3f6;color:#111827;border-color:#e2e8f0;color-scheme:light}
+body.public-daylight #features .pillar-grid{background:#fff;border:1px solid #d0d5dd;border-radius:14px;padding:24px;box-shadow:var(--day-shadow)}
+body.public-daylight #features :is(h2,h3,h4){color:#111827}
+body.public-daylight #features :is(.section-intro,.feature-footnote){color:#475467}
+body.public-daylight #features :is(.eyebrow,.feature-footnote a){color:#1d4ed8}
+body.public-daylight #features .pillar-list button{background:#fff;border-color:#d0d5dd;color:#475467;box-shadow:none}
+body.public-daylight #features .pillar-list button[aria-selected=true]{background:#eff6ff;border-color:#1d4ed8;box-shadow:inset 3px 0 #1d4ed8;color:#111827}
+body.public-daylight #features .pillar-list button small{color:#475467}
+body.public-daylight #features :is(.console,.demo-dashboard,.demo-metrics>div,.return-ticket,.stripe-preview,.currency-switch button){background:#fff;border-color:#d0d5dd;box-shadow:none}
+body.public-daylight #features .console-bar{background:#f8fafc;color:#475467;border-color:#d0d5dd}
+body.public-daylight #features :is(.demo-label,.flow-preview b,.flow-preview li>span){color:#1d4ed8}
+body.public-daylight #features .permissions b{color:#111827}
+body.public-daylight #features :is(.order-preview,.margin-rule){background:#eff6ff;border-color:#bfdbfe;color:#111827}
+body.public-daylight #features :is(.demo-metrics strong,.wallet-demo strong,.margin-rule span){color:#1d4ed8}
+body.public-daylight #features :is(.demo-metrics span,.demo-metrics small,.service-row small,.margin-rule small,.order-preview>small,.flow-preview small,.return-ticket p,.demo-footnote,.wallet-demo>span,.wallet-demo>small,.stripe-preview small,.permissions span,.demo-confirmation){color:#667085}
+body.public-daylight #features :is(.store-sources span,.flow-preview li,.service-row,.permissions>div,.demo-toolbar){border-color:#e2e8f0}
+body.public-daylight #features .store-sources span{background:#fff;color:#475467}
+body.public-daylight #features .currency-switch button{color:#475467}
+body.public-daylight #features .currency-switch button[aria-pressed=true]{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+body.public-daylight #features .phone-preview{background:#efeae2;border:5px solid #181a1f;box-shadow:0 12px 32px -8px rgba(0,0,0,.22)}
+body.public-daylight #features .phone-head{background:#075e54;color:#fff}
+body.public-daylight #features .phone-status{background:#181a1f;color:#fff}
 body.public-daylight #features .phone-head strong{color:#fff}
 body.public-daylight #features .phone-thread .sent{background:#d9fdd3;color:#153d32}
-body.public-daylight #features .phone-thread .received{background:#fff;color:#0f172a}
+body.public-daylight #features .phone-thread .received{background:#fff;color:#111827}
 body.public-daylight #features .message time{color:#526b60}
-body.public-daylight #features .message.received>small{color:#475569}
-body.public-daylight #features .phone-thread .demo-rate{background:#f8fafc;border-color:#cbd5e1;color:#0f172a}
-body.public-daylight #features .phone-thread .demo-rate :is(.brand-badge,small){color:#475569}
+body.public-daylight #features .message.received>small{color:#475467}
+body.public-daylight #features .phone-thread .demo-rate{background:#f8fafc;border-color:#d0d5dd;color:#111827}
+body.public-daylight #features .phone-thread .demo-rate :is(.brand-badge,small){color:#475467}
 body.public-daylight #features .phone-thread .demo-rate b{color:#047857}
-body.public-daylight #features .phone-thread .qr-card{background:#fff;color:#0f172a}
+body.public-daylight #features .phone-thread .qr-card{background:#fff;color:#111827}
 body.public-daylight #features .demo-confirm{background:#d9fdd3;color:#075e54;border-color:#86b9a4}
-body.public-daylight #features .phone-home{background:#64748b}
+body.public-daylight #features .phone-home{background:#667085}
 body.public-daylight #features .chat-avatar{background:#d1fae5;color:#075e54}
 
 /* Light partner directory, services and API surfaces. Original artwork is retained. */
-body.public-daylight #integrations{background:#fff}
-body.public-daylight :is(.integration-card,.courier-card,.ecosystem-grid,.ecosystem-group,.ecosystem-logo,.ecosystem-brands .brand-badge,.logo-motion){background:#fff;color:#0f172a;border-color:#e2e8f0;--brand-cutout:#fff}
-body.public-daylight :is(.integration-card small,.ecosystem-brief,.logo-motion-top p){color:#64748b}
-body.public-daylight .integration-mark{color:var(--brand-ink,#0f172a)}
-body.public-daylight .integration-card:hover{border-color:#cbd5e1;box-shadow:var(--day-shadow)}
+body.public-daylight #integrations{background:#f1f3f6}
+body.public-daylight :is(.integration-card,.courier-card,.ecosystem-grid,.ecosystem-group,.ecosystem-logo,.ecosystem-brands .brand-badge,.logo-motion){background:#fff;color:#111827;border-color:#e2e8f0;--brand-cutout:#fff}
+body.public-daylight :is(.integration-card small,.ecosystem-brief,.logo-motion-top p){color:#667085}
+body.public-daylight .integration-mark{color:var(--brand-ink,#111827)}
+body.public-daylight .integration-card:hover{border-color:#d0d5dd;box-shadow:var(--day-shadow)}
 body.public-daylight .integration-card:hover .integration-mark,body.public-daylight .integration-card:focus-visible .integration-mark{background:#fff;box-shadow:none}
-body.public-daylight .integration-filters button{background:#f8fafc;color:#475569;border-color:#e2e8f0}
+body.public-daylight .integration-filters button{background:#f8fafc;color:#475467;border-color:#e2e8f0}
 body.public-daylight .integration-filters button[aria-pressed=true]{background:#eff6ff;color:#1d4ed8;border-color:#93c5fd}
 body.public-daylight .logo-motion-top{border-color:#e2e8f0}
-body.public-daylight .logo-motion-top button{background:#f8fafc;border-color:#cbd5e1;color:#334155}
+body.public-daylight .logo-motion-top button{background:#f8fafc;border-color:#d0d5dd;color:#334155}
 body.public-daylight .marquee-brand{color:#334155;--brand-cutout:#fff}
-body.public-daylight #integration-detail{background:#fff;color:#0f172a;border-color:#cbd5e1;box-shadow:0 20px 60px rgba(15,23,42,.16)}
-body.public-daylight #integration-detail li{color:#475569}
-body.public-daylight .integration-close{background:#f1f5f9;color:#0f172a;border-color:#e2e8f0}
+body.public-daylight #integration-detail{background:#fff;color:#111827;border-color:#d0d5dd;box-shadow:0 20px 60px rgba(15,23,42,.16)}
+body.public-daylight #integration-detail li{color:#475467}
+body.public-daylight .integration-close{background:#f1f5f9;color:#111827;border-color:#e2e8f0}
 body.public-daylight .integration-guide{color:#1d4ed8}
-body.public-daylight .operations{background:#faf9f6}
-body.public-daylight .ai-services{background:#fff}
+body.public-daylight :is(.operations,.ai-services){background:#f1f3f6}
 body.public-daylight :is(.operation,.ai-service-card,.ai-guide-strip){background:#fff;border-color:#e2e8f0}
-body.public-daylight :is(.operation p,.ai-service-card>p,.ai-guide-strip p){color:#475569}
-body.public-daylight :is(.operation a,.capability-jumps,.capability-jumps a){color:#1d4ed8;border-color:#cbd5e1}
+body.public-daylight :is(.operation p,.ai-service-card>p,.ai-guide-strip p){color:#475467}
+body.public-daylight :is(.operation a,.capability-jumps,.capability-jumps a){color:#1d4ed8;border-color:#d0d5dd}
 body.public-daylight .operation .line-icon{background:#ecfdf5;color:#047857}
 body.public-daylight .ai-visual{background:#f8fafc;border-color:#e2e8f0}
-body.public-daylight :is(.ai-message,.ai-offer){background:#fff;border-color:#cbd5e1;color:#0f172a}
-body.public-daylight :is(.ai-candidate,.ai-candidate small,.ai-offer span small){color:#475569}
+body.public-daylight :is(.ai-message,.ai-offer){background:#fff;border-color:#d0d5dd;color:#111827}
+body.public-daylight :is(.ai-candidate,.ai-candidate small,.ai-offer span small){color:#475467}
 body.public-daylight :is(.ai-missing,.ai-visual .demo-label,.ai-candidate>span){color:#1d4ed8;border-color:#bfdbfe}
-body.public-daylight .ai-extract span{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+body.public-daylight .ai-extract span{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
 body.public-daylight .ai-offer>b{color:#047857}
 
 /* Existing analytics illustration: daylight metrics, no additional calculator. */
-body.public-daylight .analytics-section{background:#faf9f6}
-body.public-daylight :is(.analytics-demo,.analytics-kpi){background:#fff;border-color:#e2e8f0}
-body.public-daylight :is(.analytics-points li,.analytics-bar-label){color:#475569;border-color:#1d4ed8}
-body.public-daylight :is(.analytics-points strong,.analytics-kpi>strong){color:#0f172a}
-body.public-daylight :is(.analytics-kpi>span,.analytics-kpi>small,.analytics-demo-note){color:#64748b;border-color:#e2e8f0}
-body.public-daylight .analytics-period{color:#1d4ed8;border-color:#cbd5e1}
-body.public-daylight .analytics-tabs button{background:#fff;color:#475569;border-color:#cbd5e1}
+body.public-daylight .analytics-section{background:#f1f3f6}
+body.public-daylight :is(.analytics-demo,.analytics-kpi){background:#f8fafc;border-color:#e2e8f0}
+body.public-daylight :is(.analytics-points li,.analytics-bar-label){color:#475467;border-color:#1d4ed8}
+body.public-daylight :is(.analytics-points strong,.analytics-kpi>strong){color:#111827}
+body.public-daylight :is(.analytics-kpi>span,.analytics-kpi>small,.analytics-demo-note){color:#667085;border-color:#e2e8f0}
+body.public-daylight .analytics-period{color:#1d4ed8;border-color:#d0d5dd}
+body.public-daylight .analytics-tabs button{background:#fff;color:#475467;border-color:#d0d5dd}
 body.public-daylight .analytics-tabs button[aria-selected=true]{background:#eff6ff;color:#1d4ed8;border-color:#93c5fd}
 body.public-daylight .analytics-bar-track{background:#e2e8f0}
 body.public-daylight .analytics-bar-fill{background:#1d4ed8}
 body.public-daylight .analytics-bar:nth-of-type(2) .analytics-bar-fill{background:#047857}
-body.public-daylight .analytics-bar:nth-of-type(3) .analytics-bar-fill{background:#64748b}
+body.public-daylight .analytics-bar:nth-of-type(3) .analytics-bar-fill{background:#667085}
 body.public-daylight input[type=range]{accent-color:#10b981}
-body.public-daylight .feedback-section{background:#fff}
+body.public-daylight .feedback-section{background:#f1f3f6}
 body.public-daylight .feedback-card{background:#fff;border-color:#e2e8f0}
-body.public-daylight .feedback-card>p,body.public-daylight .feedback-card blockquote{color:#475569}
-body.public-daylight .feedback-card h3{color:#0f172a}
+body.public-daylight .feedback-card>p,body.public-daylight .feedback-card blockquote{color:#475467}
+body.public-daylight .feedback-card h3{color:#111827}
 body.public-daylight .workflow-role{color:#047857}
 body.public-daylight .feedback-avatar{background:#eff6ff;color:#1d4ed8}
-body.public-daylight :is(.feedback-person small,.sample-stars){color:#64748b}
-body.public-daylight #faq{background:#faf9f6}
-body.public-daylight .faq-list details{background:#fff;border:1px solid #e2e8f0}
-body.public-daylight .faq-list details[open]{background:#fff;border-color:#cbd5e1}
-body.public-daylight .faq-list summary{color:#0f172a}
+body.public-daylight :is(.feedback-person small,.sample-stars){color:#667085}
+body.public-daylight #faq{background:#f1f3f6}
+body.public-daylight .faq-list details{background:#fff;border:1px solid #d0d5dd;box-shadow:var(--day-shadow)}
+body.public-daylight .faq-list details[open]{background:#fff;border-color:#d0d5dd}
+body.public-daylight .faq-list summary{color:#111827}
 body.public-daylight .faq-list summary:after{color:#1d4ed8}
-body.public-daylight .faq-list details p{color:#475569}
-body.public-daylight .closing{background:#16181d;border-block:1px solid #272a34;color:#f8fafc}
-body.public-daylight .closing-panel{background:transparent;border:1px solid #272a34;box-shadow:none}
+body.public-daylight .faq-list details p{color:#475467}
+body.public-daylight .closing{background:#f1f3f6}
+body.public-daylight .closing-panel{background:#181a1f;border:1px solid #2e323e;box-shadow:var(--day-shadow)}
 body.public-daylight .closing-panel p{color:#cbd5e1}
-body.public-daylight :is(.footer,.footer-shell){background:#111317;color:#cbd5e1}
-body.public-daylight .footer-bottom{border-color:#272a34}
-body.public-daylight .footer-links a:hover{color:#60a5fa}
+body.public-daylight :is(.footer,.footer-shell){background:#fff;color:#667085}
+body.public-daylight .footer-bottom{border-color:#e2e8f0}
+body.public-daylight .footer-links a:hover{color:#1d4ed8}
 body.public-daylight :is(.pricing-text-link,.chat-sources a){color:#1d4ed8}
 
 /* The same net pricing and comparison controls, on crisp paper surfaces. */
-body.public-daylight .tier-section{background:#faf9f6}
-body.public-daylight .tier{background:#fff;border-color:#e2e8f0;box-shadow:var(--day-shadow)}
-body.public-daylight .tier.featured{border:2px solid #2563eb;border-top-width:4px;box-shadow:0 16px 36px -8px rgba(37,99,235,.14)}
+body.public-daylight .tier-section{background:#f1f3f6}
+body.public-daylight .tier{background:#fff;border-color:#d0d5dd;box-shadow:var(--day-shadow)}
+body.public-daylight .tier.featured{border:2px solid #111827;border-top-width:4px;box-shadow:0 12px 28px -6px rgba(16,24,40,.12)}
 body.public-daylight .tier .tag{background:#eff6ff;color:#1d4ed8}
 body.public-daylight .tier li{border-color:#e2e8f0}
-body.public-daylight .tier-price{color:#0f172a;letter-spacing:-.04em}
-body.public-daylight .tier .check{color:#047857}
+body.public-daylight .tier-price{color:#111827;letter-spacing:-.04em}
+body.public-daylight .tier .check{color:#1d4ed8}
 body.public-daylight :is(.annual-saving,.allowance-pill){background:#ecfdf5;border-color:#a7f3d0;color:#047857}
-body.public-daylight .billing-tabs{background:#1f222a;border-color:#2e323e}
-body.public-daylight .billing-tabs button{color:#cbd5e1}
-body.public-daylight .billing-tabs button[aria-pressed=true]{background:#2563eb;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.16)}
-body.public-daylight #compare{background:#fff}
-body.public-daylight .comparison-scroll{background:#fff;border-color:#cbd5e1;box-shadow:0 8px 24px -4px rgba(15,23,42,.06)}
+body.public-daylight .billing-tabs{background:#e2e8f0;border-color:#d0d5dd}
+body.public-daylight .billing-tabs button{color:#475467}
+body.public-daylight .billing-tabs button[aria-pressed=true]{background:#fff;color:#1d4ed8;box-shadow:0 1px 4px rgba(15,23,42,.08)}
+body.public-daylight #compare{background:#f1f3f6}
+body.public-daylight .comparison-scroll{background:#fff;border-color:#e2e8f0}
 body.public-daylight .comparison-table :is(th,td){border-color:#e2e8f0}
-body.public-daylight .comparison-table td{color:#475569}
+body.public-daylight .comparison-table td{color:#475467}
 body.public-daylight .comparison-table td:nth-child(3){background:#eff6ff}
-body.public-daylight .comparison-table thead th{background:#16181d;color:#fff}
+body.public-daylight .comparison-table thead th{background:#f8fafc;color:#111827}
 body.public-daylight .comparison-table .category th{background:#f1f5f9;color:#1d4ed8}
-body.public-daylight .comparison-table tbody tr:not(.category)>th{background:#fff;color:#0f172a;box-shadow:1px 0 #e2e8f0}
-body.pricing-daylight #faq{background:#faf9f6}
+body.public-daylight .comparison-table tbody tr:not(.category)>th{background:#fff;color:#111827;box-shadow:1px 0 #e2e8f0}
+body.pricing-daylight #faq{background:#f1f3f6}
 body.pricing-daylight .faq-list details{background:#fff}
-body.pricing-daylight .closing-panel{background:transparent;border:0}
-body.public-daylight .text-slate-600,body.public-daylight .text-slate-500{color:#64748b!important}
+body.pricing-daylight .closing-panel{max-width:1196px;width:calc(100% - 64px);padding:44px;background:#181a1f;border:1px solid #2e323e;border-radius:18px}
+body.public-daylight .text-slate-600,body.public-daylight .text-slate-500{color:#667085!important}
 body.public-daylight .border-slate-200{border-color:#e2e8f0!important}
 @media(prefers-reduced-motion:reduce){body.public-daylight .btn{transition:none}}
 
 /* Legible links and document labels within the matte workflow preview. */
-body.public-daylight #features .capability-jumps a{color:#93c5fd;border-color:#475569}
-body.public-daylight #features .phone-thread .qr-card .demo-label{color:#475569}
+body.public-daylight #features .capability-jumps a{color:#1d4ed8;border-color:#d0d5dd}
+body.public-daylight #features .phone-thread .qr-card .demo-label{color:#475467}
 
 /* Dark wordmark variants for monochrome artwork previously drawn in white. */
 body.public-daylight .integration-card:is([data-integration=WIX],[data-integration=SQUARESPACE],[data-integration=SQUARE],[data-integration=MIRAKL],[data-integration=BIGCOMMERCE]) .integration-mark,
 body.public-daylight #integration-detail-mark:is([data-platform=WIX],[data-platform=SQUARESPACE],[data-platform=SQUARE],[data-platform=MIRAKL],[data-platform=BIGCOMMERCE]){filter:brightness(0) saturate(100%)}
 body.public-daylight .integration-card:is([data-integration=CUSTOM_WEBSITE],[data-integration=CSV_SFTP]) .integration-mark{filter:brightness(.5) saturate(100%)}
 
-/* Executive framing keeps dark bands distinct from the elevated paper cards. */
-body.public-daylight :is(.hero,.pricing-hero) h1{color:#fff;letter-spacing:-.03em}
-body.public-daylight :is(.hero-copy,.pricing-hero .lead,.pricing-hero .commercial-note,.pricing-hero .trust-strip){color:#cbd5e1}
-body.public-daylight :is(.pricing-hero .eyebrow,.hero-note .pricing-text-link,.closing .eyebrow){color:#60a5fa}
-body.public-daylight .nav .mobile-toggle{background:#1f222a;border-color:#2e323e;color:#f8fafc}
-body.public-daylight .pricing-hero .annual-saving{background:#17372d;border-color:#2a5948;color:#a7f3d0}
-body.public-daylight :is(.section,.hero,.pricing-hero){border-bottom-color:#e5e7eb}
-body.public-daylight :is(.hero,.pricing-hero,#features,.closing){border-bottom-color:#272a34}
-body.public-daylight :is(.operation,.ai-service-card,.ai-guide-strip,.integration-card,.analytics-demo,.feedback-card){box-shadow:var(--day-shadow)}
-body.public-daylight .integration-card:hover{box-shadow:0 12px 28px -8px rgba(15,23,42,.12);border-color:#cbd5e1}
-body.public-daylight #features :is(.store-sources span,.flow-preview li,.service-row,.permissions>div,.demo-toolbar){border-color:#2e323e}
-body.public-daylight #features .phone-preview{border-color:#444854}
-body.public-daylight .comparison-table tbody tr:not(.category):nth-child(even)>:is(td,th){background:#f8fafc}
-body.public-daylight .comparison-table tbody tr:not(.category)>td:nth-child(3){background:#eff6ff}
+/* High-definition paper surfaces, restrained cobalt state cues and a framed CTA. */
+body.public-daylight :is(.section,.hero,.pricing-hero){border-bottom-color:#e2e8f0}
+body.public-daylight :is(.integration-card,.operation,.ai-service-card,.ai-guide-strip,.analytics-demo,.feedback-card,.comparison-scroll){background:#fff;border-color:#d0d5dd;box-shadow:var(--day-shadow)}
+body.public-daylight .integration-card:hover{border-color:#98a2b3;box-shadow:0 8px 20px -4px rgba(16,24,40,.12)}
+body.public-daylight :is(.board-stages .active,.status-pill,.board-bottom,.annual-saving,.allowance-pill){background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+body.public-daylight :is(.mini-proof strong,.workflow-role,.operation .line-icon,.ai-offer>b){color:#1d4ed8}
+body.public-daylight .operation .line-icon{background:#eff6ff}
+body.public-daylight .analytics-bar:nth-of-type(2) .analytics-bar-fill{background:#475467}
+body.public-daylight .analytics-bar:nth-of-type(3) .analytics-bar-fill{background:#98a2b3}
 body.public-daylight .closing :is(h2,h3){color:#fff}
-body.public-daylight .closing .intro,body.public-daylight .footer .footer-description{color:#cbd5e1}
-/* Paint a full-width footer behind the existing constrained landing container. */
-body.landing-daylight>.footer{box-shadow:0 0 0 100vmax #111317;clip-path:inset(0 -100vmax)}
+body.public-daylight .closing .eyebrow{color:#93c5fd}
+body.public-daylight .closing .intro{color:#cbd5e1}
+body.public-daylight .closing .btn{background:#fff;border-color:#fff;color:#111827}
+body.public-daylight .closing .btn:hover{background:#e5e7eb;border-color:#e5e7eb}
+body.public-daylight .footer-shell{border-top:1px solid #d0d5dd}
+body.landing-daylight>.footer{border-top:1px solid #d0d5dd;box-shadow:0 0 0 100vmax #fff;clip-path:inset(0 -100vmax)}
+@media(max-width:720px){body.public-daylight #features .pillar-grid{padding:16px}body.pricing-daylight .closing-panel{width:calc(100% - 40px);padding:26px}}
+
+/* Keep the unchanged workflow prose readable on its new white surface. */
+body.public-daylight #features .console-body>p{color:#475467}
+body.public-daylight #features .risk-low{color:#1d4ed8!important}
+body.public-daylight #features .risk-high{color:#b42318}
