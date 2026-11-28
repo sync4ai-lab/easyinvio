@@ -46,7 +46,7 @@ async def main():
                 elif path=='/api/v1/billing/subscription' or (path.endswith('/process') and path.startswith('/api/v1/billing/subscription/')):
                     await gate.wait();rank=['STARTER','VELOCITY','COMMAND'].index(current_plan)
                     management={'reason':'This is complimentary access with no paid renewal to cancel.' if unbounded else None,'upgrade_targets':['STARTER','VELOCITY','COMMAND'][rank+1:] if not unbounded else [],'downgrade_targets':['STARTER','VELOCITY','COMMAND'][:rank] if not unbounded else [],'can_cancel':not unbounded and rank>0,'activation_targets':['VELOCITY','COMMAND'] if unbounded else []}
-                    data={'registered_at':registered,'activation_checkout_available':{'VELOCITY':prices_ready,'COMMAND':prices_ready},'is_sandbox':unbounded,'can_manage':can_manage,'management':management,'plans':plans,'subscription':{'subscription_plan':current_plan,'billing_cycle':'ANNUAL' if unbounded else 'MONTHLY','plan_status':'ACTIVE','subscription_complimentary':unbounded,'plan_period_start':'2026-11-28T01:23:49Z','plan_period_end':None if unbounded else '2026-12-28T01:23:49Z','stripe_subscription_id':None if unbounded else 'sub_synthetic'},'operations':([{'id':'change-demo','action':'UPGRADE','state':'PROVIDER_PENDING','provider_url':'https://invoice.stripe.com/i/synthetic','funding':'STRIPE'}] if invoice_pending else [{'id':'old-failed','state':'FAILED','action':'UPGRADE','error_code':'UNPAID_SETUP_RESTART_REQUIRED'}]),'wallet':{'currency':'GBP','available':'0.00'},'usage':{'parcels':48}}
+                    data={'tax':{'rate_percent':'20','prices_exclude_tax':True},'registered_at':registered,'activation_checkout_available':{'VELOCITY':prices_ready,'COMMAND':prices_ready},'is_sandbox':unbounded,'can_manage':can_manage,'management':management,'plans':plans,'subscription':{'subscription_plan':current_plan,'billing_cycle':'ANNUAL' if unbounded else 'MONTHLY','plan_status':'ACTIVE','subscription_complimentary':unbounded,'plan_period_start':'2026-11-28T01:23:49Z','plan_period_end':None if unbounded else '2026-12-28T01:23:49Z','stripe_subscription_id':None if unbounded else 'sub_synthetic'},'operations':([{'id':'change-demo','action':'UPGRADE','state':'PROVIDER_PENDING','provider_url':'https://invoice.stripe.com/i/synthetic','funding':'STRIPE'}] if invoice_pending else [{'id':'old-failed','state':'FAILED','action':'UPGRADE','error_code':'UNPAID_SETUP_RESTART_REQUIRED'}]),'wallet':{'currency':'GBP','available':'0.00'},'usage':{'parcels':48}}
                 elif path=='/api/v1/billing/subscription/reconcile':
                     assert route.request.method=='POST' and not route.request.post_data
                     data={'reconciled':False}
@@ -56,7 +56,7 @@ async def main():
                     body=route.request.post_data_json;commands.append((path,body))
                     if review_failure:return await route.fulfill(status=409,json={'detail':'The agreement requires reconciliation. No charge was made.'})
                     action='UPGRADE' if path.endswith('/upgrade') else 'DOWNGRADE'
-                    data={'id':'change-demo','state':('APPLIED' if action=='UPGRADE' else 'SCHEDULED') if body.get('confirm') else 'PREVIEW','source_plan':current_plan,'target_plan':body['target_plan'],'effective_at':'2026-11-28T01:37:04Z' if action=='UPGRADE' else '2026-12-28T01:23:49Z','amount':'49.98' if action=='UPGRADE' else '0.00','payload_sha256':'b'*64,'payload':{'breakdown':{'remaining_days':'29.990798611111111111111111111','total_days':'30','prorated_amount':'49.98'} if action=='UPGRADE' else {'next_period_price':'240.00'}}}
+                    data={'id':'change-demo','state':('APPLIED' if action=='UPGRADE' else 'SCHEDULED') if body.get('confirm') else 'PREVIEW','source_plan':current_plan,'target_plan':body['target_plan'],'effective_at':'2026-11-28T01:37:04Z' if action=='UPGRADE' else '2026-12-28T01:23:49Z','amount':'59.98' if action=='UPGRADE' else '0.00','payload_sha256':'b'*64,'payload':{'net_amount':'49.98' if action=='UPGRADE' else '0.00','tax_amount':'10.00' if action=='UPGRADE' else '0.00','tax_rate_percent':'20','breakdown':{'remaining_days':'29.990798611111111111111111111','total_days':'30','prorated_amount':'49.98'} if action=='UPGRADE' else {'next_period_price':'240.00'}}}
                     if action=='UPGRADE' and body.get('confirm'):
                         if card_flow:invoice_pending=True;data['state']='AUTHORIZED'
                         else:current_plan=body['target_plan']
@@ -133,7 +133,8 @@ async def main():
         await expect(page.locator('#billing-confirm')).to_be_hidden()
         await page.locator('#billing-plan-review').click()
         await expect(page.locator('#billing-confirm')).to_contain_text('pay from wallet')
-        await expect(page.locator('#billing-quote')).to_contain_text('Includes tax.')
+        await expect(page.locator('#billing-quote')).to_contain_text('VAT (20%) GBP 10.00')
+        await expect(page.locator('#billing-quote')).to_contain_text('Total GBP 59.98')
         await expect(page.locator('#billing-quote')).not_to_contain_text('wallet tax')
         assert commands[-1][1]['funding']=='WALLET' and not commands[-1][1].get('confirm')
         await page.locator('#billing-change').screenshot(path=str(out/'upgrade-wallet.png'))
@@ -162,6 +163,8 @@ async def main():
         await expect(page.locator('#billing-plan-review')).to_have_text('Review downgrade to Velocity')
         await page.locator('#billing-plan-review').click();assert commands[-1][0].endswith('/downgrade')
         await expect(page.locator('#billing-quote')).to_contain_text('No payment due now.')
+        await expect(page.locator('[aria-label="Next renewal total"]')).to_contain_text('GBP 30.00')
+        await expect(page.locator('#billing-quote')).to_contain_text('Refund / credit now: GBP 0.00')
         await expect(page.locator('#billing-quote')).not_to_contain_text('Payment: card')
         retention=page.locator('[aria-label="Downgrade comparison"]')
         await expect(retention).to_contain_text('Before you switch to Velocity')

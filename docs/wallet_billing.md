@@ -148,3 +148,86 @@ planned capabilities. Keeping the current plan dismisses the preview without
 confirming any commercial operation; downgrade confirmation remains available.
 The displayed tax label is simply "tax". This copy change does not change the
 wallet subscription tax percentage, automatic-tax configuration or VAT policy.
+
+
+Subscription VAT configuration: prices remain exclusive of tax. For approved UK
+standard-rated billing set SUBSCRIPTION_TAX_PERCENT=20 and a validated exclusive
+GB Stripe tax-rate ID in SUBSCRIPTION_STRIPE_TAX_RATE_ID. Both card and wallet
+reviews show net, VAT and total; tax is calculated on the rounded prorated net
+fee. Checkout attaches the rate to the subscription; upgrade invoices attach the
+same rate and validate the total before settlement. Recurring plan changes carry
+the rate to future invoices. Do not combine fixed-rate and automatic-tax modes.
+Positive fixed VAT is restricted to GB billing and live collection requires
+SUBSCRIPTION_VAT_REGISTERED=true after actual VAT registration. International or
+exempt/reverse-charge tax treatment needs a separate approved policy; the fixed
+UK setting is not a blanket worldwide 20% rule.
+
+Downgrades retain the existing end-of-period policy: paid access continues until
+renewal, so there is no mid-cycle credit or refund. The preview shows zero credit
+now and the new renewal net/VAT/total. Moving a downgrade to an immediate cutover
+would require a distinct, approved credit/refund policy. Annual cancellation
+refunds use verified original invoice net and VAT amounts, not the current rate;
+tax never paid must never be invented in a refund. Historical invoices are not
+rewritten and earlier untaxed payments are not retroactively charged.
+
+Local test VAT was configured with an exclusive 20% test rate and future UK test
+subscription invoices were updated with no proration. No payment was created.
+The owner confirmed UK VAT registration on 28 November 2026. Live tax collection
+remains unchanged pending the customer tax classification and rollout policy below.
+
+
+VAT rollout decision, researched 28 November 2026:
+
+- Treat the software subscription separately from parcel transport, customs tax,
+  wallet funding and other services. The UK fixed-rate implementation above is
+  a tested restricted mode, not completed international tax support.
+- UK-established supplier to UK subscription customers: normally 20%, including
+  VAT-registered business customers. Command GBP 75 net + GBP 15 VAT = GBP 90.
+  For overseas B2B general-rule services, determine the receiving establishment
+  and retain evidence of business status; normally no UK VAT and the applicable
+  reverse-charge treatment. Incorporation country alone is insufficient.
+- EU private-consumer software subscriptions normally follow consumer location
+  and its local VAT rate. A UK-only established supplier cannot rely on the EU
+  EUR 10,000 threshold. Non-Union OSS can consolidate eligible EU B2C service VAT
+  reporting; registration and filing still need arranging.
+- Collect verified billing name/address/country, business or consumer status,
+  VAT number and validation outcome, receiving establishment where relevant,
+  and required location evidence. Do not reuse a parcel recipient's shipping
+  address as the subscription customer's tax location.
+- Recommended international subscription design: Stripe Tax with actual merchant
+  registrations and suitable software tax classification, using the same server
+  calculation and stored net/tax/gross evidence for card and wallet. Missing
+  registrations can produce zero tax; that must not be interpreted as exemption.
+- Freight needs its own matrix: customer business status, place of supply,
+  transport route, zero-rating evidence and whether EasyInvio contracts as
+  principal or agent. UK domestic courier services are generally standard-rated;
+  qualifying international transport can be zero-rated. Neither blanket 20%
+  nor copying every carrier input VAT amount is a sufficient output-tax policy.
+- Obtain accountant confirmation of wallet classification and tax point. Advance
+  payments and single-/multi-purpose vouchers have different treatment; do not
+  automatically tax both a top-up and its later spending.
+- Consumer-facing prices must include unavoidable VAT; business net prices need
+  clear VAT labelling. Consider showing UK GBP 75 ex VAT / GBP 90 inc VAT together.
+- Historical real undercharged VAT requires accountant review and proper invoice
+  correction; it is not erased by fixing future configuration. No automatic
+  retroactive customer debit is authorized by this implementation.
+
+Primary sources:
+
+- HMRC place of supply: https://www.gov.uk/guidance/vat-place-of-supply-of-services-notice-741a
+- HMRC digital consumers: https://www.gov.uk/guidance/the-vat-rules-if-you-supply-digital-services-to-private-consumers
+- European Commission OSS: https://vat-one-stop-shop.ec.europa.eu/one-stop-shop_en
+- HMRC freight: https://www.gov.uk/guidance/vat-on-freight-transport-and-associated-services-notice-744b
+- HMRC advances: https://www.gov.uk/guidance/vat-instalments-deposits-credit-sales
+- HMRC vouchers: https://www.gov.uk/guidance/business-promotions-and-vat-notice-7007
+- HMRC corrections: https://www.gov.uk/guidance/how-to-correct-vat-errors-and-make-adjustments-or-claims-vat-notice-70045
+- CMA consumer prices: https://www.gov.uk/government/publications/price-transparency-cma209/providing-clear-and-accurate-information-about-prices-summary
+- Stripe customer location: https://docs.stripe.com/tax/customer-locations
+- Stripe standalone calculations: https://docs.stripe.com/tax/standalone-tax-api
+- Sendcloud billing entities: https://www.sendcloud.com/terms-conditions/
+- Sendcloud country-specific VAT: https://support.sendcloud.com/hc/en-us/articles/360025144311-Can-I-get-a-VAT-free-invoice
+
+Before European commercial rollout, approve the receiving-establishment and
+business-status evidence flow, EU consumer registration/filing arrangements, and
+shipping principal/agent contracts and tax matrix. Do not activate international
+collection merely by changing SUBSCRIPTION_TAX_PERCENT.

@@ -14,6 +14,7 @@ import stripe
 from fastapi import HTTPException
 from pydantic import BaseModel,ConfigDict
 from backend.entitlements import Plan,capabilities,enabled,read_subscription,seed_margin
+from backend.subscription_tax import stripe_options,require_country
 
 class SubscriptionCheckout(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -35,7 +36,7 @@ def validate_price(price,plan,cycle,livemode,*,require_active=True):
     expected=int((policy.monthly_fee_gbp if cycle=='MONTHLY' else policy.annual_monthly_fee_gbp*12)*100)
     if (price.get('livemode') is not livemode or price.get('currency')!='gbp' or (require_active and not price.get('active'))
         or price.get('unit_amount')!=expected or recurring.get('interval')!=('month' if cycle=='MONTHLY' else 'year')
-        or recurring.get('interval_count',1)!=1 or price.get('billing_scheme')!='per_unit'):
+        or recurring.get('interval_count',1)!=1 or price.get('billing_scheme')!='per_unit' or price.get('tax_behavior')=='inclusive'):
         raise HTTPException(503,'The configured Stripe Price does not match the published plan and billing cycle')
 
 def provider_plan(subscription,settings):
@@ -75,6 +76,7 @@ async def checkout(request,context,body:SubscriptionCheckout):
     try:price=as_dict(await finance.stripe.v1.prices.retrieve_async(price_id))
     except stripe.StripeError:raise HTTPException(503,'Stripe Price validation is temporarily unavailable') from None
     validate_price(price,body.plan,body.cycle,settings.stripe_livemode)
+    tax_options=await stripe_options(settings,finance.stripe)
     async with finance.pool.acquire() as c:
         async with c.transaction():
             subscription=await read_subscription(c,context.tenant_id,lock=True)
@@ -100,11 +102,15 @@ async def checkout(request,context,body:SubscriptionCheckout):
                 await c.execute('UPDATE public.tenants SET stripe_subscription_id=NULL WHERE tenant_id=$1',context.tenant_id)
             if await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.subscription_checkout_receipts WHERE tenant_id=$1 AND state IN ('CREATING','READY','REVIEW'))",context.tenant_id):
                 raise HTTPException(409,'A subscription checkout is already pending; resolve it before starting another')
-            tenant=await c.fetchrow('SELECT stripe_customer_id,billing_email FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
+            tenant=await c.fetchrow("SELECT stripe_customer_id,billing_email,to_jsonb(t)->>'country_code' AS country_code FROM public.tenants t WHERE tenant_id=$1",context.tenant_id)
+            require_country(settings,tenant['country_code'])
             await c.execute("INSERT INTO public.subscription_checkout_receipts(id,tenant_id,auth_user_id,plan,cycle,price_id,state) VALUES($1,$2,$3,$4,$5,$6,'CREATING')",body.request_id,context.tenant_id,context.user_id,body.plan,body.cycle,price_id)
     params={'mode':'subscription','line_items':[{'price':price_id,'quantity':1}],
         'client_reference_id':str(body.request_id),'metadata':{'purpose':'software_subscription'},
         'success_url':base+'/workspace?subscription=processing','cancel_url':cancel_base+'/workspace?subscription=cancelled'}
+    if 'default_tax_rates' in tax_options:params['subscription_data']=tax_options
+    else:params.update(tax_options)
+    params['billing_address_collection']='required'
     if tenant['stripe_customer_id']:params['customer']=tenant['stripe_customer_id']
     else:params['customer_email']=tenant['billing_email']
     try:

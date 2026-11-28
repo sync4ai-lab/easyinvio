@@ -16,6 +16,7 @@ from pydantic import BaseModel,ConfigDict,Field
 from backend.entitlements import Plan,capabilities,read_subscription,seed_margin
 from backend.subscription_math import money,calculate_proration,upgrade_breakdown,cancellation_breakdown,annual_refund_breakdown,cycle_price,add_cycle
 from backend.subscription_billing import as_dict,reference,provider_plan,validate_price
+from backend.subscription_tax import percent as tax_percent,breakdown as tax_breakdown,stripe_options,require_country
 
 logger=logging.getLogger('easyinvio.subscription_lifecycle')
 
@@ -89,16 +90,16 @@ class SubscriptionLifecycle:
         if context.role not in {'OWNER','ADMIN','ACCOUNTANT'}:raise HTTPException(403,'Financial permission required')
         async with self.pool.acquire() as c:
             sub=await read_subscription(c,context.tenant_id)
-            tenant=await c.fetchrow('''SELECT tenant_id,created_at AS registered_at,subscription_plan,billing_cycle,plan_status,plan_period_start,plan_period_end,stripe_subscription_id,
+            tenant=await c.fetchrow('''SELECT tenant_id,to_jsonb(t)->>'country_code' AS country_code,created_at AS registered_at,subscription_plan,billing_cycle,plan_status,plan_period_start,plan_period_end,stripe_subscription_id,
              plan_version,subscription_complimentary,pending_plan,pending_billing_cycle,pending_plan_effective_at,
              cancellation_requested_at,cancellation_effective_at,final_notice_prorated_amount,final_notice_billed
-             FROM public.tenants WHERE tenant_id=$1''',context.tenant_id)
+             FROM public.tenants t WHERE tenant_id=$1''',context.tenant_id)
             operations=await c.fetch('''SELECT id,action,state,amount,currency,effective_at,provider_url,error_code,created_at,funding
              FROM public.subscription_operations WHERE tenant_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20''',context.tenant_id)
             wallet=await c.fetchrow('SELECT currency,balance-reserved_balance AS available FROM public.wallets WHERE tenant_id=$1',context.tenant_id)
             usage=await c.fetchval('SELECT parcels FROM public.v_tenant_monthly_usage WHERE tenant_id=$1',context.tenant_id) or 0
         if not tenant:raise HTTPException(404,'Workspace not found')
-        return document({'wallet':document(dict(wallet)) if wallet else None,'registered_at':tenant['registered_at'],'effective_plan':sub.effective().value,'usage':{'parcels':int(usage)},'subscription':dict(tenant),'operations':[dict(x) for x in operations],
+        return document({'tax':{'rate_percent':str(tax_percent(self.settings,'STRIPE')),'prices_exclude_tax':True},'wallet':document(dict(wallet)) if wallet else None,'registered_at':tenant['registered_at'],'effective_plan':sub.effective().value,'usage':{'parcels':int(usage)},'subscription':dict(tenant),'operations':[dict(x) for x in operations],
             'can_manage':bool(getattr(self.settings,'billing_lifecycle_enabled',False)) and context.role=='OWNER' and not getattr(context,'assistance_session_id',None),
             'is_sandbox':sub.is_sandbox,'management':management_options(sub,self.settings,context),
             'activation_checkout_available':{p.value:bool(getattr(self.settings,'stripe_enabled',False) and getattr(self.settings,'subscription_price_ids',{}).get(p.value+':'+sub.billing_cycle)) for p in Plan if p!=Plan.STARTER},
@@ -115,6 +116,7 @@ class SubscriptionLifecycle:
                 await c.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,52))','commercial:'+str(context.tenant_id))
                 sub=await read_subscription(c,context.tenant_id,lock=True)
                 tenant=await c.fetchrow('SELECT * FROM public.tenants WHERE tenant_id=$1',context.tenant_id)
+                require_country(self.settings,tenant.get('country_code'))
                 op=await c.fetchrow('SELECT * FROM public.subscription_operations WHERE tenant_id=$1 AND request_id=$2 FOR UPDATE',context.tenant_id,body.request_id)
                 if op:
                     wanted=body.target_plan.value if body.target_plan else 'STARTER'
@@ -127,6 +129,9 @@ class SubscriptionLifecycle:
                         raise HTTPException(409,'The commercial preview changed or expired. Request a fresh preview.')
                     if tenant['pending_plan'] or tenant['cancellation_requested_at']:
                         raise HTTPException(409,'An existing scheduled change must be resolved first')
+                    prior=decoded(op['payload'])
+                    if Decimal(str(prior.get('tax_rate_percent',prior.get('wallet_tax_percent','0') if body.funding=='WALLET' else '0')))!=tax_percent(self.settings,body.funding):
+                        raise HTTPException(409,'Tax settings changed. Review a fresh price before confirming.')
                     if await c.fetchval("SELECT EXISTS(SELECT 1 FROM public.subscription_operations WHERE tenant_id=$1 AND id<>$2 AND state IN ('AUTHORIZED','PROVIDER_PENDING','PAID','REVIEW'))",context.tenant_id,op['id']):
                         raise HTTPException(409,'An earlier plan change is awaiting payment or review. Resume it before confirming another.')
                     if body.funding=='WALLET' and action=='UPGRADE' and sub.stripe_subscription_id:
@@ -202,13 +207,17 @@ class SubscriptionLifecycle:
                             breakdown.update(final_notice_prorated_amount='0.00',cancellation_effective_at=effective,complimentary_or_trial=True)
                         if sub.plan_status=='PAST_DUE':
                             amount=Decimal('0.00');breakdown.update(final_notice_prorated_amount='0.00',unpaid_agreement_requires_reconciliation=True)
-                    tax_rate=Decimal(str(getattr(self.settings,'subscription_wallet_tax_percent','0')))
-                    tax=money(amount*tax_rate/100) if body.funding=='WALLET' else Decimal(0)
-                    if action=='DOWNGRADE' and body.funding=='WALLET':
+                    tax_rate=tax_percent(self.settings,body.funding)
+                    tax=money(amount*tax_rate/100)
+                    if action=='DOWNGRADE':
                         next_net=cycle_price(target,sub.billing_cycle)
                         breakdown['next_period_wallet_tax']=money(next_net*tax_rate/100)
                         breakdown['next_period_total']=next_net+breakdown['next_period_wallet_tax']
-                    payload=document({'breakdown':breakdown,'net_amount':amount,'wallet_tax_amount':tax,
+                        breakdown['next_period_tax']=breakdown['next_period_wallet_tax']
+                        breakdown['refund_amount']='0.00'
+                        breakdown['credit_amount']='0.00'
+                        breakdown['adjustment_policy']='AT_RENEWAL_KEEP_PAID_ACCESS'
+                    payload=document({**tax_breakdown(amount,tax_rate),'stripe_tax_rate_id':getattr(self.settings,'subscription_stripe_tax_rate_id',''),'breakdown':breakdown,'net_amount':amount,'wallet_tax_amount':tax,
                         'wallet_tax_percent':tax_rate,
                         'stripe_tax_is_on_secure_invoice':body.funding=='STRIPE','paid_period_start':sub.plan_period_start,
                         'paid_period_end':sub.plan_period_end,'subscription_id':sub.stripe_subscription_id,
@@ -320,13 +329,14 @@ class SubscriptionLifecycle:
                 await self.validate_subscription(current,op,payload)
                 if reference(current.get('customer'))!=customer or current.get('livemode') is not self.settings.stripe_livemode:
                     raise HTTPException(409,'Subscription customer or environment mismatch')
+            tax_options=await stripe_options(self.settings,client,rate_id=payload.get('stripe_tax_rate_id') or None)
             if action in {'UPGRADE','DOWNGRADE'} and op['target_plan']!='STARTER':
                 price=as_dict(await client.v1.prices.retrieve_async(payload['target_price_id']))
                 validate_price(price,op['target_plan'],op['billing_cycle'],self.settings.stripe_livemode)
             if action in {'CANCEL','DOWNGRADE'}:
                 if action=='CANCEL' or op['target_plan']=='STARTER':
                     cancel_at=min(datetime.fromisoformat(payload['paid_period_end']),op['effective_at'])
-                    await client.v1.subscriptions.update_async(sid,{'cancel_at':int(cancel_at.timestamp()),'proration_behavior':'none'},options={'idempotency_key':'ei-change:'+str(op['id'])})
+                    await client.v1.subscriptions.update_async(sid,{'cancel_at':int(cancel_at.timestamp()),'proration_behavior':'none',**tax_options},options={'idempotency_key':'ei-change:'+str(op['id'])})
                 else:
                     current=as_dict(await client.v1.subscriptions.retrieve_async(sid))
                     await self.validate_subscription(current,op,payload)
@@ -336,7 +346,7 @@ class SubscriptionLifecycle:
                     # No proration and unchanged interval: next renewal uses the lower price.
                     # The webhook pins local access to the old plan until the scheduled boundary.
                     await client.v1.subscriptions.update_async(sid,{'items':[{'id':current['items']['data'][0]['id'],'price':price_id}],
-                        'proration_behavior':'none'},options={'idempotency_key':'ei-change:'+str(op['id'])})
+                        'proration_behavior':'none',**tax_options},options={'idempotency_key':'ei-change:'+str(op['id'])})
                 async with self.pool.acquire() as c:
                     async with c.transaction():
                         await read_subscription(c,op['tenant_id'],lock=True)
@@ -345,7 +355,7 @@ class SubscriptionLifecycle:
             if not op['provider_invoice_id']:
                 invoice=as_dict(await client.v1.invoices.create_async({'customer':customer,'collection_method':'send_invoice','days_until_due':1,
                     'pending_invoice_items_behavior':'exclude','auto_advance':False,
-                    'automatic_tax':{'enabled':bool(getattr(self.settings,'subscription_automatic_tax_enabled',False))},
+                    **tax_options,
                     'metadata':{'easyinvio_operation_id':str(op['id']),'purpose':'subscription_lifecycle'}},options={'idempotency_key':'ei-invoice:'+str(op['id'])}))
                 async with self.pool.acquire() as c:await c.execute('UPDATE public.subscription_operations SET provider_invoice_id=$2 WHERE id=$1',op['id'],invoice['id'])
                 await client.v1.invoice_items.create_async({'customer':customer,'invoice':invoice['id'],'amount':int(money(payload['net_amount'])*100),
@@ -357,6 +367,8 @@ class SubscriptionLifecycle:
             if invoice.get('status')=='draft':raise HTTPException(409,'Unfinalized invoice requires reconciliation')
             if invoice.get('subtotal')!=int(money(payload['net_amount'])*100):raise HTTPException(409,'Invoice amount differs from authorized terms')
             if invoice.get('total_excluding_tax')!=int(money(payload['net_amount'])*100):raise HTTPException(409,'Invoice net amount differs from authorized terms')
+            if payload.get('tax_rate_percent') is not None and not getattr(self.settings,'subscription_automatic_tax_enabled',False) and invoice.get('total')!=int(money(op['amount'])*100):
+                raise HTTPException(409,'Invoice VAT or total differs from the reviewed amount. No new payment was authorized.')
             if invoice.get('status')=='paid' and (invoice.get('amount_paid')!=invoice.get('total') or invoice.get('amount_remaining')!=0):
                 raise HTTPException(409,'Invoice payment requires reconciliation')
             if op['funding']=='WALLET':
@@ -383,7 +395,7 @@ class SubscriptionLifecycle:
                 price=as_dict(await client.v1.prices.retrieve_async(payload['target_price_id']))
                 validate_price(price,op['target_plan'],op['billing_cycle'],self.settings.stripe_livemode)
                 await client.v1.subscriptions.update_async(sid,{'items':[{'id':current['items']['data'][0]['id'],'price':price['id']}],
-                    'proration_behavior':'none'},options={'idempotency_key':'ei-apply:'+str(op['id'])})
+                    'proration_behavior':'none',**tax_options},options={'idempotency_key':'ei-apply:'+str(op['id'])})
             async with self.pool.acquire() as c:
                 async with c.transaction():
                     await read_subscription(c,op['tenant_id'],lock=True)
@@ -461,10 +473,10 @@ class SubscriptionLifecycle:
         now=utcnow();payload=decoded(original['payload']);tax=Decimal(0)
         if action=='NOTICE_CHARGE' and net==0:
             await c.execute('UPDATE public.tenants SET final_notice_billed=true WHERE tenant_id=$1',original['tenant_id']);return
-        if original['funding']=='WALLET':
-            rate=Decimal(payload.get('wallet_tax_percent','0'))
+        if original['funding']=='WALLET' or 'tax_rate_percent' in payload:
+            rate=Decimal(str(payload.get('tax_rate_percent',payload.get('wallet_tax_percent','0'))))
             tax=money(net*rate/Decimal(100))
-        payload={**payload,'net_amount':str(net),'wallet_tax_amount':str(tax)}
+        payload={**payload,**tax_breakdown(net,rate if original['funding']=='WALLET' or 'tax_rate_percent' in payload else 0),'wallet_tax_amount':str(tax)}
         funding=original['funding'] if net>0 else 'NONE'
         request_id=UUID(hashlib.md5((str(original['id'])+action).encode(),usedforsecurity=False).hexdigest())
         await c.fetchrow('''INSERT INTO public.subscription_operations(id,tenant_id,actor_auth_user_id,request_id,action,state,

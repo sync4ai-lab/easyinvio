@@ -3,7 +3,7 @@ CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;
 CREATE SCHEMA auth;CREATE TABLE auth.users(id uuid PRIMARY KEY);
 CREATE TABLE public.tenants(tenant_id uuid PRIMARY KEY,company_name text NOT NULL DEFAULT 'Synthetic workspace',
  is_sandbox boolean NOT NULL DEFAULT false,workspace_type text NOT NULL DEFAULT 'BUSINESS',workspace_status text NOT NULL DEFAULT 'ACTIVE',
- billing_plan text NOT NULL DEFAULT 'PREPAID_WALLET',default_currency text NOT NULL DEFAULT 'GBP',stripe_customer_id text,billing_email text);
+ billing_plan text NOT NULL DEFAULT 'PREPAID_WALLET',default_currency text NOT NULL DEFAULT 'GBP',country_code text NOT NULL DEFAULT 'GB',stripe_customer_id text,billing_email text);
 CREATE TABLE public.users(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants,
  auth_user_id uuid NOT NULL REFERENCES auth.users,role text NOT NULL DEFAULT 'OWNER',is_active boolean NOT NULL DEFAULT true);
 CREATE TABLE public.workspace_invitations(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants,

@@ -234,8 +234,10 @@ async def test_annual_cancellation_original_card_refund_and_replay(world,monkeyp
 @pytest.mark.asyncio
 @pytest.mark.parametrize('tamper',[False,True])
 @pytest.mark.parametrize('funding',['STRIPE','WALLET','WALLET_ZERO'])
-async def test_stripe_upgrade_requires_matching_paid_invoice_before_access(world,tamper,funding):
+@pytest.mark.parametrize('taxed',[False,True])
+async def test_stripe_upgrade_requires_matching_paid_invoice_before_access(world,tamper,funding,taxed):
     zero=funding=='WALLET_ZERO';funding='WALLET' if zero else funding
+    if taxed:world.settings.subscription_tax_percent=Decimal('20');world.settings.subscription_stripe_tax_rate_id='txr_uk_vat'
     w=world;sub=await read_subscription(w.db,w.t)
     if zero:await w.db.execute('UPDATE public.tenants SET subscription_complimentary=true WHERE tenant_id=$1',w.t)
     await w.db.execute("UPDATE public.tenants SET stripe_subscription_id='sub_test',stripe_customer_id='cus_test',is_sandbox=true WHERE tenant_id=$1",w.t)
@@ -250,14 +252,19 @@ async def test_stripe_upgrade_requires_matching_paid_invoice_before_access(world
     async def item(params,**kwargs):invoice.update(subtotal=params['amount'],total=params['amount'],total_excluding_tax=params['amount']);return {'id':'ii_test'}
     async def finalize(*args,**kwargs):
         invoice.update(status='paid' if zero else 'open',hosted_invoice_url='https://invoice.stripe.com/i/test')
+        if taxed:invoice['total']=invoice['subtotal']+int((Decimal(invoice['subtotal'])*Decimal('.20')).quantize(Decimal('1')))
         if zero:invoice.update(amount_paid=0,amount_remaining=0,paid_out_of_band=False)
         return dict(invoice)
     async def get_invoice(*args,**kwargs):return dict(invoice)
     async def pay(invoice_id,params,**kwargs):
         assert params=={'paid_out_of_band':True};calls.append('wallet-paid');invoice.update(status='paid',paid_out_of_band=True,amount_paid=invoice['total'],amount_remaining=0);return dict(invoice)
     w.settings.stripe_enabled=True;w.settings.subscription_price_ids={'VELOCITY:MONTHLY':'price_velocity','COMMAND:MONTHLY':'price_command'}
-    w.service.finance.stripe=NS(v1=NS(subscriptions=NS(retrieve_async=retrieve_sub,update_async=update_sub),prices=NS(retrieve_async=get_price),invoices=NS(create_async=create,finalize_invoice_async=finalize,retrieve_async=get_invoice,pay_async=pay),invoice_items=NS(create_async=item)))
+    async def get_tax(*args,**kwargs):return {'active':True,'livemode':False,'inclusive':False,'percentage':20,'country':'GB'}
+    w.service.finance.stripe=NS(v1=NS(tax_rates=NS(retrieve_async=get_tax),subscriptions=NS(retrieve_async=retrieve_sub,update_async=update_sub),prices=NS(retrieve_async=get_price),invoices=NS(create_async=create,finalize_invoice_async=finalize,retrieve_async=get_invoice,pay_async=pay),invoice_items=NS(create_async=item)))
     body=ChangeRequest(request_id=uuid4(),target_plan='COMMAND',funding=funding);q=await w.service.command(w.context,'UPGRADE',body)
+    if taxed:
+        assert q['payload']['tax_amount']==('0.00' if zero else '8.00')
+        assert q['amount']==('0.00' if zero else '48.00')
     result=await w.service.command(w.context,'UPGRADE',body.model_copy(update={'confirm':True,'quote_sha256':q['payload_sha256']}));opid=UUID(result['id'])
     if funding=='WALLET' and tamper:
         # Tax changes after authorization must not debit the wallet.
@@ -321,3 +328,27 @@ async def test_registration_date_limits_all_activity_and_monthly_statements(worl
     await w.db.execute('UPDATE public.tenants SET created_at=$2 WHERE tenant_id=$1',w.t,start+timedelta(days=10))
     assert (await service.generate(w.context,start,end))['id']==old['id']
     assert len((await service.list(w.context))['statements'])==1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('country',['GB','US'])
+async def test_initial_checkout_attaches_exclusive_vat_before_creating_receipt(world,country):
+    from backend.subscription_billing import checkout,SubscriptionCheckout
+    w=world;await w.db.execute('UPDATE public.tenants SET is_sandbox=true,country_code=$2,billing_email=$3 WHERE tenant_id=$1',w.t,country,'owner@example.invalid')
+    w.settings.stripe_enabled=True;w.settings.subscription_tax_percent=Decimal(20)
+    w.settings.subscription_stripe_tax_rate_id='txr_test_uk';w.settings.booking_page_url='https://workspace.example.invalid'
+    w.settings.subscription_price_ids={'COMMAND:MONTHLY':'price_command'};calls=[]
+    async def price(*args):return {'active':True,'livemode':False,'currency':'gbp','unit_amount':7500,'recurring':{'interval':'month','interval_count':1},'billing_scheme':'per_unit','tax_behavior':'exclusive'}
+    async def rate(*args):return {'active':True,'livemode':False,'inclusive':False,'percentage':20,'country':'GB'}
+    async def create(params,**kwargs):calls.append(params);return {'id':'cs_test_vat','url':'https://checkout.stripe.com/c/test'}
+    w.service.finance.stripe=NS(v1=NS(prices=NS(retrieve_async=price),tax_rates=NS(retrieve_async=rate),checkout=NS(sessions=NS(create_async=create))))
+    request=NS(app=NS(state=NS(settings=w.settings,finance=w.service.finance)))
+    body=SubscriptionCheckout(request_id=uuid4(),plan='COMMAND')
+    if country!='GB':
+        with pytest.raises(HTTPException):await checkout(request,w.context,body)
+        assert not calls and await w.db.fetchval('SELECT count(*) FROM public.subscription_checkout_receipts')==0
+    else:
+        await checkout(request,w.context,body)
+        assert calls[0]['subscription_data']=={'default_tax_rates':['txr_test_uk']}
+        assert calls[0]['billing_address_collection']=='required'
+        assert calls[0]['line_items']==[{'price':'price_command','quantity':1}]

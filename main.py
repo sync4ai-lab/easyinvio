@@ -136,6 +136,9 @@ class Settings(IntegrationSettings, WhatsAppProviderSettings):
     billing_statements_enabled: bool = False
     subscription_wallet_tax_percent: Decimal = Field(default=Decimal('0'),ge=0,le=100)
     subscription_automatic_tax_enabled: bool = False
+    subscription_tax_percent: Decimal | None = Field(default=None,ge=0,le=100)
+    subscription_stripe_tax_rate_id: str = ''
+    subscription_vat_registered: bool = False
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True
     )
