@@ -66,7 +66,7 @@ async def main():
         await page.goto('https://experience.test/')
         await expect(page.locator('#public-signin')).to_be_visible()
         assert await page.locator('.nav .brand-mark').get_attribute('src')=='/brand-mark.svg'
-        assert await page.locator('body').evaluate('(e)=>getComputedStyle(e).backgroundColor')=='rgb(15, 23, 42)'
+        assert await page.locator('body').evaluate('(e)=>getComputedStyle(e).backgroundColor')=='rgb(255, 255, 255)'
         # New landing interactions use synthetic data and never purchase a label.
         assert await page.locator('#nav-ask').count()==0
         assert await page.locator('#solutions-toggle,#solutions-menu,#rate-tab,#rate-panel').count()==0

@@ -30,7 +30,7 @@ async def main():
         await expect(page.locator('[data-plan-price="velocity"]')).to_have_text('£25')
         await expect(page.locator('[data-plan-price="command"]')).to_have_text('£75')
         assert await page.locator('#estimator,#parcel-volume,#net-saving,.soon').count()==0
-        assert await page.locator('body').evaluate('(el)=>getComputedStyle(el).backgroundColor')=='rgb(15, 23, 42)'
+        assert await page.locator('body').evaluate('(el)=>getComputedStyle(el).backgroundColor')=='rgb(255, 255, 255)'
         assert 'Planned' not in await page.locator('.tiers').inner_text()
         assert '30-day postpaid billing' not in await page.locator('.tiers').inner_text()
         await page.locator('#billing-annual').click()
@@ -61,6 +61,6 @@ async def main():
             await page.screenshot(path=str(output/f'pricing-{width}.png'),full_page=True)
         assert not errors,errors
         await browser.close()
-    print('Pricing browser checks passed: prices, annual totals, shared dark theme, removed calculator/planned features, sticky table, signup links and three viewport sizes.')
+    print('Pricing browser checks passed: prices, annual totals, shared daylight theme, removed calculator/planned features, sticky table, signup links and three viewport sizes.')
 
 if __name__=='__main__':asyncio.run(main())
